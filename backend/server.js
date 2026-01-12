@@ -51,22 +51,35 @@ import siigoRoutes from './src/routes/siigo.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+console.log('🚀 Starting AgenciaPro backend...');
+console.log('📊 Environment:');
+console.log('  - PORT:', PORT);
+console.log('  - NODE_ENV:', process.env.NODE_ENV || 'not set');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Initialize database (async)
-const startServer = async () => {
-  try {
-    await initializeDatabase();
-    console.log('✅ Database ready');
-  } catch (error) {
-    console.error('❌ Failed to initialize database:', error);
-    process.exit(1);
-  }
-};
+// Health check - MUST BE BEFORE database init so Railway can check health
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'AgenciaPro API is running' });
+});
 
-startServer();
+// Start server FIRST, then initialize database
+app.listen(PORT, () => {
+  console.log(`🚀 AgenciaPro backend running on http://localhost:${PORT}`);
+  console.log('✅ Server is listening, now initializing database...');
+
+  // Initialize database after server starts
+  initializeDatabase()
+    .then(() => {
+      console.log('✅ Database ready - Application fully operational');
+    })
+    .catch((error) => {
+      console.error('❌ Failed to initialize database:', error);
+      // Don't exit - keep server running for debugging
+    });
+});
 
 // Routes
 app.use('/api/clients', clientRoutes);
@@ -108,20 +121,10 @@ app.use('/api/time-entries', timeEntriesRoutes);
 // Siigo Integration
 app.use('/api/siigo', siigoRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'AgenciaPro API is running' });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 AgenciaPro backend running on http://localhost:${PORT}`);
 });
 
 // Setup cron job for recurring invoices

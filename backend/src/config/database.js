@@ -1,10 +1,29 @@
 import pg from 'pg';
 const { Pool } = pg;
 
+// Debug: Log environment info at startup
+console.log('🔧 Database configuration:');
+console.log('  - NODE_ENV:', process.env.NODE_ENV || 'not set');
+console.log('  - DATABASE_URL:', process.env.DATABASE_URL ? '✅ Set (hidden)' : '❌ NOT SET');
+
+if (!process.env.DATABASE_URL) {
+  console.error('❌ FATAL: DATABASE_URL environment variable is not set!');
+  console.error('   Make sure PostgreSQL is linked in Railway and DATABASE_URL is available.');
+}
+
 // Use DATABASE_URL from Railway (PostgreSQL)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Test connection on pool creation
+pool.on('error', (err) => {
+  console.error('❌ Unexpected database pool error:', err);
+});
+
+pool.on('connect', () => {
+  console.log('✅ PostgreSQL pool: New client connected');
 });
 
 // Helper to convert SQLite-style ? placeholders to PostgreSQL $1, $2, etc.
@@ -87,6 +106,17 @@ const db = {
 
 // Initialize database schema
 export const initializeDatabase = async () => {
+  console.log('🔄 Starting database initialization...');
+
+  // First test the connection
+  try {
+    const testResult = await pool.query('SELECT NOW()');
+    console.log('✅ Database connection test successful:', testResult.rows[0].now);
+  } catch (connError) {
+    console.error('❌ Database connection test FAILED:', connError.message);
+    throw connError;
+  }
+
   try {
     // Clients table (CRM)
     await pool.query(`
