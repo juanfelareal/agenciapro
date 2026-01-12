@@ -1,0 +1,773 @@
+import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { clientsAPI, invoicesAPI, pdfAnalysisAPI } from '../utils/api';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare } from 'lucide-react';
+
+const Clients = () => {
+  const navigate = useNavigate();
+  const pdfInputRef = useRef(null);
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingClient, setEditingClient] = useState(null);
+  const [analyzingPdf, setAnalyzingPdf] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    nit: '',
+    status: 'active',
+    contract_value: 0,
+    contract_start_date: '',
+    contract_end_date: '',
+    notes: '',
+    is_recurring: false,
+    billing_day: new Date().getDate(),
+    recurring_amount: 0,
+  });
+  const [searchingNit, setSearchingNit] = useState(false);
+
+  useEffect(() => {
+    loadClients();
+  }, []);
+
+  const loadClients = async () => {
+    try {
+      const response = await clientsAPI.getAll();
+      setClients(response.data);
+    } catch (error) {
+      console.error('Error loading clients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingClient) {
+        await clientsAPI.update(editingClient.id, formData);
+      } else {
+        await clientsAPI.create(formData);
+      }
+      setShowModal(false);
+      setEditingClient(null);
+      resetForm();
+      loadClients();
+    } catch (error) {
+      console.error('Error saving client:', error);
+      alert('Error al guardar cliente');
+    }
+  };
+
+  const handleEdit = (client) => {
+    setEditingClient(client);
+    setFormData(client);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('¿Está seguro de eliminar este cliente?')) return;
+    try {
+      await clientsAPI.delete(id);
+      loadClients();
+    } catch (error) {
+      console.error('Error deleting client:', error);
+    }
+  };
+
+  const handleFacturar = async (client) => {
+    // Validation: must have contract_value > 0
+    if (!client.contract_value || client.contract_value <= 0) {
+      alert('No se puede crear factura: El cliente no tiene un Valor Contrato definido.');
+      return;
+    }
+
+    if (!confirm(`¿Crear factura por $${client.contract_value.toLocaleString('es-CO')} para ${client.company || client.name}?`)) {
+      return;
+    }
+
+    try {
+      // Generate invoice number: FAC-YYYYMMDD-CLIENTID
+      const today = new Date();
+      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+      const invoiceNumber = `FAC-${dateStr}-${client.id}`;
+      const issueDate = today.toISOString().slice(0, 10);
+
+      await invoicesAPI.create({
+        invoice_number: invoiceNumber,
+        client_id: client.id,
+        amount: client.contract_value,
+        issue_date: issueDate,
+        status: 'draft',
+        notes: `Factura generada desde módulo Clientes - Valor contrato`,
+      });
+
+      alert('Factura creada exitosamente. Puedes verla en el módulo de Facturas.');
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      if (error.response?.data?.error?.includes('UNIQUE constraint')) {
+        alert('Ya existe una factura con este número. Intente nuevamente.');
+      } else {
+        alert(error.response?.data?.error || 'Error al crear factura');
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      company: '',
+      nit: '',
+      status: 'active',
+      contract_value: 0,
+      contract_start_date: '',
+      contract_end_date: '',
+      notes: '',
+      is_recurring: false,
+      billing_day: new Date().getDate(),
+      recurring_amount: 0,
+    });
+  };
+
+  const handleSearchNit = async () => {
+    if (!formData.nit || formData.nit.trim() === '') {
+      alert('Por favor ingrese un NIT');
+      return;
+    }
+
+    setSearchingNit(true);
+    try {
+      const response = await clientsAPI.searchNit(formData.nit);
+
+      // If API is configured and returns data, autocomplete the fields
+      if (response.data.name) {
+        setFormData({
+          ...formData,
+          name: response.data.name || formData.name,
+          company: response.data.company || formData.company,
+          email: response.data.email || formData.email,
+          phone: response.data.phone || formData.phone,
+        });
+        alert('Información del NIT encontrada y cargada');
+      } else {
+        alert(response.data.message || 'NIT recibido. Configure la API para autocompletar datos.');
+      }
+    } catch (error) {
+      console.error('Error searching NIT:', error);
+      alert(error.response?.data?.error || 'No se pudo buscar información del NIT');
+    } finally {
+      setSearchingNit(false);
+    }
+  };
+
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Por favor seleccione un archivo PDF');
+      return;
+    }
+
+    setAnalyzingPdf(true);
+    try {
+      const formDataPdf = new FormData();
+      formDataPdf.append('pdf', file);
+
+      const response = await pdfAnalysisAPI.analyzeRut(formDataPdf);
+
+      if (response.data.success) {
+        const data = response.data.data;
+        setFormData({
+          ...formData,
+          nit: data.nit || formData.nit,
+          company: data.company || formData.company,
+          name: data.name || formData.name,
+          email: data.email || formData.email,
+          phone: data.phone || formData.phone,
+          notes: data.notes || formData.notes,
+        });
+        alert('RUT analizado exitosamente. Los datos han sido cargados al formulario.');
+      } else {
+        alert('No se pudo extraer la información del RUT');
+      }
+    } catch (error) {
+      console.error('Error analyzing PDF:', error);
+      alert(error.response?.data?.error || 'Error al analizar el PDF');
+    } finally {
+      setAnalyzingPdf(false);
+      // Reset file input
+      if (pdfInputRef.current) {
+        pdfInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleNew = () => {
+    resetForm();
+    setEditingClient(null);
+    setShowModal(true);
+  };
+
+  // Bulk selection helpers
+  const isAllSelected = clients.length > 0 && clients.every(c => selectedIds.has(c.id));
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(clients.map(c => c.id)));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Bulk actions
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedIds.size === 0) return;
+
+    const statusText = newStatus === 'active' ? 'Activo' : 'Inactivo';
+    if (!confirm(`¿Cambiar ${selectedIds.size} cliente(s) a "${statusText}"?`)) return;
+
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id =>
+        clientsAPI.update(id, { status: newStatus })
+      );
+      await Promise.all(promises);
+      clearSelection();
+      loadClients();
+    } catch (error) {
+      console.error('Error updating clients:', error);
+      alert('Error al actualizar algunos clientes');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+
+    if (!confirm(`¿Eliminar ${selectedIds.size} cliente(s)? Esta acción no se puede deshacer.`)) return;
+
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id => clientsAPI.delete(id));
+      await Promise.all(promises);
+      clearSelection();
+      loadClients();
+    } catch (error) {
+      console.error('Error deleting clients:', error);
+      alert('Error al eliminar algunos clientes');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkFacturar = async () => {
+    if (selectedIds.size === 0) return;
+
+    // Get selected clients with contract value > 0
+    const selectedClients = clients.filter(c => selectedIds.has(c.id) && c.contract_value > 0);
+
+    if (selectedClients.length === 0) {
+      alert('Ninguno de los clientes seleccionados tiene un Valor Contrato definido.');
+      return;
+    }
+
+    const total = selectedClients.reduce((sum, c) => sum + c.contract_value, 0);
+    if (!confirm(`¿Crear ${selectedClients.length} factura(s) por un total de $${total.toLocaleString('es-CO')}?`)) return;
+
+    setBulkUpdating(true);
+    try {
+      const today = new Date();
+      const issueDate = today.toISOString().slice(0, 10);
+
+      const promises = selectedClients.map(client =>
+        invoicesAPI.create({
+          client_id: client.id,
+          amount: client.contract_value,
+          issue_date: issueDate,
+          status: 'draft',
+          notes: `Factura generada en lote desde módulo Clientes`,
+        })
+      );
+      await Promise.all(promises);
+      clearSelection();
+      alert(`${selectedClients.length} factura(s) creada(s) exitosamente.`);
+    } catch (error) {
+      console.error('Error creating invoices:', error);
+      alert('Error al crear algunas facturas');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">Cargando...</div>;
+  }
+
+  return (
+    <div>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Clientes</h1>
+          <p className="text-gray-600">Gestión de la base de datos de clientes</p>
+        </div>
+        <button
+          onClick={handleNew}
+          className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+        >
+          <Plus size={20} />
+          Nuevo Cliente
+        </button>
+      </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CheckSquare size={18} className="text-primary-600" />
+            <span className="font-medium text-primary-700">
+              {selectedIds.size} cliente{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="h-6 w-px bg-primary-200" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-primary-600">Estado:</span>
+            <button
+              onClick={() => handleBulkStatusChange('active')}
+              disabled={bulkUpdating}
+              className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50"
+            >
+              Activo
+            </button>
+            <button
+              onClick={() => handleBulkStatusChange('inactive')}
+              disabled={bulkUpdating}
+              className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              Inactivo
+            </button>
+          </div>
+          <div className="h-6 w-px bg-primary-200" />
+          <button
+            onClick={handleBulkFacturar}
+            disabled={bulkUpdating}
+            className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 flex items-center gap-1"
+          >
+            <FileText size={14} />
+            Facturar
+          </button>
+          <div className="h-6 w-px bg-primary-200" />
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkUpdating}
+            className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 flex items-center gap-1"
+          >
+            <Trash2 size={14} />
+            Eliminar
+          </button>
+          <button
+            onClick={clearSelection}
+            className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-100 rounded-lg"
+          >
+            Cancelar selección
+          </button>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="w-full min-w-[1100px]">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-3 py-3 text-center w-12">
+                <button
+                  onClick={toggleSelectAll}
+                  className="text-gray-500 hover:text-primary-600"
+                  title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                >
+                  {isAllSelected ? (
+                    <CheckSquare size={18} className="text-primary-600" />
+                  ) : isSomeSelected ? (
+                    <MinusSquare size={18} className="text-primary-600" />
+                  ) : (
+                    <Square size={18} />
+                  )}
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Empresa
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                NIT/Cédula
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Contacto
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Email
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">
+                Estado
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">
+                Valor Contrato
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-32">
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {clients.map((client) => (
+              <tr
+                key={client.id}
+                className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-primary-50' : ''}`}
+              >
+                <td className="px-3 py-4 text-center">
+                  <button
+                    onClick={() => toggleSelectOne(client.id)}
+                    className="text-gray-400 hover:text-primary-600"
+                  >
+                    {selectedIds.has(client.id) ? (
+                      <CheckSquare size={18} className="text-primary-600" />
+                    ) : (
+                      <Square size={18} />
+                    )}
+                  </button>
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap font-medium">{client.company || client.name}</td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm">{client.nit || '-'}</td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm">{client.name || '-'}</td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm">{client.email || '-'}</td>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      client.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {client.status === 'active' ? 'Activo' : 'Inactivo'}
+                  </span>
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap font-medium">
+                  ${client.contract_value?.toLocaleString('es-CO') || 0}
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap text-center">
+                  <button
+                    onClick={() => handleFacturar(client)}
+                    className="text-green-600 hover:text-green-800 mr-2"
+                    title="Facturar"
+                  >
+                    <FileText size={18} />
+                  </button>
+                  <button
+                    onClick={() => navigate(`/clients/${client.id}/plataformas`)}
+                    className="text-purple-600 hover:text-purple-800 mr-2"
+                    title="Configurar Plataformas (Facebook Ads / Shopify)"
+                  >
+                    <Settings size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleEdit(client)}
+                    className="text-blue-600 hover:text-blue-800 mr-2"
+                    title="Editar"
+                  >
+                    <Edit size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(client.id)}
+                    className="text-red-600 hover:text-red-800"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Animation styles */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+      `}</style>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">
+                {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
+              </h2>
+              <button onClick={() => setShowModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-2 gap-4">
+                {/* PDF Upload Section - Only show when creating new client */}
+                {!editingClient && (
+                  <div className="col-span-2 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium text-blue-800">Cargar desde RUT (PDF)</h3>
+                        <p className="text-xs text-blue-600 mt-1">
+                          Sube el PDF del RUT y extraeremos automáticamente la información con IA
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        ref={pdfInputRef}
+                        accept="application/pdf"
+                        onChange={handlePdfUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => pdfInputRef.current?.click()}
+                        disabled={analyzingPdf}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {analyzingPdf ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Analizando...
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={18} />
+                            Subir RUT
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">NIT o Cédula</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className="flex-1 border rounded-lg px-3 py-2"
+                      value={formData.nit}
+                      onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
+                      placeholder="Ingrese NIT o Cédula"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSearchNit}
+                      disabled={searchingNit}
+                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-400"
+                    >
+                      {searchingNit ? 'Buscando...' : 'Buscar'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ingrese el NIT y presione Buscar para autocompletar los datos
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Empresa / Razón Social *</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="Nombre de la empresa"
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Persona de Contacto</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="Nombre del contacto"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Estado</label>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  >
+                    <option value="active">Activo</option>
+                    <option value="inactive">Inactivo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Valor Contrato</label>
+                  <input
+                    type="number"
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={formData.contract_value}
+                    onChange={(e) =>
+                      setFormData({ ...formData, contract_value: parseFloat(e.target.value) || 0 })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Fecha Inicio Contrato</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={formData.contract_start_date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, contract_start_date: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Fecha Fin Contrato</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={formData.contract_end_date}
+                    onChange={(e) => setFormData({ ...formData, contract_end_date: e.target.value })}
+                  />
+                </div>
+                {/* Recurring Billing Section */}
+                <div className="col-span-2 border-t pt-4 mt-2">
+                  <h3 className="text-lg font-semibold mb-3">Facturación Recurrente</h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <input
+                      type="checkbox"
+                      id="is_recurring"
+                      className="w-4 h-4"
+                      checked={formData.is_recurring}
+                      onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                    />
+                    <label htmlFor="is_recurring" className="text-sm font-medium">
+                      Este cliente tiene facturación recurrente mensual
+                    </label>
+                  </div>
+
+                  {formData.is_recurring && (
+                    <div className="grid grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Día de Facturación *</label>
+                        <select
+                          required={formData.is_recurring}
+                          className="w-full border rounded-lg px-3 py-2 bg-white"
+                          value={formData.billing_day}
+                          onChange={(e) => setFormData({ ...formData, billing_day: parseInt(e.target.value) })}
+                        >
+                          {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
+                            <option key={day} value={day}>Día {day}</option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-600 mt-1">
+                          La factura se generará automáticamente este día cada mes
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Monto Mensual *</label>
+                        <input
+                          type="number"
+                          required={formData.is_recurring}
+                          className="w-full border rounded-lg px-3 py-2"
+                          value={formData.recurring_amount}
+                          onChange={(e) =>
+                            setFormData({ ...formData, recurring_amount: parseFloat(e.target.value) || 0 })
+                          }
+                          placeholder="$0.00"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Monto que se facturará mensualmente
+                        </p>
+                      </div>
+                      <div className="col-span-2 bg-blue-100 p-3 rounded">
+                        <p className="text-sm text-blue-800">
+                          ℹ️ <strong>Importante:</strong> La primera factura se creará automáticamente el día {formData.billing_day} de este mes.
+                          Las siguientes facturas se generarán automáticamente cada mes mientras el cliente esté activo.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Notas</label>
+                  <textarea
+                    className="w-full border rounded-lg px-3 py-2"
+                    rows="3"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Clients;

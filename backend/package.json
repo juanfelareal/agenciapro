@@ -1,0 +1,32 @@
+{
+  "name": "agenciapro-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "agencia",
+    "crm",
+    "proyectos",
+    "tareas",
+    "finanzas"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Backend para AgenciaPro - Sistema de gestión para agencias de marketing",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "axios": "^1.13.2",
+    "better-sqlite3": "^12.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.11",
+    "pdf-parse": "^2.4.5"
+  }
+}
