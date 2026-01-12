@@ -6,7 +6,7 @@ import { createRecurringInvoice } from '../utils/recurringInvoices.js';
 const router = express.Router();
 
 // Get all clients
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status } = req.query;
     let query = 'SELECT * FROM clients';
@@ -18,7 +18,7 @@ router.get('/', (req, res) => {
     }
 
     query += ' ORDER BY created_at DESC';
-    const clients = db.prepare(query).all(...params);
+    const clients = await db.prepare(query).all(...params);
     res.json(clients);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -26,9 +26,9 @@ router.get('/', (req, res) => {
 });
 
 // Get client by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
+    const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
     }
@@ -173,7 +173,7 @@ router.get('/search-nit/:nit', async (req, res) => {
 });
 
 // Create new client
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id } = req.body;
 
@@ -191,12 +191,12 @@ router.post('/', (req, res) => {
       }
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO clients (name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(name, email, phone, company, nit, status || 'active', contract_value || 0, contract_start_date, contract_end_date, notes, is_recurring ? 1 : 0, billing_day, recurring_amount || 0, siigo_id || null);
 
-    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(result.lastInsertRowid);
+    const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(result.lastInsertRowid);
 
     // Create first recurring invoice if applicable
     if (client.is_recurring && client.status === 'active') {
@@ -213,12 +213,12 @@ router.post('/', (req, res) => {
 });
 
 // Update client (supports partial updates for bulk operations)
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount } = req.body;
 
     // Get current client to preserve existing values for partial updates
-    const currentClient = db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
+    const currentClient = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
     if (!currentClient) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -248,7 +248,7 @@ router.put('/:id', (req, res) => {
       }
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE clients
       SET name = ?, email = ?, phone = ?, company = ?, nit = ?, status = ?,
           contract_value = ?, contract_start_date = ?, contract_end_date = ?,
@@ -258,7 +258,7 @@ router.put('/:id', (req, res) => {
            updatedContractValue, updatedContractStartDate, updatedContractEndDate,
            updatedNotes, updatedIsRecurring, updatedBillingDay, updatedRecurringAmount || 0, req.params.id);
 
-    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
+    const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
 
     // If recurring billing was just activated and client is active, create first invoice
     if (client.is_recurring && client.status === 'active' && !currentClient.is_recurring) {
@@ -275,9 +275,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete client
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM clients WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM clients WHERE id = ?').run(req.params.id);
     res.json({ message: 'Client deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -20,9 +20,9 @@ const generateSlug = (title) => {
 // ============================================
 
 // Get all categories
-router.get('/categories', (req, res) => {
+router.get('/categories', async (req, res) => {
   try {
-    const categories = db.prepare(`
+    const categories = await db.prepare(`
       SELECT sc.*,
         (SELECT COUNT(*) FROM sops WHERE category_id = sc.id) as sop_count
       FROM sop_categories sc
@@ -35,7 +35,7 @@ router.get('/categories', (req, res) => {
 });
 
 // Create category
-router.post('/categories', (req, res) => {
+router.post('/categories', async (req, res) => {
   try {
     const { name, description, color, icon } = req.body;
 
@@ -44,15 +44,15 @@ router.post('/categories', (req, res) => {
     }
 
     // Get max position
-    const maxPos = db.prepare('SELECT MAX(position) as max FROM sop_categories').get();
+    const maxPos = await db.prepare('SELECT MAX(position) as max FROM sop_categories').get();
     const position = (maxPos.max || 0) + 1;
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO sop_categories (name, description, color, icon, position)
       VALUES (?, ?, ?, ?, ?)
     `).run(name, description, color || '#6366F1', icon || 'folder', position);
 
-    const category = db.prepare('SELECT * FROM sop_categories WHERE id = ?').get(result.lastInsertRowid);
+    const category = await db.prepare('SELECT * FROM sop_categories WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(category);
   } catch (error) {
     if (error.message.includes('UNIQUE constraint')) {
@@ -63,11 +63,11 @@ router.post('/categories', (req, res) => {
 });
 
 // Update category
-router.put('/categories/:id', (req, res) => {
+router.put('/categories/:id', async (req, res) => {
   try {
     const { name, description, color, icon, position } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE sop_categories
       SET name = COALESCE(?, name),
           description = COALESCE(?, description),
@@ -77,7 +77,7 @@ router.put('/categories/:id', (req, res) => {
       WHERE id = ?
     `).run(name, description, color, icon, position, req.params.id);
 
-    const category = db.prepare('SELECT * FROM sop_categories WHERE id = ?').get(req.params.id);
+    const category = await db.prepare('SELECT * FROM sop_categories WHERE id = ?').get(req.params.id);
     if (!category) {
       return res.status(404).json({ error: 'Categoría no encontrada' });
     }
@@ -88,17 +88,17 @@ router.put('/categories/:id', (req, res) => {
 });
 
 // Delete category
-router.delete('/categories/:id', (req, res) => {
+router.delete('/categories/:id', async (req, res) => {
   try {
     // Check if category has SOPs
-    const sopCount = db.prepare('SELECT COUNT(*) as count FROM sops WHERE category_id = ?').get(req.params.id);
+    const sopCount = await db.prepare('SELECT COUNT(*) as count FROM sops WHERE category_id = ?').get(req.params.id);
     if (sopCount.count > 0) {
       return res.status(400).json({
         error: `No se puede eliminar. Hay ${sopCount.count} SOP(s) en esta categoría.`
       });
     }
 
-    const result = db.prepare('DELETE FROM sop_categories WHERE id = ?').run(req.params.id);
+    const result = await db.prepare('DELETE FROM sop_categories WHERE id = ?').run(req.params.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Categoría no encontrada' });
     }
@@ -113,7 +113,7 @@ router.delete('/categories/:id', (req, res) => {
 // ============================================
 
 // Get all SOPs (with filters)
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { category_id, status, search } = req.query;
     let query = `
@@ -146,7 +146,7 @@ router.get('/', (req, res) => {
 
     query += ' ORDER BY s.is_pinned DESC, s.updated_at DESC';
 
-    const sops = db.prepare(query).all(...params);
+    const sops = await db.prepare(query).all(...params);
     res.json(sops);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -154,14 +154,14 @@ router.get('/', (req, res) => {
 });
 
 // Get SOP by ID or slug
-router.get('/:identifier', (req, res) => {
+router.get('/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
     const isNumeric = /^\d+$/.test(identifier);
 
     let sop;
     if (isNumeric) {
-      sop = db.prepare(`
+      sop = await db.prepare(`
         SELECT s.*,
           sc.name as category_name,
           sc.color as category_color,
@@ -172,7 +172,7 @@ router.get('/:identifier', (req, res) => {
         WHERE s.id = ?
       `).get(identifier);
     } else {
-      sop = db.prepare(`
+      sop = await db.prepare(`
         SELECT s.*,
           sc.name as category_name,
           sc.color as category_color,
@@ -189,7 +189,7 @@ router.get('/:identifier', (req, res) => {
     }
 
     // Increment view count
-    db.prepare('UPDATE sops SET view_count = view_count + 1 WHERE id = ?').run(sop.id);
+    await db.prepare('UPDATE sops SET view_count = view_count + 1 WHERE id = ?').run(sop.id);
 
     res.json(sop);
   } catch (error) {
@@ -198,7 +198,7 @@ router.get('/:identifier', (req, res) => {
 });
 
 // Create SOP
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { title, description, content, steps, editor_mode, category_id, created_by, status } = req.body;
 
@@ -208,17 +208,17 @@ router.post('/', (req, res) => {
 
     // Generate unique slug
     let slug = generateSlug(title);
-    const existingSlug = db.prepare('SELECT id FROM sops WHERE slug = ?').get(slug);
+    const existingSlug = await db.prepare('SELECT id FROM sops WHERE slug = ?').get(slug);
     if (existingSlug) {
       slug = `${slug}-${Date.now()}`;
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO sops (title, slug, description, content, steps, editor_mode, category_id, created_by, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(title, slug, description, content, steps, editor_mode || 'freeform', category_id, created_by, status || 'draft');
 
-    const sop = db.prepare(`
+    const sop = await db.prepare(`
       SELECT s.*,
         sc.name as category_name,
         sc.color as category_color,
@@ -236,13 +236,13 @@ router.post('/', (req, res) => {
 });
 
 // Update SOP
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { title, description, content, steps, editor_mode, category_id, status, is_pinned } = req.body;
     const { id } = req.params;
 
     // Get current SOP
-    const currentSop = db.prepare('SELECT * FROM sops WHERE id = ?').get(id);
+    const currentSop = await db.prepare('SELECT * FROM sops WHERE id = ?').get(id);
     if (!currentSop) {
       return res.status(404).json({ error: 'SOP no encontrado' });
     }
@@ -251,7 +251,7 @@ router.put('/:id', (req, res) => {
     const contentChanged = content && content !== currentSop.content;
     const stepsChanged = steps && steps !== currentSop.steps;
     if (contentChanged || stepsChanged) {
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO sop_revisions (sop_id, content, version, changed_by, change_notes)
         VALUES (?, ?, ?, ?, ?)
       `).run(id, currentSop.content || currentSop.steps, currentSop.version, req.body.changed_by, 'Actualización de contenido');
@@ -261,7 +261,7 @@ router.put('/:id', (req, res) => {
     let slug = currentSop.slug;
     if (title && title !== currentSop.title) {
       slug = generateSlug(title);
-      const existingSlug = db.prepare('SELECT id FROM sops WHERE slug = ? AND id != ?').get(slug, id);
+      const existingSlug = await db.prepare('SELECT id FROM sops WHERE slug = ? AND id != ?').get(slug, id);
       if (existingSlug) {
         slug = `${slug}-${Date.now()}`;
       }
@@ -273,7 +273,7 @@ router.put('/:id', (req, res) => {
       publishedAt = new Date().toISOString();
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE sops
       SET title = COALESCE(?, title),
           slug = ?,
@@ -290,7 +290,7 @@ router.put('/:id', (req, res) => {
       WHERE id = ?
     `).run(title, slug, description, content, steps, editor_mode, category_id, status, is_pinned, publishedAt, id);
 
-    const sop = db.prepare(`
+    const sop = await db.prepare(`
       SELECT s.*,
         sc.name as category_name,
         sc.color as category_color,
@@ -308,17 +308,17 @@ router.put('/:id', (req, res) => {
 });
 
 // Toggle pin status
-router.put('/:id/pin', (req, res) => {
+router.put('/:id/pin', async (req, res) => {
   try {
-    const sop = db.prepare('SELECT is_pinned FROM sops WHERE id = ?').get(req.params.id);
+    const sop = await db.prepare('SELECT is_pinned FROM sops WHERE id = ?').get(req.params.id);
     if (!sop) {
       return res.status(404).json({ error: 'SOP no encontrado' });
     }
 
-    db.prepare('UPDATE sops SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    await db.prepare('UPDATE sops SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
       .run(sop.is_pinned ? 0 : 1, req.params.id);
 
-    const updated = db.prepare('SELECT * FROM sops WHERE id = ?').get(req.params.id);
+    const updated = await db.prepare('SELECT * FROM sops WHERE id = ?').get(req.params.id);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -326,9 +326,9 @@ router.put('/:id/pin', (req, res) => {
 });
 
 // Delete SOP
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM sops WHERE id = ?').run(req.params.id);
+    const result = await db.prepare('DELETE FROM sops WHERE id = ?').run(req.params.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'SOP no encontrado' });
     }
@@ -339,9 +339,9 @@ router.delete('/:id', (req, res) => {
 });
 
 // Get SOP revision history
-router.get('/:id/revisions', (req, res) => {
+router.get('/:id/revisions', async (req, res) => {
   try {
-    const revisions = db.prepare(`
+    const revisions = await db.prepare(`
       SELECT sr.*, tm.name as changed_by_name
       FROM sop_revisions sr
       LEFT JOIN team_members tm ON sr.changed_by = tm.id

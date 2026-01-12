@@ -13,18 +13,18 @@ const router = Router();
  * GET /api/platform-credentials/client/:clientId
  * Get all platform credentials for a client
  */
-router.get('/client/:clientId', (req, res) => {
+router.get('/client/:clientId', async (req, res) => {
   try {
     const { clientId } = req.params;
 
     // Get all Facebook accounts for this client (can have multiple)
-    const facebook = db.prepare(`
+    const facebook = await db.prepare(`
       SELECT id, client_id, ad_account_id, ad_account_name, status, last_sync_at, last_error, created_at
       FROM client_facebook_credentials
       WHERE client_id = ?
     `).all(clientId);
 
-    const shopify = db.prepare(`
+    const shopify = await db.prepare(`
       SELECT id, client_id, store_url, status, last_sync_at, last_error, created_at
       FROM client_shopify_credentials
       WHERE client_id = ?
@@ -48,7 +48,7 @@ router.get('/client/:clientId', (req, res) => {
  * POST /api/platform-credentials/facebook
  * Connect Facebook Ads account to client
  */
-router.post('/facebook', (req, res) => {
+router.post('/facebook', async (req, res) => {
   try {
     const { client_id, access_token, ad_account_id } = req.body;
 
@@ -57,17 +57,17 @@ router.post('/facebook', (req, res) => {
     }
 
     // Check if client exists
-    const client = db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
     // Check if already exists
-    const existing = db.prepare('SELECT id FROM client_facebook_credentials WHERE client_id = ?').get(client_id);
+    const existing = await db.prepare('SELECT id FROM client_facebook_credentials WHERE client_id = ?').get(client_id);
 
     if (existing) {
       // Update existing
-      db.prepare(`
+      await db.prepare(`
         UPDATE client_facebook_credentials
         SET access_token = ?, ad_account_id = ?, status = 'active', last_error = NULL, updated_at = datetime('now')
         WHERE client_id = ?
@@ -76,7 +76,7 @@ router.post('/facebook', (req, res) => {
       res.json({ message: 'Credenciales de Facebook actualizadas', id: existing.id });
     } else {
       // Insert new
-      const result = db.prepare(`
+      const result = await db.prepare(`
         INSERT INTO client_facebook_credentials (client_id, access_token, ad_account_id)
         VALUES (?, ?, ?)
       `).run(client_id, access_token, ad_account_id);
@@ -97,7 +97,7 @@ router.post('/facebook/:id/test', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const credentials = db.prepare(`
+    const credentials = await db.prepare(`
       SELECT access_token, ad_account_id
       FROM client_facebook_credentials
       WHERE id = ?
@@ -112,14 +112,14 @@ router.post('/facebook/:id/test', async (req, res) => {
 
     if (result.success) {
       // Update status to active
-      db.prepare(`
+      await db.prepare(`
         UPDATE client_facebook_credentials
         SET status = 'active', last_error = NULL, updated_at = datetime('now')
         WHERE id = ?
       `).run(id);
     } else {
       // Update status to error
-      db.prepare(`
+      await db.prepare(`
         UPDATE client_facebook_credentials
         SET status = 'error', last_error = ?, updated_at = datetime('now')
         WHERE id = ?
@@ -137,11 +137,11 @@ router.post('/facebook/:id/test', async (req, res) => {
  * DELETE /api/platform-credentials/facebook/:id
  * Disconnect Facebook Ads from client
  */
-router.delete('/facebook/:id', (req, res) => {
+router.delete('/facebook/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(id);
+    const result = await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(id);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
@@ -162,7 +162,7 @@ router.delete('/facebook/:id', (req, res) => {
  * POST /api/platform-credentials/shopify
  * Connect Shopify store to client
  */
-router.post('/shopify', (req, res) => {
+router.post('/shopify', async (req, res) => {
   try {
     const { client_id, store_url, access_token } = req.body;
 
@@ -171,7 +171,7 @@ router.post('/shopify', (req, res) => {
     }
 
     // Check if client exists
-    const client = db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -180,11 +180,11 @@ router.post('/shopify', (req, res) => {
     const normalizedUrl = store_url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
     // Check if already exists
-    const existing = db.prepare('SELECT id FROM client_shopify_credentials WHERE client_id = ?').get(client_id);
+    const existing = await db.prepare('SELECT id FROM client_shopify_credentials WHERE client_id = ?').get(client_id);
 
     if (existing) {
       // Update existing
-      db.prepare(`
+      await db.prepare(`
         UPDATE client_shopify_credentials
         SET store_url = ?, access_token = ?, status = 'active', last_error = NULL, updated_at = datetime('now')
         WHERE client_id = ?
@@ -193,7 +193,7 @@ router.post('/shopify', (req, res) => {
       res.json({ message: 'Credenciales de Shopify actualizadas', id: existing.id });
     } else {
       // Insert new
-      const result = db.prepare(`
+      const result = await db.prepare(`
         INSERT INTO client_shopify_credentials (client_id, store_url, access_token)
         VALUES (?, ?, ?)
       `).run(client_id, normalizedUrl, access_token);
@@ -214,7 +214,7 @@ router.post('/shopify/:id/test', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const credentials = db.prepare(`
+    const credentials = await db.prepare(`
       SELECT store_url, access_token
       FROM client_shopify_credentials
       WHERE id = ?
@@ -229,14 +229,14 @@ router.post('/shopify/:id/test', async (req, res) => {
 
     if (result.success) {
       // Update status to active
-      db.prepare(`
+      await db.prepare(`
         UPDATE client_shopify_credentials
         SET status = 'active', last_error = NULL, updated_at = datetime('now')
         WHERE id = ?
       `).run(id);
     } else {
       // Update status to error
-      db.prepare(`
+      await db.prepare(`
         UPDATE client_shopify_credentials
         SET status = 'error', last_error = ?, updated_at = datetime('now')
         WHERE id = ?
@@ -254,11 +254,11 @@ router.post('/shopify/:id/test', async (req, res) => {
  * DELETE /api/platform-credentials/shopify/:id
  * Disconnect Shopify from client
  */
-router.delete('/shopify/:id', (req, res) => {
+router.delete('/shopify/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = db.prepare('DELETE FROM client_shopify_credentials WHERE id = ?').run(id);
+    const result = await db.prepare('DELETE FROM client_shopify_credentials WHERE id = ?').run(id);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Credenciales no encontradas' });

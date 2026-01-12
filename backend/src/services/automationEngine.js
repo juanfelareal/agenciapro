@@ -20,10 +20,10 @@ import { notifyTaskAssigned, notifyTaskUpdated, notifyTaskCompleted } from '../u
  */
 
 // Process automations when a task is created
-export const processTaskCreated = (task) => {
+export const processTaskCreated = async (task) => {
   try {
     // Get active automations for this project or global automations
-    const automations = db.prepare(`
+    const automations = await db.prepare(`
       SELECT * FROM automations
       WHERE is_active = 1
       AND trigger_type = 'task_created'
@@ -35,7 +35,7 @@ export const processTaskCreated = (task) => {
 
       // Check if conditions match
       if (matchesConditions(task, conditions)) {
-        executeAction(task, automation);
+        await executeAction(task, automation);
       }
     }
   } catch (error) {
@@ -44,11 +44,11 @@ export const processTaskCreated = (task) => {
 };
 
 // Process automations when a task is updated
-export const processTaskUpdated = (oldTask, newTask) => {
+export const processTaskUpdated = async (oldTask, newTask) => {
   try {
     // Status change trigger
     if (oldTask.status !== newTask.status) {
-      const statusAutomations = db.prepare(`
+      const statusAutomations = await db.prepare(`
         SELECT * FROM automations
         WHERE is_active = 1
         AND trigger_type = 'status_change'
@@ -62,13 +62,13 @@ export const processTaskUpdated = (oldTask, newTask) => {
         if (conditions.from_status && conditions.from_status !== oldTask.status) continue;
         if (conditions.to_status && conditions.to_status !== newTask.status) continue;
 
-        executeAction(newTask, automation, { oldTask });
+        await executeAction(newTask, automation, { oldTask });
       }
     }
 
     // Assignment trigger
     if (oldTask.assigned_to !== newTask.assigned_to && newTask.assigned_to) {
-      const assignAutomations = db.prepare(`
+      const assignAutomations = await db.prepare(`
         SELECT * FROM automations
         WHERE is_active = 1
         AND trigger_type = 'task_assigned'
@@ -81,13 +81,13 @@ export const processTaskUpdated = (oldTask, newTask) => {
         // Check if assigned to specific user
         if (conditions.assigned_to && conditions.assigned_to !== newTask.assigned_to) continue;
 
-        executeAction(newTask, automation, { oldTask });
+        await executeAction(newTask, automation, { oldTask });
       }
     }
 
     // Priority change trigger
     if (oldTask.priority !== newTask.priority) {
-      const priorityAutomations = db.prepare(`
+      const priorityAutomations = await db.prepare(`
         SELECT * FROM automations
         WHERE is_active = 1
         AND trigger_type = 'priority_change'
@@ -100,7 +100,7 @@ export const processTaskUpdated = (oldTask, newTask) => {
         if (conditions.from_priority && conditions.from_priority !== oldTask.priority) continue;
         if (conditions.to_priority && conditions.to_priority !== newTask.priority) continue;
 
-        executeAction(newTask, automation, { oldTask });
+        await executeAction(newTask, automation, { oldTask });
       }
     }
   } catch (error) {
@@ -124,7 +124,7 @@ const matchesConditions = (task, conditions) => {
 };
 
 // Execute automation action
-const executeAction = (task, automation, context = {}) => {
+const executeAction = async (task, automation, context = {}) => {
   const params = automation.action_params ? JSON.parse(automation.action_params) : {};
 
   console.log(`⚡ Executing automation: "${automation.name}" on task "${task.title}"`);
@@ -133,7 +133,7 @@ const executeAction = (task, automation, context = {}) => {
     switch (automation.action_type) {
       case 'change_status':
         if (params.status) {
-          db.prepare('UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+          await db.prepare('UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
             .run(params.status, task.id);
           console.log(`  → Changed status to: ${params.status}`);
         }
@@ -141,9 +141,9 @@ const executeAction = (task, automation, context = {}) => {
 
       case 'assign_user':
         if (params.user_id) {
-          db.prepare('UPDATE tasks SET assigned_to = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+          await db.prepare('UPDATE tasks SET assigned_to = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
             .run(params.user_id, task.id);
-          notifyTaskAssigned(task.id, task.title, params.user_id, 0);
+          await notifyTaskAssigned(task.id, task.title, params.user_id, 0);
           console.log(`  → Assigned to user: ${params.user_id}`);
         }
         break;
@@ -151,11 +151,11 @@ const executeAction = (task, automation, context = {}) => {
       case 'add_tag':
         if (params.tag_id) {
           // Check if tag is already added
-          const existing = db.prepare('SELECT id FROM task_tags WHERE task_id = ? AND tag_id = ?')
+          const existing = await db.prepare('SELECT id FROM task_tags WHERE task_id = ? AND tag_id = ?')
             .get(task.id, params.tag_id);
 
           if (!existing) {
-            db.prepare('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)')
+            await db.prepare('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)')
               .run(task.id, params.tag_id);
             console.log(`  → Added tag: ${params.tag_id}`);
           }
@@ -166,7 +166,7 @@ const executeAction = (task, automation, context = {}) => {
         if (params.message) {
           const recipientId = params.user_id || task.assigned_to;
           if (recipientId) {
-            db.prepare(`
+            await db.prepare(`
               INSERT INTO notifications (user_id, type, title, message, related_task_id)
               VALUES (?, 'automation', ?, ?, ?)
             `).run(recipientId, `Automatización: ${automation.name}`, params.message, task.id);
@@ -177,7 +177,7 @@ const executeAction = (task, automation, context = {}) => {
 
       case 'change_priority':
         if (params.priority) {
-          db.prepare('UPDATE tasks SET priority = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+          await db.prepare('UPDATE tasks SET priority = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
             .run(params.priority, task.id);
           console.log(`  → Changed priority to: ${params.priority}`);
         }
@@ -188,18 +188,18 @@ const executeAction = (task, automation, context = {}) => {
     }
 
     // Log automation execution
-    logAutomationExecution(automation.id, task.id, true);
+    await logAutomationExecution(automation.id, task.id, true);
   } catch (error) {
     console.error(`  → Error executing action: ${error.message}`);
-    logAutomationExecution(automation.id, task.id, false, error.message);
+    await logAutomationExecution(automation.id, task.id, false, error.message);
   }
 };
 
 // Log automation execution for history tracking
-const logAutomationExecution = (automationId, taskId, success, errorMessage = null) => {
+const logAutomationExecution = async (automationId, taskId, success, errorMessage = null) => {
   try {
     // Check if automation_logs table exists
-    const tableExists = db.prepare(`
+    const tableExists = await db.prepare(`
       SELECT name FROM sqlite_master WHERE type='table' AND name='automation_logs'
     `).get();
 
@@ -218,7 +218,7 @@ const logAutomationExecution = (automationId, taskId, success, errorMessage = nu
       `);
     }
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO automation_logs (automation_id, task_id, success, error_message)
       VALUES (?, ?, ?, ?)
     `).run(automationId, taskId, success ? 1 : 0, errorMessage);
@@ -228,9 +228,9 @@ const logAutomationExecution = (automationId, taskId, success, errorMessage = nu
 };
 
 // Check for due date approaching automations (to be run by cron)
-export const checkDueDateAutomations = () => {
+export const checkDueDateAutomations = async () => {
   try {
-    const automations = db.prepare(`
+    const automations = await db.prepare(`
       SELECT * FROM automations
       WHERE is_active = 1
       AND trigger_type = 'due_date_approaching'
@@ -241,7 +241,7 @@ export const checkDueDateAutomations = () => {
       const daysBefore = conditions.days_before || 1;
 
       // Find tasks with due dates approaching
-      const tasks = db.prepare(`
+      const tasks = await db.prepare(`
         SELECT * FROM tasks
         WHERE due_date IS NOT NULL
         AND status != 'done'
@@ -250,7 +250,7 @@ export const checkDueDateAutomations = () => {
       `).all(daysBefore, automation.project_id, automation.project_id);
 
       for (const task of tasks) {
-        executeAction(task, automation);
+        await executeAction(task, automation);
       }
     }
   } catch (error) {

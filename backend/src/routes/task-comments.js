@@ -5,9 +5,9 @@ import { notifyNewComment, notifyMentions } from '../utils/notificationHelper.js
 const router = express.Router();
 
 // Get all comments for a task
-router.get('/task/:taskId', (req, res) => {
+router.get('/task/:taskId', async (req, res) => {
   try {
-    const comments = db.prepare(`
+    const comments = await db.prepare(`
       SELECT tc.*, tm.name as user_name, tm.email as user_email
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
@@ -22,7 +22,7 @@ router.get('/task/:taskId', (req, res) => {
 });
 
 // Create new comment
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { task_id, user_id, comment } = req.body;
 
@@ -30,12 +30,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Task ID, user ID and comment are required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO task_comments (task_id, user_id, comment)
       VALUES (?, ?, ?)
     `).run(task_id, user_id, comment);
 
-    const newComment = db.prepare(`
+    const newComment = await db.prepare(`
       SELECT tc.*, tm.name as user_name, tm.email as user_email
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
@@ -43,7 +43,7 @@ router.post('/', (req, res) => {
     `).get(result.lastInsertRowid);
 
     // Get task information for notifications
-    const task = db.prepare('SELECT title FROM tasks WHERE id = ?').get(task_id);
+    const task = await db.prepare('SELECT title FROM tasks WHERE id = ?').get(task_id);
 
     if (task) {
       // Notify assigned user about new comment
@@ -60,17 +60,17 @@ router.post('/', (req, res) => {
 });
 
 // Update comment
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { comment } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE task_comments
       SET comment = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(comment, req.params.id);
 
-    const updated = db.prepare(`
+    const updated = await db.prepare(`
       SELECT tc.*, tm.name as user_name
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
@@ -84,9 +84,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete comment
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM task_comments WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM task_comments WHERE id = ?').run(req.params.id);
     res.json({ message: 'Comment deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

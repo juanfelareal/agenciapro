@@ -4,9 +4,9 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all tags
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const tags = db.prepare(`
+    const tags = await db.prepare(`
       SELECT t.*, COUNT(tt.task_id) as task_count
       FROM tags t
       LEFT JOIN task_tags tt ON t.id = tt.tag_id
@@ -20,9 +20,9 @@ router.get('/', (req, res) => {
 });
 
 // Get tag by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
+    const tag = await db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
     if (!tag) {
       return res.status(404).json({ error: 'Tag not found' });
     }
@@ -33,7 +33,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new tag
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, color } = req.body;
 
@@ -41,12 +41,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Tag name is required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO tags (name, color)
       VALUES (?, ?)
     `).run(name.trim(), color || '#6366F1');
 
-    const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
+    const tag = await db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(tag);
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -57,18 +57,18 @@ router.post('/', (req, res) => {
 });
 
 // Update tag
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { name, color } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE tags
       SET name = COALESCE(?, name),
           color = COALESCE(?, color)
       WHERE id = ?
     `).run(name?.trim(), color, req.params.id);
 
-    const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
+    const tag = await db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
     res.json(tag);
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -79,9 +79,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete tag
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id);
     res.json({ message: 'Tag deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -89,9 +89,9 @@ router.delete('/:id', (req, res) => {
 });
 
 // Get tags for a task
-router.get('/task/:taskId', (req, res) => {
+router.get('/task/:taskId', async (req, res) => {
   try {
-    const tags = db.prepare(`
+    const tags = await db.prepare(`
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id
@@ -105,14 +105,14 @@ router.get('/task/:taskId', (req, res) => {
 });
 
 // Add tag to task
-router.post('/task/:taskId/tag/:tagId', (req, res) => {
+router.post('/task/:taskId/tag/:tagId', async (req, res) => {
   try {
-    db.prepare(`
+    await db.prepare(`
       INSERT OR IGNORE INTO task_tags (task_id, tag_id)
       VALUES (?, ?)
     `).run(req.params.taskId, req.params.tagId);
 
-    const tags = db.prepare(`
+    const tags = await db.prepare(`
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id
@@ -127,14 +127,14 @@ router.post('/task/:taskId/tag/:tagId', (req, res) => {
 });
 
 // Remove tag from task
-router.delete('/task/:taskId/tag/:tagId', (req, res) => {
+router.delete('/task/:taskId/tag/:tagId', async (req, res) => {
   try {
-    db.prepare(`
+    await db.prepare(`
       DELETE FROM task_tags
       WHERE task_id = ? AND tag_id = ?
     `).run(req.params.taskId, req.params.tagId);
 
-    const tags = db.prepare(`
+    const tags = await db.prepare(`
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id
@@ -149,7 +149,7 @@ router.delete('/task/:taskId/tag/:tagId', (req, res) => {
 });
 
 // Set tags for a task (replaces all existing)
-router.put('/task/:taskId', (req, res) => {
+router.put('/task/:taskId', async (req, res) => {
   try {
     const { tagIds } = req.body;
 
@@ -167,9 +167,9 @@ router.put('/task/:taskId', (req, res) => {
         insertStmt.run(req.params.taskId, tagId);
       });
     });
-    transaction();
+    await transaction();
 
-    const tags = db.prepare(`
+    const tags = await db.prepare(`
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id

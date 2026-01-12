@@ -4,7 +4,7 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Global search endpoint
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { q, limit = 20 } = req.query;
 
@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
     const resultLimit = Math.min(parseInt(limit) || 20, 50);
 
     // Search tasks
-    const tasks = db.prepare(`
+    const tasks = await db.prepare(`
       SELECT
         t.id, t.title as name, t.description, 'task' as type,
         t.status, t.priority, p.name as project_name
@@ -27,7 +27,7 @@ router.get('/', (req, res) => {
     `).all(searchTerm, searchTerm, resultLimit);
 
     // Search projects
-    const projects = db.prepare(`
+    const projects = await db.prepare(`
       SELECT
         p.id, p.name, p.description, 'project' as type,
         p.status, c.company as client_name
@@ -38,7 +38,7 @@ router.get('/', (req, res) => {
     `).all(searchTerm, searchTerm, resultLimit);
 
     // Search clients
-    const clients = db.prepare(`
+    const clients = await db.prepare(`
       SELECT
         id, name, company as secondary_name, 'client' as type,
         email, phone, status
@@ -48,7 +48,7 @@ router.get('/', (req, res) => {
     `).all(searchTerm, searchTerm, searchTerm, searchTerm, resultLimit);
 
     // Search team members
-    const team = db.prepare(`
+    const team = await db.prepare(`
       SELECT
         id, name, email as secondary_name, 'team' as type,
         position, role, status
@@ -58,7 +58,7 @@ router.get('/', (req, res) => {
     `).all(searchTerm, searchTerm, searchTerm, resultLimit);
 
     // Search invoices
-    const invoices = db.prepare(`
+    const invoices = await db.prepare(`
       SELECT
         i.id, i.invoice_number as name, 'invoice' as type,
         i.amount, i.status, c.company as client_name
@@ -120,7 +120,7 @@ router.get('/', (req, res) => {
 });
 
 // Quick search (returns flat list for autocomplete)
-router.get('/quick', (req, res) => {
+router.get('/quick', async (req, res) => {
   try {
     const { q, limit = 10 } = req.query;
 
@@ -132,7 +132,7 @@ router.get('/quick', (req, res) => {
     const resultLimit = Math.min(parseInt(limit) || 10, 20);
 
     // Combined search with UNION ALL
-    const results = db.prepare(`
+    const results = await db.prepare(`
       SELECT id, title as name, 'task' as type, status FROM tasks WHERE title LIKE ? LIMIT ?
       UNION ALL
       SELECT id, name, 'project' as type, status FROM projects WHERE name LIKE ? LIMIT ?

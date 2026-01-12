@@ -11,7 +11,7 @@ import ShopifyIntegration from '../integrations/shopify.js';
  * Get all active clients with platform credentials
  * @returns {Array}
  */
-export function getClientsWithCredentials() {
+export async function getClientsWithCredentials() {
   const query = `
     SELECT
       c.id,
@@ -30,7 +30,7 @@ export function getClientsWithCredentials() {
       AND (fb.id IS NOT NULL OR sh.id IS NOT NULL)
   `;
 
-  return db.prepare(query).all();
+  return await db.prepare(query).all();
 }
 
 /**
@@ -39,8 +39,8 @@ export function getClientsWithCredentials() {
  * @param {string} jobType - 'facebook', 'shopify', or 'all'
  * @returns {number} Job ID
  */
-export function createSyncJob(clientId, jobType) {
-  const result = db.prepare(`
+export async function createSyncJob(clientId, jobType) {
+  const result = await db.prepare(`
     INSERT INTO metrics_sync_jobs (client_id, job_type, status, started_at)
     VALUES (?, ?, 'running', datetime('now'))
   `).run(clientId, jobType);
@@ -55,8 +55,8 @@ export function createSyncJob(clientId, jobType) {
  * @param {number} recordsProcessed
  * @param {string} errorMessage
  */
-export function updateSyncJob(jobId, status, recordsProcessed = 0, errorMessage = null) {
-  db.prepare(`
+export async function updateSyncJob(jobId, status, recordsProcessed = 0, errorMessage = null) {
+  await db.prepare(`
     UPDATE metrics_sync_jobs
     SET status = ?,
         completed_at = datetime('now'),
@@ -73,8 +73,8 @@ export function updateSyncJob(jobId, status, recordsProcessed = 0, errorMessage 
  * @param {string} status
  * @param {string} error
  */
-export function updateCredentialStatus(table, clientId, status, error = null) {
-  db.prepare(`
+export async function updateCredentialStatus(table, clientId, status, error = null) {
+  await db.prepare(`
     UPDATE ${table}
     SET status = ?,
         last_sync_at = datetime('now'),
@@ -90,14 +90,14 @@ export function updateCredentialStatus(table, clientId, status, error = null) {
  * @param {string} date - YYYY-MM-DD
  * @param {object} metrics
  */
-export function upsertDailyMetrics(clientId, date, metrics) {
-  const existing = db.prepare(`
+export async function upsertDailyMetrics(clientId, date, metrics) {
+  const existing = await db.prepare(`
     SELECT id FROM client_daily_metrics
     WHERE client_id = ? AND metric_date = ?
   `).get(clientId, date);
 
   if (existing) {
-    db.prepare(`
+    await db.prepare(`
       UPDATE client_daily_metrics
       SET shopify_revenue = ?,
           shopify_orders = ?,
@@ -139,7 +139,7 @@ export function upsertDailyMetrics(clientId, date, metrics) {
       existing.id
     );
   } else {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO client_daily_metrics (
         client_id, metric_date,
         shopify_revenue, shopify_orders, shopify_aov, shopify_refunds, shopify_net_revenue,
@@ -195,7 +195,7 @@ export function calculateDerivedMetrics(shopifyMetrics, fbMetrics) {
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function syncClientForDate(clientId, date) {
-  const client = db.prepare(`
+  const client = await db.prepare(`
     SELECT
       c.id, c.name,
       fb.access_token as fb_access_token,
@@ -220,10 +220,10 @@ export async function syncClientForDate(clientId, date) {
     try {
       const shopify = new ShopifyIntegration(client.shopify_store_url, client.shopify_access_token);
       shopifyMetrics = await shopify.getMetrics(date, date);
-      updateCredentialStatus('client_shopify_credentials', clientId, 'active');
+      await updateCredentialStatus('client_shopify_credentials', clientId, 'active');
     } catch (error) {
       console.error(`Error syncing Shopify for client ${clientId}:`, error.message);
-      updateCredentialStatus('client_shopify_credentials', clientId, 'error', error.message);
+      await updateCredentialStatus('client_shopify_credentials', clientId, 'error', error.message);
     }
   }
 
@@ -235,10 +235,10 @@ export async function syncClientForDate(clientId, date) {
       if (fbDailyMetrics.length > 0) {
         fbMetrics = fbDailyMetrics[0];
       }
-      updateCredentialStatus('client_facebook_credentials', clientId, 'active');
+      await updateCredentialStatus('client_facebook_credentials', clientId, 'active');
     } catch (error) {
       console.error(`Error syncing Facebook for client ${clientId}:`, error.message);
-      updateCredentialStatus('client_facebook_credentials', clientId, 'error', error.message);
+      await updateCredentialStatus('client_facebook_credentials', clientId, 'error', error.message);
     }
   }
 
@@ -263,7 +263,7 @@ export async function syncClientForDate(clientId, date) {
     ...derivedMetrics
   };
 
-  upsertDailyMetrics(clientId, date, metricsToSave);
+  await upsertDailyMetrics(clientId, date, metricsToSave);
 
   return { success: true };
 }
@@ -276,7 +276,7 @@ export async function syncClientForDate(clientId, date) {
  * @returns {Promise<{success: boolean, recordsProcessed: number, error?: string}>}
  */
 export async function syncClientDateRange(clientId, startDate, endDate) {
-  const jobId = createSyncJob(clientId, 'all');
+  const jobId = await createSyncJob(clientId, 'all');
   let recordsProcessed = 0;
 
   try {
@@ -289,10 +289,10 @@ export async function syncClientDateRange(clientId, startDate, endDate) {
       recordsProcessed++;
     }
 
-    updateSyncJob(jobId, 'completed', recordsProcessed);
+    await updateSyncJob(jobId, 'completed', recordsProcessed);
     return { success: true, recordsProcessed };
   } catch (error) {
-    updateSyncJob(jobId, 'failed', recordsProcessed, error.message);
+    await updateSyncJob(jobId, 'failed', recordsProcessed, error.message);
     return { success: false, recordsProcessed, error: error.message };
   }
 }
@@ -309,7 +309,7 @@ export async function syncAllClientsForDate(date = null) {
     date = yesterday.toISOString().split('T')[0];
   }
 
-  const clients = getClientsWithCredentials();
+  const clients = await getClientsWithCredentials();
   let clientsSynced = 0;
   const errors = [];
 

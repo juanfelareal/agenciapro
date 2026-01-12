@@ -4,9 +4,9 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all categories
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const categories = db.prepare(`
+    const categories = await db.prepare(`
       SELECT nc.*,
         COUNT(n.id) as note_count
       FROM note_categories nc
@@ -22,9 +22,9 @@ router.get('/', (req, res) => {
 });
 
 // Get single category
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const category = db.prepare('SELECT * FROM note_categories WHERE id = ?').get(req.params.id);
+    const category = await db.prepare('SELECT * FROM note_categories WHERE id = ?').get(req.params.id);
 
     if (!category) {
       return res.status(404).json({ error: 'Category not found' });
@@ -37,7 +37,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create category
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, color } = req.body;
 
@@ -45,12 +45,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO note_categories (name, color)
       VALUES (?, ?)
     `).run(name, color || '#6366F1');
 
-    const category = db.prepare('SELECT * FROM note_categories WHERE id = ?').get(result.lastInsertRowid);
+    const category = await db.prepare('SELECT * FROM note_categories WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(category);
   } catch (error) {
     if (error.message.includes('UNIQUE constraint')) {
@@ -61,17 +61,17 @@ router.post('/', (req, res) => {
 });
 
 // Update category
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { name, color } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE note_categories
       SET name = ?, color = ?
       WHERE id = ?
     `).run(name, color || '#6366F1', req.params.id);
 
-    const category = db.prepare('SELECT * FROM note_categories WHERE id = ?').get(req.params.id);
+    const category = await db.prepare('SELECT * FROM note_categories WHERE id = ?').get(req.params.id);
     res.json(category);
   } catch (error) {
     if (error.message.includes('UNIQUE constraint')) {
@@ -82,9 +82,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete category
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM note_categories WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM note_categories WHERE id = ?').run(req.params.id);
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

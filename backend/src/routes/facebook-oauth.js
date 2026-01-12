@@ -20,7 +20,7 @@ const SCOPES = '';
  * GET /api/oauth/facebook/url
  * Generate OAuth authorization URL for Facebook
  */
-router.get('/url', (req, res) => {
+router.get('/url', async (req, res) => {
   try {
     const { client_id } = req.query;
 
@@ -213,7 +213,7 @@ router.get('/ad-accounts', async (req, res) => {
     }
 
     // Get already linked accounts for this client
-    const linkedAccounts = db.prepare(`
+    const linkedAccounts = await db.prepare(`
       SELECT ad_account_id FROM client_facebook_credentials WHERE client_id = ?
     `).all(clientId);
 
@@ -267,7 +267,7 @@ router.post('/link-accounts', async (req, res) => {
     const { accessToken } = session;
 
     // Verify client exists
-    const client = db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -303,7 +303,7 @@ router.post('/link-accounts', async (req, res) => {
     for (const accountId of account_ids) {
       const accountName = accountsMap.get(accountId) || 'Cuenta de anuncios';
       try {
-        insertStmt.run(client_id, accessToken, accountId, accountName);
+        await insertStmt.run(client_id, accessToken, accountId, accountName);
         results.push({ accountId, success: true });
       } catch (err) {
         results.push({ accountId, success: false, error: err.message });
@@ -327,11 +327,11 @@ router.post('/link-accounts', async (req, res) => {
  * DELETE /api/oauth/facebook/unlink/:credentialId
  * Unlink a specific Facebook account from client
  */
-router.delete('/unlink/:credentialId', (req, res) => {
+router.delete('/unlink/:credentialId', async (req, res) => {
   try {
     const { credentialId } = req.params;
 
-    const result = db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(credentialId);
+    const result = await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(credentialId);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Cuenta no encontrada' });

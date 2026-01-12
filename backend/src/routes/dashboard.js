@@ -4,7 +4,7 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get dashboard statistics
-router.get('/stats', (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const { start, end } = req.query;
     const stats = {
@@ -25,7 +25,7 @@ router.get('/stats', (req, res) => {
     }
 
     // Client stats - clients don't filter by date, show current status
-    const clientStats = db.prepare(`
+    const clientStats = await db.prepare(`
       SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
@@ -47,8 +47,8 @@ router.get('/stats', (req, res) => {
       ${dateFilter}
     `;
     const projectStats = params.length > 0
-      ? db.prepare(projectQuery).get(...params)
-      : db.prepare(projectQuery).get();
+      ? await db.prepare(projectQuery).get(...params)
+      : await db.prepare(projectQuery).get();
     stats.projects = projectStats;
 
     // Task stats
@@ -63,8 +63,8 @@ router.get('/stats', (req, res) => {
       ${dateFilter}
     `;
     const taskStats = params.length > 0
-      ? db.prepare(taskQuery).get(...params)
-      : db.prepare(taskQuery).get();
+      ? await db.prepare(taskQuery).get(...params)
+      : await db.prepare(taskQuery).get();
     stats.tasks = taskStats;
 
     // Finance stats - filter by paid_date for paid invoices, issue_date for total invoiced
@@ -88,8 +88,8 @@ router.get('/stats', (req, res) => {
         WHERE expense_date >= ? AND expense_date <= ?
       `;
 
-      const invoiceStats = db.prepare(invoiceQuery).get(start, end, start, end, start, end);
-      const expenseStats = db.prepare(expenseQuery).get(start, end);
+      const invoiceStats = await db.prepare(invoiceQuery).get(start, end, start, end, start, end);
+      const expenseStats = await db.prepare(expenseQuery).get(start, end);
 
       stats.finances = {
         ...invoiceStats,
@@ -112,8 +112,8 @@ router.get('/stats', (req, res) => {
         FROM expenses
       `;
 
-      const invoiceStats = db.prepare(invoiceQuery).get();
-      const expenseStats = db.prepare(expenseQuery).get();
+      const invoiceStats = await db.prepare(invoiceQuery).get();
+      const expenseStats = await db.prepare(expenseQuery).get();
 
       stats.finances = {
         ...invoiceStats,
@@ -129,25 +129,25 @@ router.get('/stats', (req, res) => {
 });
 
 // Get recent activity
-router.get('/recent-activity', (req, res) => {
+router.get('/recent-activity', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
 
-    const recentProjects = db.prepare(`
+    const recentProjects = await db.prepare(`
       SELECT 'project' as type, id, name as title, status, created_at
       FROM projects
       ORDER BY created_at DESC
       LIMIT ?
     `).all(Math.ceil(limit / 3));
 
-    const recentTasks = db.prepare(`
+    const recentTasks = await db.prepare(`
       SELECT 'task' as type, id, title, status, created_at
       FROM tasks
       ORDER BY created_at DESC
       LIMIT ?
     `).all(Math.ceil(limit / 3));
 
-    const recentInvoices = db.prepare(`
+    const recentInvoices = await db.prepare(`
       SELECT 'invoice' as type, id, invoice_number as title, status, created_at
       FROM invoices
       ORDER BY created_at DESC
@@ -165,9 +165,9 @@ router.get('/recent-activity', (req, res) => {
 });
 
 // Get upcoming tasks
-router.get('/upcoming-tasks', (req, res) => {
+router.get('/upcoming-tasks', async (req, res) => {
   try {
-    const tasks = db.prepare(`
+    const tasks = await db.prepare(`
       SELECT t.*, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
@@ -186,9 +186,9 @@ router.get('/upcoming-tasks', (req, res) => {
 });
 
 // Get overdue invoices
-router.get('/overdue-invoices', (req, res) => {
+router.get('/overdue-invoices', async (req, res) => {
   try {
-    const invoices = db.prepare(`
+    const invoices = await db.prepare(`
       SELECT i.*, c.name as client_name
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
@@ -204,11 +204,11 @@ router.get('/overdue-invoices', (req, res) => {
 });
 
 // Get monthly revenue trend
-router.get('/revenue-trend', (req, res) => {
+router.get('/revenue-trend', async (req, res) => {
   try {
     const months = parseInt(req.query.months) || 6;
 
-    const revenue = db.prepare(`
+    const revenue = await db.prepare(`
       SELECT
         strftime('%Y-%m', paid_date) as month,
         SUM(amount) as revenue
@@ -219,7 +219,7 @@ router.get('/revenue-trend', (req, res) => {
       ORDER BY month DESC
     `).all(months);
 
-    const expenses = db.prepare(`
+    const expenses = await db.prepare(`
       SELECT
         strftime('%Y-%m', expense_date) as month,
         SUM(amount) as expenses

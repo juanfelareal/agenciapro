@@ -21,7 +21,7 @@ const getEmailTransporter = () => {
 };
 
 // Get all invoices
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, client_id } = req.query;
     let query = `
@@ -47,7 +47,7 @@ router.get('/', (req, res) => {
     }
 
     query += ' ORDER BY i.created_at DESC';
-    const invoices = db.prepare(query).all(...params);
+    const invoices = await db.prepare(query).all(...params);
     res.json(invoices);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -55,9 +55,9 @@ router.get('/', (req, res) => {
 });
 
 // Get invoice by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const invoice = db.prepare(`
+    const invoice = await db.prepare(`
       SELECT i.*,
         CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name,
         c.email as client_email,
@@ -103,7 +103,7 @@ const calculateNextRecurrenceDate = (fromDate, frequency) => {
 };
 
 // Create new invoice
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date: providedNextDate } = req.body;
 
@@ -112,7 +112,7 @@ router.post('/', (req, res) => {
     }
 
     // Auto-generate invoice number - find max FAC number
-    const allInvoices = db.prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%'").all();
+    const allInvoices = await db.prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%'").all();
     let maxNumber = 0;
     allInvoices.forEach(inv => {
       const match = inv.invoice_number.match(/FAC-(\d+)/);
@@ -129,12 +129,12 @@ router.post('/', (req, res) => {
       next_recurrence_date = providedNextDate || calculateNextRecurrenceDate(issue_date, recurrence_frequency);
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(invoice_number, client_id, project_id, amount, invoice_type || 'con_iva', status || 'draft', issue_date, notes, is_recurring ? 1 : 0, recurrence_frequency || null, recurrence_status || 'draft', next_recurrence_date);
 
-    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(result.lastInsertRowid);
+    const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(invoice);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -142,12 +142,12 @@ router.post('/', (req, res) => {
 });
 
 // Update invoice (supports partial updates for bulk operations)
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { client_id, project_id, amount, invoice_type, status, issue_date, paid_date, notes, payment_proof, changed_by, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date: providedNextDate } = req.body;
 
     // Get current invoice to check status change and preserve existing values
-    const currentInvoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
+    const currentInvoice = await db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
     if (!currentInvoice) {
       return res.status(404).json({ error: 'Factura no encontrada' });
     }
@@ -175,7 +175,7 @@ router.put('/:id', (req, res) => {
       updatedNextRecurrenceDate = calculateNextRecurrenceDate(updatedIssueDate, updatedRecurrenceFrequency);
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE invoices
       SET client_id = ?, project_id = ?, amount = ?, invoice_type = ?,
           status = ?, issue_date = ?, paid_date = ?, payment_proof = ?,
@@ -191,7 +191,7 @@ router.put('/:id', (req, res) => {
 
     // Track status change in history
     if (oldStatus && oldStatus !== updatedStatus) {
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO invoice_status_history (invoice_id, from_status, to_status, changed_by)
         VALUES (?, ?, ?, ?)
       `).run(req.params.id, oldStatus, updatedStatus, changed_by || null);
@@ -199,20 +199,20 @@ router.put('/:id', (req, res) => {
       // Create notification when status changes to 'approved'
       if (updatedStatus === 'approved') {
         // Get all admin/manager users to notify
-        const admins = db.prepare(`
+        const admins = await db.prepare(`
           SELECT id FROM team_members
           WHERE role IN ('admin', 'manager') AND status = 'active'
         `).all();
 
-        const invoice = db.prepare(`
+        const invoice = await db.prepare(`
           SELECT i.*, c.company as client_name
           FROM invoices i
           LEFT JOIN clients c ON i.client_id = c.id
           WHERE i.id = ?
         `).get(req.params.id);
 
-        admins.forEach(admin => {
-          db.prepare(`
+        for (const admin of admins) {
+          await db.prepare(`
             INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id)
             VALUES (?, 'task_assigned', ?, ?, 'invoice', ?)
           `).run(
@@ -221,11 +221,11 @@ router.put('/:id', (req, res) => {
             `La factura ${invoice.invoice_number} de ${invoice.client_name || 'cliente'} está lista para facturar.`,
             req.params.id
           );
-        });
+        }
       }
     }
 
-    const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
+    const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
     res.json(invoice);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -233,9 +233,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Get invoice status history
-router.get('/:id/history', (req, res) => {
+router.get('/:id/history', async (req, res) => {
   try {
-    const history = db.prepare(`
+    const history = await db.prepare(`
       SELECT h.*, t.name as changed_by_name
       FROM invoice_status_history h
       LEFT JOIN team_members t ON h.changed_by = t.id
@@ -251,7 +251,7 @@ router.get('/:id/history', (req, res) => {
 // Send invoice by email
 router.post('/:id/send', async (req, res) => {
   try {
-    const invoice = db.prepare(`
+    const invoice = await db.prepare(`
       SELECT i.*, c.name as client_name, c.email as client_email, p.name as project_name
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
@@ -317,7 +317,7 @@ router.post('/:id/send', async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     // Update invoice status to 'sent'
-    db.prepare('UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    await db.prepare('UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
       .run('sent', req.params.id);
 
     res.json({ message: 'Invoice sent successfully' });
@@ -328,9 +328,9 @@ router.post('/:id/send', async (req, res) => {
 });
 
 // Delete invoice
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM invoices WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM invoices WHERE id = ?').run(req.params.id);
     res.json({ message: 'Invoice deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -12,7 +12,7 @@ const router = Router();
  * GET /api/client-metrics/:clientId
  * Get aggregated metrics for a client within a date range
  */
-router.get('/:clientId', (req, res) => {
+router.get('/:clientId', async (req, res) => {
   try {
     const { clientId } = req.params;
     const { start_date, end_date } = req.query;
@@ -21,7 +21,7 @@ router.get('/:clientId', (req, res) => {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
     }
 
-    const metrics = db.prepare(`
+    const metrics = await db.prepare(`
       SELECT
         SUM(shopify_revenue) as total_revenue,
         SUM(shopify_net_revenue) as net_revenue,
@@ -62,7 +62,7 @@ router.get('/:clientId', (req, res) => {
  * GET /api/client-metrics/:clientId/daily
  * Get daily metrics breakdown for a client
  */
-router.get('/:clientId/daily', (req, res) => {
+router.get('/:clientId/daily', async (req, res) => {
   try {
     const { clientId } = req.params;
     const { start_date, end_date } = req.query;
@@ -71,7 +71,7 @@ router.get('/:clientId/daily', (req, res) => {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
     }
 
-    const metrics = db.prepare(`
+    const metrics = await db.prepare(`
       SELECT
         metric_date,
         shopify_revenue,
@@ -106,7 +106,7 @@ router.get('/:clientId/daily', (req, res) => {
  * GET /api/client-metrics/aggregate
  * Get aggregated metrics for all clients
  */
-router.get('/aggregate/all', (req, res) => {
+router.get('/aggregate/all', async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
 
@@ -114,7 +114,7 @@ router.get('/aggregate/all', (req, res) => {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
     }
 
-    const metrics = db.prepare(`
+    const metrics = await db.prepare(`
       SELECT
         c.id as client_id,
         c.name as client_name,
@@ -179,9 +179,9 @@ router.get('/aggregate/all', (req, res) => {
  * GET /api/client-metrics/summary
  * Get summary of all clients with platform connection status
  */
-router.get('/summary/all', (req, res) => {
+router.get('/summary/all', async (req, res) => {
   try {
-    const clients = db.prepare(`
+    const clients = await db.prepare(`
       SELECT
         c.id,
         c.name,

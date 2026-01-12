@@ -11,22 +11,22 @@ class SiigoService {
   }
 
   // Get stored credentials
-  getCredentials() {
-    return db.prepare('SELECT * FROM siigo_settings WHERE is_active = 1 ORDER BY id DESC LIMIT 1').get();
+  async getCredentials() {
+    return await db.prepare('SELECT * FROM siigo_settings WHERE is_active = 1 ORDER BY id DESC LIMIT 1').get();
   }
 
   // Save credentials
-  saveCredentials(username, accessKey, partnerId = null) {
-    const existing = this.getCredentials();
+  async saveCredentials(username, accessKey, partnerId = null) {
+    const existing = await this.getCredentials();
     if (existing) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE siigo_settings
         SET username = ?, access_key = ?, partner_id = ?, updated_at = datetime('now')
         WHERE id = ?
       `).run(username, accessKey, partnerId, existing.id);
       return existing.id;
     } else {
-      const result = db.prepare(`
+      const result = await db.prepare(`
         INSERT INTO siigo_settings (username, access_key, partner_id)
         VALUES (?, ?, ?)
       `).run(username, accessKey, partnerId);
@@ -36,7 +36,7 @@ class SiigoService {
 
   // Authenticate and get access token
   async authenticate() {
-    const credentials = this.getCredentials();
+    const credentials = await this.getCredentials();
     if (!credentials) {
       throw new Error('Siigo credentials not configured');
     }
@@ -76,7 +76,7 @@ class SiigoService {
       this.tokenExpiresAt = expiresAt.toISOString();
 
       // Save token to database
-      db.prepare(`
+      await db.prepare(`
         UPDATE siigo_settings
         SET access_token = ?, token_expires_at = ?, updated_at = datetime('now')
         WHERE id = ?
@@ -92,7 +92,7 @@ class SiigoService {
   // Make authenticated API request
   async apiRequest(method, endpoint, data = null) {
     const token = await this.authenticate();
-    const credentials = this.getCredentials();
+    const credentials = await this.getCredentials();
 
     try {
       const headers = {
@@ -134,7 +134,7 @@ class SiigoService {
     `);
 
     for (const doc of data) {
-      stmt.run(doc.id, doc.code, doc.name, 'FV');
+      await stmt.run(doc.id, doc.code, doc.name, 'FV');
     }
 
     return data;
@@ -152,7 +152,7 @@ class SiigoService {
     `);
 
     for (const payment of data) {
-      stmt.run(payment.id, payment.name, payment.type);
+      await stmt.run(payment.id, payment.name, payment.type);
     }
 
     return data;
@@ -169,7 +169,7 @@ class SiigoService {
     `);
 
     for (const tax of data) {
-      stmt.run(tax.id, tax.name, tax.percentage);
+      await stmt.run(tax.id, tax.name, tax.percentage);
     }
 
     return data;
@@ -288,7 +288,7 @@ class SiigoService {
     }
 
     // Update client with Siigo ID
-    db.prepare('UPDATE clients SET siigo_id = ? WHERE id = ?').run(siigoCustomer.id, client.id);
+    await db.prepare('UPDATE clients SET siigo_id = ? WHERE id = ?').run(siigoCustomer.id, client.id);
 
     return siigoCustomer;
   }
@@ -324,16 +324,16 @@ class SiigoService {
   async syncInvoice(invoice, client, options = {}) {
     console.log('syncInvoice called with options:', options);
     // Get document type (use cached or fetch)
-    let documentTypes = db.prepare('SELECT * FROM siigo_document_types WHERE type = ? LIMIT 1').get('FV');
+    let documentTypes = await db.prepare('SELECT * FROM siigo_document_types WHERE type = ? LIMIT 1').get('FV');
     if (!documentTypes) {
       await this.getDocumentTypes();
-      documentTypes = db.prepare('SELECT * FROM siigo_document_types WHERE type = ? LIMIT 1').get('FV');
+      documentTypes = await db.prepare('SELECT * FROM siigo_document_types WHERE type = ? LIMIT 1').get('FV');
     }
 
     // Get payment type (use cached or use default)
     // Note: Siigo API /payment-types requires document_type param which varies
     // Using default payment type ID 5636 (Contado) if not cached
-    let paymentTypes = db.prepare('SELECT * FROM siigo_payment_types LIMIT 1').get();
+    let paymentTypes = await db.prepare('SELECT * FROM siigo_payment_types LIMIT 1').get();
     // Skip fetching if not cached - use default in invoice creation
 
     // Get or create a product to use for the invoice
@@ -345,10 +345,10 @@ class SiigoService {
     console.log('Using seller:', seller?.id, seller?.username);
 
     // Get taxes (use cached or fetch)
-    let taxes = db.prepare('SELECT * FROM siigo_taxes WHERE percentage = 19 LIMIT 1').get();
+    let taxes = await db.prepare('SELECT * FROM siigo_taxes WHERE percentage = 19 LIMIT 1').get();
     if (!taxes) {
       await this.getTaxes();
-      taxes = db.prepare('SELECT * FROM siigo_taxes WHERE percentage = 19 LIMIT 1').get();
+      taxes = await db.prepare('SELECT * FROM siigo_taxes WHERE percentage = 19 LIMIT 1').get();
     }
 
     // Ensure customer exists in Siigo
@@ -409,7 +409,7 @@ class SiigoService {
     const siigoInvoice = await this.createInvoice(invoiceData);
 
     // Update local invoice with Siigo ID
-    db.prepare(`
+    await db.prepare(`
       UPDATE invoices
       SET siigo_id = ?, siigo_status = 'sent', updated_at = datetime('now')
       WHERE id = ?
@@ -427,9 +427,9 @@ class SiigoService {
     };
 
     // Update last sync time
-    const credentials = this.getCredentials();
+    const credentials = await this.getCredentials();
     if (credentials) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE siigo_settings
         SET last_sync_at = datetime('now'), updated_at = datetime('now')
         WHERE id = ?

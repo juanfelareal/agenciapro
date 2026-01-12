@@ -4,9 +4,9 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all subtasks for a task
-router.get('/task/:taskId', (req, res) => {
+router.get('/task/:taskId', async (req, res) => {
   try {
-    const subtasks = db.prepare(`
+    const subtasks = await db.prepare(`
       SELECT * FROM subtasks
       WHERE task_id = ?
       ORDER BY position ASC, created_at ASC
@@ -18,9 +18,9 @@ router.get('/task/:taskId', (req, res) => {
 });
 
 // Get subtask by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const subtask = db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
+    const subtask = await db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
     if (!subtask) {
       return res.status(404).json({ error: 'Subtask not found' });
     }
@@ -31,7 +31,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new subtask
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { task_id, title, position } = req.body;
 
@@ -42,16 +42,16 @@ router.post('/', (req, res) => {
     // Get max position if not provided
     let newPosition = position;
     if (newPosition === undefined) {
-      const maxPos = db.prepare('SELECT MAX(position) as max FROM subtasks WHERE task_id = ?').get(task_id);
+      const maxPos = await db.prepare('SELECT MAX(position) as max FROM subtasks WHERE task_id = ?').get(task_id);
       newPosition = (maxPos.max || 0) + 1;
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO subtasks (task_id, title, position)
       VALUES (?, ?, ?)
     `).run(task_id, title, newPosition);
 
-    const subtask = db.prepare('SELECT * FROM subtasks WHERE id = ?').get(result.lastInsertRowid);
+    const subtask = await db.prepare('SELECT * FROM subtasks WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(subtask);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -59,11 +59,11 @@ router.post('/', (req, res) => {
 });
 
 // Update subtask
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { title, is_completed, position } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE subtasks
       SET title = COALESCE(?, title),
           is_completed = COALESCE(?, is_completed),
@@ -71,7 +71,7 @@ router.put('/:id', (req, res) => {
       WHERE id = ?
     `).run(title, is_completed, position, req.params.id);
 
-    const subtask = db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
+    const subtask = await db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
     res.json(subtask);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -79,17 +79,17 @@ router.put('/:id', (req, res) => {
 });
 
 // Toggle subtask completion
-router.put('/:id/toggle', (req, res) => {
+router.put('/:id/toggle', async (req, res) => {
   try {
-    const subtask = db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
+    const subtask = await db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
     if (!subtask) {
       return res.status(404).json({ error: 'Subtask not found' });
     }
 
     const newCompleted = subtask.is_completed ? 0 : 1;
-    db.prepare('UPDATE subtasks SET is_completed = ? WHERE id = ?').run(newCompleted, req.params.id);
+    await db.prepare('UPDATE subtasks SET is_completed = ? WHERE id = ?').run(newCompleted, req.params.id);
 
-    const updatedSubtask = db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
+    const updatedSubtask = await db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
     res.json(updatedSubtask);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -97,7 +97,7 @@ router.put('/:id/toggle', (req, res) => {
 });
 
 // Reorder subtasks
-router.put('/reorder/:taskId', (req, res) => {
+router.put('/reorder/:taskId', async (req, res) => {
   try {
     const { subtaskIds } = req.body; // Array of subtask IDs in new order
 
@@ -111,9 +111,9 @@ router.put('/reorder/:taskId', (req, res) => {
         updateStmt.run(index, id, req.params.taskId);
       });
     });
-    transaction();
+    await transaction();
 
-    const subtasks = db.prepare(`
+    const subtasks = await db.prepare(`
       SELECT * FROM subtasks
       WHERE task_id = ?
       ORDER BY position ASC
@@ -126,9 +126,9 @@ router.put('/reorder/:taskId', (req, res) => {
 });
 
 // Delete subtask
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM subtasks WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM subtasks WHERE id = ?').run(req.params.id);
     res.json({ message: 'Subtask deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -136,9 +136,9 @@ router.delete('/:id', (req, res) => {
 });
 
 // Get subtask progress for a task
-router.get('/task/:taskId/progress', (req, res) => {
+router.get('/task/:taskId/progress', async (req, res) => {
   try {
-    const stats = db.prepare(`
+    const stats = await db.prepare(`
       SELECT
         COUNT(*) as total,
         COALESCE(SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END), 0) as completed

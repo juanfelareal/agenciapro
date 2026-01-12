@@ -4,7 +4,7 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get monthly report with totals
-router.get('/report/monthly', (req, res) => {
+router.get('/report/monthly', async (req, res) => {
   try {
     const { month, year } = req.query;
 
@@ -34,7 +34,7 @@ router.get('/report/monthly', (req, res) => {
 
     query += ' ORDER BY tm.name ASC, cl.name ASC';
 
-    const commissions = db.prepare(query).all(...params);
+    const commissions = await db.prepare(query).all(...params);
 
     // Calculate totals
     const totals = {
@@ -53,7 +53,7 @@ router.get('/report/monthly', (req, res) => {
 });
 
 // Get all commissions
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { month, year, team_member_id, client_id, status } = req.query;
 
@@ -98,7 +98,7 @@ router.get('/', (req, res) => {
 
     query += ' ORDER BY c.year DESC, c.month DESC, tm.name ASC';
 
-    const commissions = db.prepare(query).all(...params);
+    const commissions = await db.prepare(query).all(...params);
     res.json(commissions);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -106,9 +106,9 @@ router.get('/', (req, res) => {
 });
 
 // Get commission by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const commission = db.prepare(`
+    const commission = await db.prepare(`
       SELECT
         c.*,
         tm.name as team_member_name,
@@ -132,7 +132,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create commission
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { team_member_id, client_id, otros, month, year, net_sales, commission_amount, status, notes } = req.body;
 
@@ -146,20 +146,20 @@ router.post('/', (req, res) => {
     }
 
     // Check if team member exists
-    const teamMember = db.prepare('SELECT id FROM team_members WHERE id = ?').get(team_member_id);
+    const teamMember = await db.prepare('SELECT id FROM team_members WHERE id = ?').get(team_member_id);
     if (!teamMember) {
       return res.status(404).json({ error: 'Team member not found' });
     }
 
     // Check if client exists (if provided)
     if (client_id) {
-      const client = db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+      const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
       if (!client) {
         return res.status(404).json({ error: 'Client not found' });
       }
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO commissions (team_member_id, client_id, otros, month, year, net_sales, commission_amount, status, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -174,7 +174,7 @@ router.post('/', (req, res) => {
       notes
     );
 
-    const commission = db.prepare(`
+    const commission = await db.prepare(`
       SELECT
         c.*,
         tm.name as team_member_name,
@@ -194,7 +194,7 @@ router.post('/', (req, res) => {
 });
 
 // Update commission
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { team_member_id, client_id, otros, month, year, net_sales, commission_amount, status, notes } = req.body;
 
@@ -203,7 +203,7 @@ router.put('/:id', (req, res) => {
       return res.status(400).json({ error: 'Month must be between 1 and 12' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE commissions
       SET team_member_id = ?, client_id = ?, otros = ?, month = ?, year = ?, net_sales = ?,
           commission_amount = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
@@ -221,7 +221,7 @@ router.put('/:id', (req, res) => {
       req.params.id
     );
 
-    const commission = db.prepare(`
+    const commission = await db.prepare(`
       SELECT
         c.*,
         tm.name as team_member_name,
@@ -245,7 +245,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Update commission status only
-router.patch('/:id/status', (req, res) => {
+router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
 
@@ -253,13 +253,13 @@ router.patch('/:id/status', (req, res) => {
       return res.status(400).json({ error: 'Valid status (pending, approved, paid) is required' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE commissions
       SET status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(status, req.params.id);
 
-    const commission = db.prepare(`
+    const commission = await db.prepare(`
       SELECT
         c.*,
         tm.name as team_member_name,
@@ -289,7 +289,7 @@ router.patch('/:id/status', (req, res) => {
         maximumFractionDigits: 0,
       }).format(commission.commission_amount);
 
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(
@@ -309,15 +309,15 @@ router.patch('/:id/status', (req, res) => {
 });
 
 // Delete commission
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const commission = db.prepare('SELECT id FROM commissions WHERE id = ?').get(req.params.id);
+    const commission = await db.prepare('SELECT id FROM commissions WHERE id = ?').get(req.params.id);
 
     if (!commission) {
       return res.status(404).json({ error: 'Commission not found' });
     }
 
-    db.prepare('DELETE FROM commissions WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM commissions WHERE id = ?').run(req.params.id);
     res.json({ message: 'Commission deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

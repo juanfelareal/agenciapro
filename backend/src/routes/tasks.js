@@ -6,7 +6,7 @@ import { processTaskCreated, processTaskUpdated } from '../services/automationEn
 const router = express.Router();
 
 // Get all tasks
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, project_id, assigned_to } = req.query;
     let query = `
@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
     }
 
     query += ' ORDER BY t.created_at DESC';
-    const tasks = db.prepare(query).all(...params);
+    const tasks = await db.prepare(query).all(...params);
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -42,9 +42,9 @@ router.get('/', (req, res) => {
 });
 
 // Get task by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const task = db.prepare(`
+    const task = await db.prepare(`
       SELECT t.*, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
@@ -62,7 +62,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new task
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       title,
@@ -85,7 +85,7 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO tasks (
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
@@ -109,7 +109,7 @@ router.post('/', (req, res) => {
       estimated_hours
     );
 
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
 
     // Notify user if task was assigned
     // Note: We don't have the current user context, so we pass 0 as placeholder
@@ -128,7 +128,7 @@ router.post('/', (req, res) => {
 });
 
 // Update task
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const {
       title,
@@ -148,9 +148,9 @@ router.put('/:id', (req, res) => {
     } = req.body;
 
     // Get old task data for comparison
-    const oldTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+    const oldTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE tasks
       SET title = ?, description = ?, project_id = ?, assigned_to = ?,
           status = ?, priority = ?, due_date = ?, is_recurring = ?,
@@ -175,7 +175,7 @@ router.put('/:id', (req, res) => {
       req.params.id
     );
 
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
 
     // Notification logic
     if (oldTask) {
@@ -211,9 +211,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete task
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -4,9 +4,9 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all automations
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const automations = db.prepare(`
+    const automations = await db.prepare(`
       SELECT a.*, p.name as project_name
       FROM automations a
       LEFT JOIN projects p ON a.project_id = p.id
@@ -19,9 +19,9 @@ router.get('/', (req, res) => {
 });
 
 // Get automations by project
-router.get('/project/:projectId', (req, res) => {
+router.get('/project/:projectId', async (req, res) => {
   try {
-    const automations = db.prepare(`
+    const automations = await db.prepare(`
       SELECT a.*, p.name as project_name
       FROM automations a
       LEFT JOIN projects p ON a.project_id = p.id
@@ -35,9 +35,9 @@ router.get('/project/:projectId', (req, res) => {
 });
 
 // Get single automation
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const automation = db.prepare(`
+    const automation = await db.prepare(`
       SELECT a.*, p.name as project_name
       FROM automations a
       LEFT JOIN projects p ON a.project_id = p.id
@@ -54,7 +54,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create automation
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active } = req.body;
 
@@ -62,7 +62,7 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Name, trigger type, and action type are required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO automations (project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -75,7 +75,7 @@ router.post('/', (req, res) => {
       is_active !== false ? 1 : 0
     );
 
-    const automation = db.prepare('SELECT * FROM automations WHERE id = ?').get(result.lastInsertRowid);
+    const automation = await db.prepare('SELECT * FROM automations WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(automation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -83,11 +83,11 @@ router.post('/', (req, res) => {
 });
 
 // Update automation
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE automations
       SET project_id = ?, name = ?, trigger_type = ?, trigger_conditions = ?,
           action_type = ?, action_params = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
@@ -103,7 +103,7 @@ router.put('/:id', (req, res) => {
       req.params.id
     );
 
-    const automation = db.prepare('SELECT * FROM automations WHERE id = ?').get(req.params.id);
+    const automation = await db.prepare('SELECT * FROM automations WHERE id = ?').get(req.params.id);
     res.json(automation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -111,18 +111,18 @@ router.put('/:id', (req, res) => {
 });
 
 // Toggle automation active status
-router.put('/:id/toggle', (req, res) => {
+router.put('/:id/toggle', async (req, res) => {
   try {
-    const current = db.prepare('SELECT is_active FROM automations WHERE id = ?').get(req.params.id);
+    const current = await db.prepare('SELECT is_active FROM automations WHERE id = ?').get(req.params.id);
     if (!current) {
       return res.status(404).json({ error: 'Automation not found' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE automations SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
     `).run(current.is_active ? 0 : 1, req.params.id);
 
-    const automation = db.prepare('SELECT * FROM automations WHERE id = ?').get(req.params.id);
+    const automation = await db.prepare('SELECT * FROM automations WHERE id = ?').get(req.params.id);
     res.json(automation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -130,9 +130,9 @@ router.put('/:id/toggle', (req, res) => {
 });
 
 // Delete automation
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM automations WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM automations WHERE id = ?').run(req.params.id);
     res.json({ message: 'Automation deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

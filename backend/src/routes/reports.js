@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Productivity Report
 // Tasks completed per user, by status, completion rates
-router.get('/productivity', (req, res) => {
+router.get('/productivity', async (req, res) => {
   try {
     const { start_date, end_date, project_id, user_id } = req.query;
 
@@ -22,7 +22,7 @@ router.get('/productivity', (req, res) => {
     }
 
     // Tasks by status
-    const tasksByStatus = db.prepare(`
+    const tasksByStatus = await db.prepare(`
       SELECT status, COUNT(*) as count
       FROM tasks t
       WHERE 1=1 ${dateFilter}
@@ -32,7 +32,7 @@ router.get('/productivity', (req, res) => {
     `).all(...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
 
     // Tasks completed per user
-    const tasksPerUser = db.prepare(`
+    const tasksPerUser = await db.prepare(`
       SELECT tm.id, tm.name,
              COUNT(CASE WHEN t.status = 'done' THEN 1 END) as completed,
              COUNT(*) as total
@@ -46,7 +46,7 @@ router.get('/productivity', (req, res) => {
     `).all(...params, ...(project_id ? [project_id] : []));
 
     // On-time vs overdue completion
-    const completionStats = db.prepare(`
+    const completionStats = await db.prepare(`
       SELECT
         COUNT(CASE WHEN status = 'done' AND (due_date IS NULL OR date(updated_at) <= date(due_date)) THEN 1 END) as on_time,
         COUNT(CASE WHEN status = 'done' AND due_date IS NOT NULL AND date(updated_at) > date(due_date) THEN 1 END) as late,
@@ -58,7 +58,7 @@ router.get('/productivity', (req, res) => {
     `).get(...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
 
     // Tasks by priority
-    const tasksByPriority = db.prepare(`
+    const tasksByPriority = await db.prepare(`
       SELECT priority, COUNT(*) as count
       FROM tasks t
       WHERE 1=1 ${dateFilter}
@@ -68,7 +68,7 @@ router.get('/productivity', (req, res) => {
     `).all(...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
 
     // Weekly trend (tasks completed in the last 8 weeks)
-    const weeklyTrend = db.prepare(`
+    const weeklyTrend = await db.prepare(`
       SELECT
         strftime('%Y-%W', updated_at) as week,
         COUNT(*) as completed
@@ -95,7 +95,7 @@ router.get('/productivity', (req, res) => {
 
 // Financial Report
 // Revenue, invoices, expenses summary
-router.get('/financial', (req, res) => {
+router.get('/financial', async (req, res) => {
   try {
     const { start_date, end_date, client_id } = req.query;
 
@@ -111,7 +111,7 @@ router.get('/financial', (req, res) => {
     }
 
     // Revenue by client
-    const revenueByClient = db.prepare(`
+    const revenueByClient = await db.prepare(`
       SELECT c.id, c.name, SUM(i.amount) as total_revenue, COUNT(i.id) as invoice_count
       FROM clients c
       LEFT JOIN invoices i ON i.client_id = c.id AND i.status = 'paid'
@@ -123,7 +123,7 @@ router.get('/financial', (req, res) => {
     `).all(...params);
 
     // Revenue by month (last 12 months)
-    const revenueByMonth = db.prepare(`
+    const revenueByMonth = await db.prepare(`
       SELECT
         strftime('%Y-%m', issue_date) as month,
         SUM(amount) as revenue
@@ -136,7 +136,7 @@ router.get('/financial', (req, res) => {
     `).all(...(client_id ? [client_id] : []));
 
     // Invoice summary by status
-    const invoiceSummary = db.prepare(`
+    const invoiceSummary = await db.prepare(`
       SELECT
         status,
         COUNT(*) as count,
@@ -148,7 +148,7 @@ router.get('/financial', (req, res) => {
     `).all(...params, ...(client_id ? [client_id] : []));
 
     // Expenses by category
-    const expensesByCategory = db.prepare(`
+    const expensesByCategory = await db.prepare(`
       SELECT
         category,
         SUM(amount) as total,
@@ -160,7 +160,7 @@ router.get('/financial', (req, res) => {
     `).all(...params);
 
     // Monthly expenses (last 12 months)
-    const expensesByMonth = db.prepare(`
+    const expensesByMonth = await db.prepare(`
       SELECT
         strftime('%Y-%m', expense_date) as month,
         SUM(amount) as total
@@ -171,21 +171,23 @@ router.get('/financial', (req, res) => {
     `).all();
 
     // Profit calculation (last 12 months)
-    const totalRevenue = db.prepare(`
+    const totalRevenueResult = await db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM invoices
       WHERE status = 'paid'
       AND date(issue_date) >= date('now', '-12 months')
-    `).get().total;
+    `).get();
+    const totalRevenue = totalRevenueResult.total;
 
-    const totalExpenses = db.prepare(`
+    const totalExpensesResult = await db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM expenses
       WHERE date(expense_date) >= date('now', '-12 months')
-    `).get().total;
+    `).get();
+    const totalExpenses = totalExpensesResult.total;
 
     // Outstanding invoices
-    const outstandingInvoices = db.prepare(`
+    const outstandingInvoices = await db.prepare(`
       SELECT
         COUNT(*) as count,
         SUM(amount) as total
@@ -214,12 +216,12 @@ router.get('/financial', (req, res) => {
 
 // Projects Report
 // Project health, progress, budget tracking
-router.get('/projects', (req, res) => {
+router.get('/projects', async (req, res) => {
   try {
     const { status } = req.query;
 
     // Projects overview
-    const projectsOverview = db.prepare(`
+    const projectsOverview = await db.prepare(`
       SELECT
         p.*,
         c.name as client_name,
@@ -237,14 +239,14 @@ router.get('/projects', (req, res) => {
     `).all(...(status ? [status] : []));
 
     // Projects by status
-    const projectsByStatus = db.prepare(`
+    const projectsByStatus = await db.prepare(`
       SELECT status, COUNT(*) as count
       FROM projects
       GROUP BY status
     `).all();
 
     // Projects by client
-    const projectsByClient = db.prepare(`
+    const projectsByClient = await db.prepare(`
       SELECT c.id, c.name, COUNT(p.id) as project_count
       FROM clients c
       LEFT JOIN projects p ON p.client_id = c.id
@@ -255,7 +257,7 @@ router.get('/projects', (req, res) => {
     `).all();
 
     // Overdue projects (past end_date but not completed)
-    const overdueProjects = db.prepare(`
+    const overdueProjects = await db.prepare(`
       SELECT p.*, c.name as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
@@ -265,7 +267,7 @@ router.get('/projects', (req, res) => {
     `).all();
 
     // Budget utilization
-    const budgetUtilization = db.prepare(`
+    const budgetUtilization = await db.prepare(`
       SELECT
         p.id,
         p.name,
@@ -292,7 +294,7 @@ router.get('/projects', (req, res) => {
 
 // Team Report
 // Team member performance, workload distribution
-router.get('/team', (req, res) => {
+router.get('/team', async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
 
@@ -308,7 +310,7 @@ router.get('/team', (req, res) => {
     }
 
     // Team member performance
-    const teamPerformance = db.prepare(`
+    const teamPerformance = await db.prepare(`
       SELECT
         tm.id,
         tm.name,
@@ -326,7 +328,7 @@ router.get('/team', (req, res) => {
     `).all(...params);
 
     // Workload distribution (current active tasks)
-    const workloadDistribution = db.prepare(`
+    const workloadDistribution = await db.prepare(`
       SELECT
         tm.id,
         tm.name,
@@ -340,7 +342,7 @@ router.get('/team', (req, res) => {
     `).all();
 
     // Tasks by priority per team member
-    const tasksByPriorityPerMember = db.prepare(`
+    const tasksByPriorityPerMember = await db.prepare(`
       SELECT
         tm.id,
         tm.name,
@@ -355,7 +357,7 @@ router.get('/team', (req, res) => {
     `).all();
 
     // Completion rate by member (last 30 days)
-    const completionRates = db.prepare(`
+    const completionRates = await db.prepare(`
       SELECT
         tm.id,
         tm.name,
@@ -371,7 +373,7 @@ router.get('/team', (req, res) => {
     `).all();
 
     // Unassigned tasks
-    const unassignedTasks = db.prepare(`
+    const unassignedTasks = await db.prepare(`
       SELECT COUNT(*) as count
       FROM tasks
       WHERE assigned_to IS NULL

@@ -4,7 +4,7 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all expenses
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { category, project_id, start_date, end_date } = req.query;
     let query = `
@@ -36,7 +36,7 @@ router.get('/', (req, res) => {
     }
 
     query += ' ORDER BY e.expense_date DESC';
-    const expenses = db.prepare(query).all(...params);
+    const expenses = await db.prepare(query).all(...params);
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -44,9 +44,9 @@ router.get('/', (req, res) => {
 });
 
 // Get expense by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const expense = db.prepare(`
+    const expense = await db.prepare(`
       SELECT e.*, p.name as project_name
       FROM expenses e
       LEFT JOIN projects p ON e.project_id = p.id
@@ -63,7 +63,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new expense
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { description, category, amount, project_id, expense_date, payment_method, receipt_url, notes } = req.body;
 
@@ -71,14 +71,14 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Description, amount, and expense date are required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO expenses (description, category, amount, project_id, expense_date, payment_method, receipt_url, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(description, category, amount, project_id, expense_date, payment_method, receipt_url, notes);
 
     // Update project spent amount if project_id is provided
     if (project_id) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE projects
         SET spent = spent + ?,
             updated_at = CURRENT_TIMESTAMP
@@ -86,7 +86,7 @@ router.post('/', (req, res) => {
       `).run(amount, project_id);
     }
 
-    const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(result.lastInsertRowid);
+    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(expense);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -94,14 +94,14 @@ router.post('/', (req, res) => {
 });
 
 // Update expense
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { description, category, amount, project_id, expense_date, payment_method, receipt_url, notes } = req.body;
 
     // Get old expense to adjust project spent
-    const oldExpense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const oldExpense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE expenses
       SET description = ?, category = ?, amount = ?, project_id = ?,
           expense_date = ?, payment_method = ?, receipt_url = ?,
@@ -111,16 +111,16 @@ router.put('/:id', (req, res) => {
 
     // Adjust project spent amounts
     if (oldExpense.project_id) {
-      db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ?')
+      await db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ?')
         .run(oldExpense.amount, oldExpense.project_id);
     }
 
     if (project_id) {
-      db.prepare('UPDATE projects SET spent = spent + ? WHERE id = ?')
+      await db.prepare('UPDATE projects SET spent = spent + ? WHERE id = ?')
         .run(amount, project_id);
     }
 
-    const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
     res.json(expense);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -128,17 +128,17 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete expense
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
 
     // Adjust project spent amount
     if (expense.project_id) {
-      db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ?')
+      await db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ?')
         .run(expense.amount, expense.project_id);
     }
 
-    db.prepare('DELETE FROM expenses WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM expenses WHERE id = ?').run(req.params.id);
     res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -146,7 +146,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // Get expense summary by category
-router.get('/summary/by-category', (req, res) => {
+router.get('/summary/by-category', async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
     let query = `
@@ -167,7 +167,7 @@ router.get('/summary/by-category', (req, res) => {
     }
 
     query += ' GROUP BY category ORDER BY total DESC';
-    const summary = db.prepare(query).all(...params);
+    const summary = await db.prepare(query).all(...params);
     res.json(summary);
   } catch (error) {
     res.status(500).json({ error: error.message });

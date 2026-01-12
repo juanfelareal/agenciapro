@@ -4,9 +4,9 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all dependencies for a task
-router.get('/task/:taskId', (req, res) => {
+router.get('/task/:taskId', async (req, res) => {
   try {
-    const dependencies = db.prepare(`
+    const dependencies = await db.prepare(`
       SELECT td.*, t.title as depends_on_task_title,
              t.status as depends_on_task_status,
              t.timeline_start, t.timeline_end
@@ -22,9 +22,9 @@ router.get('/task/:taskId', (req, res) => {
 });
 
 // Get all tasks that depend on a specific task
-router.get('/task/:taskId/dependents', (req, res) => {
+router.get('/task/:taskId/dependents', async (req, res) => {
   try {
-    const dependents = db.prepare(`
+    const dependents = await db.prepare(`
       SELECT td.*, t.title as task_title,
              t.status as task_status,
              t.timeline_start, t.timeline_end
@@ -40,7 +40,7 @@ router.get('/task/:taskId/dependents', (req, res) => {
 });
 
 // Create new dependency
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { task_id, depends_on_task_id, dependency_type } = req.body;
 
@@ -53,12 +53,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Cannot create a dependency to itself' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO task_dependencies (task_id, depends_on_task_id, dependency_type)
       VALUES (?, ?, ?)
     `).run(task_id, depends_on_task_id, dependency_type || 'FS');
 
-    const dependency = db.prepare(`
+    const dependency = await db.prepare(`
       SELECT td.*, t.title as depends_on_task_title
       FROM task_dependencies td
       JOIN tasks t ON td.depends_on_task_id = t.id
@@ -72,17 +72,17 @@ router.post('/', (req, res) => {
 });
 
 // Update dependency type
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { dependency_type } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE task_dependencies
       SET dependency_type = ?
       WHERE id = ?
     `).run(dependency_type, req.params.id);
 
-    const dependency = db.prepare(`
+    const dependency = await db.prepare(`
       SELECT td.*, t.title as depends_on_task_title
       FROM task_dependencies td
       JOIN tasks t ON td.depends_on_task_id = t.id
@@ -96,9 +96,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete dependency
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM task_dependencies WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM task_dependencies WHERE id = ?').run(req.params.id);
     res.json({ message: 'Dependency deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -106,9 +106,9 @@ router.delete('/:id', (req, res) => {
 });
 
 // Get dependency chain for Gantt view (project level)
-router.get('/project/:projectId/chain', (req, res) => {
+router.get('/project/:projectId/chain', async (req, res) => {
   try {
-    const dependencies = db.prepare(`
+    const dependencies = await db.prepare(`
       SELECT td.*,
              t1.title as task_title,
              t1.timeline_start as task_start,

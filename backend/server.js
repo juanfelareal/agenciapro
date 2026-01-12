@@ -55,8 +55,18 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize database
-initializeDatabase();
+// Initialize database (async)
+const startServer = async () => {
+  try {
+    await initializeDatabase();
+    console.log('✅ Database ready');
+  } catch (error) {
+    console.error('❌ Failed to initialize database:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 // Routes
 app.use('/api/clients', clientRoutes);

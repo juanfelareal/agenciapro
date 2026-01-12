@@ -4,9 +4,9 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all columns for a project/board
-router.get('/project/:projectId', (req, res) => {
+router.get('/project/:projectId', async (req, res) => {
   try {
-    const columns = db.prepare(`
+    const columns = await db.prepare(`
       SELECT * FROM board_columns
       WHERE project_id = ?
       ORDER BY column_order ASC
@@ -19,9 +19,9 @@ router.get('/project/:projectId', (req, res) => {
 });
 
 // Get column by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const column = db.prepare('SELECT * FROM board_columns WHERE id = ?').get(req.params.id);
+    const column = await db.prepare('SELECT * FROM board_columns WHERE id = ?').get(req.params.id);
     if (!column) {
       return res.status(404).json({ error: 'Column not found' });
     }
@@ -32,7 +32,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new column
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { project_id, column_name, column_type, column_order, settings } = req.body;
 
@@ -40,7 +40,7 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Project ID, column name and type are required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO board_columns (project_id, column_name, column_type, column_order, settings)
       VALUES (?, ?, ?, ?, ?)
     `).run(
@@ -51,7 +51,7 @@ router.post('/', (req, res) => {
       settings ? JSON.stringify(settings) : null
     );
 
-    const column = db.prepare('SELECT * FROM board_columns WHERE id = ?').get(result.lastInsertRowid);
+    const column = await db.prepare('SELECT * FROM board_columns WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(column);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -59,11 +59,11 @@ router.post('/', (req, res) => {
 });
 
 // Update column
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { column_name, column_type, column_order, settings } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE board_columns
       SET column_name = ?, column_type = ?, column_order = ?, settings = ?,
           updated_at = CURRENT_TIMESTAMP
@@ -76,7 +76,7 @@ router.put('/:id', (req, res) => {
       req.params.id
     );
 
-    const column = db.prepare('SELECT * FROM board_columns WHERE id = ?').get(req.params.id);
+    const column = await db.prepare('SELECT * FROM board_columns WHERE id = ?').get(req.params.id);
     res.json(column);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -84,9 +84,9 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete column
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM board_columns WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM board_columns WHERE id = ?').run(req.params.id);
     res.json({ message: 'Column deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -94,9 +94,9 @@ router.delete('/:id', (req, res) => {
 });
 
 // Get column values for a task
-router.get('/values/task/:taskId', (req, res) => {
+router.get('/values/task/:taskId', async (req, res) => {
   try {
-    const values = db.prepare(`
+    const values = await db.prepare(`
       SELECT bcv.*, bc.column_name, bc.column_type, bc.settings
       FROM board_column_values bcv
       JOIN board_columns bc ON bcv.column_id = bc.id
@@ -110,7 +110,7 @@ router.get('/values/task/:taskId', (req, res) => {
 });
 
 // Set/Update column value for a task
-router.post('/values', (req, res) => {
+router.post('/values', async (req, res) => {
   try {
     const { task_id, column_id, value } = req.body;
 
@@ -119,25 +119,25 @@ router.post('/values', (req, res) => {
     }
 
     // Upsert (insert or update)
-    const existing = db.prepare(`
+    const existing = await db.prepare(`
       SELECT id FROM board_column_values
       WHERE task_id = ? AND column_id = ?
     `).get(task_id, column_id);
 
     if (existing) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE board_column_values
         SET value = ?, updated_at = CURRENT_TIMESTAMP
         WHERE task_id = ? AND column_id = ?
       `).run(value, task_id, column_id);
     } else {
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO board_column_values (task_id, column_id, value)
         VALUES (?, ?, ?)
       `).run(task_id, column_id, value);
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       SELECT bcv.*, bc.column_name, bc.column_type
       FROM board_column_values bcv
       JOIN board_columns bc ON bcv.column_id = bc.id

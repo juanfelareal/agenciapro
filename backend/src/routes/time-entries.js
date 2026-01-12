@@ -4,7 +4,7 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all time entries with filters
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { user_id, project_id, task_id, start_date, end_date, is_running } = req.query;
     let query = `
@@ -51,7 +51,7 @@ router.get('/', (req, res) => {
     }
 
     query += ' ORDER BY te.start_time DESC';
-    const entries = db.prepare(query).all(...params);
+    const entries = await db.prepare(query).all(...params);
     res.json(entries);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -59,9 +59,9 @@ router.get('/', (req, res) => {
 });
 
 // Get running timers for all users
-router.get('/running', (req, res) => {
+router.get('/running', async (req, res) => {
   try {
-    const entries = db.prepare(`
+    const entries = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
         p.name as project_name,
@@ -80,7 +80,7 @@ router.get('/running', (req, res) => {
 });
 
 // Get timesheet data (weekly view)
-router.get('/timesheet', (req, res) => {
+router.get('/timesheet', async (req, res) => {
   try {
     const { user_id, start_date, end_date } = req.query;
 
@@ -109,7 +109,7 @@ router.get('/timesheet', (req, res) => {
     }
 
     query += ' ORDER BY te.start_time ASC';
-    const entries = db.prepare(query).all(...params);
+    const entries = await db.prepare(query).all(...params);
 
     // Group by project and date
     const grouped = {};
@@ -152,7 +152,7 @@ router.get('/timesheet', (req, res) => {
 });
 
 // Get time reports
-router.get('/reports', (req, res) => {
+router.get('/reports', async (req, res) => {
   try {
     const { start_date, end_date, group_by = 'project' } = req.query;
 
@@ -169,7 +169,7 @@ router.get('/reports', (req, res) => {
     }
 
     // Time by project
-    const byProject = db.prepare(`
+    const byProject = await db.prepare(`
       SELECT
         p.id as project_id,
         p.name as project_name,
@@ -184,7 +184,7 @@ router.get('/reports', (req, res) => {
     `).all(...params);
 
     // Time by user
-    const byUser = db.prepare(`
+    const byUser = await db.prepare(`
       SELECT
         tm.id as user_id,
         tm.name as user_name,
@@ -199,7 +199,7 @@ router.get('/reports', (req, res) => {
     `).all(...params);
 
     // Time by day (for charts)
-    const byDay = db.prepare(`
+    const byDay = await db.prepare(`
       SELECT
         DATE(te.start_time) as date,
         SUM(te.duration_minutes) as total_minutes,
@@ -211,7 +211,7 @@ router.get('/reports', (req, res) => {
     `).all(...params);
 
     // Totals
-    const totals = db.prepare(`
+    const totals = await db.prepare(`
       SELECT
         SUM(te.duration_minutes) as total_minutes,
         SUM(CASE WHEN te.billable = 1 THEN te.duration_minutes ELSE 0 END) as billable_minutes,
@@ -238,9 +238,9 @@ router.get('/reports', (req, res) => {
 });
 
 // Get time entry by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const entry = db.prepare(`
+    const entry = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
         p.name as project_name,
@@ -262,7 +262,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create manual time entry
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       task_id,
@@ -295,13 +295,13 @@ router.post('/', (req, res) => {
     // If task_id provided, get project_id from task
     let finalProjectId = project_id;
     if (task_id && !project_id) {
-      const task = db.prepare('SELECT project_id FROM tasks WHERE id = ?').get(task_id);
+      const task = await db.prepare('SELECT project_id FROM tasks WHERE id = ?').get(task_id);
       if (task) {
         finalProjectId = task.project_id;
       }
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO time_entries (
         task_id, project_id, user_id, description,
         start_time, end_time, duration_minutes,
@@ -320,7 +320,7 @@ router.post('/', (req, res) => {
       hourly_rate || null
     );
 
-    const newEntry = db.prepare(`
+    const newEntry = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
         p.name as project_name,
@@ -339,7 +339,7 @@ router.post('/', (req, res) => {
 });
 
 // Start timer
-router.post('/start', (req, res) => {
+router.post('/start', async (req, res) => {
   try {
     const { task_id, project_id, user_id, description } = req.body;
 
@@ -351,11 +351,11 @@ router.post('/start', (req, res) => {
     const now = new Date().toISOString();
 
     // Stop any existing running timers for this user
-    const existingTimers = db.prepare('SELECT * FROM time_entries WHERE user_id = ? AND is_running = 1').all(user_id);
+    const existingTimers = await db.prepare('SELECT * FROM time_entries WHERE user_id = ? AND is_running = 1').all(user_id);
     for (const timer of existingTimers) {
       const startTime = new Date(timer.start_time.includes('T') ? timer.start_time : timer.start_time.replace(' ', 'T') + 'Z');
       const duration = Math.floor((new Date() - startTime) / 60000);
-      db.prepare(`
+      await db.prepare(`
         UPDATE time_entries
         SET is_running = 0,
             end_time = ?,
@@ -368,14 +368,14 @@ router.post('/start', (req, res) => {
     // If task_id provided, get project_id from task
     let finalProjectId = project_id;
     if (task_id && !project_id) {
-      const task = db.prepare('SELECT project_id FROM tasks WHERE id = ?').get(task_id);
+      const task = await db.prepare('SELECT project_id FROM tasks WHERE id = ?').get(task_id);
       if (task) {
         finalProjectId = task.project_id;
       }
     }
 
     // Start new timer with ISO timestamp
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO time_entries (
         task_id, project_id, user_id, description,
         start_time, is_running, billable
@@ -389,7 +389,7 @@ router.post('/start', (req, res) => {
       now
     );
 
-    const newEntry = db.prepare(`
+    const newEntry = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
         p.name as project_name,
@@ -408,12 +408,12 @@ router.post('/start', (req, res) => {
 });
 
 // Stop timer
-router.post('/:id/stop', (req, res) => {
+router.post('/:id/stop', async (req, res) => {
   try {
     const { description } = req.body;
     const entryId = req.params.id;
 
-    const entry = db.prepare('SELECT * FROM time_entries WHERE id = ?').get(entryId);
+    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ?').get(entryId);
 
     if (!entry) {
       return res.status(404).json({ error: 'Time entry not found' });
@@ -435,7 +435,7 @@ router.post('/:id/stop', (req, res) => {
 
     // Update with calculated duration
     if (description) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE time_entries
         SET is_running = 0,
             end_time = ?,
@@ -445,7 +445,7 @@ router.post('/:id/stop', (req, res) => {
         WHERE id = ?
       `).run(nowISO, durationMinutes, description, nowISO, entryId);
     } else {
-      db.prepare(`
+      await db.prepare(`
         UPDATE time_entries
         SET is_running = 0,
             end_time = ?,
@@ -455,7 +455,7 @@ router.post('/:id/stop', (req, res) => {
       `).run(nowISO, durationMinutes, nowISO, entryId);
     }
 
-    const updatedEntry = db.prepare(`
+    const updatedEntry = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
         p.name as project_name,
@@ -474,7 +474,7 @@ router.post('/:id/stop', (req, res) => {
 });
 
 // Update time entry
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const {
       task_id,
@@ -487,7 +487,7 @@ router.put('/:id', (req, res) => {
       hourly_rate
     } = req.body;
 
-    const entry = db.prepare('SELECT * FROM time_entries WHERE id = ?').get(req.params.id);
+    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ?').get(req.params.id);
 
     if (!entry) {
       return res.status(404).json({ error: 'Time entry not found' });
@@ -501,7 +501,7 @@ router.put('/:id', (req, res) => {
       finalDuration = Math.round((end - start) / 60000);
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE time_entries SET
         task_id = COALESCE(?, task_id),
         project_id = COALESCE(?, project_id),
@@ -525,7 +525,7 @@ router.put('/:id', (req, res) => {
       req.params.id
     );
 
-    const updatedEntry = db.prepare(`
+    const updatedEntry = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
         p.name as project_name,
@@ -544,15 +544,15 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete time entry
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const entry = db.prepare('SELECT * FROM time_entries WHERE id = ?').get(req.params.id);
+    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ?').get(req.params.id);
 
     if (!entry) {
       return res.status(404).json({ error: 'Time entry not found' });
     }
 
-    db.prepare('DELETE FROM time_entries WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM time_entries WHERE id = ?').run(req.params.id);
     res.json({ message: 'Time entry deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -560,9 +560,9 @@ router.delete('/:id', (req, res) => {
 });
 
 // Get time logged for a specific task
-router.get('/task/:taskId/summary', (req, res) => {
+router.get('/task/:taskId/summary', async (req, res) => {
   try {
-    const summary = db.prepare(`
+    const summary = await db.prepare(`
       SELECT
         SUM(duration_minutes) as total_minutes,
         COUNT(id) as entry_count
@@ -571,7 +571,7 @@ router.get('/task/:taskId/summary', (req, res) => {
     `).get(req.params.taskId);
 
     // Get task estimated hours
-    const task = db.prepare('SELECT estimated_hours FROM tasks WHERE id = ?').get(req.params.taskId);
+    const task = await db.prepare('SELECT estimated_hours FROM tasks WHERE id = ?').get(req.params.taskId);
 
     res.json({
       total_minutes: summary.total_minutes || 0,

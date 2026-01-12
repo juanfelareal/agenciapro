@@ -4,7 +4,7 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all notifications for a user
-router.get('/user/:userId', (req, res) => {
+router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { unread_only } = req.query;
@@ -22,7 +22,7 @@ router.get('/user/:userId', (req, res) => {
 
     query += ' ORDER BY n.created_at DESC';
 
-    const notifications = db.prepare(query).all(userId);
+    const notifications = await db.prepare(query).all(userId);
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -30,10 +30,10 @@ router.get('/user/:userId', (req, res) => {
 });
 
 // Get unread count for a user
-router.get('/user/:userId/unread-count', (req, res) => {
+router.get('/user/:userId/unread-count', async (req, res) => {
   try {
     const { userId } = req.params;
-    const result = db.prepare(`
+    const result = await db.prepare(`
       SELECT COUNT(*) as count
       FROM notifications
       WHERE user_id = ? AND is_read = 0
@@ -46,17 +46,17 @@ router.get('/user/:userId/unread-count', (req, res) => {
 });
 
 // Mark notification as read
-router.put('/:id/read', (req, res) => {
+router.put('/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE notifications
       SET is_read = 1, read_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(id);
 
-    const notification = db.prepare('SELECT * FROM notifications WHERE id = ?').get(id);
+    const notification = await db.prepare('SELECT * FROM notifications WHERE id = ?').get(id);
     res.json(notification);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -64,11 +64,11 @@ router.put('/:id/read', (req, res) => {
 });
 
 // Mark all notifications as read for a user
-router.put('/user/:userId/read-all', (req, res) => {
+router.put('/user/:userId/read-all', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE notifications
       SET is_read = 1, read_at = CURRENT_TIMESTAMP
       WHERE user_id = ? AND is_read = 0
@@ -81,10 +81,10 @@ router.put('/user/:userId/read-all', (req, res) => {
 });
 
 // Delete notification
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM notifications WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM notifications WHERE id = ?').run(id);
     res.json({ message: 'Notification deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -92,7 +92,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // Create notification (for manual/testing purposes)
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       user_id,
@@ -108,7 +108,7 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO notifications (
         user_id, type, title, message, entity_type, entity_id, metadata
       )
@@ -123,7 +123,7 @@ router.post('/', (req, res) => {
       metadata ? JSON.stringify(metadata) : null
     );
 
-    const notification = db.prepare('SELECT * FROM notifications WHERE id = ?').get(result.lastInsertRowid);
+    const notification = await db.prepare('SELECT * FROM notifications WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(notification);
   } catch (error) {
     res.status(500).json({ error: error.message });

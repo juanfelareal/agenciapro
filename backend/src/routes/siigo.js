@@ -7,9 +7,9 @@ const router = express.Router();
 // ========== SETTINGS ==========
 
 // Get Siigo settings (without sensitive data)
-router.get('/settings', (req, res) => {
+router.get('/settings', async (req, res) => {
   try {
-    const settings = db.prepare(`
+    const settings = await db.prepare(`
       SELECT id, username, partner_id, is_active, last_sync_at, created_at, updated_at,
              CASE WHEN access_token IS NOT NULL THEN 1 ELSE 0 END as has_token,
              token_expires_at
@@ -90,9 +90,9 @@ router.post('/sync-reference-data', async (req, res) => {
 });
 
 // Get cached document types
-router.get('/document-types', (req, res) => {
+router.get('/document-types', async (req, res) => {
   try {
-    const types = db.prepare('SELECT * FROM siigo_document_types WHERE active = 1').all();
+    const types = await db.prepare('SELECT * FROM siigo_document_types WHERE active = 1').all();
     res.json(types);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -100,9 +100,9 @@ router.get('/document-types', (req, res) => {
 });
 
 // Get cached payment types
-router.get('/payment-types', (req, res) => {
+router.get('/payment-types', async (req, res) => {
   try {
-    const types = db.prepare('SELECT * FROM siigo_payment_types WHERE active = 1').all();
+    const types = await db.prepare('SELECT * FROM siigo_payment_types WHERE active = 1').all();
     res.json(types);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -110,9 +110,9 @@ router.get('/payment-types', (req, res) => {
 });
 
 // Get cached taxes
-router.get('/taxes', (req, res) => {
+router.get('/taxes', async (req, res) => {
   try {
-    const taxes = db.prepare('SELECT * FROM siigo_taxes WHERE active = 1').all();
+    const taxes = await db.prepare('SELECT * FROM siigo_taxes WHERE active = 1').all();
     res.json(taxes);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -124,7 +124,7 @@ router.get('/taxes', (req, res) => {
 // Sync a client to Siigo
 router.post('/customers/sync/:clientId', async (req, res) => {
   try {
-    const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.clientId);
+    const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.clientId);
 
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
@@ -171,7 +171,7 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
     const { sendElectronic = true } = req.body || {};
 
     // Get invoice with client info
-    const invoice = db.prepare(`
+    const invoice = await db.prepare(`
       SELECT i.*, c.id as client_id, c.name as client_name, c.email as client_email,
              c.company as client_company, c.nit as client_nit, c.phone as client_phone,
              c.siigo_id as client_siigo_id
@@ -213,7 +213,7 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
     });
   } catch (error) {
     // Update invoice status to error
-    db.prepare(`
+    await db.prepare(`
       UPDATE invoices SET siigo_status = 'error', updated_at = datetime('now')
       WHERE id = ?
     `).run(req.params.invoiceId);
@@ -225,7 +225,7 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
 // Get invoice PDF from Siigo
 router.get('/invoices/:invoiceId/pdf', async (req, res) => {
   try {
-    const invoice = db.prepare('SELECT siigo_id FROM invoices WHERE id = ?').get(req.params.invoiceId);
+    const invoice = await db.prepare('SELECT siigo_id FROM invoices WHERE id = ?').get(req.params.invoiceId);
 
     if (!invoice?.siigo_id) {
       return res.status(404).json({ error: 'Invoice not found in Siigo' });
@@ -242,7 +242,7 @@ router.get('/invoices/:invoiceId/pdf', async (req, res) => {
 router.post('/invoices/:invoiceId/send-email', async (req, res) => {
   try {
     const { email } = req.body;
-    const invoice = db.prepare(`
+    const invoice = await db.prepare(`
       SELECT i.siigo_id, c.email as client_email
       FROM invoices i
       JOIN clients c ON i.client_id = c.id
@@ -283,7 +283,7 @@ router.post('/invoices/sync-bulk', async (req, res) => {
 
     for (const invoiceId of invoiceIds) {
       try {
-        const invoice = db.prepare(`
+        const invoice = await db.prepare(`
           SELECT i.*, c.id as client_id, c.name as client_name, c.email as client_email,
                  c.company as client_company, c.nit as client_nit, c.phone as client_phone,
                  c.siigo_id as client_siigo_id

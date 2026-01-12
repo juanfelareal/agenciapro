@@ -4,7 +4,7 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // Get all projects
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, client_id } = req.query;
     let query = `
@@ -26,7 +26,7 @@ router.get('/', (req, res) => {
     }
 
     query += ' ORDER BY p.created_at DESC';
-    const projects = db.prepare(query).all(...params);
+    const projects = await db.prepare(query).all(...params);
     res.json(projects);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -34,9 +34,9 @@ router.get('/', (req, res) => {
 });
 
 // Get project by ID with team members
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const project = db.prepare(`
+    const project = await db.prepare(`
       SELECT p.*, c.name as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
@@ -48,7 +48,7 @@ router.get('/:id', (req, res) => {
     }
 
     // Get team members assigned to this project
-    const team = db.prepare(`
+    const team = await db.prepare(`
       SELECT tm.*, pt.role as project_role
       FROM team_members tm
       JOIN project_team pt ON tm.id = pt.team_member_id
@@ -63,7 +63,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new project
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, description, client_id, status, budget, start_date, end_date } = req.body;
 
@@ -71,12 +71,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO projects (name, description, client_id, status, budget, spent, start_date, end_date)
       VALUES (?, ?, ?, ?, ?, 0, ?, ?)
     `).run(name, description, client_id, status || 'planning', budget || 0, start_date, end_date);
 
-    const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(result.lastInsertRowid);
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -84,11 +84,11 @@ router.post('/', (req, res) => {
 });
 
 // Update project
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { name, description, client_id, status, budget, spent, start_date, end_date } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE projects
       SET name = ?, description = ?, client_id = ?, status = ?,
           budget = ?, spent = ?, start_date = ?, end_date = ?,
@@ -96,7 +96,7 @@ router.put('/:id', (req, res) => {
       WHERE id = ?
     `).run(name, description, client_id, status, budget, spent, start_date, end_date, req.params.id);
 
-    const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
     res.json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -104,11 +104,11 @@ router.put('/:id', (req, res) => {
 });
 
 // Assign team member to project
-router.post('/:id/team', (req, res) => {
+router.post('/:id/team', async (req, res) => {
   try {
     const { team_member_id, role } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       INSERT OR REPLACE INTO project_team (project_id, team_member_id, role)
       VALUES (?, ?, ?)
     `).run(req.params.id, team_member_id, role);
@@ -120,9 +120,9 @@ router.post('/:id/team', (req, res) => {
 });
 
 // Remove team member from project
-router.delete('/:id/team/:team_member_id', (req, res) => {
+router.delete('/:id/team/:team_member_id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM project_team WHERE project_id = ? AND team_member_id = ?')
+    await db.prepare('DELETE FROM project_team WHERE project_id = ? AND team_member_id = ?')
       .run(req.params.id, req.params.team_member_id);
     res.json({ message: 'Team member removed successfully' });
   } catch (error) {
@@ -131,9 +131,9 @@ router.delete('/:id/team/:team_member_id', (req, res) => {
 });
 
 // Delete project
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    db.prepare('DELETE FROM projects WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM projects WHERE id = ?').run(req.params.id);
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
