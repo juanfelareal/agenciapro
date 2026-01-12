@@ -66,8 +66,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // Start server FIRST, then initialize database
-app.listen(PORT, () => {
-  console.log(`🚀 AgenciaPro backend running on http://localhost:${PORT}`);
+// Listen on 0.0.0.0 so Railway's proxy can reach the app
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 AgenciaPro backend running on port ${PORT}`);
   console.log('✅ Server is listening, now initializing database...');
 
   // Initialize database after server starts
