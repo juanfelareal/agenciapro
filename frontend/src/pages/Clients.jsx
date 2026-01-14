@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { clientsAPI, invoicesAPI, pdfAnalysisAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare } from 'lucide-react';
+import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Users, Copy, Check, Key, RefreshCw, Shield } from 'lucide-react';
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -29,6 +29,25 @@ const Clients = () => {
     recurring_amount: 0,
   });
   const [searchingNit, setSearchingNit] = useState(false);
+
+  // Portal configuration state
+  const [showPortalModal, setShowPortalModal] = useState(false);
+  const [portalClient, setPortalClient] = useState(null);
+  const [portalSettings, setPortalSettings] = useState({
+    can_view_projects: true,
+    can_view_tasks: true,
+    can_view_invoices: true,
+    can_view_metrics: false,
+    can_approve_tasks: true,
+    can_comment_tasks: true,
+    can_view_team: false,
+    can_download_files: true,
+    welcome_message: ''
+  });
+  const [portalTokens, setPortalTokens] = useState([]);
+  const [newInviteCode, setNewInviteCode] = useState(null);
+  const [loadingPortal, setLoadingPortal] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     loadClients();
@@ -322,6 +341,94 @@ const Clients = () => {
     }
   };
 
+  // Portal configuration functions
+  const handleOpenPortalConfig = async (client) => {
+    setPortalClient(client);
+    setShowPortalModal(true);
+    setNewInviteCode(null);
+    setCopiedCode(false);
+    setLoadingPortal(true);
+
+    try {
+      // Load settings and tokens in parallel
+      const [settingsRes, tokensRes] = await Promise.all([
+        portalAdminAPI.getSettings(client.id),
+        portalAdminAPI.getAccess(client.id)
+      ]);
+
+      setPortalSettings(settingsRes.settings || {
+        can_view_projects: true,
+        can_view_tasks: true,
+        can_view_invoices: true,
+        can_view_metrics: false,
+        can_approve_tasks: true,
+        can_comment_tasks: true,
+        can_view_team: false,
+        can_download_files: true,
+        welcome_message: ''
+      });
+      setPortalTokens(tokensRes.tokens || []);
+    } catch (error) {
+      console.error('Error loading portal config:', error);
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  const handleSavePortalSettings = async () => {
+    if (!portalClient) return;
+    setLoadingPortal(true);
+    try {
+      await portalAdminAPI.updateSettings(portalClient.id, portalSettings);
+      alert('Configuración guardada correctamente');
+    } catch (error) {
+      console.error('Error saving portal settings:', error);
+      alert('Error al guardar configuración');
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  const handleGenerateInvite = async () => {
+    if (!portalClient) return;
+    setLoadingPortal(true);
+    try {
+      const response = await portalAdminAPI.generateInvite(portalClient.id);
+      setNewInviteCode(response.token.token);
+      // Reload tokens
+      const tokensRes = await portalAdminAPI.getAccess(portalClient.id);
+      setPortalTokens(tokensRes.tokens || []);
+    } catch (error) {
+      console.error('Error generating invite:', error);
+      alert('Error al generar código de invitación');
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  const handleRevokeAccess = async (tokenId) => {
+    if (!confirm('¿Revocar este acceso? El cliente no podrá entrar más con este token.')) return;
+    setLoadingPortal(true);
+    try {
+      await portalAdminAPI.revokeAccess(portalClient.id, tokenId);
+      const tokensRes = await portalAdminAPI.getAccess(portalClient.id);
+      setPortalTokens(tokensRes.tokens || []);
+    } catch (error) {
+      console.error('Error revoking access:', error);
+      alert('Error al revocar acceso');
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  const copyInviteLink = () => {
+    if (!newInviteCode) return;
+    const link = `${window.location.origin}/portal/login?code=${newInviteCode}`;
+    navigator.clipboard.writeText(link);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
   if (loading) {
     return <div className="text-center py-8">Cargando...</div>;
   }
@@ -481,6 +588,13 @@ const Clients = () => {
                     title="Facturar"
                   >
                     <FileText size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleOpenPortalConfig(client)}
+                    className="text-indigo-600 hover:text-indigo-800 mr-2"
+                    title="Configurar Portal de Cliente"
+                  >
+                    <Users size={18} />
                   </button>
                   <button
                     onClick={() => navigate(`/clients/${client.id}/plataformas`)}
@@ -763,6 +877,219 @@ const Clients = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Portal Configuration Modal */}
+      {showPortalModal && portalClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <Shield size={20} className="text-indigo-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Portal de Cliente</h2>
+                  <p className="text-sm text-gray-500">{portalClient.company || portalClient.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowPortalModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            {loadingPortal ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={32} className="animate-spin text-indigo-600" />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Invite Code Section */}
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                    <Key size={18} />
+                    Código de Invitación
+                  </h3>
+
+                  {newInviteCode ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 bg-white p-3 rounded-lg border border-indigo-200">
+                        <code className="flex-1 text-lg font-mono font-bold text-indigo-700">
+                          {newInviteCode}
+                        </code>
+                        <button
+                          onClick={copyInviteLink}
+                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                        >
+                          {copiedCode ? (
+                            <>
+                              <Check size={16} />
+                              Copiado!
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={16} />
+                              Copiar Link
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-sm text-indigo-700">
+                        Comparte este link con tu cliente para que acceda al portal:
+                      </p>
+                      <code className="block text-xs bg-white p-2 rounded border border-indigo-200 text-indigo-600 break-all">
+                        {window.location.origin}/portal/login?code={newInviteCode}
+                      </code>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-indigo-700">
+                        Genera un código único para que tu cliente acceda al portal.
+                      </p>
+                      <button
+                        onClick={handleGenerateInvite}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                      >
+                        <RefreshCw size={16} />
+                        Generar Código
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Permissions Section */}
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-3">Permisos del Portal</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_view_projects}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_projects: e.target.checked })}
+                      />
+                      <span className="text-sm">Ver Proyectos</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_view_tasks}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_tasks: e.target.checked })}
+                      />
+                      <span className="text-sm">Ver Tareas</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_view_invoices}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_invoices: e.target.checked })}
+                      />
+                      <span className="text-sm">Ver Facturas</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_view_metrics}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_metrics: e.target.checked })}
+                      />
+                      <span className="text-sm">Ver Métricas</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_approve_tasks}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_approve_tasks: e.target.checked })}
+                      />
+                      <span className="text-sm">Aprobar Tareas</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_comment_tasks}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_comment_tasks: e.target.checked })}
+                      />
+                      <span className="text-sm">Comentar en Tareas</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_view_team}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_team: e.target.checked })}
+                      />
+                      <span className="text-sm">Ver Equipo</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 text-indigo-600"
+                        checked={portalSettings.can_download_files}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_download_files: e.target.checked })}
+                      />
+                      <span className="text-sm">Descargar Archivos</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Welcome Message */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Mensaje de Bienvenida (opcional)</label>
+                  <textarea
+                    className="w-full border rounded-lg px-3 py-2"
+                    rows="2"
+                    placeholder="Ej: ¡Bienvenido al portal! Aquí puedes ver el progreso de tu proyecto."
+                    value={portalSettings.welcome_message || ''}
+                    onChange={(e) => setPortalSettings({ ...portalSettings, welcome_message: e.target.value })}
+                  />
+                </div>
+
+                {/* Save Settings Button */}
+                <button
+                  onClick={handleSavePortalSettings}
+                  className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                >
+                  Guardar Configuración
+                </button>
+
+                {/* Active Tokens */}
+                {portalTokens.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-3">Accesos Activos</h3>
+                    <div className="space-y-2">
+                      {portalTokens.map((token) => (
+                        <div
+                          key={token.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div>
+                            <p className="font-mono text-sm">
+                              {token.token_type === 'invite' ? 'Invitación' : 'Sesión'}: {token.token}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {token.status === 'active' ? 'Activo' : token.status === 'pending' ? 'Pendiente' : token.status}
+                              {token.last_used_at && ` · Último uso: ${new Date(token.last_used_at).toLocaleDateString('es-CO')}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRevokeAccess(token.id)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Revocar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

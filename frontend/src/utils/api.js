@@ -296,4 +296,28 @@ export const projectTemplatesAPI = {
   reorderTasks: (templateId, taskIds) => api.put(`/project-templates/${templateId}/tasks/reorder`, { taskIds }),
 };
 
+// Portal Admin API (manage client portal access)
+export const portalAdminAPI = {
+  getSettings: async (clientId) => {
+    const response = await api.get(`/portal-admin/clients/${clientId}/settings`);
+    return response.data;
+  },
+  updateSettings: async (clientId, settings) => {
+    const response = await api.put(`/portal-admin/clients/${clientId}/settings`, settings);
+    return response.data;
+  },
+  generateInvite: async (clientId) => {
+    const response = await api.post(`/portal-admin/clients/${clientId}/invite`);
+    return response.data;
+  },
+  getAccess: async (clientId) => {
+    const response = await api.get(`/portal-admin/clients/${clientId}/access`);
+    return response.data;
+  },
+  revokeAccess: async (clientId, tokenId) => {
+    const response = await api.delete(`/portal-admin/clients/${clientId}/access/${tokenId}`);
+    return response.data;
+  },
+};
+
 export default api;

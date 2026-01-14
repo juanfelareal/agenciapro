@@ -27,12 +27,87 @@ import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
 
+// Portal imports
+import PortalLayout from './components/portal/PortalLayout';
+import PortalProtectedRoute from './components/portal/PortalProtectedRoute';
+import PortalLogin from './pages/portal/PortalLogin';
+import PortalDashboard from './pages/portal/PortalDashboard';
+import PortalProjects from './pages/portal/PortalProjects';
+import PortalProjectDetail from './pages/portal/PortalProjectDetail';
+import PortalTasks from './pages/portal/PortalTasks';
+import PortalTaskDetail from './pages/portal/PortalTaskDetail';
+import PortalInvoices from './pages/portal/PortalInvoices';
+import PortalMetrics from './pages/portal/PortalMetrics';
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Landing page - no layout */}
         <Route path="/landing" element={<Landing />} />
+
+        {/* Portal Login - no layout */}
+        <Route path="/portal/login" element={<PortalLogin />} />
+
+        {/* Portal routes with PortalLayout */}
+        <Route path="/portal" element={<PortalLayout />}>
+          <Route
+            index
+            element={
+              <PortalProtectedRoute>
+                <PortalDashboard />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="projects"
+            element={
+              <PortalProtectedRoute permission="can_view_projects">
+                <PortalProjects />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="projects/:id"
+            element={
+              <PortalProtectedRoute permission="can_view_projects">
+                <PortalProjectDetail />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="tasks"
+            element={
+              <PortalProtectedRoute permission="can_view_tasks">
+                <PortalTasks />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="tasks/:id"
+            element={
+              <PortalProtectedRoute permission="can_view_tasks">
+                <PortalTaskDetail />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="invoices"
+            element={
+              <PortalProtectedRoute permission="can_view_invoices">
+                <PortalInvoices />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="metrics"
+            element={
+              <PortalProtectedRoute permission="can_view_metrics">
+                <PortalMetrics />
+              </PortalProtectedRoute>
+            }
+          />
+        </Route>
 
         {/* App routes with Layout */}
         <Route
