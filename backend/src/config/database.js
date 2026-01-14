@@ -701,6 +701,97 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // ========================================
+    // CLIENT PORTAL TABLES
+    // ========================================
+
+    // Client Access Tokens (invitations and sessions)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_access_tokens (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        token_type TEXT CHECK(token_type IN ('invite', 'session')) NOT NULL,
+        status TEXT CHECK(status IN ('pending', 'active', 'expired', 'revoked')) DEFAULT 'pending',
+        expires_at TIMESTAMP,
+        activated_at TIMESTAMP,
+        last_used_at TIMESTAMP,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Client Portal Settings (per-client permissions)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_portal_settings (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL UNIQUE REFERENCES clients(id) ON DELETE CASCADE,
+        can_view_projects INTEGER DEFAULT 1,
+        can_view_tasks INTEGER DEFAULT 1,
+        can_view_invoices INTEGER DEFAULT 1,
+        can_view_metrics INTEGER DEFAULT 1,
+        can_approve_tasks INTEGER DEFAULT 1,
+        can_comment_tasks INTEGER DEFAULT 1,
+        can_view_team INTEGER DEFAULT 0,
+        can_download_files INTEGER DEFAULT 1,
+        welcome_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Client Comments (comments from clients on tasks)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_comments (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        comment TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Client Notifications
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_notifications (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        type TEXT CHECK(type IN ('task_update', 'comment_reply', 'invoice_created', 'project_update', 'approval_needed')) NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        entity_type TEXT,
+        entity_id INTEGER,
+        is_read INTEGER DEFAULT 0,
+        read_at TIMESTAMP,
+        metadata TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Add client approval columns to tasks table (if not exists)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='client_approval_status') THEN
+          ALTER TABLE tasks ADD COLUMN client_approval_status TEXT CHECK(client_approval_status IN ('pending', 'approved', 'rejected', 'changes_requested'));
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='client_approval_date') THEN
+          ALTER TABLE tasks ADD COLUMN client_approval_date TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='client_approval_notes') THEN
+          ALTER TABLE tasks ADD COLUMN client_approval_notes TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='requires_client_approval') THEN
+          ALTER TABLE tasks ADD COLUMN requires_client_approval INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='visible_to_client') THEN
+          ALTER TABLE tasks ADD COLUMN visible_to_client INTEGER DEFAULT 1;
+        END IF;
+      END $$;
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

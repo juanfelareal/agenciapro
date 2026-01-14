@@ -47,6 +47,9 @@ import projectTemplatesRoutes from './src/routes/projectTemplates.js';
 import timeEntriesRoutes from './src/routes/time-entries.js';
 // Siigo Integration
 import siigoRoutes from './src/routes/siigo.js';
+// Client Portal
+import portalRoutes from './src/routes/portal/index.js';
+import portalAdminRoutes from './src/routes/portal-admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -121,6 +124,9 @@ app.use('/api/project-templates', projectTemplatesRoutes);
 app.use('/api/time-entries', timeEntriesRoutes);
 // Siigo Integration
 app.use('/api/siigo', siigoRoutes);
+// Client Portal
+app.use('/api/portal', portalRoutes);
+app.use('/api/portal-admin', portalAdminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
