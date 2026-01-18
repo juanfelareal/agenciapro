@@ -54,7 +54,7 @@ const Login = () => {
           <img
             src="/logo-lareal.png"
             alt="La Real"
-            className="h-24 mx-auto mb-2"
+            className="h-28 mx-auto mb-2"
           />
           <p className="text-ink-500 mt-1">Inicia sesión para continuar</p>
         </div>

@@ -100,11 +100,11 @@ const Layout = ({ children }) => {
         }}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center px-4" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
+        <div className="h-16 flex items-center px-3" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
           {sidebarCollapsed ? (
-            <img src="/logo-lareal.png" alt="La Real" className="w-10 h-10 object-contain" />
+            <img src="/logo-lareal.png" alt="La Real" className="w-12 h-12 object-contain" />
           ) : (
-            <img src="/logo-lareal-sidebar.png" alt="La Real" className="h-10 object-contain" />
+            <img src="/logo-lareal-sidebar.png" alt="La Real" className="h-12 w-full object-contain object-left" />
           )}
         </div>
 
