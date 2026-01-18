@@ -51,10 +51,11 @@ const Login = () => {
       <div className="w-full max-w-md relative">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-ink-900 to-ink-700 mb-4 shadow-lg">
-            <span className="text-2xl font-bold text-white">A</span>
-          </div>
-          <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">AgenciaPro</h1>
+          <img
+            src="/logo-lareal.png"
+            alt="La Real"
+            className="h-24 mx-auto mb-2"
+          />
           <p className="text-ink-500 mt-1">Inicia sesión para continuar</p>
         </div>
 

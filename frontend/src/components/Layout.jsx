@@ -28,22 +28,6 @@ import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import TimeTracker from './TimeTracker';
 
-// Orbit Logo Component
-const OrbitLogoIcon = ({ size = 40 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 40 40"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="20" cy="20" r="16" stroke="#1A1A1A" strokeWidth="1.5" strokeOpacity="0.2" fill="none" />
-    <ellipse cx="20" cy="20" rx="12" ry="16" transform="rotate(-30 20 20)" stroke="#1A1A1A" strokeWidth="1.5" strokeOpacity="0.4" fill="none" />
-    <ellipse cx="20" cy="20" rx="8" ry="14" transform="rotate(30 20 20)" stroke="#22C55E" strokeWidth="2" fill="none" />
-    <circle cx="20" cy="20" r="4" fill="#1A1A1A" />
-    <circle cx="32" cy="14" r="2.5" fill="#22C55E" />
-  </svg>
-);
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -117,11 +101,10 @@ const Layout = ({ children }) => {
       >
         {/* Logo Section */}
         <div className="h-16 flex items-center px-4" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
-          <OrbitLogoIcon size={40} />
-          {!sidebarCollapsed && (
-            <div className="ml-3 overflow-hidden">
-              <h1 className="text-lg font-semibold tracking-tight text-ink-900 truncate">Orbit</h1>
-            </div>
+          {sidebarCollapsed ? (
+            <img src="/logo-lareal.png" alt="La Real" className="w-10 h-10 object-contain" />
+          ) : (
+            <img src="/logo-lareal-sidebar.png" alt="La Real" className="h-10 object-contain" />
           )}
         </div>
 
