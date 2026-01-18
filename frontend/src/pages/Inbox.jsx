@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 import { notificationsAPI } from '../utils/api';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { Bell, Check, CheckCheck, X, Trash2, Filter } from 'lucide-react';
 
 const Inbox = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, unread, read
-  const { currentUser } = useUser();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadNotifications();
-  }, [currentUser, filter]);
+  }, [user, filter]);
 
   const loadNotifications = async () => {
-    if (!currentUser?.id) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
@@ -22,7 +22,7 @@ const Inbox = () => {
     try {
       setLoading(true);
       const response = await notificationsAPI.getByUser(
-        currentUser.id,
+        user.id,
         filter === 'unread'
       );
       let filtered = response.data;
@@ -49,10 +49,10 @@ const Inbox = () => {
   };
 
   const handleMarkAllAsRead = async () => {
-    if (!currentUser?.id) return;
+    if (!user?.id) return;
 
     try {
-      await notificationsAPI.markAllAsRead(currentUser.id);
+      await notificationsAPI.markAllAsRead(user.id);
       loadNotifications();
     } catch (error) {
       console.error('Error marking all as read:', error);
@@ -123,7 +123,7 @@ const Inbox = () => {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="text-center py-16">
         <Bell size={48} className="mx-auto text-gray-400 mb-4" />

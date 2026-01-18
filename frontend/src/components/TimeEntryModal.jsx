@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { X, Clock, Calendar, DollarSign } from 'lucide-react';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
+import { teamAPI } from '../utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const TimeEntryModal = ({ isOpen, onClose, onSave, entry = null }) => {
-  const { currentUser, members } = useUser();
+  const { user, isAdmin } = useAuth();
+  const [members, setMembers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [formData, setFormData] = useState({
-    user_id: currentUser?.id || '',
+    user_id: user?.id || '',
     project_id: '',
     task_id: '',
     description: '',
@@ -23,6 +25,21 @@ const TimeEntryModal = ({ isOpen, onClose, onSave, entry = null }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [useDuration, setUseDuration] = useState(false);
 
+  // Load team members for admin
+  useEffect(() => {
+    const loadMembers = async () => {
+      if (isAdmin) {
+        try {
+          const response = await teamAPI.getAll({ status: 'active' });
+          setMembers(response.data || []);
+        } catch (error) {
+          console.error('Error loading members:', error);
+        }
+      }
+    };
+    loadMembers();
+  }, [isAdmin]);
+
   useEffect(() => {
     if (isOpen) {
       fetchProjects();
@@ -31,7 +48,7 @@ const TimeEntryModal = ({ isOpen, onClose, onSave, entry = null }) => {
         const startDate = new Date(entry.start_time);
         const endDate = entry.end_time ? new Date(entry.end_time) : null;
         setFormData({
-          user_id: entry.user_id || currentUser?.id || '',
+          user_id: entry.user_id || user?.id || '',
           project_id: entry.project_id || '',
           task_id: entry.task_id || '',
           description: entry.description || '',
@@ -49,7 +66,7 @@ const TimeEntryModal = ({ isOpen, onClose, onSave, entry = null }) => {
         // New entry - set defaults
         const now = new Date();
         setFormData({
-          user_id: currentUser?.id || '',
+          user_id: user?.id || '',
           project_id: '',
           task_id: '',
           description: '',
@@ -62,7 +79,7 @@ const TimeEntryModal = ({ isOpen, onClose, onSave, entry = null }) => {
         });
       }
     }
-  }, [isOpen, entry, currentUser]);
+  }, [isOpen, entry, user]);
 
   const formatDateTimeLocal = (date) => {
     const offset = date.getTimezoneOffset();
@@ -116,7 +133,7 @@ const TimeEntryModal = ({ isOpen, onClose, onSave, entry = null }) => {
       }
 
       const payload = {
-        user_id: parseInt(formData.user_id) || (currentUser?.id || 1),
+        user_id: parseInt(formData.user_id) || (user?.id || 1),
         project_id: formData.project_id ? parseInt(formData.project_id) : null,
         task_id: formData.task_id ? parseInt(formData.task_id) : null,
         description: formData.description || null,
@@ -185,7 +202,7 @@ const TimeEntryModal = ({ isOpen, onClose, onSave, entry = null }) => {
           </div>
 
           {/* User selector (for admin) */}
-          {(!currentUser || currentUser.role === 'admin') && (
+          {(!user || user.role === 'admin') && (
             <div>
               <label className="label">Usuario</label>
               <select

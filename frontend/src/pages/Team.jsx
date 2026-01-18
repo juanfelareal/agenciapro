@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { teamAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, Copy, Check, Users } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Plus, Edit, Trash2, X, Copy, Check, Users, Key, Eye, EyeOff } from 'lucide-react';
 
 // All available permissions organized by category
 const ALL_PERMISSIONS = [
@@ -92,11 +93,21 @@ const DEFAULT_PERMISSIONS = {
 };
 
 const Team = () => {
+  const { isAdmin } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+  // PIN Modal state
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinMember, setPinMember] = useState(null);
+  const [pinValue, setPinValue] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinError, setPinError] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -226,6 +237,37 @@ const Team = () => {
     return members.filter(m => !editingMember || m.id !== editingMember.id);
   };
 
+  // PIN Management
+  const openPinModal = (member) => {
+    setPinMember(member);
+    setPinValue('');
+    setPinError('');
+    setShowPin(false);
+    setShowPinModal(true);
+  };
+
+  const handleSetPin = async () => {
+    if (pinValue.length < 4) {
+      setPinError('El PIN debe tener al menos 4 caracteres');
+      return;
+    }
+
+    setPinLoading(true);
+    setPinError('');
+
+    try {
+      await teamAPI.setPin(pinMember.id, pinValue);
+      setShowPinModal(false);
+      setPinMember(null);
+      setPinValue('');
+      alert('PIN establecido correctamente');
+    } catch (error) {
+      setPinError(error.response?.data?.error || 'Error al establecer el PIN');
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
   const roleLabels = {
     admin: 'Administrador',
     manager: 'Manager',
@@ -233,60 +275,80 @@ const Team = () => {
   };
 
   if (loading) {
-    return <div className="text-center py-8">Cargando...</div>;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {[1,2,3].map(i => (
+          <div key={i} className="h-48 bg-white/50 rounded-2xl animate-pulse"></div>
+        ))}
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="mb-8 flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Equipo</h1>
-          <p className="text-gray-600">Gestión de miembros del equipo</p>
+          <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Equipo</h1>
+          <p className="text-sm text-ink-500 mt-0.5">Gestión de miembros del equipo</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+          className="btn-primary"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Nuevo Miembro
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {members.map((member) => (
-          <div key={member.id} className="bg-white rounded-lg shadow p-6">
+          <div key={member.id} className="card-interactive p-5 group">
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-800">{member.name}</h3>
-                <p className="text-sm text-gray-600">{member.position || 'Sin cargo'}</p>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-ink-900 to-ink-700 flex items-center justify-center text-white font-semibold text-lg">
+                  {member.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-ink-900">{member.name}</h3>
+                  <p className="text-xs text-ink-500">{member.position || 'Sin cargo'}</p>
+                </div>
               </div>
               <span
-                className={`px-2 py-1 rounded-full text-xs ${
+                className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                   member.status === 'active'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-ink-100 text-ink-600'
                 }`}
               >
                 {member.status === 'active' ? 'Activo' : 'Inactivo'}
               </span>
             </div>
-            <div className="space-y-2 mb-4">
-              <p className="text-sm text-gray-600">📧 {member.email}</p>
-              <p className="text-sm text-gray-600">👤 {roleLabels[member.role]}</p>
+            <div className="space-y-2 mb-4 text-sm text-ink-500">
+              <p>📧 {member.email}</p>
+              <p>👤 {roleLabels[member.role]}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-3 border-t border-ink-100">
               <button
                 onClick={() => handleEdit(member)}
-                className="flex-1 bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-1"
+                className="flex-1 btn-secondary py-2 text-sm"
               >
-                <Edit size={16} />
+                <Edit size={14} />
                 Editar
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => openPinModal(member)}
+                  className="btn-secondary py-2 px-3"
+                  title="Establecer PIN de acceso"
+                >
+                  <Key size={14} />
+                </button>
+              )}
               <button
                 onClick={() => handleDelete(member.id)}
-                className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600"
+                className="btn-danger py-2 px-3"
               >
-                <Trash2 size={16} />
+                <Trash2 size={14} />
               </button>
             </div>
           </div>
@@ -511,6 +573,86 @@ const Team = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PIN Modal */}
+      {showPinModal && pinMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+            <div className="flex justify-between items-center p-5 border-b">
+              <div>
+                <h2 className="text-lg font-semibold text-ink-900">Establecer PIN</h2>
+                <p className="text-sm text-ink-500">{pinMember.name}</p>
+              </div>
+              <button
+                onClick={() => setShowPinModal(false)}
+                className="text-ink-400 hover:text-ink-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {pinError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+                  {pinError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-ink-700 mb-2">
+                  Nuevo PIN de acceso
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPin ? 'text' : 'password'}
+                    value={pinValue}
+                    onChange={(e) => setPinValue(e.target.value)}
+                    placeholder="Mínimo 4 caracteres"
+                    className="w-full px-4 py-3 border border-ink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
+                  >
+                    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                <p className="text-xs text-ink-400 mt-2">
+                  El PIN puede ser una palabra clave memorable (ej: "mipin123")
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-5 border-t bg-cream-50 rounded-b-xl">
+              <button
+                onClick={() => setShowPinModal(false)}
+                className="btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSetPin}
+                disabled={pinLoading || pinValue.length < 4}
+                className="btn-primary disabled:opacity-50"
+              >
+                {pinLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Key size={16} />
+                    Establecer PIN
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -46,6 +46,22 @@ export const teamAPI = {
   create: (data) => api.post('/team', data),
   update: (id, data) => api.put(`/team/${id}`, data),
   delete: (id) => api.delete(`/team/${id}`),
+  // Auth
+  login: (email, pin) => api.post('/team/auth/login', { email, pin }),
+  logout: () => api.post('/team/auth/logout'),
+  getMe: () => api.get('/team/auth/me'),
+  validateToken: () => api.get('/team/auth/validate'),
+  setPin: (memberId, pin) => api.post(`/team/${memberId}/set-pin`, { pin }),
+  changePin: (currentPin, newPin) => api.post('/team/change-pin', { currentPin, newPin }),
+};
+
+// Add auth token to requests
+export const setAuthToken = (token) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
 };
 
 // Invoices API

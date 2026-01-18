@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Square, Clock, ChevronDown } from 'lucide-react';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const TimeTracker = () => {
-  const { currentUser } = useUser();
+  const { user } = useAuth();
   const [runningEntry, setRunningEntry] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [tasks, setTasks] = useState([]);
@@ -22,7 +22,7 @@ const TimeTracker = () => {
     fetchRunningTimer();
     fetchTasks();
     fetchProjects();
-  }, [currentUser]);
+  }, [user]);
 
   // Update elapsed time every second
   useEffect(() => {
@@ -68,7 +68,7 @@ const TimeTracker = () => {
       const res = await fetch(`${API_URL}/time-entries/running`);
       const data = await res.json();
       const userTimer = data.find(e =>
-        currentUser ? e.user_id === currentUser.id : true
+        user ? e.user_id === user.id : true
       );
       if (userTimer) {
         setRunningEntry(userTimer);
@@ -109,7 +109,7 @@ const TimeTracker = () => {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      const userId = currentUser?.id || 1; // Default to 1 if no user selected
+      const userId = user?.id || 1; // Default to 1 if no user selected
       const res = await fetch(`${API_URL}/time-entries/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

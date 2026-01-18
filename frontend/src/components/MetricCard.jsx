@@ -2,14 +2,14 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 
 /**
  * MetricCard - Reusable card component for displaying metrics
- * Similar to Master Metrics style
+ * Glassmorphism style with modern design
  */
 function MetricCard({
   title,
   value,
   icon: Icon,
-  iconBgColor = 'bg-blue-100',
-  iconColor = 'text-blue-600',
+  iconBgColor = 'bg-accent/10',
+  iconColor = 'text-accent-600',
   change = null,
   changeLabel = '',
   format = 'number',
@@ -45,47 +45,48 @@ function MetricCard({
 
   // Determine if change is positive or negative
   const isPositive = change !== null && change >= 0;
-  const changeColor = isPositive ? 'text-green-600' : 'text-red-600';
+  const changeColor = isPositive ? 'text-green-600' : 'text-red-500';
+  const changeBgColor = isPositive ? 'bg-green-50' : 'bg-red-50';
   const ChangeTrendIcon = isPositive ? TrendingUp : TrendingDown;
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 animate-pulse">
-        <div className="flex items-center justify-between mb-3">
-          <div className="h-4 bg-gray-200 rounded w-24"></div>
-          <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+      <div className="card-interactive p-5 animate-pulse">
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-4 bg-ink-200/50 rounded-lg w-24"></div>
+          <div className="w-11 h-11 bg-ink-200/50 rounded-xl"></div>
         </div>
-        <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
-        <div className="h-4 bg-gray-200 rounded w-16"></div>
+        <div className="h-9 bg-ink-200/50 rounded-lg w-32 mb-3"></div>
+        <div className="h-4 bg-ink-200/50 rounded-lg w-20"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-gray-500 font-medium">{title}</span>
+    <div className="card-interactive p-5 group">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm text-ink-500 font-medium tracking-tight">{title}</span>
         {Icon && (
-          <div className={`w-10 h-10 ${iconBgColor} rounded-lg flex items-center justify-center`}>
+          <div className={`w-11 h-11 ${iconBgColor} rounded-xl flex items-center justify-center transition-transform group-hover:scale-110`}>
             <Icon className={`w-5 h-5 ${iconColor}`} />
           </div>
         )}
       </div>
 
-      <div className="mb-2">
-        <span className="text-2xl font-bold text-gray-900">
+      <div className="mb-3">
+        <span className="text-2xl font-semibold text-ink-900 tracking-tight">
           {prefix}{formatValue(value)}{suffix}
         </span>
       </div>
 
       {change !== null && (
-        <div className="flex items-center gap-1">
-          <ChangeTrendIcon className={`w-4 h-4 ${changeColor}`} />
-          <span className={`text-sm font-medium ${changeColor}`}>
-            {isPositive ? '+' : ''}{Number(change).toFixed(2)}%
+        <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ${changeBgColor}`}>
+          <ChangeTrendIcon className={`w-3.5 h-3.5 ${changeColor}`} />
+          <span className={`text-xs font-medium ${changeColor}`}>
+            {isPositive ? '+' : ''}{Number(change).toFixed(1)}%
           </span>
           {changeLabel && (
-            <span className="text-xs text-gray-400 ml-1">{changeLabel}</span>
+            <span className="text-xs text-ink-400">{changeLabel}</span>
           )}
         </div>
       )}

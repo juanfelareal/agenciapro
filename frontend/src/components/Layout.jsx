@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -21,8 +21,9 @@ import {
   Clock,
   Timer,
   Link2,
+  LogOut,
 } from 'lucide-react';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import TimeTracker from './TimeTracker';
@@ -46,8 +47,14 @@ const OrbitLogoIcon = ({ size = 40 }) => (
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const { currentUser, members, selectUser, hasPermission } = useUser();
+  const navigate = useNavigate();
+  const { user, hasPermission, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const allNavigation = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard, permission: 'dashboard' },
@@ -118,23 +125,20 @@ const Layout = ({ children }) => {
           )}
         </div>
 
-        {/* User Selector */}
-        {!sidebarCollapsed && (
+        {/* User Info */}
+        {!sidebarCollapsed && user && (
           <div className="p-3" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
-            <label className="label text-xs">Usuario</label>
-            <div className="relative">
-              <select
-                className="select text-sm py-2"
-                value={currentUser?.id || ''}
-                onChange={(e) => selectUser(e.target.value)}
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, #1A1A1A 0%, #404040 100%)' }}
               >
-                <option value="">Administrador</option>
-                {members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
+                {getUserInitials(user.name)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-ink-900 truncate">{user.name}</p>
+                <p className="text-xs text-ink-500 truncate">{user.position || user.role}</p>
+              </div>
             </div>
           </div>
         )}
@@ -185,8 +189,22 @@ const Layout = ({ children }) => {
           </div>
         </nav>
 
-        {/* Collapse Button */}
-        <div className="p-3" style={{ borderTop: '1px solid rgba(0, 0, 0, 0.06)' }}>
+        {/* Bottom Actions */}
+        <div className="p-3 space-y-1" style={{ borderTop: '1px solid rgba(0, 0, 0, 0.06)' }}>
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink-500 hover:text-red-600 transition-all duration-150"
+            style={{ background: 'transparent' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            title={sidebarCollapsed ? 'Cerrar Sesión' : ''}
+          >
+            <LogOut size={20} />
+            {!sidebarCollapsed && <span>Cerrar Sesión</span>}
+          </button>
+
+          {/* Collapse Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-ink-500 hover:text-ink-900 transition-all duration-150"
@@ -225,7 +243,7 @@ const Layout = ({ children }) => {
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-ink-900">{currentPage?.name || 'Dashboard'}</h2>
             <p className="text-xs text-ink-500">
-              {currentUser ? `Sesion: ${currentUser.name}` : 'Modo Administrador'}
+              {user?.position || (user?.role === 'admin' ? 'Administrador' : user?.role === 'manager' ? 'Manager' : 'Miembro')}
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -237,16 +255,14 @@ const Layout = ({ children }) => {
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium text-ink-900">
-                  {currentUser?.name || 'Administrador'}
+                  {user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-ink-500">
-                  {currentUser?.role === 'admin'
+                  {user?.role === 'admin'
                     ? 'Administrador'
-                    : currentUser?.role === 'manager'
+                    : user?.role === 'manager'
                     ? 'Manager'
-                    : currentUser?.role === 'member'
-                    ? 'Miembro'
-                    : 'Admin'}
+                    : 'Miembro'}
                 </p>
               </div>
               <div
@@ -256,7 +272,7 @@ const Layout = ({ children }) => {
                   boxShadow: '0 2px 8px rgba(26, 26, 26, 0.15)'
                 }}
               >
-                {getUserInitials(currentUser?.name || 'Admin')}
+                {getUserInitials(user?.name || 'U')}
               </div>
             </div>
           </div>

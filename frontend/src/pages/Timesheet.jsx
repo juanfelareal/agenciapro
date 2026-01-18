@@ -15,13 +15,15 @@ import {
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
+import { teamAPI } from '../utils/api';
 import TimeEntryModal from '../components/TimeEntryModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const Timesheet = () => {
-  const { currentUser, members } = useUser();
+  const { user, isAdmin } = useAuth();
+  const [members, setMembers] = useState([]);
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -30,7 +32,7 @@ const Timesheet = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(currentUser?.id || '');
+  const [selectedUser, setSelectedUser] = useState(user?.id || '');
 
   // Live timer state
   const [runningEntry, setRunningEntry] = useState(null);
@@ -38,6 +40,21 @@ const Timesheet = () => {
 
   const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: currentWeekStart, end: weekEnd });
+
+  // Load team members for admin
+  useEffect(() => {
+    const loadMembers = async () => {
+      if (isAdmin) {
+        try {
+          const response = await teamAPI.getAll({ status: 'active' });
+          setMembers(response.data || []);
+        } catch (error) {
+          console.error('Error loading members:', error);
+        }
+      }
+    };
+    loadMembers();
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchTimesheet();
@@ -48,7 +65,7 @@ const Timesheet = () => {
     fetchRunningTimer();
     const interval = setInterval(fetchRunningTimer, 30000); // Refresh every 30s
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [user]);
 
   // Update elapsed time every second when timer is running
   useEffect(() => {
@@ -80,7 +97,7 @@ const Timesheet = () => {
       const res = await fetch(`${API_URL}/time-entries/running`);
       const data = await res.json();
       const userTimer = data.find(e =>
-        currentUser ? e.user_id === currentUser.id : true
+        user ? e.user_id === user.id : true
       );
       setRunningEntry(userTimer || null);
     } catch (error) {
@@ -117,7 +134,7 @@ const Timesheet = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: currentUser?.id,
+          user_id: user?.id,
           task_id: entry.task_id || null,
           project_id: entry.project_id || null,
           description: entry.description || null
@@ -276,7 +293,7 @@ const Timesheet = () => {
           </div>
 
           {/* User Filter */}
-          {(!currentUser || currentUser.role === 'admin') && (
+          {(!user || user.role === 'admin') && (
             <div className="flex items-center gap-2">
               <Filter size={16} className="text-ink-400" />
               <select

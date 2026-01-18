@@ -792,6 +792,29 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Add pin_hash column to team_members for authentication (if not exists)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_members' AND column_name='pin_hash') THEN
+          ALTER TABLE team_members ADD COLUMN pin_hash TEXT;
+        END IF;
+      END $$;
+    `);
+
+    // Team member session tokens
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS team_session_tokens (
+        id SERIAL PRIMARY KEY,
+        team_member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        status TEXT CHECK(status IN ('active', 'expired', 'revoked')) DEFAULT 'active',
+        expires_at TIMESTAMP,
+        last_used_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

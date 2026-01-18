@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 import { dashboardAPI } from '../utils/api';
-import { TrendingUp, Users, FolderKanban, CheckSquare, DollarSign, Calendar } from 'lucide-react';
+import { Users, FolderKanban, CheckSquare, DollarSign, Calendar, TrendingUp, Wallet, PieChart } from 'lucide-react';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('month'); // today, week, month, year, all
-  const [customDates, setCustomDates] = useState({
-    start: '',
-    end: ''
-  });
+  const [period, setPeriod] = useState('month');
 
   useEffect(() => {
     loadDashboardData();
@@ -38,14 +34,6 @@ const Dashboard = () => {
       case 'year':
         start = new Date(now.getFullYear(), 0, 1);
         end = new Date();
-        break;
-      case 'custom':
-        if (customDates.start && customDates.end) {
-          start = new Date(customDates.start);
-          end = new Date(customDates.end);
-        } else {
-          return null;
-        }
         break;
       case 'all':
       default:
@@ -77,14 +65,22 @@ const Dashboard = () => {
       case 'week': return 'Esta Semana';
       case 'month': return 'Este Mes';
       case 'year': return 'Este Año';
-      case 'custom': return 'Período Personalizado';
       case 'all': return 'Todo el Tiempo';
       default: return 'Este Mes';
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8">Cargando...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="h-20 bg-white/50 rounded-2xl animate-pulse"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="h-32 bg-white/50 rounded-2xl animate-pulse"></div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const statCards = [
@@ -92,42 +88,47 @@ const Dashboard = () => {
       title: 'Clientes Activos',
       value: stats?.clients?.active || 0,
       icon: Users,
-      color: 'bg-blue-500',
+      iconBg: 'bg-blue-500/10',
+      iconColor: 'text-blue-600',
     },
     {
       title: 'Proyectos Activos',
       value: stats?.projects?.in_progress || 0,
       icon: FolderKanban,
-      color: 'bg-green-500',
+      iconBg: 'bg-green-500/10',
+      iconColor: 'text-green-600',
     },
     {
       title: 'Tareas Pendientes',
       value: (stats?.tasks?.todo || 0) + (stats?.tasks?.in_progress || 0),
       icon: CheckSquare,
-      color: 'bg-yellow-500',
+      iconBg: 'bg-amber-500/10',
+      iconColor: 'text-amber-600',
     },
     {
       title: 'Ingresos Netos',
       value: `$${(stats?.finances?.net_income || 0).toLocaleString('es-CO')}`,
       icon: DollarSign,
-      color: 'bg-purple-500',
+      iconBg: 'bg-violet-500/10',
+      iconColor: 'text-violet-600',
     },
   ];
 
   return (
-    <div>
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-            <p className="text-gray-600">Resumen general de la agencia</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Calendar className="text-gray-500" size={20} />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Dashboard</h1>
+          <p className="text-sm text-ink-500 mt-0.5">Resumen general de la agencia</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="card px-4 py-2.5 flex items-center gap-2">
+            <Calendar className="text-ink-400" size={18} />
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              className="border rounded-lg px-4 py-2 bg-white text-gray-700 font-medium"
+              className="bg-transparent text-sm font-medium text-ink-700 focus:outline-none cursor-pointer"
             >
               <option value="today">Hoy</option>
               <option value="week">Esta Semana</option>
@@ -137,99 +138,120 @@ const Dashboard = () => {
             </select>
           </div>
         </div>
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-          <p className="text-sm text-blue-700 font-medium">
-            📊 Mostrando datos de: <span className="font-bold">{getPeriodLabel()}</span>
-          </p>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Period Info Banner */}
+      <div className="card px-4 py-3 flex items-center gap-3 border-l-4 border-l-accent">
+        <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+          <TrendingUp className="w-4 h-4 text-accent" />
+        </div>
+        <p className="text-sm text-ink-600">
+          Mostrando datos de: <span className="font-semibold text-ink-900">{getPeriodLabel()}</span>
+        </p>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {statCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <div key={index} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-800">{card.value}</p>
-                </div>
-                <div className={`${card.color} p-3 rounded-lg`}>
-                  <Icon className="text-white" size={24} />
+            <div key={index} className="card-interactive p-5 group">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-ink-500 font-medium">{card.title}</span>
+                <div className={`w-11 h-11 ${card.iconBg} rounded-xl flex items-center justify-center transition-transform group-hover:scale-110`}>
+                  <Icon className={`w-5 h-5 ${card.iconColor}`} />
                 </div>
               </div>
+              <p className="text-2xl font-semibold text-ink-900 tracking-tight">{card.value}</p>
             </div>
           );
         })}
       </div>
 
+      {/* Two Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Finanzas</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Facturado:</span>
-              <span className="font-semibold">
+        {/* Finances Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-green-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-ink-900">Finanzas</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-ink-500">Total Facturado</span>
+              <span className="text-sm font-semibold text-ink-900">
                 ${(stats?.finances?.total_invoiced || 0).toLocaleString('es-CO')}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Pagado:</span>
-              <span className="font-semibold text-green-600">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-ink-500">Total Pagado</span>
+              <span className="text-sm font-semibold text-green-600">
                 ${(stats?.finances?.total_paid || 0).toLocaleString('es-CO')}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Pendiente de Pago:</span>
-              <span className="font-semibold text-yellow-600">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-ink-500">Pendiente de Pago</span>
+              <span className="text-sm font-semibold text-amber-600">
                 ${(stats?.finances?.total_pending || 0).toLocaleString('es-CO')}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Gastos:</span>
-              <span className="font-semibold text-red-600">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-ink-500">Total Gastos</span>
+              <span className="text-sm font-semibold text-red-500">
                 ${(stats?.finances?.total_expenses_amount || 0).toLocaleString('es-CO')}
               </span>
             </div>
-            <div className="border-t pt-3 flex justify-between">
-              <span className="text-gray-800 font-semibold">Ingreso Neto:</span>
-              <span className="font-bold text-lg text-primary-600">
-                ${(stats?.finances?.net_income || 0).toLocaleString('es-CO')}
-              </span>
+            <div className="border-t border-ink-100 pt-4 mt-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-ink-700">Ingreso Neto</span>
+                <span className="text-xl font-bold text-accent">
+                  ${(stats?.finances?.net_income || 0).toLocaleString('es-CO')}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Proyectos</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Proyectos:</span>
-              <span className="font-semibold">{stats?.projects?.total || 0}</span>
+        {/* Projects Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <PieChart className="w-5 h-5 text-blue-600" />
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">En Progreso:</span>
-              <span className="font-semibold text-blue-600">
+            <h2 className="text-lg font-semibold text-ink-900">Proyectos</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-ink-500">Total Proyectos</span>
+              <span className="text-sm font-semibold text-ink-900">{stats?.projects?.total || 0}</span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-ink-500">En Progreso</span>
+              <span className="text-sm font-semibold text-blue-600">
                 {stats?.projects?.in_progress || 0}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Completados:</span>
-              <span className="font-semibold text-green-600">
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-ink-500">Completados</span>
+              <span className="text-sm font-semibold text-green-600">
                 {stats?.projects?.completed || 0}
               </span>
             </div>
-            <div className="border-t pt-3 flex justify-between">
-              <span className="text-gray-600">Presupuesto Total:</span>
-              <span className="font-semibold">
-                ${(stats?.projects?.total_budget || 0).toLocaleString('es-CO')}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Gastado:</span>
-              <span className="font-semibold text-red-600">
-                ${(stats?.projects?.total_spent || 0).toLocaleString('es-CO')}
-              </span>
+            <div className="border-t border-ink-100 pt-4 mt-2">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-sm text-ink-500">Presupuesto Total</span>
+                <span className="text-sm font-semibold text-ink-900">
+                  ${(stats?.projects?.total_budget || 0).toLocaleString('es-CO')}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-ink-500">Gastado</span>
+                <span className="text-sm font-semibold text-red-500">
+                  ${(stats?.projects?.total_spent || 0).toLocaleString('es-CO')}
+                </span>
+              </div>
             </div>
           </div>
         </div>

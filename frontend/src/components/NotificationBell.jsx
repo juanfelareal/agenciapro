@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Bell, X, Check, CheckCheck } from 'lucide-react';
 import { notificationsAPI } from '../utils/api';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const NotificationBell = () => {
@@ -10,7 +10,7 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
-  const { currentUser } = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Close dropdown when clicking outside
@@ -32,13 +32,13 @@ const NotificationBell = () => {
 
   // Load notifications
   const loadNotifications = async () => {
-    if (!currentUser?.id) return;
+    if (!user?.id) return;
 
     try {
       setLoading(true);
       const [notifResponse, countResponse] = await Promise.all([
-        notificationsAPI.getByUser(currentUser.id),
-        notificationsAPI.getUnreadCount(currentUser.id)
+        notificationsAPI.getByUser(user.id),
+        notificationsAPI.getUnreadCount(user.id)
       ]);
 
       setNotifications(notifResponse.data.slice(0, 10)); // Show latest 10
@@ -57,7 +57,7 @@ const NotificationBell = () => {
     const interval = setInterval(loadNotifications, 30000);
 
     return () => clearInterval(interval);
-  }, [currentUser?.id]);
+  }, [user?.id]);
 
   const handleBellClick = () => {
     setIsOpen(!isOpen);
@@ -77,10 +77,10 @@ const NotificationBell = () => {
   };
 
   const handleMarkAllAsRead = async () => {
-    if (!currentUser?.id) return;
+    if (!user?.id) return;
 
     try {
-      await notificationsAPI.markAllAsRead(currentUser.id);
+      await notificationsAPI.markAllAsRead(user.id);
       loadNotifications();
     } catch (error) {
       console.error('Error marking all as read:', error);
@@ -147,7 +147,7 @@ const NotificationBell = () => {
         className="relative p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
       >
         <Bell size={24} />
-        {currentUser && unreadCount > 0 && (
+        {user && unreadCount > 0 && (
           <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>

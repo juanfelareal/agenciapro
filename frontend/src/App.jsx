@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -43,6 +44,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Login page - no layout */}
+        <Route path="/login" element={<Login />} />
+
         {/* Landing page - no layout */}
         <Route path="/landing" element={<Landing />} />
 
