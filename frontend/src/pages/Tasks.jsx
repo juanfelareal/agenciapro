@@ -203,6 +203,11 @@ const Tasks = () => {
         type: 'weekly',
         days: [],
       },
+      timeline_start: null,
+      timeline_end: null,
+      progress: 0,
+      color: null,
+      estimated_hours: null,
     });
     setSelectedTagIds([]);
     setSubtaskProgress({ total: 0, completed: 0, progress: 0 });
@@ -277,6 +282,11 @@ const Tasks = () => {
       recurrence_pattern: task.recurrence_pattern
         ? JSON.parse(task.recurrence_pattern)
         : { type: 'weekly', days: [] },
+      timeline_start: task.timeline_start || null,
+      timeline_end: task.timeline_end || null,
+      progress: task.progress || 0,
+      color: task.color || null,
+      estimated_hours: task.estimated_hours || null,
     });
     // Load task tags
     const tags = taskTags[task.id] || [];
