@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2 } from 'lucide-react';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -30,6 +30,10 @@ const Projects = () => {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [templateTasksDueDates, setTemplateTasksDueDates] = useState({}); // { taskId: 'date' }
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -206,6 +210,96 @@ const Projects = () => {
     cancelled: 'Cancelado',
   };
 
+  // Bulk selection helpers
+  const isAllSelected = projects.length > 0 && projects.every(p => selectedIds.has(p.id));
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(projects.map(p => p.id)));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Bulk actions
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedIds.size === 0) return;
+
+    const statusText = statusLabels[newStatus];
+    if (!confirm(`¿Cambiar ${selectedIds.size} proyecto(s) a "${statusText}"?`)) return;
+
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id =>
+        projectsAPI.update(id, { status: newStatus })
+      );
+      await Promise.all(promises);
+      clearSelection();
+      loadData();
+    } catch (error) {
+      console.error('Error updating projects:', error);
+      alert('Error al actualizar algunos proyectos');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+
+    if (!confirm(`¿Eliminar ${selectedIds.size} proyecto(s)? Esta acción no se puede deshacer y eliminará todas las tareas asociadas.`)) return;
+
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id => projectsAPI.delete(id));
+      await Promise.all(promises);
+      clearSelection();
+      loadData();
+    } catch (error) {
+      console.error('Error deleting projects:', error);
+      alert('Error al eliminar algunos proyectos');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkClientChange = async (clientId) => {
+    if (selectedIds.size === 0) return;
+
+    const clientName = clientId ? clients.find(c => c.id == clientId)?.company || clients.find(c => c.id == clientId)?.name : 'Sin asignar';
+    if (!confirm(`¿Asignar ${selectedIds.size} proyecto(s) al cliente "${clientName}"?`)) return;
+
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id =>
+        projectsAPI.update(id, { client_id: clientId || null })
+      );
+      await Promise.all(promises);
+      clearSelection();
+      loadData();
+    } catch (error) {
+      console.error('Error updating projects:', error);
+      alert('Error al actualizar algunos proyectos');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Cargando...</div>;
   }
@@ -226,10 +320,102 @@ const Projects = () => {
         </button>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CheckSquare size={18} className="text-primary-600" />
+            <span className="font-medium text-primary-700">
+              {selectedIds.size} proyecto{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="h-6 w-px bg-primary-200" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-primary-600">Estado:</span>
+            <button
+              onClick={() => handleBulkStatusChange('planning')}
+              disabled={bulkUpdating}
+              className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            >
+              Planeación
+            </button>
+            <button
+              onClick={() => handleBulkStatusChange('in_progress')}
+              disabled={bulkUpdating}
+              className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50"
+            >
+              En Progreso
+            </button>
+            <button
+              onClick={() => handleBulkStatusChange('completed')}
+              disabled={bulkUpdating}
+              className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50"
+            >
+              Completado
+            </button>
+            <button
+              onClick={() => handleBulkStatusChange('on_hold')}
+              disabled={bulkUpdating}
+              className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50"
+            >
+              En Espera
+            </button>
+          </div>
+          <div className="h-6 w-px bg-primary-200" />
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-primary-600">Cliente:</span>
+            <select
+              onChange={(e) => handleBulkClientChange(e.target.value)}
+              disabled={bulkUpdating}
+              className="px-3 py-1.5 text-sm bg-white border border-primary-200 rounded-lg disabled:opacity-50"
+              defaultValue=""
+            >
+              <option value="" disabled>Seleccionar...</option>
+              <option value="">Sin asignar</option>
+              {clients.map(client => (
+                <option key={client.id} value={client.id}>
+                  {client.company || client.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="h-6 w-px bg-primary-200" />
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkUpdating}
+            className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 flex items-center gap-1"
+          >
+            {bulkUpdating ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            Eliminar
+          </button>
+          <button
+            onClick={clearSelection}
+            className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-100 rounded-lg"
+          >
+            Cancelar selección
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-3 py-3 text-center w-12">
+                <button
+                  onClick={toggleSelectAll}
+                  className="text-gray-500 hover:text-primary-600"
+                  title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                >
+                  {isAllSelected ? (
+                    <CheckSquare size={18} className="text-primary-600" />
+                  ) : isSomeSelected ? (
+                    <MinusSquare size={18} className="text-primary-600" />
+                  ) : (
+                    <Square size={18} />
+                  )}
+                </button>
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Proyecto
               </th>
@@ -252,7 +438,22 @@ const Projects = () => {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {projects.map((project) => (
-              <tr key={project.id} className="hover:bg-gray-50">
+              <tr
+                key={project.id}
+                className={`hover:bg-gray-50 ${selectedIds.has(project.id) ? 'bg-primary-50' : ''}`}
+              >
+                <td className="px-3 py-4 text-center">
+                  <button
+                    onClick={() => toggleSelectOne(project.id)}
+                    className="text-gray-400 hover:text-primary-600"
+                  >
+                    {selectedIds.has(project.id) ? (
+                      <CheckSquare size={18} className="text-primary-600" />
+                    ) : (
+                      <Square size={18} />
+                    )}
+                  </button>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium">{project.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{project.client_name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -292,6 +493,17 @@ const Projects = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Animation styles */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+      `}</style>
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

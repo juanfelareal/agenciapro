@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Trash2 } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search } from 'lucide-react';
 import SubtaskList from '../components/SubtaskList';
-import TagSelector, { TagBadge } from '../components/TagSelector';
+import TagSelector from '../components/TagSelector';
+import TaskViewSwitcher from '../components/tasks/TaskViewSwitcher';
+import TaskFilters from '../components/tasks/TaskFilters';
+import KanbanView from '../components/tasks/KanbanView';
+import ListView from '../components/tasks/ListView';
+import CalendarView from '../components/tasks/CalendarView';
 
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
@@ -14,12 +19,26 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [draggedTask, setDraggedTask] = useState(null);
   const [selectedTagIds, setSelectedTagIds] = useState([]);
   const [subtaskProgress, setSubtaskProgress] = useState({ total: 0, completed: 0, progress: 0 });
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
+
+  // View and filter state
+  const [viewMode, setViewMode] = useState('kanban');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    assignees: [],
+    priorities: [],
+    dueDateFrom: '',
+    dueDateTo: '',
+    projects: [],
+    tags: [],
+    statuses: [],
+    search: '',
+  });
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -31,7 +50,7 @@ const Tasks = () => {
     is_recurring: false,
     recurrence_pattern: {
       type: 'weekly',
-      days: [], // 0=Domingo, 1=Lunes, 2=Martes, etc.
+      days: [],
     },
   });
 
@@ -80,6 +99,68 @@ const Tasks = () => {
       setLoading(false);
     }
   };
+
+  // Filter tasks
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesSearch =
+          task.title?.toLowerCase().includes(searchLower) ||
+          task.description?.toLowerCase().includes(searchLower) ||
+          task.project_name?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Assignee filter
+      if (filters.assignees.length > 0) {
+        if (!filters.assignees.includes(task.assigned_to)) return false;
+      }
+
+      // Priority filter
+      if (filters.priorities.length > 0) {
+        if (!filters.priorities.includes(task.priority)) return false;
+      }
+
+      // Date range filter
+      if (filters.dueDateFrom || filters.dueDateTo) {
+        if (!task.due_date) return false;
+        const taskDate = new Date(task.due_date);
+        if (filters.dueDateFrom && taskDate < new Date(filters.dueDateFrom)) return false;
+        if (filters.dueDateTo && taskDate > new Date(filters.dueDateTo)) return false;
+      }
+
+      // Project filter
+      if (filters.projects.length > 0) {
+        if (!filters.projects.includes(task.project_id)) return false;
+      }
+
+      // Tags filter
+      if (filters.tags.length > 0) {
+        const taskTagIds = (taskTags[task.id] || []).map(t => t.id);
+        const hasMatchingTag = filters.tags.some(tagId => taskTagIds.includes(tagId));
+        if (!hasMatchingTag) return false;
+      }
+
+      // Status filter (only applies in list/calendar views)
+      if (filters.statuses.length > 0 && viewMode !== 'kanban') {
+        if (!filters.statuses.includes(task.status)) return false;
+      }
+
+      return true;
+    });
+  }, [tasks, filters, taskTags, viewMode]);
+
+  // Count active filters
+  const activeFilterCount = [
+    filters.assignees.length > 0,
+    filters.priorities.length > 0,
+    filters.dueDateFrom || filters.dueDateTo,
+    filters.projects.length > 0,
+    filters.tags.length > 0,
+    filters.statuses.length > 0,
+  ].filter(Boolean).length;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -158,7 +239,7 @@ const Tasks = () => {
 
   const handleNew = (status = 'todo') => {
     resetForm();
-    setFormData({ ...formData, status });
+    setFormData(prev => ({ ...prev, status }));
     setEditingTask(null);
     setShowModal(true);
   };
@@ -172,55 +253,37 @@ const Tasks = () => {
     }
   };
 
-  // Drag & Drop handlers
-  const handleDragStart = (e, task) => {
-    setDraggedTask(task);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.target);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = async (e, newStatus) => {
-    e.preventDefault();
-    if (draggedTask && draggedTask.status !== newStatus) {
-      await handleStatusChange(draggedTask, newStatus);
-    }
-    setDraggedTask(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedTask(null);
-  };
-
-  const handleDeleteTask = async (e, taskId) => {
-    e.stopPropagation(); // Prevent opening the modal
-    if (confirm('¿Está seguro de eliminar esta tarea?')) {
-      try {
-        await tasksAPI.delete(taskId);
-        loadData();
-      } catch (error) {
-        console.error('Error deleting task:', error);
-        alert('Error al eliminar la tarea');
-      }
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await tasksAPI.delete(taskId);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Error al eliminar la tarea');
     }
   };
 
-  const columns = [
-    { id: 'todo', title: 'Por Hacer', color: 'bg-gray-100' },
-    { id: 'in_progress', title: 'En Progreso', color: 'bg-blue-100' },
-    { id: 'review', title: 'En Revisión', color: 'bg-yellow-100' },
-    { id: 'done', title: 'Completado', color: 'bg-green-100' },
-  ];
-
-  const priorityColors = {
-    low: 'bg-gray-200 text-gray-700',
-    medium: 'bg-blue-200 text-blue-700',
-    high: 'bg-orange-200 text-orange-700',
-    urgent: 'bg-red-200 text-red-700',
+  const handleTaskClick = (task) => {
+    setEditingTask(task);
+    setFormData({
+      title: task.title,
+      description: task.description || '',
+      project_id: task.project_id || '',
+      assigned_to: task.assigned_to || '',
+      status: task.status,
+      priority: task.priority,
+      due_date: task.due_date || '',
+      is_recurring: task.is_recurring ? true : false,
+      recurrence_pattern: task.recurrence_pattern
+        ? JSON.parse(task.recurrence_pattern)
+        : { type: 'weekly', days: [] },
+    });
+    // Load task tags
+    const tags = taskTags[task.id] || [];
+    setSelectedTagIds(tags.map(t => t.id));
+    // Load subtask progress
+    setSubtaskProgress(taskSubtaskProgress[task.id] || { total: 0, completed: 0, progress: 0 });
+    setShowModal(true);
   };
 
   if (loading) {
@@ -228,128 +291,103 @@ const Tasks = () => {
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Tareas</h1>
-        <p className="text-gray-600">Gestión de tareas del equipo - Vista Kanban</p>
-      </div>
-
-      <div className="grid grid-cols-4 gap-4">
-        {columns.map((column) => (
-          <div
-            key={column.id}
-            className={`${column.color} rounded-lg p-4 min-h-[500px] transition-all ${
-              draggedTask && draggedTask.status !== column.id ? 'ring-2 ring-primary-400 ring-opacity-50' : ''
-            }`}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, column.id)}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg">{column.title}</h3>
-              <button
-                onClick={() => handleNew(column.id)}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <Plus size={20} />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {tasks
-                .filter((task) => task.status === column.id)
-                .map((task) => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task)}
-                    onDragEnd={handleDragEnd}
-                    className={`bg-white p-3 rounded shadow cursor-move hover:shadow-md transition-all group ${
-                      draggedTask?.id === task.id ? 'opacity-50 scale-95' : 'opacity-100'
-                    }`}
-                    onClick={() => {
-                      setEditingTask(task);
-                      setFormData({
-                        title: task.title,
-                        description: task.description || '',
-                        project_id: task.project_id || '',
-                        assigned_to: task.assigned_to || '',
-                        status: task.status,
-                        priority: task.priority,
-                        due_date: task.due_date || '',
-                        is_recurring: task.is_recurring ? true : false,
-                        recurrence_pattern: task.recurrence_pattern
-                          ? JSON.parse(task.recurrence_pattern)
-                          : { type: 'weekly', days: [] },
-                      });
-                      // Load task tags
-                      const tags = taskTags[task.id] || [];
-                      setSelectedTagIds(tags.map(t => t.id));
-                      // Load subtask progress
-                      setSubtaskProgress(taskSubtaskProgress[task.id] || { total: 0, completed: 0, progress: 0 });
-                      setShowModal(true);
-                    }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold flex-1 pr-2">{task.title}</h4>
-                      <div className="flex items-center gap-1">
-                        {!!task.is_recurring && (
-                          <span className="text-blue-600" title="Tarea Recurrente">🔄</span>
-                        )}
-                        <button
-                          onClick={(e) => handleDeleteTask(e, task.id)}
-                          className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Eliminar tarea"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    {/* Tags */}
-                    {taskTags[task.id]?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {taskTags[task.id].slice(0, 3).map(tag => (
-                          <span
-                            key={tag.id}
-                            className="px-1.5 py-0.5 rounded text-xs font-medium"
-                            style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
-                        {taskTags[task.id].length > 3 && (
-                          <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-500">
-                            +{taskTags[task.id].length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {task.project_name && (
-                      <p className="text-xs text-gray-600 mb-1">{task.project_name}</p>
-                    )}
-                    {task.assigned_to_name && (
-                      <p className="text-xs text-gray-600 mb-1">👤 {task.assigned_to_name}</p>
-                    )}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2 py-1 rounded text-xs ${priorityColors[task.priority]}`}>
-                        {task.priority}
-                      </span>
-                      {/* Subtask progress indicator */}
-                      {taskSubtaskProgress[task.id]?.total > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-slate-500">
-                          <ListChecks size={12} />
-                          {taskSubtaskProgress[task.id].completed}/{taskSubtaskProgress[task.id].total}
-                        </span>
-                      )}
-                    </div>
-                    {task.due_date && (
-                      <p className="text-xs text-gray-500 mt-2">📅 {task.due_date}</p>
-                    )}
-                  </div>
-                ))}
-            </div>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Tareas</h1>
+            <p className="text-gray-600">Gestión de tareas del equipo</p>
           </div>
-        ))}
+          <div className="flex items-center gap-3">
+            <TaskViewSwitcher value={viewMode} onChange={setViewMode} />
+            <button
+              onClick={() => handleNew()}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+            >
+              <Plus size={20} />
+              <span className="hidden sm:inline">Nueva Tarea</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search and Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 mt-4">
+          <div className="relative flex-1 max-w-md">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar tareas..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+              showFilters || activeFilterCount > 0
+                ? 'border-primary-300 bg-primary-50 text-primary-700'
+                : 'border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <Filter size={18} />
+            <span>Filtros</span>
+            {activeFilterCount > 0 && (
+              <span className="bg-primary-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
+      {/* Filters Panel */}
+      {showFilters && (
+        <TaskFilters
+          filters={filters}
+          onChange={setFilters}
+          teamMembers={teamMembers}
+          projects={projects}
+          tags={allTags}
+          showStatusFilter={viewMode !== 'kanban'}
+        />
+      )}
+
+      {/* View Content */}
+      <div className="flex-1">
+        {viewMode === 'kanban' && (
+          <KanbanView
+            tasks={filteredTasks}
+            taskTags={taskTags}
+            taskSubtaskProgress={taskSubtaskProgress}
+            onTaskClick={handleTaskClick}
+            onAddTask={handleNew}
+            onStatusChange={handleStatusChange}
+            onDeleteTask={handleDeleteTask}
+          />
+        )}
+        {viewMode === 'list' && (
+          <ListView
+            tasks={filteredTasks}
+            taskTags={taskTags}
+            taskSubtaskProgress={taskSubtaskProgress}
+            onTaskClick={handleTaskClick}
+            onStatusChange={handleStatusChange}
+            onDeleteTask={handleDeleteTask}
+          />
+        )}
+        {viewMode === 'calendar' && (
+          <CalendarView
+            tasks={filteredTasks}
+            projects={projects}
+            onTaskClick={handleTaskClick}
+            onTaskUpdate={loadData}
+          />
+        )}
+      </div>
+
+      {/* Task Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
