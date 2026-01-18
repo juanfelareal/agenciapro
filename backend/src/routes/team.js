@@ -18,6 +18,65 @@ function generateSessionToken() {
 // ========================================
 
 /**
+ * POST /api/team/auth/bootstrap
+ * One-time setup to create first admin with PIN
+ * Only works if NO team members have PINs set yet
+ */
+router.post('/auth/bootstrap', async (req, res) => {
+  try {
+    const { email, pin, name } = req.body;
+
+    if (!email || !pin) {
+      return res.status(400).json({ error: 'Email y PIN son requeridos' });
+    }
+
+    if (pin.length < 4) {
+      return res.status(400).json({ error: 'El PIN debe tener al menos 4 caracteres' });
+    }
+
+    // Check if any team member already has a PIN set
+    const existingWithPin = await db.get(`
+      SELECT id FROM team_members WHERE pin_hash IS NOT NULL LIMIT 1
+    `);
+
+    if (existingWithPin) {
+      return res.status(403).json({
+        error: 'Bootstrap ya no está disponible. Ya existen usuarios con PIN configurado.'
+      });
+    }
+
+    // Check if member exists
+    let member = await db.get(`SELECT * FROM team_members WHERE email = ?`, [email.toLowerCase().trim()]);
+
+    if (!member) {
+      // Create admin member if doesn't exist
+      const result = await db.run(`
+        INSERT INTO team_members (name, email, role, status)
+        VALUES (?, ?, 'admin', 'active')
+        RETURNING id
+      `, [name || 'Admin', email.toLowerCase().trim()]);
+
+      member = await db.get(`SELECT * FROM team_members WHERE id = ?`, [result.lastInsertRowid]);
+    }
+
+    // Hash the PIN and update
+    const pinHash = await bcrypt.hash(pin, 10);
+    await db.run(`
+      UPDATE team_members SET pin_hash = ?, role = 'admin', updated_at = CURRENT_TIMESTAMP WHERE id = ?
+    `, [pinHash, member.id]);
+
+    res.json({
+      success: true,
+      message: 'PIN de admin establecido correctamente. Ya puedes iniciar sesión.',
+      email: member.email
+    });
+  } catch (error) {
+    console.error('Bootstrap error:', error);
+    res.status(500).json({ error: 'Error en bootstrap: ' + error.message });
+  }
+});
+
+/**
  * POST /api/team/auth/login
  * Login with email and PIN
  */
