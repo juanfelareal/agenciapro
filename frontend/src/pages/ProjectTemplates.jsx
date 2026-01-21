@@ -86,9 +86,7 @@ const ProjectTemplates = () => {
           ...formData,
           tasks: tasks.map((t, index) => ({
             title: t.title,
-            description: t.description,
-            priority: t.priority,
-            estimated_hours: t.estimated_hours,
+            description: t.description || '',
             order_index: index,
           })),
         });
@@ -111,8 +109,7 @@ const ProjectTemplates = () => {
       try {
         const response = await projectTemplatesAPI.addTask(editingTemplate.id, {
           title: newTaskTitle.trim(),
-          priority: 'medium',
-          estimated_hours: 0,
+          description: '',
         });
         setTasks([...tasks, response.data]);
         setNewTaskTitle('');
@@ -128,8 +125,6 @@ const ProjectTemplates = () => {
           id: Date.now(), // Temp ID
           title: newTaskTitle.trim(),
           description: '',
-          priority: 'medium',
-          estimated_hours: 0,
           order_index: tasks.length,
         },
       ]);
@@ -187,13 +182,6 @@ const ProjectTemplates = () => {
       }
     }
   };
-
-  const priorityOptions = [
-    { value: 'low', label: 'Baja', color: 'bg-gray-100 text-gray-700' },
-    { value: 'medium', label: 'Media', color: 'bg-blue-100 text-blue-700' },
-    { value: 'high', label: 'Alta', color: 'bg-orange-100 text-orange-700' },
-    { value: 'urgent', label: 'Urgente', color: 'bg-red-100 text-red-700' },
-  ];
 
   if (loading) {
     return <div className="text-center py-8">Cargando...</div>;
@@ -348,76 +336,61 @@ const ProjectTemplates = () => {
                       {tasks.map((task, index) => (
                         <div
                           key={task.id || index}
-                          className="bg-gray-50 rounded-lg p-3 flex items-center gap-3"
+                          className="bg-gray-50 rounded-lg p-3"
                         >
-                          {/* Reorder Buttons */}
-                          <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-3">
+                            {/* Reorder Buttons */}
+                            <div className="flex flex-col gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleMoveTask(index, -1)}
+                                disabled={index === 0}
+                                className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                              >
+                                <ChevronUp size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveTask(index, 1)}
+                                disabled={index === tasks.length - 1}
+                                className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                              >
+                                <ChevronDown size={14} />
+                              </button>
+                            </div>
+
+                            {/* Task Index */}
+                            <span className="text-sm text-gray-400 w-6">{index + 1}.</span>
+
+                            {/* Task Title */}
+                            <input
+                              type="text"
+                              className="flex-1 bg-transparent border-0 focus:ring-0 text-sm font-medium"
+                              value={task.title}
+                              onChange={(e) => handleUpdateTask(index, 'title', e.target.value)}
+                              placeholder="Título de la tarea"
+                            />
+
+                            {/* Delete Button */}
                             <button
                               type="button"
-                              onClick={() => handleMoveTask(index, -1)}
-                              disabled={index === 0}
-                              className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                              onClick={() => handleDeleteTask(index)}
+                              className="p-1 text-red-500 hover:bg-red-50 rounded"
                             >
-                              <ChevronUp size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleMoveTask(index, 1)}
-                              disabled={index === tasks.length - 1}
-                              className="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                            >
-                              <ChevronDown size={14} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
 
-                          {/* Task Index */}
-                          <span className="text-sm text-gray-400 w-6">{index + 1}.</span>
-
-                          {/* Task Title */}
-                          <input
-                            type="text"
-                            className="flex-1 bg-transparent border-0 focus:ring-0 text-sm"
-                            value={task.title}
-                            onChange={(e) => handleUpdateTask(index, 'title', e.target.value)}
-                            placeholder="Título de la tarea"
-                          />
-
-                          {/* Priority Select */}
-                          <select
-                            className={`text-xs px-2 py-1 rounded border-0 ${
-                              priorityOptions.find((p) => p.value === task.priority)?.color || 'bg-gray-100'
-                            }`}
-                            value={task.priority}
-                            onChange={(e) => handleUpdateTask(index, 'priority', e.target.value)}
-                          >
-                            {priorityOptions.map((p) => (
-                              <option key={p.value} value={p.value}>
-                                {p.label}
-                              </option>
-                            ))}
-                          </select>
-
-                          {/* Estimated Hours */}
-                          <input
-                            type="number"
-                            className="w-16 text-xs border rounded px-2 py-1"
-                            placeholder="Hrs"
-                            min="0"
-                            step="0.5"
-                            value={task.estimated_hours || ''}
-                            onChange={(e) =>
-                              handleUpdateTask(index, 'estimated_hours', parseFloat(e.target.value) || 0)
-                            }
-                          />
-
-                          {/* Delete Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteTask(index)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {/* Task Description */}
+                          <div className="mt-2 ml-14">
+                            <input
+                              type="text"
+                              className="w-full bg-white border rounded px-2 py-1.5 text-sm text-gray-600"
+                              value={task.description || ''}
+                              onChange={(e) => handleUpdateTask(index, 'description', e.target.value)}
+                              placeholder="Descripción de la tarea (opcional)"
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI } from '../utils/api';
+import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
 import { Plus, X, ListChecks, Copy, Filter, Search } from 'lucide-react';
 import SubtaskList from '../components/SubtaskList';
 import TagSelector from '../components/TagSelector';
@@ -14,6 +14,7 @@ const Tasks = () => {
   const [projects, setProjects] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [allTags, setAllTags] = useState([]);
+  const [clients, setClients] = useState([]);
   const [taskTags, setTaskTags] = useState({}); // { taskId: [tags] }
   const [taskSubtaskProgress, setTaskSubtaskProgress] = useState({}); // { taskId: { total, completed, progress } }
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,7 @@ const Tasks = () => {
     projects: [],
     tags: [],
     statuses: [],
+    clients: [],
     search: '',
   });
 
@@ -60,16 +62,18 @@ const Tasks = () => {
 
   const loadData = async () => {
     try {
-      const [tasksRes, projectsRes, teamRes, tagsRes] = await Promise.all([
+      const [tasksRes, projectsRes, teamRes, tagsRes, clientsRes] = await Promise.all([
         tasksAPI.getAll(),
         projectsAPI.getAll(),
         teamAPI.getAll({ status: 'active' }),
         tagsAPI.getAll(),
+        clientsAPI.getAll(),
       ]);
       setTasks(tasksRes.data || []);
       setProjects(projectsRes.data || []);
       setTeamMembers(teamRes.data || []);
       setAllTags(tagsRes.data || []);
+      setClients(clientsRes.data || []);
 
       // Load tags and subtask progress for each task
       const tasksList = tasksRes.data || [];
@@ -148,6 +152,11 @@ const Tasks = () => {
         if (!filters.statuses.includes(task.status)) return false;
       }
 
+      // Client filter
+      if (filters.clients.length > 0) {
+        if (!task.client_id || !filters.clients.includes(task.client_id)) return false;
+      }
+
       return true;
     });
   }, [tasks, filters, taskTags, viewMode]);
@@ -160,6 +169,7 @@ const Tasks = () => {
     filters.projects.length > 0,
     filters.tags.length > 0,
     filters.statuses.length > 0,
+    filters.clients.length > 0,
   ].filter(Boolean).length;
 
   const handleSubmit = async (e) => {
@@ -360,6 +370,7 @@ const Tasks = () => {
           teamMembers={teamMembers}
           projects={projects}
           tags={allTags}
+          clients={clients}
           showStatusFilter={viewMode !== 'kanban'}
         />
       )}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, ChevronDown, User, Flag, Calendar, Folder, Tag, Check } from 'lucide-react';
+import { X, ChevronDown, User, Flag, Calendar, Folder, Tag, Check, Building2 } from 'lucide-react';
 
 const priorityOptions = [
   { value: 'low', label: 'Baja', color: 'bg-gray-200 text-gray-700' },
@@ -86,6 +86,7 @@ export default function TaskFilters({
   teamMembers = [],
   projects = [],
   tags = [],
+  clients = [],
   showStatusFilter = false,
 }) {
   const activeFilterCount = [
@@ -95,6 +96,7 @@ export default function TaskFilters({
     filters.projects?.length > 0,
     filters.tags?.length > 0,
     filters.statuses?.length > 0,
+    filters.clients?.length > 0,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
@@ -106,6 +108,7 @@ export default function TaskFilters({
       projects: [],
       tags: [],
       statuses: [],
+      clients: [],
       search: '',
     });
   };
@@ -132,6 +135,12 @@ export default function TaskFilters({
     value: t.id,
     label: t.name,
     color: t.color,
+  }));
+
+  // Convert clients to options
+  const clientOptions = clients.map(c => ({
+    value: c.id,
+    label: c.company || c.name,
   }));
 
   return (
@@ -187,6 +196,17 @@ export default function TaskFilters({
             placeholder="Hasta"
           />
         </div>
+
+        {/* Client Filter */}
+        {clientOptions.length > 0 && (
+          <MultiSelectDropdown
+            label="Cliente"
+            icon={Building2}
+            options={clientOptions}
+            selected={filters.clients || []}
+            onChange={(value) => updateFilter('clients', value)}
+          />
+        )}
 
         {/* Project Filter */}
         {projectOptions.length > 0 && (
@@ -280,6 +300,18 @@ export default function TaskFilters({
               </button>
             </span>
           )}
+          {filters.clients?.map(id => {
+            const client = clients.find(c => c.id === id);
+            return client && (
+              <span key={id} className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                <Building2 size={12} />
+                {client.company || client.name}
+                <button onClick={() => updateFilter('clients', filters.clients.filter(c => c !== id))} className="hover:text-red-500">
+                  <X size={12} />
+                </button>
+              </span>
+            );
+          })}
           {filters.projects?.map(id => {
             const project = projects.find(p => p.id === id);
             return project && (

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -166,6 +167,24 @@ const NoteEditor = ({ content, onChange, placeholder = 'Escribe tu nota aquí...
       }
     },
   });
+
+  // Update editable state when readOnly prop changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!readOnly);
+    }
+  }, [editor, readOnly]);
+
+  // Update content when it changes externally
+  useEffect(() => {
+    if (editor && content) {
+      const currentContent = JSON.stringify(editor.getJSON());
+      const newContent = JSON.stringify(content);
+      if (currentContent !== newContent) {
+        editor.commands.setContent(content);
+      }
+    }
+  }, [editor, content]);
 
   return (
     <div className={`border border-slate-200 rounded-lg bg-white overflow-hidden ${readOnly ? 'border-transparent' : ''}`}>

@@ -8,9 +8,9 @@ const router = express.Router();
 // Get all tasks
 router.get('/', async (req, res) => {
   try {
-    const { status, project_id, assigned_to } = req.query;
+    const { status, project_id, assigned_to, client_id } = req.query;
     let query = `
-      SELECT t.*, p.name as project_name, tm.name as assigned_to_name
+      SELECT t.*, p.name as project_name, p.client_id, tm.name as assigned_to_name
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
@@ -31,6 +31,11 @@ router.get('/', async (req, res) => {
     if (assigned_to) {
       query += ' AND t.assigned_to = ?';
       params.push(assigned_to);
+    }
+
+    if (client_id) {
+      query += ' AND p.client_id = ?';
+      params.push(client_id);
     }
 
     query += ' ORDER BY t.created_at DESC';

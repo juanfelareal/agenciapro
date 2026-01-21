@@ -48,38 +48,46 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'El nombre es requerido' });
     }
 
-    const result = await db.prepare(`
-      INSERT INTO project_templates (name, description)
-      VALUES (?, ?)
-    `).run(name, description || null);
+    // Use a transaction to ensure template and tasks are created together
+    const createTemplateWithTasks = db.transaction((name, description, tasks) => {
+      const result = db.prepare(`
+        INSERT INTO project_templates (name, description)
+        VALUES (?, ?)
+      `).run(name, description || null);
 
-    const templateId = result.lastInsertRowid;
+      const templateId = result.lastInsertRowid;
 
-    // Insert tasks if provided
-    if (tasks && tasks.length > 0) {
-      const insertTask = db.prepare(`
-        INSERT INTO project_template_tasks (template_id, title, description, priority, estimated_hours, order_index)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
+      // Insert tasks if provided
+      if (tasks && tasks.length > 0) {
+        const insertTask = db.prepare(`
+          INSERT INTO project_template_tasks (template_id, title, description, priority, estimated_hours, order_index)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `);
 
-      for (let index = 0; index < tasks.length; index++) {
-        const task = tasks[index];
-        await insertTask.run(
-          templateId,
-          task.title,
-          task.description || null,
-          task.priority || 'medium',
-          task.estimated_hours || 0,
-          task.order_index !== undefined ? task.order_index : index
-        );
+        for (let index = 0; index < tasks.length; index++) {
+          const task = tasks[index];
+          insertTask.run(
+            templateId,
+            task.title,
+            task.description || null,
+            task.priority || 'medium',
+            task.estimated_hours || 0,
+            task.order_index !== undefined ? task.order_index : index
+          );
+        }
       }
-    }
 
-    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(templateId);
-    const templateTasks = await db.prepare('SELECT * FROM project_template_tasks WHERE template_id = ? ORDER BY order_index ASC').all(templateId);
+      return templateId;
+    });
+
+    const templateId = createTemplateWithTasks(name, description || null, tasks || []);
+
+    const template = db.prepare('SELECT * FROM project_templates WHERE id = ?').get(templateId);
+    const templateTasks = db.prepare('SELECT * FROM project_template_tasks WHERE template_id = ? ORDER BY order_index ASC').all(templateId);
 
     res.status(201).json({ ...template, tasks: templateTasks });
   } catch (error) {
+    console.error('Error creating template:', error);
     res.status(500).json({ error: error.message });
   }
 });

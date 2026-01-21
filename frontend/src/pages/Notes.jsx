@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI } from '../utils/api';
 import NoteEditor from '../components/NoteEditor';
+import html2pdf from 'html2pdf.js';
 import {
   Plus,
   Search,
@@ -23,7 +24,8 @@ import {
   ArrowLeft,
   MoreHorizontal,
   Home,
-  FileText
+  FileText,
+  Download
 } from 'lucide-react';
 
 const NOTE_COLORS = [
@@ -326,6 +328,163 @@ const Notes = () => {
     }).filter(Boolean);
   };
 
+  // Convert TipTap JSON to HTML
+  const tiptapToHtml = (node) => {
+    if (!node) return '';
+
+    if (node.type === 'text') {
+      let text = node.text || '';
+      if (node.marks) {
+        node.marks.forEach(mark => {
+          if (mark.type === 'bold') text = `<strong>${text}</strong>`;
+          if (mark.type === 'italic') text = `<em>${text}</em>`;
+          if (mark.type === 'highlight') text = `<mark>${text}</mark>`;
+          if (mark.type === 'code') text = `<code>${text}</code>`;
+        });
+      }
+      return text;
+    }
+
+    const children = node.content ? node.content.map(tiptapToHtml).join('') : '';
+
+    switch (node.type) {
+      case 'doc':
+        return children;
+      case 'paragraph':
+        return `<p>${children || '&nbsp;'}</p>`;
+      case 'heading':
+        return `<h${node.attrs?.level || 1}>${children}</h${node.attrs?.level || 1}>`;
+      case 'bulletList':
+        return `<ul>${children}</ul>`;
+      case 'orderedList':
+        return `<ol>${children}</ol>`;
+      case 'listItem':
+        return `<li>${children}</li>`;
+      case 'taskList':
+        return `<ul class="task-list">${children}</ul>`;
+      case 'taskItem':
+        const checked = node.attrs?.checked ? 'checked' : '';
+        const checkedStyle = node.attrs?.checked ? 'text-decoration: line-through; color: #94a3b8;' : '';
+        return `<li class="task-item"><input type="checkbox" ${checked} disabled style="margin-right: 8px;"/><span style="${checkedStyle}">${children}</span></li>`;
+      case 'blockquote':
+        return `<blockquote>${children}</blockquote>`;
+      case 'codeBlock':
+        return `<pre><code>${children}</code></pre>`;
+      case 'hardBreak':
+        return '<br/>';
+      default:
+        return children;
+    }
+  };
+
+  // Export note to PDF
+  const handleExportPDF = async () => {
+    // Convert TipTap content to HTML
+    const contentHtml = formData.content ? tiptapToHtml(formData.content) : (formData.content_plain || 'Sin contenido');
+
+    // Get category info
+    const category = formData.category_id ? categories.find(c => c.id === formData.category_id) : null;
+
+    // Create temporary container
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '800px';
+    document.body.appendChild(container);
+
+    // Create content div
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = 'padding: 40px; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; color: #1e293b; background-color: #ffffff;';
+
+    // Add logo
+    const logoDiv = document.createElement('div');
+    logoDiv.style.cssText = 'margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;';
+    const logoImg = document.createElement('img');
+    logoImg.src = window.location.origin + '/logo-lareal.png';
+    logoImg.style.cssText = 'height: 96px; opacity: 0.9;';
+    logoImg.crossOrigin = 'anonymous';
+    logoDiv.appendChild(logoImg);
+    contentDiv.appendChild(logoDiv);
+
+    // Add title
+    const titleEl = document.createElement('h1');
+    titleEl.textContent = formData.title;
+    titleEl.style.cssText = 'font-size: 28px; font-weight: 700; margin: 0 0 16px 0; color: #0f172a;';
+    contentDiv.appendChild(titleEl);
+
+    // Add category badge
+    if (category) {
+      const badgeEl = document.createElement('span');
+      badgeEl.textContent = category.name;
+      badgeEl.style.cssText = `display: inline-block; padding: 6px 16px; font-size: 12px; font-weight: 500; border-radius: 6px; background-color: ${category.color}20; color: ${category.color}; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;`;
+      contentDiv.appendChild(badgeEl);
+    }
+
+    // Add content
+    const noteContent = document.createElement('div');
+    noteContent.style.cssText = 'font-size: 14px; line-height: 1.7; margin-top: 24px;';
+    noteContent.innerHTML = contentHtml;
+
+    // Apply styles to content elements
+    noteContent.querySelectorAll('h1').forEach(el => el.style.cssText = 'font-size: 22px; font-weight: 700; margin: 24px 0 12px 0;');
+    noteContent.querySelectorAll('h2').forEach(el => el.style.cssText = 'font-size: 18px; font-weight: 600; margin: 20px 0 10px 0;');
+    noteContent.querySelectorAll('p').forEach(el => el.style.cssText = 'margin: 0 0 12px 0;');
+    noteContent.querySelectorAll('ul, ol').forEach(el => el.style.cssText = 'padding-left: 24px; margin: 0 0 12px 0;');
+    noteContent.querySelectorAll('li').forEach(el => el.style.cssText = 'margin-bottom: 6px;');
+    noteContent.querySelectorAll('blockquote').forEach(el => el.style.cssText = 'border-left: 3px solid #cbd5e1; padding-left: 16px; margin: 0 0 12px 0; color: #64748b; font-style: italic;');
+    noteContent.querySelectorAll('code').forEach(el => el.style.cssText = 'background-color: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px;');
+    noteContent.querySelectorAll('pre').forEach(el => el.style.cssText = 'background-color: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow: auto; margin: 0 0 12px 0;');
+    noteContent.querySelectorAll('mark').forEach(el => el.style.cssText = 'background-color: #fef08a; padding: 1px 4px; border-radius: 2px;');
+    contentDiv.appendChild(noteContent);
+
+    // Add footer
+    const footer = document.createElement('div');
+    footer.style.cssText = 'margin-top: 40px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8;';
+    footer.textContent = `Generado el ${new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+    contentDiv.appendChild(footer);
+
+    container.appendChild(contentDiv);
+
+    // Wait for logo to load
+    await new Promise(resolve => {
+      if (logoImg.complete) {
+        resolve();
+      } else {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve; // Continue even if logo fails
+      }
+    });
+
+    // Small delay to ensure rendering
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Generate PDF
+    const opt = {
+      margin: 10,
+      filename: `${formData.title.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s]/g, '') || 'nota'}.pdf`,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, allowTaint: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+      await html2pdf().set(opt).from(contentDiv).save();
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      // Try without logo if it fails
+      try {
+        logoDiv.remove();
+        await html2pdf().set(opt).from(contentDiv).save();
+      } catch (err) {
+        console.error('Error generating PDF without logo:', err);
+        alert('Error al generar el PDF. Por favor intenta de nuevo.');
+      }
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
   // Render folder tree
   const renderFolderTree = (folderList, level = 0) => {
     return folderList.map(folder => (
@@ -440,6 +599,14 @@ const Notes = () => {
                   className={`p-2 rounded-lg ${formData.is_pinned ? 'text-amber-500' : 'text-slate-500'} hover:bg-slate-100`}
                 >
                   {formData.is_pinned ? <PinOff size={18} /> : <Pin size={18} />}
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                  title="Exportar a PDF"
+                >
+                  <Download size={16} />
+                  Exportar PDF
                 </button>
                 <button
                   onClick={() => setIsEditing(true)}
