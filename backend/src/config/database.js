@@ -815,6 +815,58 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // ========================================
+    // PERFORMANCE INDEXES
+    // ========================================
+    console.log('🔄 Creating performance indexes...');
+
+    // Clients indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_clients_created_at ON clients(created_at DESC)`);
+
+    // Projects indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_client_id ON projects(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)`);
+
+    // Tasks indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC)`);
+
+    // Invoices indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_client_id ON invoices(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_issue_date ON invoices(issue_date)`);
+
+    // Team members indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_team_members_status ON team_members(status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_team_members_email ON team_members(email)`);
+
+    // Session tokens indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_team_session_tokens_token ON team_session_tokens(token)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_team_session_tokens_member ON team_session_tokens(team_member_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_access_tokens_token ON client_access_tokens(token)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_access_tokens_client ON client_access_tokens(client_id)`);
+
+    // Portal settings index
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_portal_settings_client ON client_portal_settings(client_id)`);
+
+    // Notifications indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read)`);
+
+    // Time entries indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_time_entries_user_id ON time_entries(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_time_entries_task_id ON time_entries(task_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_time_entries_project_id ON time_entries(project_id)`);
+
+    // Daily metrics indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_daily_metrics_client ON client_daily_metrics(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_daily_metrics_date ON client_daily_metrics(metric_date)`);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

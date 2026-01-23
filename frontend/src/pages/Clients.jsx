@@ -367,7 +367,8 @@ const Clients = () => {
         can_download_files: true,
         welcome_message: ''
       });
-      setPortalTokens(tokensRes.tokens || []);
+      // tokensRes is an array directly, not { tokens: [] }
+      setPortalTokens(Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []));
     } catch (error) {
       console.error('Error loading portal config:', error);
     } finally {
@@ -394,10 +395,11 @@ const Clients = () => {
     setLoadingPortal(true);
     try {
       const response = await portalAdminAPI.generateInvite(portalClient.id);
-      setNewInviteCode(response.token.token);
-      // Reload tokens
+      // response is { invite_code, client_name, expires_at, portal_url }
+      setNewInviteCode(response.invite_code);
+      // Reload tokens - tokensRes is an array directly
       const tokensRes = await portalAdminAPI.getAccess(portalClient.id);
-      setPortalTokens(tokensRes.tokens || []);
+      setPortalTokens(Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []));
     } catch (error) {
       console.error('Error generating invite:', error);
       alert('Error al generar código de invitación');
@@ -412,7 +414,7 @@ const Clients = () => {
     try {
       await portalAdminAPI.revokeAccess(portalClient.id, tokenId);
       const tokensRes = await portalAdminAPI.getAccess(portalClient.id);
-      setPortalTokens(tokensRes.tokens || []);
+      setPortalTokens(Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []));
     } catch (error) {
       console.error('Error revoking access:', error);
       alert('Error al revocar acceso');
