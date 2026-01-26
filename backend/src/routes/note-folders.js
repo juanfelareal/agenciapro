@@ -46,6 +46,28 @@ router.get('/flat', async (req, res) => {
   }
 });
 
+// Reorder folders - MUST be before /:id routes to avoid matching "reorder" as an id
+router.put('/reorder', async (req, res) => {
+  try {
+    const { folders } = req.body; // Array of { id, position, parent_id }
+
+    if (!Array.isArray(folders)) {
+      return res.status(400).json({ error: 'Folders array is required' });
+    }
+
+    // Use transaction for PostgreSQL
+    for (const { id, position, parent_id } of folders) {
+      await db.prepare(
+        'UPDATE note_folders SET position = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+      ).run(position, parent_id || null, id);
+    }
+
+    res.json({ message: 'Folders reordered successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get single folder by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -92,20 +114,29 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    // Get next position
-    const maxPosition = await db.prepare(`
-      SELECT MAX(position) as max FROM note_folders WHERE parent_id ${parent_id ? '= ?' : 'IS NULL'}
-    `).get(parent_id || undefined);
+    // Get next position - handle null parent_id correctly for PostgreSQL
+    let maxPosition;
+    if (parent_id) {
+      maxPosition = await db.prepare(
+        'SELECT MAX(position) as max FROM note_folders WHERE parent_id = ?'
+      ).get(parent_id);
+    } else {
+      maxPosition = await db.prepare(
+        'SELECT MAX(position) as max FROM note_folders WHERE parent_id IS NULL'
+      ).get();
+    }
 
     const position = (maxPosition?.max || 0) + 1;
 
-    const result = await db.prepare(`
-      INSERT INTO note_folders (name, parent_id, icon, color, position)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(name, parent_id || null, icon || '📁', color || '#6366F1', position);
+    // Use RETURNING id for PostgreSQL to get the inserted ID
+    const result = await db.query(
+      `INSERT INTO note_folders (name, parent_id, icon, color, position)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [name, parent_id || null, icon || '📁', color || '#6366F1', position]
+    );
 
-    const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ?').get(result.lastInsertRowid);
-    res.status(201).json(folder);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -175,31 +206,6 @@ router.delete('/:id', async (req, res) => {
     await db.prepare('DELETE FROM note_folders WHERE id = ?').run(req.params.id);
 
     res.json({ message: 'Folder deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Reorder folders
-router.put('/reorder', async (req, res) => {
-  try {
-    const { folders } = req.body; // Array of { id, position, parent_id }
-
-    if (!Array.isArray(folders)) {
-      return res.status(400).json({ error: 'Folders array is required' });
-    }
-
-    const updateStmt = db.prepare(`
-      UPDATE note_folders SET position = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `);
-
-    db.transaction(() => {
-      folders.forEach(({ id, position, parent_id }) => {
-        updateStmt.run(position, parent_id || null, id);
-      });
-    })();
-
-    res.json({ message: 'Folders reordered successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
