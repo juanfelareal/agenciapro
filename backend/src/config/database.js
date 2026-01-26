@@ -480,6 +480,16 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Add yjs_state column to notes for real-time collaboration (if not exists)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='yjs_state') THEN
+          ALTER TABLE notes ADD COLUMN yjs_state TEXT;
+        END IF;
+      END $$;
+    `);
+
     // Facebook credentials
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_facebook_credentials (

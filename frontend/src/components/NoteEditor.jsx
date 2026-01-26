@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import {
   Bold,
   Italic,
@@ -138,14 +140,21 @@ const EditorToolbar = ({ editor }) => {
   );
 };
 
-const NoteEditor = ({ content, onChange, placeholder = 'Escribe tu nota aquí...', readOnly = false, minHeight = '200px' }) => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2],
-        },
-      }),
+const NoteEditor = ({
+  content,
+  onChange,
+  placeholder = 'Escribe tu nota aquí...',
+  readOnly = false,
+  minHeight = '200px',
+  // Collaboration props
+  collaborative = false,
+  ydoc = null,
+  awareness = null,
+  user = null,
+}) => {
+  // Build extensions based on collaborative mode
+  const extensions = useMemo(() => {
+    const baseExtensions = [
       Placeholder.configure({
         placeholder,
       }),
@@ -156,17 +165,57 @@ const NoteEditor = ({ content, onChange, placeholder = 'Escribe tu nota aquí...
       TaskItem.configure({
         nested: true,
       }),
-    ],
-    content: content || '',
+    ];
+
+    if (collaborative && ydoc) {
+      // Collaborative mode - use Yjs
+      baseExtensions.push(
+        StarterKit.configure({
+          heading: { levels: [1, 2] },
+          // Disable history in collaborative mode - Yjs handles it
+          history: false,
+        }),
+        Collaboration.configure({
+          document: ydoc,
+        })
+      );
+
+      if (awareness) {
+        baseExtensions.push(
+          CollaborationCursor.configure({
+            provider: { awareness },
+            user: user || { name: 'Anonymous', color: '#60A5FA' },
+          })
+        );
+      }
+    } else {
+      // Non-collaborative mode
+      baseExtensions.push(
+        StarterKit.configure({
+          heading: { levels: [1, 2] },
+        })
+      );
+    }
+
+    return baseExtensions;
+  }, [collaborative, ydoc, awareness, user, placeholder]);
+
+  const editor = useEditor({
+    extensions,
+    content: collaborative ? undefined : (content || ''),
     editable: !readOnly,
     onUpdate: ({ editor }) => {
-      if (onChange) {
+      if (onChange && !collaborative) {
         const json = editor.getJSON();
         const text = editor.getText();
         onChange({ json, text });
+      } else if (onChange && collaborative) {
+        // In collaborative mode, just send plain text for search indexing
+        const text = editor.getText();
+        onChange({ text });
       }
     },
-  });
+  }, [collaborative, ydoc]);
 
   // Update editable state when readOnly prop changes
   useEffect(() => {
@@ -175,16 +224,16 @@ const NoteEditor = ({ content, onChange, placeholder = 'Escribe tu nota aquí...
     }
   }, [editor, readOnly]);
 
-  // Update content when it changes externally
+  // Update content when it changes externally (non-collaborative mode only)
   useEffect(() => {
-    if (editor && content) {
+    if (editor && content && !collaborative) {
       const currentContent = JSON.stringify(editor.getJSON());
       const newContent = JSON.stringify(content);
       if (currentContent !== newContent) {
         editor.commands.setContent(content);
       }
     }
-  }, [editor, content]);
+  }, [editor, content, collaborative]);
 
   return (
     <div className={`border border-slate-200 rounded-lg bg-white overflow-hidden ${readOnly ? 'border-transparent' : ''}`}>
@@ -275,6 +324,30 @@ const NoteEditor = ({ content, onChange, placeholder = 'Escribe tu nota aquí...
         }
         .ProseMirror li {
           margin: 0.25rem 0;
+        }
+        /* Collaboration cursor styles */
+        .collaboration-cursor__caret {
+          border-left: 1px solid currentColor;
+          border-right: 1px solid currentColor;
+          margin-left: -1px;
+          margin-right: -1px;
+          pointer-events: none;
+          position: relative;
+          word-break: normal;
+        }
+        .collaboration-cursor__label {
+          font-size: 12px;
+          font-style: normal;
+          font-weight: 600;
+          left: -1px;
+          line-height: normal;
+          padding: 2px 6px;
+          position: absolute;
+          top: -1.4em;
+          user-select: none;
+          white-space: nowrap;
+          border-radius: 4px;
+          color: white;
         }
       `}</style>
     </div>

@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 dotenv.config(); // Load env variables FIRST before any other imports
 
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import cron from 'node-cron';
 import { initializeDatabase } from './src/config/database.js';
@@ -50,8 +52,11 @@ import siigoRoutes from './src/routes/siigo.js';
 // Client Portal
 import portalRoutes from './src/routes/portal/index.js';
 import portalAdminRoutes from './src/routes/portal-admin.js';
+// Real-time Collaboration
+import { setupCollaboration } from './src/services/collaborationService.js';
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
 
 console.log('🚀 Starting AgenciaPro backend...');
@@ -68,11 +73,25 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AgenciaPro API is running' });
 });
 
+// Configure Socket.io for real-time collaboration
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.FRONTEND_URL || '*',
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
+});
+
+// Setup collaboration service with Socket.io
+setupCollaboration(io);
+
 // Start server FIRST, then initialize database
 // Listen on 0.0.0.0 so Railway's proxy can reach the app
-app.listen(PORT, '0.0.0.0', () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 AgenciaPro backend running on port ${PORT}`);
-  console.log('✅ Server is listening, now initializing database...');
+  console.log('✅ Server is listening with WebSocket support');
+  console.log('✅ Real-time collaboration enabled');
 
   // Initialize database after server starts
   initializeDatabase()

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI } from '../utils/api';
 import NoteEditor from '../components/NoteEditor';
+import { useCollaboration } from '../hooks/useCollaboration';
+import { useUser } from '../context/UserContext';
 import html2pdf from 'html2pdf.js';
 import {
   Plus,
@@ -25,7 +27,10 @@ import {
   MoreHorizontal,
   Home,
   FileText,
-  Download
+  Download,
+  Wifi,
+  WifiOff,
+  Users
 } from 'lucide-react';
 
 const NOTE_COLORS = [
@@ -44,6 +49,7 @@ const NOTE_COLORS = [
 const FOLDER_ICONS = ['📁', '📂', '🗂️', '📚', '📖', '💼', '🎯', '💡', '⭐', '🔖', '📌', '🏷️'];
 
 const Notes = () => {
+  const { currentUser } = useUser();
   const [notes, setNotes] = useState([]);
   const [folders, setFolders] = useState([]);
   const [flatFolders, setFlatFolders] = useState([]);
@@ -61,6 +67,20 @@ const Notes = () => {
   // View state
   const [activeNote, setActiveNote] = useState(null); // For full-page view
   const [isEditing, setIsEditing] = useState(false);
+
+  // Collaboration - only active for existing notes being edited
+  const collaborativeNoteId = activeNote?.id !== 'new' && isEditing ? activeNote?.id : null;
+  const {
+    doc: ydoc,
+    awareness,
+    connected: collabConnected,
+    synced: collabSynced,
+    collaborators,
+    collaboratorCount
+  } = useCollaboration(
+    collaborativeNoteId,
+    currentUser ? { name: currentUser.name, color: getRandomColor(currentUser.id) } : null
+  );
 
   // Form data for note editing
   const [formData, setFormData] = useState({
@@ -574,6 +594,58 @@ const Notes = () => {
                 <FileText size={14} />
               </div>
             )}
+
+            {/* Collaboration status indicator */}
+            {isEditing && activeNote.id !== 'new' && (
+              <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-200">
+                {/* Connection indicator */}
+                <div className={`flex items-center gap-1.5 text-sm ${collabConnected ? 'text-green-600' : 'text-slate-400'}`}>
+                  {collabConnected ? (
+                    <>
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                      </span>
+                      <span className="hidden sm:inline">En vivo</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff size={14} />
+                      <span className="hidden sm:inline">Desconectado</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Collaborators */}
+                {collaboratorCount > 1 && (
+                  <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                    <Users size={14} />
+                    <span>{collaboratorCount} editando</span>
+                  </div>
+                )}
+
+                {/* Collaborator avatars */}
+                {collaborators.length > 0 && (
+                  <div className="flex -space-x-2">
+                    {collaborators.slice(0, 3).map((collab, idx) => (
+                      <div
+                        key={collab.clientId || idx}
+                        className="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-xs font-medium text-white"
+                        style={{ backgroundColor: collab.color }}
+                        title={collab.name}
+                      >
+                        {collab.name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                    ))}
+                    {collaborators.length > 3 && (
+                      <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
+                        +{collaborators.length - 3}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {isEditing ? (
@@ -715,16 +787,33 @@ const Notes = () => {
           {/* Content */}
           <div className="prose prose-slate max-w-none">
             {isEditing ? (
-              <NoteEditor
-                content={formData.content}
-                onChange={({ json, text }) => setFormData(prev => ({
-                  ...prev,
-                  content: json,
-                  content_plain: text
-                }))}
-                placeholder="Escribe tu nota aquí..."
-                minHeight="400px"
-              />
+              activeNote.id !== 'new' && ydoc ? (
+                // Collaborative editor for existing notes
+                <NoteEditor
+                  collaborative={true}
+                  ydoc={ydoc}
+                  awareness={awareness}
+                  user={currentUser ? { name: currentUser.name, color: getRandomColor(currentUser.id) } : null}
+                  onChange={({ text }) => setFormData(prev => ({
+                    ...prev,
+                    content_plain: text
+                  }))}
+                  placeholder="Escribe tu nota aquí..."
+                  minHeight="400px"
+                />
+              ) : (
+                // Standard editor for new notes
+                <NoteEditor
+                  content={formData.content}
+                  onChange={({ json, text }) => setFormData(prev => ({
+                    ...prev,
+                    content: json,
+                    content_plain: text
+                  }))}
+                  placeholder="Escribe tu nota aquí..."
+                  minHeight="400px"
+                />
+              )
             ) : (
               <NoteEditor
                 content={formData.content}
@@ -1254,6 +1343,23 @@ const Notes = () => {
       )}
     </div>
   );
+};
+
+// Generate consistent color for a user based on ID
+const getRandomColor = (userId) => {
+  const colors = [
+    '#F87171', // red
+    '#FB923C', // orange
+    '#FBBF24', // amber
+    '#4ADE80', // green
+    '#22D3EE', // cyan
+    '#60A5FA', // blue
+    '#A78BFA', // violet
+    '#F472B6', // pink
+  ];
+  if (!userId) return colors[0];
+  const index = typeof userId === 'number' ? userId : userId.toString().charCodeAt(0);
+  return colors[index % colors.length];
 };
 
 export default Notes;
