@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link } from 'lucide-react';
 import SubtaskList from '../components/SubtaskList';
 import TagSelector from '../components/TagSelector';
 import TaskViewSwitcher from '../components/tasks/TaskViewSwitcher';
@@ -49,6 +49,7 @@ const Tasks = () => {
     status: 'todo',
     priority: 'medium',
     due_date: '',
+    delivery_url: '',
     is_recurring: false,
     recurrence_pattern: {
       type: 'weekly',
@@ -208,6 +209,7 @@ const Tasks = () => {
       status: 'todo',
       priority: 'medium',
       due_date: '',
+      delivery_url: '',
       is_recurring: false,
       recurrence_pattern: {
         type: 'weekly',
@@ -297,6 +299,7 @@ const Tasks = () => {
       progress: task.progress || 0,
       color: task.color || null,
       estimated_hours: task.estimated_hours || null,
+      delivery_url: task.delivery_url || '',
     });
     // Load task tags
     const tags = taskTags[task.id] || [];
@@ -555,6 +558,36 @@ const Tasks = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
+                </div>
+
+                {/* Delivery URL - Link de entrega */}
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1 flex items-center gap-2">
+                    <Link size={16} />
+                    Link de Entrega
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      className="flex-1 border rounded-lg px-3 py-2"
+                      placeholder="https://drive.google.com/... o cualquier link donde quedó la tarea"
+                      value={formData.delivery_url}
+                      onChange={(e) => setFormData({ ...formData, delivery_url: e.target.value })}
+                    />
+                    {formData.delivery_url && (
+                      <a
+                        href={formData.delivery_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-3 py-2 bg-primary-50 text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
+                        title="Abrir link"
+                      >
+                        <ExternalLink size={16} />
+                        Abrir
+                      </a>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Drive, Figma, Canva, o cualquier URL donde se entregó el trabajo</p>
                 </div>
 
                 {/* Tags Section */}

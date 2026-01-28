@@ -83,7 +83,8 @@ router.post('/', async (req, res) => {
       timeline_end,
       progress,
       color,
-      estimated_hours
+      estimated_hours,
+      delivery_url
     } = req.body;
 
     if (!title) {
@@ -94,9 +95,9 @@ router.post('/', async (req, res) => {
       INSERT INTO tasks (
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
-        progress, color, estimated_hours
+        progress, color, estimated_hours, delivery_url
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       title,
       description,
@@ -111,7 +112,8 @@ router.post('/', async (req, res) => {
       timeline_end,
       progress || 0,
       color,
-      estimated_hours
+      estimated_hours,
+      delivery_url || null
     );
 
     const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
@@ -149,7 +151,8 @@ router.put('/:id', async (req, res) => {
       timeline_end,
       progress,
       color,
-      estimated_hours
+      estimated_hours,
+      delivery_url
     } = req.body;
 
     // Get old task data for comparison
@@ -160,7 +163,8 @@ router.put('/:id', async (req, res) => {
       SET title = ?, description = ?, project_id = ?, assigned_to = ?,
           status = ?, priority = ?, due_date = ?, is_recurring = ?,
           recurrence_pattern = ?, timeline_start = ?, timeline_end = ?,
-          progress = ?, color = ?, estimated_hours = ?, updated_at = CURRENT_TIMESTAMP
+          progress = ?, color = ?, estimated_hours = ?, delivery_url = ?,
+          updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       title,
@@ -177,6 +181,7 @@ router.put('/:id', async (req, res) => {
       progress,
       color,
       estimated_hours,
+      delivery_url || null,
       req.params.id
     );
 

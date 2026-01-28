@@ -780,6 +780,16 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Add delivery_url column to tasks (link de entrega)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='delivery_url') THEN
+          ALTER TABLE tasks ADD COLUMN delivery_url TEXT;
+        END IF;
+      END $$;
+    `);
+
     // Add client approval columns to tasks table (if not exists)
     await pool.query(`
       DO $$
