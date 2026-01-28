@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI } from '../utils/api';
 import NoteEditor from '../components/NoteEditor';
 import { useCollaboration } from '../hooks/useCollaboration';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 import {
   Plus,
@@ -49,7 +49,7 @@ const NOTE_COLORS = [
 const FOLDER_ICONS = ['📁', '📂', '🗂️', '📚', '📖', '💼', '🎯', '💡', '⭐', '🔖', '📌', '🏷️'];
 
 const Notes = () => {
-  const { currentUser } = useUser();
+  const { user: currentUser } = useAuth();
   const [notes, setNotes] = useState([]);
   const [folders, setFolders] = useState([]);
   const [flatFolders, setFlatFolders] = useState([]);
@@ -944,7 +944,7 @@ const Notes = () => {
 
   // Notes list view with folder sidebar
   return (
-    <div className="flex h-full">
+    <div className="flex bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ minHeight: '600px', height: 'calc(100vh - 180px)' }}>
       {/* Folder Sidebar */}
       <div className="w-64 flex-shrink-0 bg-slate-50 border-r border-slate-200 flex flex-col">
         <div className="p-4 border-b border-slate-200">
