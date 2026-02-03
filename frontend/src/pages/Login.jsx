@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import OrbitLogo from '../components/OrbitLogo';
 
 const Login = () => {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
@@ -56,11 +57,9 @@ const Login = () => {
       <div className="w-full max-w-md relative">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <img
-            src="/logo-lareal.png"
-            alt="La Real"
-            className="h-28 mx-auto mb-2"
-          />
+          <div className="flex justify-center mb-2">
+            <OrbitLogo size={56} />
+          </div>
           <p className="text-gray-500 mt-1">Inicia sesión para continuar</p>
         </div>
 

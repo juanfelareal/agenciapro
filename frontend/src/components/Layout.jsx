@@ -26,6 +26,7 @@ import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import TimeTracker from './TimeTracker';
 import OrgSwitcher from './OrgSwitcher';
+import OrbitLogo from './OrbitLogo';
 
 
 const Layout = ({ children }) => {
@@ -136,10 +137,14 @@ const Layout = ({ children }) => {
       >
         {/* Logo Section */}
         <div className="h-16 flex items-center px-3 border-b border-gray-100">
-          {sidebarCollapsed ? (
-            <img src="/logo-lareal.png" alt="La Real" className="w-12 h-12 object-contain" />
+          {currentOrg?.logo_url ? (
+            <img
+              src={currentOrg.logo_url}
+              alt={currentOrg.name || 'Logo'}
+              className={sidebarCollapsed ? 'w-10 h-10 object-contain rounded-lg' : 'h-10 max-w-full object-contain object-left'}
+            />
           ) : (
-            <img src="/logo-lareal-sidebar.png" alt="La Real" className="h-12 w-full object-contain object-left" />
+            <OrbitLogo size={sidebarCollapsed ? 32 : 36} showText={!sidebarCollapsed} />
           )}
         </div>
 

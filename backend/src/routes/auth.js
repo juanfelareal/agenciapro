@@ -403,7 +403,7 @@ router.get('/validate', teamAuthMiddleware, async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, pin, org_name } = req.body;
+    const { name, email, pin, org_name, logo_base64, onboarding } = req.body;
 
     if (!name || !email || !pin || !org_name) {
       return res.status(400).json({ error: 'Nombre, email, PIN y nombre de organizacion son requeridos' });
@@ -411,6 +411,33 @@ router.post('/register', async (req, res) => {
 
     if (pin.length < 4) {
       return res.status(400).json({ error: 'El PIN debe tener al menos 4 caracteres' });
+    }
+
+    // Validate logo_base64 if provided
+    let logoUrl = null;
+    if (logo_base64) {
+      if (!logo_base64.startsWith('data:image/')) {
+        return res.status(400).json({ error: 'Logo invalido: debe ser una imagen en base64' });
+      }
+      if (logo_base64.length > 700000) {
+        return res.status(400).json({ error: 'Logo demasiado grande: max 500KB' });
+      }
+      logoUrl = logo_base64;
+    }
+
+    // Build settings with onboarding data
+    let settings = null;
+    if (onboarding && typeof onboarding === 'object') {
+      settings = JSON.stringify({
+        onboarding: {
+          business_type: onboarding.business_type || null,
+          team_size: onboarding.team_size || null,
+          goals: onboarding.goals || [],
+          alternatives: onboarding.alternatives || [],
+          how_found_us: onboarding.how_found_us || null,
+          completed_at: new Date().toISOString()
+        }
+      });
     }
 
     const emailLower = email.toLowerCase().trim();
@@ -439,12 +466,12 @@ router.post('/register', async (req, res) => {
     `, [emailLower, name, pinHash]);
     const userId = userResult.lastInsertRowid;
 
-    // Create organization
+    // Create organization with optional logo and settings
     const orgResult = await db.run(`
-      INSERT INTO organizations (name, slug, plan)
-      VALUES (?, ?, 'free')
+      INSERT INTO organizations (name, slug, plan, logo_url, settings)
+      VALUES (?, ?, 'free', ?, ?)
       RETURNING id
-    `, [org_name, slug]);
+    `, [org_name, slug, logoUrl, settings]);
     const orgId = orgResult.lastInsertRowid;
 
     // Create admin membership
@@ -484,13 +511,13 @@ router.post('/register', async (req, res) => {
         id: orgId,
         name: org_name,
         slug: slug,
-        logo_url: null
+        logo_url: logoUrl
       },
       organizations: [{
         id: orgId,
         name: org_name,
         slug: slug,
-        logo_url: null,
+        logo_url: logoUrl,
         role: 'admin'
       }]
     });
