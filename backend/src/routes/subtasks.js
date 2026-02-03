@@ -105,13 +105,11 @@ router.put('/reorder/:taskId', async (req, res) => {
       return res.status(400).json({ error: 'subtaskIds must be an array' });
     }
 
-    const updateStmt = db.prepare('UPDATE subtasks SET position = ? WHERE id = ? AND task_id = ?');
-    const transaction = db.transaction(() => {
-      subtaskIds.forEach((id, index) => {
-        updateStmt.run(index, id, req.params.taskId);
-      });
-    });
-    await transaction();
+    // Update positions sequentially
+    for (let index = 0; index < subtaskIds.length; index++) {
+      await db.prepare('UPDATE subtasks SET position = ? WHERE id = ? AND task_id = ?')
+        .run(index, subtaskIds[index], req.params.taskId);
+    }
 
     const subtasks = await db.prepare(`
       SELECT * FROM subtasks

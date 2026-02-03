@@ -71,7 +71,7 @@ function ClientMetrics() {
     try {
       setSyncing(true);
       await clientMetricsAPI.syncClient(clientId, dateRange.start, dateRange.end);
-      alert('Sincronizacion completada');
+      alert('Sincronización completada');
       loadMetrics();
     } catch (error) {
       alert('Error al sincronizar: ' + error.message);
@@ -128,31 +128,31 @@ function ClientMetrics() {
   if (!client) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1A1A2E]" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/metricas')}
+            onClick={() => navigate('/app/metricas')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{client.company || client.name}</h1>
-            <p className="text-gray-500">Metricas de rendimiento</p>
+            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{client.company || client.name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Métricas de rendimiento</p>
           </div>
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => navigate(`/clients/${clientId}/plataformas`)}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={() => navigate(`/app/clients/${clientId}/plataformas`)}
+            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
           >
             <Settings className="w-4 h-4" />
             Configurar
@@ -160,7 +160,7 @@ function ClientMetrics() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
           >
             {syncing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -173,7 +173,7 @@ function ClientMetrics() {
       </div>
 
       {/* Date Range */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-gray-400" />
@@ -200,8 +200,8 @@ function ClientMetrics() {
               >
                 {preset === 'today' && 'Hoy'}
                 {preset === 'yesterday' && 'Ayer'}
-                {preset === 'last7' && '7 dias'}
-                {preset === 'last30' && '30 dias'}
+                {preset === 'last7' && '7 días'}
+                {preset === 'last30' && '30 días'}
                 {preset === 'thisMonth' && 'Este mes'}
               </button>
             ))}
@@ -294,7 +294,7 @@ function ClientMetrics() {
         data={dailyMetrics}
         columns={dailyColumns}
         loading={loading}
-        emptyMessage="No hay datos para el rango seleccionado. Sincroniza las metricas para obtener datos."
+        emptyMessage="No hay datos para el rango seleccionado. Sincroniza las métricas para obtener datos."
       />
     </div>
   );

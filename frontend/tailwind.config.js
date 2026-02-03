@@ -7,6 +7,28 @@ export default {
   theme: {
     extend: {
       colors: {
+        // ===== NEW DESIGN SYSTEM - Lime/Dark =====
+        // Surface colors
+        surface: '#F8F9FA',
+        card: '#FFFFFF',
+        dark: '#1A1A2E',
+
+        // Lime accent
+        lime: {
+          400: '#BFFF00',
+          500: '#A3E635',
+          600: '#65A30D',
+        },
+
+        // Semantic colors for financials
+        income: '#10B981',
+        expense: '#F97316',
+
+        // Text colors
+        'text-primary': '#1A1A2E',
+        'text-secondary': '#6B7280',
+
+        // ===== LEGACY (to be removed in FASE 9) =====
         // Primary color (dark ink for buttons)
         primary: {
           50: '#F5F5F5',
@@ -14,20 +36,20 @@ export default {
           200: '#D4D4D4',
           300: '#B3B3B3',
           400: '#8A8A8A',
-          500: '#1A1A1A',  // Main button color - dark
+          500: '#1A1A1A',
           600: '#141414',
           700: '#0D0D0D',
           800: '#080808',
           900: '#000000',
         },
-        // Warm cream base (Granola-inspired)
+        // Warm cream base (Granola-inspired) - DEPRECATED
         cream: {
           50: '#FFFDF9',
           100: '#FBF8F3',
           200: '#F5F0E8',
           300: '#EDE5D8',
         },
-        // Rich ink for text
+        // Rich ink for text - DEPRECATED
         ink: {
           900: '#1A1A1A',
           800: '#2D2D2D',
@@ -121,6 +143,11 @@ export default {
         '4xl': '24px',
       },
       boxShadow: {
+        // New design system shadows
+        'elevated': '0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)',
+        'bento': '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+        'glow-lime': '0 0 20px rgba(191, 255, 0, 0.3)',
+        // Legacy shadows (kept for compatibility)
         'soft': '0 2px 8px -2px rgba(0, 0, 0, 0.04), 0 4px 12px -4px rgba(0, 0, 0, 0.03)',
         'medium': '0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 8px 24px -4px rgba(0, 0, 0, 0.04)',
         'large': '0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 16px 48px -8px rgba(0, 0, 0, 0.06)',

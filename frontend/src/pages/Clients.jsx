@@ -436,15 +436,15 @@ const Clients = () => {
   }
 
   return (
-    <div>
-      <div className="mb-8 flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Clientes</h1>
-          <p className="text-gray-600">Gestión de la base de datos de clientes</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Clientes</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestión de la base de datos de clientes</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
         >
           <Plus size={20} />
           Nuevo Cliente
@@ -453,20 +453,20 @@ const Clients = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[#BFFF00]/10 border border-[#BFFF00] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-primary-600" />
-            <span className="font-medium text-primary-700">
+            <CheckSquare size={18} className="text-[#1A1A2E]" />
+            <span className="font-medium text-[#1A1A2E]">
               {selectedIds.size} cliente{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-primary-200" />
+          <div className="h-6 w-px bg-[#1A1A2E]/20" />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-primary-600">Estado:</span>
+            <span className="text-sm text-[#1A1A2E]/70">Estado:</span>
             <button
               onClick={() => handleBulkStatusChange('active')}
               disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm bg-[#10B981]/10 text-[#10B981] rounded-lg hover:bg-[#10B981]/20 disabled:opacity-50"
             >
               Activo
             </button>
@@ -478,143 +478,143 @@ const Clients = () => {
               Inactivo
             </button>
           </div>
-          <div className="h-6 w-px bg-primary-200" />
+          <div className="h-6 w-px bg-[#1A1A2E]/20" />
           <button
             onClick={handleBulkFacturar}
             disabled={bulkUpdating}
-            className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-1.5 text-sm bg-[#1A1A2E]/10 text-[#1A1A2E] rounded-lg hover:bg-[#1A1A2E]/20 disabled:opacity-50 flex items-center gap-1"
           >
             <FileText size={14} />
             Facturar
           </button>
-          <div className="h-6 w-px bg-primary-200" />
+          <div className="h-6 w-px bg-[#1A1A2E]/20" />
           <button
             onClick={handleBulkDelete}
             disabled={bulkUpdating}
-            className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 disabled:opacity-50 flex items-center gap-1"
           >
             <Trash2 size={14} />
             Eliminar
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-100 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[#1A1A2E] hover:bg-[#1A1A2E]/10 rounded-lg"
           >
             Cancelar selección
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         <table className="w-full min-w-[1100px]">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-3 py-3 text-center w-12">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-primary-600"
+                  className="text-gray-500 hover:text-[#1A1A2E]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-primary-600" />
+                    <CheckSquare size={18} className="text-[#1A1A2E]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-primary-600" />
+                    <MinusSquare size={18} className="text-[#1A1A2E]" />
                   ) : (
                     <Square size={18} />
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Empresa
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 NIT/Cédula
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Contacto
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Email
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                 Estado
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
                 Valor Contrato
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-32">
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
             {clients.map((client) => (
               <tr
                 key={client.id}
-                className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-primary-50' : ''}`}
+                className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-[#BFFF00]/10' : ''}`}
               >
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(client.id)}
-                    className="text-gray-400 hover:text-primary-600"
+                    className="text-gray-400 hover:text-[#1A1A2E]"
                   >
                     {selectedIds.has(client.id) ? (
-                      <CheckSquare size={18} className="text-primary-600" />
+                      <CheckSquare size={18} className="text-[#1A1A2E]" />
                     ) : (
                       <Square size={18} />
                     )}
                   </button>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap font-medium">{client.company || client.name}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm">{client.nit || '-'}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm">{client.name || '-'}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm">{client.email || '-'}</td>
+                <td className="px-4 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">{client.company || client.name}</td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{client.nit || '-'}</td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{client.name || '-'}</td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{client.email || '-'}</td>
                 <td className="px-4 py-4 whitespace-nowrap">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
+                    className={`px-2 py-1 rounded-lg text-xs font-medium ${
                       client.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-[#10B981]/10 text-[#10B981]'
+                        : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {client.status === 'active' ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap font-medium">
+                <td className="px-4 py-4 whitespace-nowrap font-bold text-[#10B981]">
                   ${client.contract_value?.toLocaleString('es-CO') || 0}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-center">
                   <button
                     onClick={() => handleFacturar(client)}
-                    className="text-green-600 hover:text-green-800 mr-2"
+                    className="text-gray-400 hover:text-[#10B981] hover:bg-[#10B981]/10 p-1.5 rounded-lg mr-1 transition-colors"
                     title="Facturar"
                   >
                     <FileText size={18} />
                   </button>
                   <button
                     onClick={() => handleOpenPortalConfig(client)}
-                    className="text-indigo-600 hover:text-indigo-800 mr-2"
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-1 transition-colors"
                     title="Configurar Portal de Cliente"
                   >
                     <Users size={18} />
                   </button>
                   <button
-                    onClick={() => navigate(`/clients/${client.id}/plataformas`)}
-                    className="text-purple-600 hover:text-purple-800 mr-2"
+                    onClick={() => navigate(`/app/clients/${client.id}/plataformas`)}
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-1 transition-colors"
                     title="Configurar Plataformas (Facebook Ads / Shopify)"
                   >
                     <Settings size={18} />
                   </button>
                   <button
                     onClick={() => handleEdit(client)}
-                    className="text-blue-600 hover:text-blue-800 mr-2"
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-1 transition-colors"
                     title="Editar"
                   >
                     <Edit size={18} />
                   </button>
                   <button
                     onClick={() => handleDelete(client.id)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                     title="Eliminar"
                   >
                     <Trash2 size={18} />
@@ -638,25 +638,25 @@ const Clients = () => {
       `}</style>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
               </h2>
-              <button onClick={() => setShowModal(false)}>
-                <X size={24} />
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4">
                 {/* PDF Upload Section - Only show when creating new client */}
                 {!editingClient && (
-                  <div className="col-span-2 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-4">
+                  <div className="col-span-2 bg-[#1A1A2E]/5 border-2 border-dashed border-[#1A1A2E]/20 rounded-xl p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-blue-800">Cargar desde RUT (PDF)</h3>
-                        <p className="text-xs text-blue-600 mt-1">
+                        <h3 className="text-sm font-medium text-[#1A1A2E]">Cargar desde RUT (PDF)</h3>
+                        <p className="text-xs text-gray-500 mt-1">
                           Sube el PDF del RUT y extraeremos automáticamente la información con IA
                         </p>
                       </div>
@@ -671,7 +671,7 @@ const Clients = () => {
                         type="button"
                         onClick={() => pdfInputRef.current?.click()}
                         disabled={analyzingPdf}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl hover:bg-[#252542] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                       >
                         {analyzingPdf ? (
                           <>
@@ -694,7 +694,7 @@ const Clients = () => {
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      className="flex-1 border rounded-lg px-3 py-2"
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2"
                       value={formData.nit}
                       onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
                       placeholder="Ingrese NIT o Cédula"
@@ -703,7 +703,7 @@ const Clients = () => {
                       type="button"
                       onClick={handleSearchNit}
                       disabled={searchingNit}
-                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-400"
+                      className="bg-[#10B981] text-white px-4 py-2 rounded-xl hover:bg-[#059669] disabled:bg-gray-400 transition-colors"
                     >
                       {searchingNit ? 'Buscando...' : 'Buscar'}
                     </button>
@@ -794,8 +794,8 @@ const Clients = () => {
                   />
                 </div>
                 {/* Recurring Billing Section */}
-                <div className="col-span-2 border-t pt-4 mt-2">
-                  <h3 className="text-lg font-semibold mb-3">Facturación Recurrente</h3>
+                <div className="col-span-2 border-t border-gray-100 pt-4 mt-2">
+                  <h3 className="text-base font-semibold text-[#1A1A2E] mb-3">Facturación Recurrente</h3>
                   <div className="flex items-center gap-2 mb-4">
                     <input
                       type="checkbox"
@@ -810,12 +810,12 @@ const Clients = () => {
                   </div>
 
                   {formData.is_recurring && (
-                    <div className="grid grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-2 gap-4 bg-[#1A1A2E]/5 p-4 rounded-xl">
                       <div>
                         <label className="block text-sm font-medium mb-1">Día de Facturación *</label>
                         <select
                           required={formData.is_recurring}
-                          className="w-full border rounded-lg px-3 py-2 bg-white"
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
                           value={formData.billing_day}
                           onChange={(e) => setFormData({ ...formData, billing_day: parseInt(e.target.value) })}
                         >
@@ -823,7 +823,7 @@ const Clients = () => {
                             <option key={day} value={day}>Día {day}</option>
                           ))}
                         </select>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           La factura se generará automáticamente este día cada mes
                         </p>
                       </div>
@@ -832,19 +832,19 @@ const Clients = () => {
                         <input
                           type="number"
                           required={formData.is_recurring}
-                          className="w-full border rounded-lg px-3 py-2"
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2"
                           value={formData.recurring_amount}
                           onChange={(e) =>
                             setFormData({ ...formData, recurring_amount: parseFloat(e.target.value) || 0 })
                           }
                           placeholder="$0.00"
                         />
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           Monto que se facturará mensualmente
                         </p>
                       </div>
-                      <div className="col-span-2 bg-blue-100 p-3 rounded">
-                        <p className="text-sm text-blue-800">
+                      <div className="col-span-2 bg-[#BFFF00]/20 border border-[#BFFF00]/40 p-3 rounded-xl">
+                        <p className="text-sm text-[#1A1A2E]">
                           ℹ️ <strong>Importante:</strong> La primera factura se creará automáticamente el día {formData.billing_day} de este mes.
                           Las siguientes facturas se generarán automáticamente cada mes mientras el cliente esté activo.
                         </p>
@@ -863,17 +863,17 @@ const Clients = () => {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                 >
                   Guardar
                 </button>
@@ -885,45 +885,45 @@ const Clients = () => {
 
       {/* Portal Configuration Modal */}
       {showPortalModal && portalClient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                  <Shield size={20} className="text-indigo-600" />
+                <div className="w-10 h-10 bg-[#1A1A2E] rounded-xl flex items-center justify-center">
+                  <Shield size={20} className="text-[#BFFF00]" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">Portal de Cliente</h2>
+                  <h2 className="text-xl font-semibold text-[#1A1A2E]">Portal de Cliente</h2>
                   <p className="text-sm text-gray-500">{portalClient.company || portalClient.name}</p>
                 </div>
               </div>
-              <button onClick={() => setShowPortalModal(false)}>
-                <X size={24} />
+              <button onClick={() => setShowPortalModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
 
             {loadingPortal ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 size={32} className="animate-spin text-indigo-600" />
+                <Loader2 size={32} className="animate-spin text-[#1A1A2E]" />
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Invite Code Section */}
-                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                <div className="bg-[#1A1A2E]/5 border border-[#1A1A2E]/10 rounded-xl p-4">
+                  <h3 className="font-semibold text-[#1A1A2E] mb-3 flex items-center gap-2">
                     <Key size={18} />
                     Código de Invitación
                   </h3>
 
                   {newInviteCode ? (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 bg-white p-3 rounded-lg border border-indigo-200">
-                        <code className="flex-1 text-lg font-mono font-bold text-indigo-700">
+                      <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-gray-100">
+                        <code className="flex-1 text-lg font-mono font-bold text-[#1A1A2E]">
                           {newInviteCode}
                         </code>
                         <button
                           onClick={copyInviteLink}
-                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                          className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                         >
                           {copiedCode ? (
                             <>
@@ -938,21 +938,21 @@ const Clients = () => {
                           )}
                         </button>
                       </div>
-                      <p className="text-sm text-indigo-700">
+                      <p className="text-sm text-gray-600">
                         Comparte este link con tu cliente para que acceda al portal:
                       </p>
-                      <code className="block text-xs bg-white p-2 rounded border border-indigo-200 text-indigo-600 break-all">
+                      <code className="block text-xs bg-white p-2 rounded-lg border border-gray-100 text-[#1A1A2E] break-all">
                         {window.location.origin}/portal/login?code={newInviteCode}
                       </code>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-indigo-700">
+                      <p className="text-sm text-gray-600">
                         Genera un código único para que tu cliente acceda al portal.
                       </p>
                       <button
                         onClick={handleGenerateInvite}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                       >
                         <RefreshCw size={16} />
                         Generar Código
@@ -963,75 +963,75 @@ const Clients = () => {
 
                 {/* Permissions Section */}
                 <div>
-                  <h3 className="font-semibold text-gray-800 mb-3">Permisos del Portal</h3>
+                  <h3 className="font-semibold text-[#1A1A2E] mb-3">Permisos del Portal</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_view_projects}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_view_projects: e.target.checked })}
                       />
                       <span className="text-sm">Ver Proyectos</span>
                     </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_view_tasks}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_view_tasks: e.target.checked })}
                       />
                       <span className="text-sm">Ver Tareas</span>
                     </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_view_invoices}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_view_invoices: e.target.checked })}
                       />
                       <span className="text-sm">Ver Facturas</span>
                     </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_view_metrics}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_view_metrics: e.target.checked })}
                       />
                       <span className="text-sm">Ver Métricas</span>
                     </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_approve_tasks}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_approve_tasks: e.target.checked })}
                       />
                       <span className="text-sm">Aprobar Tareas</span>
                     </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_comment_tasks}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_comment_tasks: e.target.checked })}
                       />
                       <span className="text-sm">Comentar en Tareas</span>
                     </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_view_team}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_view_team: e.target.checked })}
                       />
                       <span className="text-sm">Ver Equipo</span>
                     </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                       <input
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 accent-[#1A1A2E]"
                         checked={portalSettings.can_download_files}
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_download_files: e.target.checked })}
                       />
@@ -1055,7 +1055,7 @@ const Clients = () => {
                 {/* Save Settings Button */}
                 <button
                   onClick={handleSavePortalSettings}
-                  className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                  className="w-full py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] font-medium transition-colors"
                 >
                   Guardar Configuración
                 </button>
@@ -1063,15 +1063,15 @@ const Clients = () => {
                 {/* Active Tokens */}
                 {portalTokens.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-800 mb-3">Accesos Activos</h3>
+                    <h3 className="font-semibold text-[#1A1A2E] mb-3">Accesos Activos</h3>
                     <div className="space-y-2">
                       {portalTokens.map((token) => (
                         <div
                           key={token.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
                         >
                           <div>
-                            <p className="font-mono text-sm">
+                            <p className="font-mono text-sm text-[#1A1A2E]">
                               {token.token_type === 'invite' ? 'Invitación' : 'Sesión'}: {token.token}
                             </p>
                             <p className="text-xs text-gray-500">
@@ -1081,7 +1081,7 @@ const Clients = () => {
                           </div>
                           <button
                             onClick={() => handleRevokeAccess(token.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
+                            className="text-red-500 hover:text-red-600 text-sm font-medium"
                           >
                             Revocar
                           </button>

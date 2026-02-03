@@ -117,82 +117,82 @@ const Expenses = () => {
   const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
   return (
-    <div>
-      <div className="mb-8 flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Gastos</h1>
-          <p className="text-gray-600">Registro de gastos y egresos</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Gastos</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Registro de gastos y egresos</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
         >
           <Plus size={20} />
           Nuevo Gasto
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-2">Total de Gastos</h3>
-        <p className="text-3xl font-bold text-red-600">
+      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Total de Gastos</p>
+        <p className="text-4xl font-black text-[#F97316] tabular-nums">
           ${totalExpenses.toLocaleString('es-CO')}
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Descripción
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Categoría
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Proyecto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Monto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Fecha
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Método Pago
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
             {expenses.map((expense) => (
               <tr key={expense.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap font-medium">{expense.description}</td>
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">{expense.description}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {expense.category && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs">
                       {expense.category}
                     </span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{expense.project_name || '-'}</td>
-                <td className="px-6 py-4 whitespace-nowrap font-semibold text-red-600">
+                <td className="px-6 py-4 whitespace-nowrap text-gray-500">{expense.project_name || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap font-bold text-[#F97316]">
                   ${expense.amount?.toLocaleString('es-CO')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{expense.expense_date}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{expense.payment_method || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-500">{expense.expense_date}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-500">{expense.payment_method || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleEdit(expense)}
-                    className="text-blue-600 hover:text-blue-800 mr-3"
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
                   >
                     <Edit size={18} />
                   </button>
                   <button
                     onClick={() => handleDelete(expense.id)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -204,14 +204,14 @@ const Expenses = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingExpense ? 'Editar Gasto' : 'Nuevo Gasto'}
               </h2>
-              <button onClick={() => setShowModal(false)}>
-                <X size={24} />
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -303,17 +303,17 @@ const Expenses = () => {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                 >
                   Guardar
                 </button>

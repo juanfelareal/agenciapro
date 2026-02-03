@@ -9,10 +9,10 @@ const statusLabels = {
 };
 
 const statusColors = {
-  todo: 'bg-gray-100 text-gray-700',
+  todo: 'bg-gray-100 text-gray-600',
   in_progress: 'bg-blue-100 text-blue-700',
-  review: 'bg-yellow-100 text-yellow-700',
-  done: 'bg-green-100 text-green-700',
+  review: 'bg-amber-100 text-amber-700',
+  done: 'bg-[#10B981]/10 text-[#10B981]',
 };
 
 const priorityLabels = {
@@ -23,10 +23,10 @@ const priorityLabels = {
 };
 
 const priorityColors = {
-  low: 'bg-gray-200 text-gray-700',
-  medium: 'bg-blue-200 text-blue-700',
-  high: 'bg-orange-200 text-orange-700',
-  urgent: 'bg-red-200 text-red-700',
+  low: 'bg-gray-100 text-gray-600',
+  medium: 'bg-[#1A1A2E]/10 text-[#1A1A2E]',
+  high: 'bg-[#F97316]/10 text-[#F97316]',
+  urgent: 'bg-red-100 text-red-600',
 };
 
 export default function ListView({
@@ -81,9 +81,9 @@ export default function ListView({
       return <ChevronUp size={14} className="text-gray-300" />;
     }
     return sortConfig.direction === 'asc' ? (
-      <ChevronUp size={14} className="text-primary-500" />
+      <ChevronUp size={14} className="text-[#65A30D]" />
     ) : (
-      <ChevronDown size={14} className="text-primary-500" />
+      <ChevronDown size={14} className="text-[#65A30D]" />
     );
   };
 
@@ -103,10 +103,10 @@ export default function ListView({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -167,7 +167,7 @@ export default function ListView({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
             {sortedTasks.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
@@ -184,12 +184,12 @@ export default function ListView({
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{task.title}</span>
+                        <span className="font-medium text-[#1A1A2E]">{task.title}</span>
                         {!!task.is_recurring && (
-                          <span className="text-blue-600 text-sm" title="Tarea Recurrente">🔄</span>
+                          <span className="text-[#BFFF00] text-sm" title="Tarea Recurrente">🔄</span>
                         )}
                         {taskSubtaskProgress[task.id]?.total > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-slate-500">
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
                             <ListChecks size={12} />
                             {taskSubtaskProgress[task.id].completed}/{taskSubtaskProgress[task.id].total}
                           </span>
@@ -201,14 +201,14 @@ export default function ListView({
                           {taskTags[task.id].slice(0, 3).map(tag => (
                             <span
                               key={tag.id}
-                              className="px-1.5 py-0.5 rounded text-xs font-medium"
-                              style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
+                              className="px-1.5 py-0.5 rounded-md text-xs font-medium"
+                              style={{ backgroundColor: `${tag.color}15`, color: tag.color }}
                             >
                               {tag.name}
                             </span>
                           ))}
                           {taskTags[task.id].length > 3 && (
-                            <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-500">
+                            <span className="px-1.5 py-0.5 rounded-md text-xs bg-gray-100 text-gray-500">
                               +{taskTags[task.id].length - 3}
                             </span>
                           )}
@@ -216,13 +216,13 @@ export default function ListView({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-gray-500">
                     {task.project_name || '-'}
                   </td>
                   <td className="px-4 py-3">
                     {task.assigned_to_name ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-medium">
+                        <div className="w-6 h-6 rounded-lg bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-xs font-medium">
                           {task.assigned_to_name.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-sm text-gray-600">{task.assigned_to_name}</span>
@@ -232,11 +232,11 @@ export default function ListView({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs ${priorityColors[task.priority]}`}>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${priorityColors[task.priority]}`}>
                       {priorityLabels[task.priority]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-gray-500">
                     {task.due_date || '-'}
                   </td>
                   <td className="px-4 py-3">
@@ -246,12 +246,12 @@ export default function ListView({
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === task.id ? null : task.id);
                         }}
-                        className={`px-2 py-1 rounded text-xs ${statusColors[task.status]} hover:opacity-80 transition-opacity`}
+                        className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[task.status]} hover:opacity-80 transition-opacity`}
                       >
                         {statusLabels[task.status]}
                       </button>
                       {openMenuId === task.id && (
-                        <div className="absolute z-10 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                        <div className="absolute z-10 mt-1 w-36 bg-white border border-gray-100 rounded-xl shadow-lg py-1">
                           {Object.entries(statusLabels).map(([value, label]) => (
                             <button
                               key={value}
@@ -278,14 +278,14 @@ export default function ListView({
                           e.stopPropagation();
                           onTaskClick(task);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors"
                         title="Editar"
                       >
                         <Edit size={16} />
                       </button>
                       <button
                         onClick={(e) => handleDeleteClick(e, task.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar"
                       >
                         <Trash2 size={16} />

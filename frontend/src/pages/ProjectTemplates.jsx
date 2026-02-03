@@ -188,15 +188,15 @@ const ProjectTemplates = () => {
   }
 
   return (
-    <div>
-      <div className="mb-8 flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Plantillas de Proyecto</h1>
-          <p className="text-gray-600">Crea plantillas con tareas predefinidas para nuevos proyectos</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Plantillas de Proyecto</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Crea plantillas con tareas predefinidas para nuevos proyectos</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
         >
           <Plus size={20} />
           Nueva Plantilla
@@ -211,7 +211,7 @@ const ProjectTemplates = () => {
           <p className="text-gray-500 mb-4">Crea tu primera plantilla para agilizar la creación de proyectos</p>
           <button
             onClick={handleNew}
-            className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600"
+            className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg hover:bg-[#1A1A2E]"
           >
             Crear Plantilla
           </button>
@@ -225,8 +225,8 @@ const ProjectTemplates = () => {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                    <FileText size={20} className="text-primary-600" />
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <FileText size={20} className="text-[#1A1A2E]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800">{template.name}</h3>
@@ -320,7 +320,7 @@ const ProjectTemplates = () => {
                     <button
                       type="button"
                       onClick={handleAddTask}
-                      className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600"
+                      className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg hover:bg-[#1A1A2E]"
                     >
                       <Plus size={20} />
                     </button>
@@ -411,7 +411,7 @@ const ProjectTemplates = () => {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:bg-gray-400"
+                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:bg-gray-400"
               >
                 {saving ? 'Guardando...' : editingTemplate ? 'Guardar Cambios' : 'Crear Plantilla'}
               </button>

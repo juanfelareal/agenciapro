@@ -64,39 +64,39 @@ export default function PortalLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 via-white to-green-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-green-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-ink-900 rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1A1A2E] rounded-2xl mb-4">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-ink-900">Portal de Cliente</h1>
-          <p className="text-ink-500 mt-2">
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Portal de Cliente</h1>
+          <p className="text-gray-500 mt-2">
             Ingresa tu código de acceso para continuar
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-soft border border-ink-100/50 p-8">
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-soft border border-gray-100/50 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Code Input */}
             <div>
-              <label className="block text-sm font-medium text-ink-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Código de Acceso
               </label>
               <div className="relative">
-                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-400" />
+                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   value={code}
                   onChange={handleCodeChange}
                   placeholder="XXXX-XXXX"
                   maxLength={9}
-                  className="w-full pl-12 pr-4 py-4 bg-cream-50 border border-ink-200 rounded-xl
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl
                            text-center text-2xl font-mono tracking-widest
                            focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-                           placeholder:text-ink-300 placeholder:text-lg"
+                           placeholder:text-gray-300 placeholder:text-lg"
                   autoFocus
                 />
               </div>
@@ -115,8 +115,8 @@ export default function PortalLogin() {
               type="submit"
               disabled={loading || code.length < 9}
               className="w-full flex items-center justify-center gap-2 py-4 px-6
-                       bg-ink-900 text-white font-semibold rounded-xl
-                       hover:bg-ink-800 disabled:bg-ink-300 disabled:cursor-not-allowed
+                       bg-[#1A1A2E] text-white font-semibold rounded-xl
+                       hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
                        transition-all duration-200"
             >
               {loading ? (
@@ -134,13 +134,13 @@ export default function PortalLogin() {
           </form>
 
           {/* Help Text */}
-          <p className="mt-6 text-center text-sm text-ink-500">
+          <p className="mt-6 text-center text-sm text-gray-500">
             ¿No tienes un código? Contacta a tu agencia para obtener acceso.
           </p>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-ink-400 mt-8">
+        <p className="text-center text-sm text-gray-400 mt-8">
           Powered by AgenciaPro
         </p>
       </div>

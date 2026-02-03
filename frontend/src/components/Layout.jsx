@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -11,17 +11,15 @@ import {
   Percent,
   ChevronLeft,
   ChevronRight,
-  CalendarDays,
-  Zap,
+  ChevronDown,
   BarChart3,
   StickyNote,
-  TrendingUp,
   BookOpen,
   Copy,
   Clock,
-  Timer,
   Link2,
   LogOut,
+  Wallet,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -34,45 +32,60 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const { user, hasPermission, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [finanzasExpanded, setFinanzasExpanded] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  const allNavigation = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard, permission: 'dashboard' },
-    { name: 'Métricas', path: '/metricas', icon: TrendingUp, permission: 'metricas' },
-    { name: 'Clientes', path: '/clients', icon: Users, permission: 'clients' },
-    { name: 'Proyectos', path: '/projects', icon: FolderKanban, permission: 'projects' },
-    { name: 'Plantillas', path: '/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
-    { name: 'Tareas', path: '/tasks', icon: CheckSquare, permission: 'tasks' },
-    { name: 'Calendario', path: '/calendario', icon: CalendarDays, permission: 'calendario' },
-    { name: 'Timesheet', path: '/timesheet', icon: Clock, permission: 'timesheet' },
-    { name: 'Rep. Tiempo', path: '/time-reports', icon: Timer, permission: 'time_reports' },
-    { name: 'Equipo', path: '/team', icon: UsersRound, permission: 'team' },
-    { name: 'Facturas', path: '/invoices', icon: FileText, permission: 'invoices' },
-    { name: 'Gastos', path: '/expenses', icon: CreditCard, permission: 'expenses' },
-    { name: 'Comisiones', path: '/comisiones', icon: Percent, permission: 'comisiones' },
-    { name: 'Automatizaciones', path: '/automatizaciones', icon: Zap, permission: 'automatizaciones' },
-    { name: 'Reportes', path: '/reportes', icon: BarChart3, permission: 'reportes' },
-    { name: 'Bloc de Notas', path: '/notas', icon: StickyNote, permission: 'notas' },
-    { name: 'SOPs', path: '/sops', icon: BookOpen, permission: 'sops' },
-    { name: 'Siigo', path: '/siigo', icon: Link2, permission: 'siigo' },
+  // Items principales (sin submenú)
+  const mainNavigation = [
+    { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard' },
+    { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients' },
+    { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
+    { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
+    { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks' },
+    { name: 'Timesheet', path: '/app/timesheet', icon: Clock, permission: 'timesheet' },
   ];
 
-  // Filter navigation based on permissions
-  const navigation = allNavigation.filter((item) => hasPermission(item.permission));
+  // Submenú de Finanzas
+  const finanzasSubItems = [
+    { name: 'Facturas', path: '/app/invoices', icon: FileText, permission: 'invoices' },
+    { name: 'Gastos', path: '/app/expenses', icon: CreditCard, permission: 'expenses' },
+    { name: 'Comisiones', path: '/app/comisiones', icon: Percent, permission: 'comisiones' },
+    { name: 'Siigo', path: '/app/siigo', icon: Link2, permission: 'siigo' },
+  ];
+
+  // Items después de Finanzas
+  const bottomNavigation = [
+    { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes' },
+    { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
+    { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
+    { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
+  ];
+
+  // Filtrar por permisos
+  const filteredMain = mainNavigation.filter((item) => hasPermission(item.permission));
+  const filteredFinanzas = finanzasSubItems.filter((item) => hasPermission(item.permission));
+  const filteredBottom = bottomNavigation.filter((item) => hasPermission(item.permission));
 
   const isActive = (path) => {
-    if (path === '/') {
-      return location.pathname === '/';
+    if (path === '/app') {
+      return location.pathname === '/app' || location.pathname === '/app/';
     }
     return location.pathname.startsWith(path);
   };
 
-  // Get current page info for header
-  const currentPage = allNavigation.find((item) => isActive(item.path)) || allNavigation[0];
+  // Verificar si algún item de Finanzas está activo
+  const isFinanzasActive = finanzasSubItems.some((item) => isActive(item.path));
+
+  // Auto-expandir Finanzas si alguna subpágina está activa
+  useEffect(() => {
+    if (isFinanzasActive) {
+      setFinanzasExpanded(true);
+    }
+  }, [location.pathname]);
 
   // Get user initials for avatar
   const getUserInitials = (name) => {
@@ -85,22 +98,43 @@ const Layout = ({ children }) => {
       .slice(0, 2);
   };
 
+  const renderNavItem = (item) => {
+    const Icon = item.icon;
+    const active = isActive(item.path);
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+          active
+            ? 'bg-[#1A1A2E] text-[#BFFF00]'
+            : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100'
+        }`}
+        title={sidebarCollapsed ? item.name : ''}
+      >
+        <Icon size={20} className="flex-shrink-0" />
+        {!sidebarCollapsed && <span className="truncate">{item.name}</span>}
+
+        {/* Tooltip for collapsed state */}
+        {sidebarCollapsed && (
+          <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+            {item.name}
+          </div>
+        )}
+      </Link>
+    );
+  };
+
   return (
-    <div className="flex h-screen bg-gradient-warm">
-      {/* Sidebar - Glassmorphism */}
+    <div className="flex h-screen bg-[#F8F9FA]">
+      {/* Sidebar - Clean white */}
       <div
-        className={`fixed left-0 top-0 h-full flex flex-col z-40 transition-all duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 h-full flex flex-col z-40 transition-all duration-300 ease-in-out bg-white border-r border-gray-100 ${
           sidebarCollapsed ? 'w-[72px]' : 'w-[220px]'
         }`}
-        style={{
-          background: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderRight: '1px solid rgba(0, 0, 0, 0.06)',
-        }}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center px-3" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
+        <div className="h-16 flex items-center px-3 border-b border-gray-100">
           {sidebarCollapsed ? (
             <img src="/logo-lareal.png" alt="La Real" className="w-12 h-12 object-contain" />
           ) : (
@@ -110,17 +144,16 @@ const Layout = ({ children }) => {
 
         {/* User Info */}
         {!sidebarCollapsed && user && (
-          <div className="p-3" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
+          <div className="p-3 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #1A1A1A 0%, #404040 100%)' }}
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-[#BFFF00] font-semibold text-sm flex-shrink-0 bg-[#1A1A2E]"
               >
                 {getUserInitials(user.name)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-ink-900 truncate">{user.name}</p>
-                <p className="text-xs text-ink-500 truncate">{user.position || user.role}</p>
+                <p className="text-sm font-medium text-[#1A1A2E] truncate">{user.name}</p>
+                <p className="text-xs text-gray-500 truncate">{user.position || user.role}</p>
               </div>
             </div>
           </div>
@@ -129,58 +162,102 @@ const Layout = ({ children }) => {
         {/* Navigation */}
         <nav className="flex-1 p-3 overflow-y-auto scrollbar-thin">
           <div className="space-y-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-                    active
-                      ? 'text-white'
-                      : 'text-ink-500 hover:text-ink-900'
+            {/* Main navigation items */}
+            {filteredMain.map(renderNavItem)}
+
+            {/* Finanzas con submenú */}
+            {filteredFinanzas.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setFinanzasExpanded(!finanzasExpanded)}
+                  className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                    isFinanzasActive
+                      ? 'bg-[#1A1A2E] text-[#BFFF00]'
+                      : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100'
                   }`}
-                  style={active ? {
-                    background: '#1A1A1A',
-                    boxShadow: '0 2px 8px rgba(26, 26, 26, 0.15)'
-                  } : {}}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.04)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.background = 'transparent';
-                    }
-                  }}
-                  title={sidebarCollapsed ? item.name : ''}
+                  title={sidebarCollapsed ? 'Finanzas' : ''}
                 >
-                  <Icon size={20} className="flex-shrink-0" />
-                  {!sidebarCollapsed && <span className="truncate">{item.name}</span>}
+                  <Wallet size={20} className="flex-shrink-0" />
+                  {!sidebarCollapsed && (
+                    <>
+                      <span className="truncate flex-1 text-left">Finanzas</span>
+                      <ChevronDown
+                        size={16}
+                        className={`flex-shrink-0 transition-transform duration-200 ${
+                          finanzasExpanded ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </>
+                  )}
 
                   {/* Tooltip for collapsed state */}
                   {sidebarCollapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-ink-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                      {item.name}
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                      Finanzas
                     </div>
                   )}
-                </Link>
-              );
-            })}
+                </button>
+
+                {/* Submenú */}
+                {(finanzasExpanded || sidebarCollapsed) && !sidebarCollapsed && (
+                  <div className="mt-1 ml-3 pl-3 border-l border-gray-200 space-y-1">
+                    {filteredFinanzas.map((item) => {
+                      const Icon = item.icon;
+                      const active = isActive(item.path);
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                            active
+                              ? 'bg-gray-100 text-[#1A1A2E]'
+                              : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-50'
+                          }`}
+                        >
+                          <Icon size={18} className="flex-shrink-0" />
+                          <span className="truncate">{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Popup menú para estado colapsado */}
+                {sidebarCollapsed && (
+                  <div className="absolute left-full ml-2 top-0 bg-white border border-gray-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2 min-w-[160px]">
+                    <div className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase">Finanzas</div>
+                    {filteredFinanzas.map((item) => {
+                      const Icon = item.icon;
+                      const active = isActive(item.path);
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`flex items-center gap-2 px-3 py-2 text-sm ${
+                            active ? 'text-[#1A1A2E] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <Icon size={16} />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bottom navigation items */}
+            {filteredBottom.map(renderNavItem)}
           </div>
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 space-y-1" style={{ borderTop: '1px solid rgba(0, 0, 0, 0.06)' }}>
+        <div className="p-3 space-y-1 border-t border-gray-100">
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ink-500 hover:text-red-600 transition-all duration-150"
-            style={{ background: 'transparent' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all duration-150"
             title={sidebarCollapsed ? 'Cerrar Sesión' : ''}
           >
             <LogOut size={20} />
@@ -190,10 +267,7 @@ const Layout = ({ children }) => {
           {/* Collapse Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-ink-500 hover:text-ink-900 transition-all duration-150"
-            style={{ background: 'transparent' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.04)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100 transition-all duration-150"
           >
             {sidebarCollapsed ? (
               <ChevronRight size={20} />
@@ -213,22 +287,8 @@ const Layout = ({ children }) => {
           sidebarCollapsed ? 'ml-[72px]' : 'ml-[220px]'
         }`}
       >
-        {/* Top Header Bar - Glassmorphism */}
-        <header
-          className="sticky top-0 z-30 h-16 px-6 flex items-center justify-between"
-          style={{
-            background: 'rgba(255, 253, 249, 0.8)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.06)'
-          }}
-        >
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-ink-900">{currentPage?.name || 'Dashboard'}</h2>
-            <p className="text-xs text-ink-500">
-              {user?.position || (user?.role === 'admin' ? 'Administrador' : user?.role === 'manager' ? 'Manager' : 'Miembro')}
-            </p>
-          </div>
+        {/* Top Header Bar - Clean white */}
+        <header className="sticky top-0 z-30 h-14 px-6 flex items-center justify-end bg-white border-b border-gray-100">
           <div className="flex items-center gap-4">
             <TimeTracker />
             <GlobalSearch />
@@ -237,10 +297,10 @@ const Layout = ({ children }) => {
             {/* User Avatar */}
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-ink-900">
+                <p className="text-sm font-medium text-[#1A1A2E]">
                   {user?.name || 'Usuario'}
                 </p>
-                <p className="text-xs text-ink-500">
+                <p className="text-xs text-gray-500">
                   {user?.role === 'admin'
                     ? 'Administrador'
                     : user?.role === 'manager'
@@ -248,13 +308,7 @@ const Layout = ({ children }) => {
                     : 'Miembro'}
                 </p>
               </div>
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold text-sm"
-                style={{
-                  background: 'linear-gradient(135deg, #1A1A1A 0%, #404040 100%)',
-                  boxShadow: '0 2px 8px rgba(26, 26, 26, 0.15)'
-                }}
-              >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#BFFF00] font-semibold text-sm bg-[#1A1A2E]">
                 {getUserInitials(user?.name || 'U')}
               </div>
             </div>

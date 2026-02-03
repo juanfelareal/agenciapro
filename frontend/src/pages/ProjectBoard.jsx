@@ -38,8 +38,8 @@ const ProjectBoard = () => {
       <div className="text-center py-8">
         <p className="text-red-600">Proyecto no encontrado</p>
         <button
-          onClick={() => navigate('/projects')}
-          className="mt-4 text-primary-600 hover:underline"
+          onClick={() => navigate('/app/projects')}
+          className="mt-4 text-[#1A1A2E] hover:underline"
         >
           Volver a proyectos
         </button>
@@ -52,7 +52,7 @@ const ProjectBoard = () => {
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => navigate('/projects')}
+          onClick={() => navigate('/app/projects')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
         >
           <ArrowLeft size={20} />
@@ -60,8 +60,8 @@ const ProjectBoard = () => {
         </button>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">{project.name}</h1>
-            <p className="text-gray-600">{project.description || 'Gestión de proyecto'}</p>
+            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{project.name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">{project.description || 'Gestión de proyecto'}</p>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600">Cliente</p>
@@ -78,7 +78,7 @@ const ProjectBoard = () => {
               onClick={() => setActiveView('table')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition ${
                 activeView === 'table'
-                  ? 'border-primary-500 text-primary-600'
+                  ? 'border-[#1A1A2E] text-[#1A1A2E]'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -89,7 +89,7 @@ const ProjectBoard = () => {
               onClick={() => setActiveView('gantt')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition ${
                 activeView === 'gantt'
-                  ? 'border-primary-500 text-primary-600'
+                  ? 'border-[#1A1A2E] text-[#1A1A2E]'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >

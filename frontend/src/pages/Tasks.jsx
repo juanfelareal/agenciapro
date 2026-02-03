@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users } from 'lucide-react';
 import SubtaskList from '../components/SubtaskList';
 import TagSelector from '../components/TagSelector';
 import TaskViewSwitcher from '../components/tasks/TaskViewSwitcher';
@@ -8,8 +8,10 @@ import TaskFilters from '../components/tasks/TaskFilters';
 import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
 import CalendarView from '../components/tasks/CalendarView';
+import { useAuth } from '../context/AuthContext';
 
 const Tasks = () => {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -29,6 +31,11 @@ const Tasks = () => {
   // View and filter state
   const [viewMode, setViewMode] = useState('kanban');
   const [showFilters, setShowFilters] = useState(false);
+  // Default: filter by current user's tasks (showMyTasks = true), persisted in localStorage
+  const [showMyTasks, setShowMyTasks] = useState(() => {
+    const saved = localStorage.getItem('tasks_showMyTasks');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [filters, setFilters] = useState({
     assignees: [],
     priorities: [],
@@ -60,6 +67,11 @@ const Tasks = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Persist showMyTasks preference
+  useEffect(() => {
+    localStorage.setItem('tasks_showMyTasks', JSON.stringify(showMyTasks));
+  }, [showMyTasks]);
 
   const loadData = async () => {
     try {
@@ -108,6 +120,11 @@ const Tasks = () => {
   // Filter tasks
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
+      // "My Tasks" filter - if active, only show tasks assigned to current user
+      if (showMyTasks && user?.id) {
+        if (task.assigned_to !== user.id) return false;
+      }
+
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
@@ -118,8 +135,8 @@ const Tasks = () => {
         if (!matchesSearch) return false;
       }
 
-      // Assignee filter
-      if (filters.assignees.length > 0) {
+      // Assignee filter (only applies when showMyTasks is off)
+      if (!showMyTasks && filters.assignees.length > 0) {
         if (!filters.assignees.includes(task.assigned_to)) return false;
       }
 
@@ -160,7 +177,7 @@ const Tasks = () => {
 
       return true;
     });
-  }, [tasks, filters, taskTags, viewMode]);
+  }, [tasks, filters, taskTags, viewMode, showMyTasks, user]);
 
   // Count active filters
   const activeFilterCount = [
@@ -177,11 +194,24 @@ const Tasks = () => {
     e.preventDefault();
     try {
       let taskId;
+      // Prepare data for API - ensure proper types
+      const apiData = {
+        ...formData,
+        project_id: formData.project_id || null,
+        assigned_to: formData.assigned_to || null,
+        due_date: formData.due_date || null,
+        delivery_url: formData.delivery_url || null,
+        timeline_start: formData.timeline_start || null,
+        timeline_end: formData.timeline_end || null,
+        color: formData.color || null,
+        estimated_hours: formData.estimated_hours || null,
+      };
+
       if (editingTask) {
-        await tasksAPI.update(editingTask.id, formData);
+        await tasksAPI.update(editingTask.id, apiData);
         taskId = editingTask.id;
       } else {
-        const response = await tasksAPI.create(formData);
+        const response = await tasksAPI.create(apiData);
         taskId = response.data.id;
       }
 
@@ -196,7 +226,9 @@ const Tasks = () => {
       loadData();
     } catch (error) {
       console.error('Error saving task:', error);
-      alert('Error al guardar tarea');
+      console.error('Error response:', error.response?.data);
+      const errorMsg = error.response?.data?.error || error.message || 'Error desconocido';
+      alert('Error al guardar tarea: ' + errorMsg);
     }
   };
 
@@ -263,10 +295,30 @@ const Tasks = () => {
 
   const handleStatusChange = async (task, newStatus) => {
     try {
-      await tasksAPI.update(task.id, { ...task, status: newStatus });
+      // Only send necessary fields, not computed ones like project_name, assigned_to_name
+      const updateData = {
+        title: task.title,
+        description: task.description,
+        project_id: task.project_id,
+        assigned_to: task.assigned_to,
+        status: newStatus,
+        priority: task.priority,
+        due_date: task.due_date,
+        is_recurring: task.is_recurring,
+        recurrence_pattern: task.recurrence_pattern,
+        timeline_start: task.timeline_start,
+        timeline_end: task.timeline_end,
+        progress: task.progress,
+        color: task.color,
+        estimated_hours: task.estimated_hours,
+        delivery_url: task.delivery_url,
+      };
+      await tasksAPI.update(task.id, updateData);
       loadData();
     } catch (error) {
       console.error('Error updating task status:', error);
+      const errorMsg = error.response?.data?.error || error.message;
+      alert('Error al actualizar estado: ' + errorMsg);
     }
   };
 
@@ -314,19 +366,19 @@ const Tasks = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full space-y-6">
       {/* Header */}
-      <div className="mb-6">
+      <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Tareas</h1>
-            <p className="text-gray-600">Gestión de tareas del equipo</p>
+            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Tareas</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Gestión de tareas del equipo</p>
           </div>
           <div className="flex items-center gap-3">
             <TaskViewSwitcher value={viewMode} onChange={setViewMode} />
             <button
               onClick={() => handleNew()}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-all"
             >
               <Plus size={20} />
               <span className="hidden sm:inline">Nueva Tarea</span>
@@ -336,6 +388,30 @@ const Tasks = () => {
 
         {/* Search and Filter Bar */}
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
+          {/* My Tasks / All Tasks Toggle */}
+          <div className="flex rounded-xl border border-gray-100 overflow-hidden bg-white">
+            <button
+              onClick={() => setShowMyTasks(true)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                showMyTasks
+                  ? 'bg-[#1A1A2E] text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Mis Tareas
+            </button>
+            <button
+              onClick={() => setShowMyTasks(false)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                !showMyTasks
+                  ? 'bg-[#1A1A2E] text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Users size={16} />
+              Todas
+            </button>
+          </div>
           <div className="relative flex-1 max-w-md">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -343,21 +419,21 @@ const Tasks = () => {
               placeholder="Buscar tareas..."
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFFF00] focus:border-transparent"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-colors ${
               showFilters || activeFilterCount > 0
-                ? 'border-primary-300 bg-primary-50 text-primary-700'
-                : 'border-gray-200 hover:bg-gray-50'
+                ? 'border-[#BFFF00] bg-[#BFFF00]/10 text-[#1A1A2E]'
+                : 'border-gray-100 bg-white hover:bg-gray-50'
             }`}
           >
             <Filter size={18} />
             <span>Filtros</span>
             {activeFilterCount > 0 && (
-              <span className="bg-primary-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+              <span className="bg-[#1A1A2E] text-[#BFFF00] text-xs px-1.5 py-0.5 rounded-full">
                 {activeFilterCount}
               </span>
             )}
@@ -413,35 +489,35 @@ const Tasks = () => {
 
       {/* Task Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingTask ? 'Editar Tarea' : 'Nueva Tarea'}
               </h2>
-              <button onClick={() => setShowModal(false)}>
-                <X size={24} />
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Título *</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Título *</label>
                   <input
                     type="text"
                     required
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Proyecto</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Proyecto</label>
                   {showNewProject ? (
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        className="flex-1 border rounded-lg px-3 py-2"
+                        className="flex-1 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                         placeholder="Nombre del nuevo proyecto"
                         value={newProjectName}
                         onChange={(e) => setNewProjectName(e.target.value)}
@@ -460,7 +536,7 @@ const Tasks = () => {
                         type="button"
                         onClick={handleCreateProject}
                         disabled={creatingProject || !newProjectName.trim()}
-                        className="px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {creatingProject ? '...' : 'Crear'}
                       </button>
@@ -470,7 +546,7 @@ const Tasks = () => {
                           setShowNewProject(false);
                           setNewProjectName('');
                         }}
-                        className="px-3 py-2 border rounded-lg hover:bg-gray-50"
+                        className="px-3 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50"
                       >
                         <X size={16} />
                       </button>
@@ -478,7 +554,7 @@ const Tasks = () => {
                   ) : (
                     <div className="flex gap-2">
                       <select
-                        className="flex-1 border rounded-lg px-3 py-2"
+                        className="flex-1 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                         value={formData.project_id}
                         onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
                       >
@@ -492,7 +568,7 @@ const Tasks = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewProject(true)}
-                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-primary-600 flex items-center gap-1"
+                        className="px-3 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 text-[#1A1A2E] flex items-center gap-1"
                         title="Crear nuevo proyecto"
                       >
                         <Plus size={16} />
@@ -501,9 +577,9 @@ const Tasks = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Asignado a</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Asignado a</label>
                   <select
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                     value={formData.assigned_to}
                     onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
                   >
@@ -516,9 +592,9 @@ const Tasks = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Estado</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Estado</label>
                   <select
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   >
@@ -529,9 +605,9 @@ const Tasks = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Prioridad</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Prioridad</label>
                   <select
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                   >
@@ -542,18 +618,18 @@ const Tasks = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Fecha Vencimiento</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Fecha Vencimiento</label>
                   <input
                     type="date"
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Descripción</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Descripción</label>
                   <textarea
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                     rows="3"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -562,14 +638,14 @@ const Tasks = () => {
 
                 {/* Delivery URL - Link de entrega */}
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1 flex items-center gap-2">
-                    <Link size={16} />
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-2">
+                    <Link size={14} />
                     Link de Entrega
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="url"
-                      className="flex-1 border rounded-lg px-3 py-2"
+                      className="flex-1 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                       placeholder="https://drive.google.com/... o cualquier link donde quedó la tarea"
                       value={formData.delivery_url}
                       onChange={(e) => setFormData({ ...formData, delivery_url: e.target.value })}
@@ -579,7 +655,7 @@ const Tasks = () => {
                         href={formData.delivery_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-3 py-2 bg-primary-50 text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors"
+                        className="flex items-center gap-1 px-3 py-2.5 bg-[#BFFF00]/10 text-[#65A30D] border border-[#BFFF00]/30 rounded-xl hover:bg-[#BFFF00]/20 transition-colors"
                         title="Abrir link"
                       >
                         <ExternalLink size={16} />
@@ -592,7 +668,7 @@ const Tasks = () => {
 
                 {/* Tags Section */}
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Etiquetas</label>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Etiquetas</label>
                   <TagSelector
                     taskId={editingTask?.id}
                     selectedTagIds={selectedTagIds}
@@ -602,9 +678,9 @@ const Tasks = () => {
 
                 {/* Subtasks Section - Only for existing tasks */}
                 {editingTask && (
-                  <div className="col-span-2 border-t pt-4">
-                    <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-                      <ListChecks size={16} />
+                  <div className="col-span-2 border-t border-gray-100 pt-4">
+                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                      <ListChecks size={14} />
                       Subtareas / Checklist
                     </label>
                     <SubtaskList
@@ -629,8 +705,8 @@ const Tasks = () => {
                   </label>
 
                   {formData.is_recurring && (
-                    <div className="ml-6 p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm font-medium mb-2">Repetir cada:</p>
+                    <div className="ml-6 p-4 bg-[#BFFF00]/10 rounded-xl">
+                      <p className="text-sm font-medium mb-2 text-[#1A1A2E]">Repetir cada:</p>
                       <div className="flex flex-wrap gap-2">
                         {[
                           { value: 1, label: 'Lun' },
@@ -645,8 +721,8 @@ const Tasks = () => {
                             key={day.value}
                             className={`px-3 py-2 rounded-lg cursor-pointer transition ${
                               formData.recurrence_pattern.days.includes(day.value)
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-white border hover:bg-gray-50'
+                                ? 'bg-[#1A1A2E] text-[#BFFF00]'
+                                : 'bg-white border border-gray-100 hover:bg-gray-50'
                             }`}
                           >
                             <input
@@ -667,14 +743,14 @@ const Tasks = () => {
                           </label>
                         ))}
                       </div>
-                      <p className="text-xs text-gray-600 mt-2">
+                      <p className="text-xs text-gray-500 mt-2">
                         Las tareas recurrentes se crearán automáticamente en los días seleccionados
                       </p>
                     </div>
                   )}
                 </div>
               </div>
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 {editingTask && (
                   <div className="flex gap-2 mr-auto">
                     <button
@@ -686,7 +762,7 @@ const Tasks = () => {
                           loadData();
                         }
                       }}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      className="px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
                     >
                       Eliminar
                     </button>
@@ -702,7 +778,7 @@ const Tasks = () => {
                         // Keep selectedTagIds so tags are copied too
                         setSubtaskProgress({ total: 0, completed: 0, progress: 0 });
                       }}
-                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 flex items-center gap-2"
+                      className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 flex items-center gap-2 transition-colors"
                       title="Duplicar tarea"
                     >
                       <Copy size={16} />
@@ -713,13 +789,13 @@ const Tasks = () => {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                 >
                   Guardar
                 </button>

@@ -40,7 +40,7 @@ export default function PortalTasks() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      todo: { bg: 'bg-ink-100', text: 'text-ink-600', label: 'Pendiente' },
+      todo: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Pendiente' },
       in_progress: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'En Progreso' },
       review: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'En Revisión' },
       done: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completada' }
@@ -85,7 +85,7 @@ export default function PortalTasks() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-ink-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
       </div>
     );
   }
@@ -94,8 +94,8 @@ export default function PortalTasks() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-ink-900">Mis Tareas</h1>
-        <p className="text-ink-500 mt-1">Revisa el estado de todas tus tareas</p>
+        <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Mis Tareas</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Revisa el estado de todas tus tareas</p>
       </div>
 
       {/* Pending Approval Alert */}
@@ -124,13 +124,13 @@ export default function PortalTasks() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar tareas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-ink-200 rounded-xl
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl
                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
@@ -138,7 +138,7 @@ export default function PortalTasks() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-ink-200 rounded-xl appearance-none
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl appearance-none
                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             <option value="all">Todos los estados</option>
@@ -151,7 +151,7 @@ export default function PortalTasks() {
             <select
               value={approvalFilter}
               onChange={(e) => setApprovalFilter(e.target.value)}
-              className="px-4 py-2.5 bg-white border border-ink-200 rounded-xl appearance-none
+              className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl appearance-none
                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
               <option value="all">Todas las tareas</option>
@@ -163,32 +163,32 @@ export default function PortalTasks() {
 
       {/* Tasks List */}
       {filteredTasks.length > 0 ? (
-        <div className="bg-white rounded-2xl border border-ink-100 shadow-soft overflow-hidden">
-          <div className="divide-y divide-ink-100">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+          <div className="divide-y divide-gray-100">
             {filteredTasks.map((task) => (
               <Link
                 key={task.id}
                 to={`/portal/tasks/${task.id}`}
-                className="flex items-center justify-between px-6 py-4 hover:bg-ink-50 transition-colors"
+                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                     task.status === 'done' ? 'bg-green-100' :
                     task.requires_client_approval && task.client_approval_status === 'pending' ? 'bg-amber-100' :
-                    'bg-ink-100'
+                    'bg-gray-100'
                   }`}>
                     {task.status === 'done' ? (
                       <CheckCircle2 className="w-5 h-5 text-green-600" />
                     ) : task.requires_client_approval && task.client_approval_status === 'pending' ? (
                       <AlertCircle className="w-5 h-5 text-amber-600" />
                     ) : (
-                      <CheckSquare className="w-5 h-5 text-ink-400" />
+                      <CheckSquare className="w-5 h-5 text-gray-400" />
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-ink-900">{task.title}</p>
+                    <p className="font-medium text-[#1A1A2E]">{task.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm text-ink-500 flex items-center gap-1">
+                      <span className="text-sm text-gray-500 flex items-center gap-1">
                         <FolderKanban className="w-3.5 h-3.5" />
                         {task.project_name}
                       </span>
@@ -197,18 +197,18 @@ export default function PortalTasks() {
                     </div>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-ink-400" />
+                <ArrowRight className="w-5 h-5 text-gray-400" />
               </Link>
             ))}
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-ink-100 p-12 text-center">
-          <div className="w-16 h-16 bg-ink-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <CheckSquare className="w-8 h-8 text-ink-400" />
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CheckSquare className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-ink-900 mb-2">No hay tareas</h3>
-          <p className="text-ink-500">
+          <h3 className="text-lg font-semibold text-[#1A1A2E] mb-2">No hay tareas</h3>
+          <p className="text-gray-500">
             {search || statusFilter !== 'all' || approvalFilter !== 'all'
               ? 'No se encontraron tareas con los filtros aplicados.'
               : 'Aún no tienes tareas asignadas.'}

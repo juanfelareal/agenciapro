@@ -210,8 +210,8 @@ const SiigoCustomers = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <RefreshCw className="animate-spin text-ink-400" size={32} />
-        <p className="text-ink-500">Cargando clientes de Siigo... ({pagination.page} páginas)</p>
+        <RefreshCw className="animate-spin text-gray-400" size={32} />
+        <p className="text-gray-500">Cargando clientes de Siigo... ({pagination.page} páginas)</p>
       </div>
     );
   }
@@ -222,14 +222,14 @@ const SiigoCustomers = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/siigo')}
-            className="p-2 hover:bg-ink-100 rounded-lg transition-colors"
+            onClick={() => navigate('/app/siigo')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-ink-900">Clientes en Siigo</h1>
-            <p className="text-ink-500 text-sm mt-1">
+            <h1 className="text-2xl font-semibold text-[#1A1A2E]">Clientes en Siigo</h1>
+            <p className="text-gray-500 text-sm mt-1">
               {customers.length} clientes encontrados - Selecciona los que deseas importar
             </p>
           </div>
@@ -259,7 +259,7 @@ const SiigoCustomers = () => {
       <div className="card p-4">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex-1 min-w-[200px] relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Buscar por nombre, NIT o email..."
@@ -269,7 +269,7 @@ const SiigoCustomers = () => {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter size={16} className="text-ink-400" />
+            <Filter size={16} className="text-gray-400" />
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
@@ -281,7 +281,7 @@ const SiigoCustomers = () => {
               <option value="Other">Otros</option>
             </select>
           </div>
-          <div className="text-sm text-ink-500">
+          <div className="text-sm text-gray-500">
             Mostrando {filteredCustomers.length} de {customers.length}
           </div>
         </div>
@@ -289,9 +289,9 @@ const SiigoCustomers = () => {
 
       {/* Selection Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 flex items-center gap-4">
-          <CheckSquare className="text-primary-600" size={20} />
-          <span className="font-medium text-primary-700">
+        <div className="bg-gray-50 border border-primary-200 rounded-xl p-4 flex items-center gap-4">
+          <CheckSquare className="text-[#1A1A2E]" size={20} />
+          <span className="font-medium text-[#1A1A2E]">
             {selectedIds.size} cliente(s) seleccionado(s)
           </span>
           <button
@@ -319,43 +319,43 @@ const SiigoCustomers = () => {
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-ink-50">
+            <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left w-12">
-                  <button onClick={toggleSelectAll} className="text-ink-500 hover:text-primary-600">
+                  <button onClick={toggleSelectAll} className="text-gray-500 hover:text-[#1A1A2E]">
                     {isAllSelected ? (
-                      <CheckSquare size={18} className="text-primary-600" />
+                      <CheckSquare size={18} className="text-[#1A1A2E]" />
                     ) : isSomeSelected ? (
-                      <MinusSquare size={18} className="text-primary-600" />
+                      <MinusSquare size={18} className="text-[#1A1A2E]" />
                     ) : (
                       <Square size={18} />
                     )}
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Nombre / Empresa
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   NIT / CC
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Tipo
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Ciudad
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Contacto
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Creado
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-100">
+            <tbody className="divide-y divide-gray-100">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-ink-500">
+                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
                     No se encontraron clientes con los filtros seleccionados
                   </td>
                 </tr>
@@ -369,7 +369,7 @@ const SiigoCustomers = () => {
                   return (
                     <tr
                       key={customer.id}
-                      className={`hover:bg-ink-50 cursor-pointer ${isSelected ? 'bg-primary-50' : ''}`}
+                      className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-gray-50' : ''}`}
                       onClick={() => toggleSelect(customer.id)}
                     >
                       <td className="px-4 py-3">
@@ -378,10 +378,10 @@ const SiigoCustomers = () => {
                             e.stopPropagation();
                             toggleSelect(customer.id);
                           }}
-                          className="text-ink-400 hover:text-primary-600"
+                          className="text-gray-400 hover:text-[#1A1A2E]"
                         >
                           {isSelected ? (
-                            <CheckSquare size={18} className="text-primary-600" />
+                            <CheckSquare size={18} className="text-[#1A1A2E]" />
                           ) : (
                             <Square size={18} />
                           )}
@@ -401,14 +401,14 @@ const SiigoCustomers = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-ink-900">{name}</p>
+                            <p className="font-medium text-[#1A1A2E]">{name}</p>
                             {customer.commercial_name && customer.commercial_name !== name && (
-                              <p className="text-xs text-ink-500">{customer.commercial_name}</p>
+                              <p className="text-xs text-gray-500">{customer.commercial_name}</p>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-ink-700 font-mono">
+                      <td className="px-4 py-3 text-sm text-gray-700 font-mono">
                         {customer.identification || '-'}
                         {customer.check_digit && `-${customer.check_digit}`}
                       </td>
@@ -425,30 +425,30 @@ const SiigoCustomers = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 text-sm text-ink-600">
-                          <MapPin size={14} className="text-ink-400" />
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <MapPin size={14} className="text-gray-400" />
                           {city}
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="space-y-1">
                           {contact.email && (
-                            <div className="flex items-center gap-1 text-xs text-ink-600">
-                              <Mail size={12} className="text-ink-400" />
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              <Mail size={12} className="text-gray-400" />
                               <span className="truncate max-w-[150px]">{contact.email}</span>
                             </div>
                           )}
                           {(contact.phone?.number || customer.phones?.[0]?.number) && (
-                            <div className="flex items-center gap-1 text-xs text-ink-600">
-                              <Phone size={12} className="text-ink-400" />
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              <Phone size={12} className="text-gray-400" />
                               {contact.phone?.number || customer.phones?.[0]?.number}
                             </div>
                           )}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 text-sm text-ink-600">
-                          <Calendar size={14} className="text-ink-400" />
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Calendar size={14} className="text-gray-400" />
                           {formatDate(customer.metadata?.created)}
                         </div>
                       </td>

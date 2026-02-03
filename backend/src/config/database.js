@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import pg from 'pg';
 const { Pool } = pg;
 
@@ -786,6 +787,16 @@ export const initializeDatabase = async () => {
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='delivery_url') THEN
           ALTER TABLE tasks ADD COLUMN delivery_url TEXT;
+        END IF;
+      END $$;
+    `);
+
+    // Add created_by column to tasks (who created the task)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='created_by') THEN
+          ALTER TABLE tasks ADD COLUMN created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL;
         END IF;
       END $$;
     `);

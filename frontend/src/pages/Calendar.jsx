@@ -169,12 +169,12 @@ const Calendar = () => {
   const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col space-y-6">
       {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Calendario</h1>
-          <p className="text-gray-600">Vista de tareas por fecha</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Calendario</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Vista de tareas por fecha</p>
         </div>
         <div className="flex items-center gap-2">
           {/* View toggle */}
@@ -183,7 +183,7 @@ const Calendar = () => {
               onClick={() => setView('month')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'month'
-                  ? 'bg-white text-primary-600 shadow-sm'
+                  ? 'bg-white text-[#1A1A2E] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -194,7 +194,7 @@ const Calendar = () => {
               onClick={() => setView('week')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'week'
-                  ? 'bg-white text-primary-600 shadow-sm'
+                  ? 'bg-white text-[#1A1A2E] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -222,7 +222,7 @@ const Calendar = () => {
           </button>
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-[#1A1A2E] hover:bg-gray-50 rounded-lg transition-colors"
           >
             Hoy
           </button>
@@ -263,7 +263,7 @@ const Calendar = () => {
                 className={`border-r border-b last:border-r-0 p-1 ${
                   view === 'week' ? 'min-h-[400px]' : 'min-h-[100px]'
                 } ${!isCurrentMonth ? 'bg-gray-50' : ''} ${
-                  isCurrentDay ? 'bg-primary-50' : ''
+                  isCurrentDay ? 'bg-gray-50' : ''
                 }`}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, day)}
@@ -271,7 +271,7 @@ const Calendar = () => {
                 <div
                   className={`text-sm font-medium mb-1 ${
                     isCurrentDay
-                      ? 'w-7 h-7 bg-primary-500 text-white rounded-full flex items-center justify-center mx-auto'
+                      ? 'w-7 h-7 bg-gray-500 text-white rounded-full flex items-center justify-center mx-auto'
                       : isCurrentMonth
                       ? 'text-gray-700'
                       : 'text-gray-400'
@@ -395,7 +395,7 @@ const Calendar = () => {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setSelectedTask(null)}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-[#1A1A2E] transition-colors"
               >
                 Cerrar
               </button>

@@ -157,17 +157,13 @@ router.put('/task/:taskId', async (req, res) => {
       return res.status(400).json({ error: 'tagIds must be an array' });
     }
 
-    const transaction = db.transaction(() => {
-      // Remove all existing tags
-      db.prepare('DELETE FROM task_tags WHERE task_id = ?').run(req.params.taskId);
+    // Remove all existing tags
+    await db.prepare('DELETE FROM task_tags WHERE task_id = ?').run(req.params.taskId);
 
-      // Add new tags
-      const insertStmt = db.prepare('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)');
-      tagIds.forEach(tagId => {
-        insertStmt.run(req.params.taskId, tagId);
-      });
-    });
-    await transaction();
+    // Add new tags
+    for (const tagId of tagIds) {
+      await db.prepare('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)').run(req.params.taskId, tagId);
+    }
 
     const tags = await db.prepare(`
       SELECT t.*

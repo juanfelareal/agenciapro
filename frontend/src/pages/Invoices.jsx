@@ -294,10 +294,10 @@ const Invoices = () => {
   };
 
   const statusColors = {
-    draft: 'bg-gray-100 text-gray-800',
-    approved: 'bg-blue-100 text-blue-800',
-    invoiced: 'bg-yellow-100 text-yellow-800',
-    paid: 'bg-green-100 text-green-800',
+    draft: 'bg-gray-100 text-gray-600',
+    approved: 'bg-blue-100 text-blue-700',
+    invoiced: 'bg-amber-100 text-amber-700',
+    paid: 'bg-[#10B981]/10 text-[#10B981]',
   };
 
   const statusLabels = {
@@ -596,15 +596,15 @@ const Invoices = () => {
   }
 
   return (
-    <div>
-      <div className="mb-8 flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Facturas</h1>
-          <p className="text-gray-600">Gestión de facturas e ingresos</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Facturas</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestión de facturas e ingresos</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
         >
           <Plus size={20} />
           Nueva Factura
@@ -612,14 +612,14 @@ const Invoices = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4">
+      <div className="bg-white rounded-2xl border border-gray-100 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Filter size={18} className="text-gray-500" />
-          <span className="font-medium text-gray-700">Filtros</span>
+          <span className="font-medium text-[#1A1A2E]">Filtros</span>
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-[#1A1A2E]"
             >
               <RotateCcw size={14} />
               Limpiar filtros
@@ -628,9 +628,9 @@ const Invoices = () => {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Cliente</label>
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Cliente</label>
             <select
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
               value={filters.client_id}
               onChange={(e) => setFilters({ ...filters, client_id: e.target.value })}
             >
@@ -643,9 +643,9 @@ const Invoices = () => {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Estado</label>
             <select
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
@@ -657,9 +657,9 @@ const Invoices = () => {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Tipo</label>
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Tipo</label>
             <select
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
               value={filters.invoice_type}
               onChange={(e) => setFilters({ ...filters, invoice_type: e.target.value })}
             >
@@ -669,19 +669,19 @@ const Invoices = () => {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Fecha desde</label>
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Fecha desde</label>
             <input
               type="date"
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
               value={filters.date_from}
               onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Fecha hasta</label>
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Fecha hasta</label>
             <input
               type="date"
-              className="w-full border rounded-lg px-3 py-2 text-sm"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
               value={filters.date_to}
               onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
             />
@@ -696,16 +696,16 @@ const Invoices = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[#BFFF00]/10 border border-[#BFFF00]/30 rounded-2xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-primary-600" />
-            <span className="font-medium text-primary-700">
+            <CheckSquare size={18} className="text-[#65A30D]" />
+            <span className="font-medium text-[#1A1A2E]">
               {selectedIds.size} factura{selectedIds.size !== 1 ? 's' : ''} seleccionada{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-primary-200" />
+          <div className="h-6 w-px bg-[#BFFF00]/30" />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-primary-600">Cambiar estado:</span>
+            <span className="text-sm text-[#1A1A2E]">Cambiar estado:</span>
             <button
               onClick={() => handleBulkStatusChange('draft')}
               disabled={bulkUpdating}
@@ -737,7 +737,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-primary-600">Tipo:</span>
+            <span className="text-sm text-[#1A1A2E]">Tipo:</span>
             <button
               onClick={() => handleBulkTypeChange('con_iva')}
               disabled={bulkUpdating}
@@ -755,7 +755,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-primary-600">Fecha:</span>
+            <span className="text-sm text-[#1A1A2E]">Fecha:</span>
             <input
               type="date"
               value={bulkDateValue}
@@ -772,7 +772,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-primary-600">Monto:</span>
+            <span className="text-sm text-[#1A1A2E]">Monto:</span>
             <div className="flex items-center">
               <span className="text-gray-500 text-sm mr-1">$</span>
               <input
@@ -813,27 +813,27 @@ const Invoices = () => {
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-100 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[#1A1A2E] hover:bg-gray-100 rounded-lg"
           >
             Cancelar selección
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         <table className="w-full min-w-[900px]">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-3 py-3 text-center w-12">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-primary-600"
+                  className="text-gray-500 hover:text-[#1A1A2E]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-primary-600" />
+                    <CheckSquare size={18} className="text-[#1A1A2E]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-primary-600" />
+                    <MinusSquare size={18} className="text-[#1A1A2E]" />
                   ) : (
                     <Square size={18} />
                   )}
@@ -865,7 +865,7 @@ const Invoices = () => {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
             {filteredInvoices.length === 0 ? (
               <tr>
                 <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
@@ -878,15 +878,15 @@ const Invoices = () => {
               filteredInvoices.map((invoice) => (
               <tr
                 key={invoice.id}
-                className={`hover:bg-gray-50 ${selectedIds.has(invoice.id) ? 'bg-primary-50' : ''}`}
+                className={`hover:bg-gray-50 ${selectedIds.has(invoice.id) ? 'bg-gray-50' : ''}`}
               >
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(invoice.id)}
-                    className="text-gray-400 hover:text-primary-600"
+                    className="text-gray-400 hover:text-[#1A1A2E]"
                   >
                     {selectedIds.has(invoice.id) ? (
-                      <CheckSquare size={18} className="text-primary-600" />
+                      <CheckSquare size={18} className="text-[#1A1A2E]" />
                     ) : (
                       <Square size={18} />
                     )}
@@ -1131,14 +1131,14 @@ const Invoices = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 pb-4 border-b">
-              <h2 className="text-2xl font-bold">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
+            <div className="flex justify-between items-center p-6 pb-4 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingInvoice ? 'Editar Factura' : 'Nueva Factura'}
               </h2>
-              <button onClick={() => setShowModal(false)}>
-                <X size={24} />
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -1169,7 +1169,7 @@ const Invoices = () => {
                         type="button"
                         onClick={handleCreateClient}
                         disabled={creatingClient || !newClientName.trim()}
-                        className="px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {creatingClient ? '...' : 'Crear'}
                       </button>
@@ -1202,7 +1202,7 @@ const Invoices = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewClient(true)}
-                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-primary-600 flex items-center gap-1"
+                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-[#1A1A2E] flex items-center gap-1"
                         title="Crear nuevo cliente"
                       >
                         <Plus size={16} />
@@ -1306,7 +1306,7 @@ const Invoices = () => {
                           setFormData({ ...formData, is_recurring: isChecked, next_recurrence_date: '' });
                         }
                       }}
-                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                      className="w-4 h-4 text-[#1A1A2E] border-gray-300 rounded focus:ring-[#1A1A2E]"
                     />
                     <Repeat size={16} className="text-gray-500" />
                     <span className="text-sm font-medium">Factura Recurrente</span>
@@ -1438,17 +1438,17 @@ const Invoices = () => {
                 )}
                 </div>
               </div>
-              <div className="flex justify-end gap-3 p-6 pt-4 border-t bg-white">
+              <div className="flex justify-end gap-3 p-6 pt-4 border-t border-gray-100 bg-white rounded-b-2xl">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                 >
                   Guardar
                 </button>

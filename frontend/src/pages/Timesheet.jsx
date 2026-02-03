@@ -245,8 +245,8 @@ const Timesheet = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-900">Timesheet</h1>
-          <p className="text-ink-500 text-sm mt-1">
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Timesheet</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
             Registro de tiempo semanal
           </p>
         </div>
@@ -273,7 +273,7 @@ const Timesheet = () => {
               <ChevronLeft size={20} />
             </button>
             <div className="text-center min-w-[200px]">
-              <span className="font-medium text-ink-900">
+              <span className="font-medium text-[#1A1A2E]">
                 {format(currentWeekStart, 'd MMM', { locale: es })} -{' '}
                 {format(weekEnd, 'd MMM yyyy', { locale: es })}
               </span>
@@ -340,7 +340,7 @@ const Timesheet = () => {
                   </div>
 
                   {/* Task/Description */}
-                  <h3 className="text-lg font-semibold text-ink-900">
+                  <h3 className="text-lg font-semibold text-[#1A1A2E]">
                     {runningEntry.task_title || runningEntry.description || 'Sin descripción'}
                   </h3>
 
@@ -427,22 +427,22 @@ const Timesheet = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-ink-500">
+                  <td colSpan={9} className="text-center py-12 text-gray-500">
                     Cargando...
                   </td>
                 </tr>
               ) : timesheetData?.projects?.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-ink-500">
+                  <td colSpan={9} className="text-center py-12 text-gray-500">
                     No hay registros de tiempo esta semana
                   </td>
                 </tr>
               ) : (
                 <>
                   {timesheetData?.projects?.map(project => (
-                    <tr key={project.project_id || 'no_project'} className="border-t border-ink-100">
+                    <tr key={project.project_id || 'no_project'} className="border-t border-gray-100">
                       <td className="p-4">
-                        <div className="font-medium text-ink-900">
+                        <div className="font-medium text-[#1A1A2E]">
                           {project.project_name}
                         </div>
                       </td>
@@ -464,7 +464,7 @@ const Timesheet = () => {
                           </td>
                         );
                       })}
-                      <td className="text-center p-4 font-medium text-ink-900">
+                      <td className="text-center p-4 font-medium text-[#1A1A2E]">
                         {formatMinutes(project.total_minutes)}
                       </td>
                     </tr>
@@ -472,7 +472,7 @@ const Timesheet = () => {
 
                   {/* Daily Totals Row */}
                   <tr className="border-t-2 border-ink-200 bg-ink-50">
-                    <td className="p-4 font-semibold text-ink-900">Total Diario</td>
+                    <td className="p-4 font-semibold text-[#1A1A2E]">Total Diario</td>
                     {weekDays.map(day => {
                       const total = getDayTotal(day);
                       return (
@@ -481,7 +481,7 @@ const Timesheet = () => {
                           className={`text-center p-4 font-semibold ${
                             isSameDay(day, new Date())
                               ? 'text-success-700'
-                              : 'text-ink-900'
+                              : 'text-[#1A1A2E]'
                           }`}
                         >
                           {total > 0 ? formatMinutes(total) : '-'}
@@ -501,12 +501,12 @@ const Timesheet = () => {
 
       {/* Detailed Entries List */}
       <div className="card">
-        <div className="p-4 border-b border-ink-100">
-          <h3 className="font-semibold text-ink-900">Registros Detallados</h3>
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="font-semibold text-[#1A1A2E]">Registros Detallados</h3>
         </div>
-        <div className="divide-y divide-ink-100">
+        <div className="divide-y divide-gray-100">
           {entries.length === 0 ? (
-            <div className="p-8 text-center text-ink-500">
+            <div className="p-8 text-center text-gray-500">
               No hay registros esta semana
             </div>
           ) : (
@@ -514,7 +514,7 @@ const Timesheet = () => {
               <div key={entry.id} className="p-4 hover:bg-ink-50 flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-ink-900">
+                    <span className="font-medium text-[#1A1A2E]">
                       {entry.description || 'Sin descripción'}
                     </span>
                     {entry.billable === 1 && (
@@ -523,7 +523,7 @@ const Timesheet = () => {
                       </span>
                     )}
                   </div>
-                  <div className="text-sm text-ink-500 mt-1">
+                  <div className="text-sm text-gray-500 mt-1">
                     {entry.project_name && (
                       <span>{entry.project_name}</span>
                     )}
@@ -543,7 +543,7 @@ const Timesheet = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="font-semibold text-ink-900 min-w-[60px] text-right">
+                  <span className="font-semibold text-[#1A1A2E] min-w-[60px] text-right">
                     {formatMinutes(entry.duration_minutes)}
                   </span>
                   <div className="flex items-center gap-1">
@@ -559,7 +559,7 @@ const Timesheet = () => {
                     )}
                     <button
                       onClick={() => handleEditEntry(entry)}
-                      className="p-2 rounded-lg hover:bg-ink-100 text-ink-500"
+                      className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
                     >
                       <Edit2 size={16} />
                     </button>

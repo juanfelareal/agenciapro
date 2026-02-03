@@ -4,8 +4,26 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== CSS Variables - Granola AI Inspired ===== */
+/* ===== CSS Variables - New Lime/Dark Design System ===== */
 :root {
+  /* New design system */
+  --surface: #F8F9FA;
+  --card: #FFFFFF;
+  --dark: #1A1A2E;
+  --lime-400: #BFFF00;
+  --lime-500: #A3E635;
+  --lime-600: #65A30D;
+  --income: #10B981;
+  --expense: #F97316;
+  --text-primary: #1A1A2E;
+  --text-secondary: #6B7280;
+
+  /* New shadows */
+  --shadow-elevated: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-bento: 0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  --shadow-glow-lime: 0 0 20px rgba(191, 255, 0, 0.3);
+
+  /* ===== LEGACY VARIABLES (to be removed in FASE 9) ===== */
   /* Warm cream base */
   --cream-50: #FFFDF9;
   --cream-100: #FBF8F3;
@@ -43,17 +61,15 @@
   --error-500: #EF4444;
   --error-600: #DC2626;
 
-  /* Semantic aliases */
+  /* Legacy semantic aliases */
   --background: var(--cream-50);
-  --card: rgba(255, 255, 255, 0.7);
+  --card-legacy: rgba(255, 255, 255, 0.7);
   --card-solid: #FFFFFF;
   --border: rgba(0, 0, 0, 0.06);
   --border-strong: rgba(0, 0, 0, 0.1);
-  --text-primary: var(--ink-900);
-  --text-secondary: var(--ink-500);
   --text-muted: var(--ink-400);
 
-  /* Shadows - Softer, more subtle */
+  /* Legacy shadows */
   --shadow-soft: 0 2px 8px -2px rgba(0, 0, 0, 0.04), 0 4px 12px -4px rgba(0, 0, 0, 0.03);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 16px rgba(0, 0, 0, 0.03);
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.04);
@@ -467,6 +483,102 @@ body {
   .status-error {
     @apply bg-red-100 text-red-700;
   }
+
+  /* ===== NEW DESIGN SYSTEM COMPONENTS ===== */
+
+  /* New Cards - Clean, no glassmorphism */
+  .card-new {
+    @apply bg-white rounded-2xl border border-gray-100 transition-all duration-200;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .card-new:hover {
+    box-shadow: var(--shadow-bento);
+  }
+
+  .card-dark {
+    @apply rounded-2xl text-white;
+    background: var(--dark);
+  }
+
+  /* New Buttons */
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed text-white;
+    background: var(--dark);
+  }
+
+  .btn-dark:hover:not(:disabled) {
+    background: #252542;
+    transform: scale(1.02);
+  }
+
+  .btn-lime {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--lime-400);
+    color: var(--dark);
+  }
+
+  .btn-lime:hover:not(:disabled) {
+    background: var(--lime-500);
+    box-shadow: var(--shadow-glow-lime);
+  }
+
+  /* New Badges */
+  .badge-lime {
+    @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full;
+    background: rgba(191, 255, 0, 0.2);
+    color: var(--lime-600);
+  }
+
+  .badge-dark {
+    @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full text-white;
+    background: var(--dark);
+  }
+
+  /* New Stat Components */
+  .stat-value {
+    @apply text-4xl font-black tracking-tight tabular-nums;
+    color: var(--dark);
+  }
+
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wider;
+    color: var(--text-secondary);
+  }
+
+  /* Income/Expense colors */
+  .text-income {
+    color: var(--income);
+  }
+
+  .text-expense {
+    color: var(--expense);
+  }
+
+  .bg-income {
+    background: var(--income);
+  }
+
+  .bg-expense {
+    background: var(--expense);
+  }
+
+  /* New Nav Item - Dark active state with lime */
+  .nav-item-new {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150;
+    color: var(--text-secondary);
+  }
+
+  .nav-item-new:hover {
+    @apply bg-gray-100;
+    color: var(--dark);
+  }
+
+  .nav-item-new-active {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium;
+    background: var(--dark);
+    color: var(--lime-400);
+  }
 }
 
 /* ===== Utility Classes ===== */
@@ -524,4 +636,14 @@ body {
   .tracking-display {
     letter-spacing: -0.03em;
   }
+}
+
+/* Widget Edit Mode Animation */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-0.5deg); }
+  50% { transform: rotate(0.5deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.3s ease-in-out infinite;
 }

@@ -297,8 +297,8 @@ const SiigoInvoices = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <RefreshCw className="animate-spin text-ink-400" size={32} />
-        <p className="text-ink-500">Cargando facturas de Siigo...</p>
+        <RefreshCw className="animate-spin text-gray-400" size={32} />
+        <p className="text-gray-500">Cargando facturas de Siigo...</p>
       </div>
     );
   }
@@ -309,14 +309,14 @@ const SiigoInvoices = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/siigo')}
-            className="p-2 hover:bg-ink-100 rounded-lg transition-colors"
+            onClick={() => navigate('/app/siigo')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-ink-900">Facturas en Siigo</h1>
-            <p className="text-ink-500 text-sm mt-1">
+            <h1 className="text-2xl font-semibold text-[#1A1A2E]">Facturas en Siigo</h1>
+            <p className="text-gray-500 text-sm mt-1">
               {pagination.total} facturas encontradas - Mostrando últimas 50
             </p>
           </div>
@@ -346,7 +346,7 @@ const SiigoInvoices = () => {
       <div className="card p-4">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex-1 min-w-[200px] relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Buscar por número, cliente o NIT..."
@@ -356,7 +356,7 @@ const SiigoInvoices = () => {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Calendar size={16} className="text-ink-400" />
+            <Calendar size={16} className="text-gray-400" />
             <input
               type="date"
               value={startDate}
@@ -364,7 +364,7 @@ const SiigoInvoices = () => {
               className="input w-40"
               title="Fecha desde"
             />
-            <span className="text-ink-400">-</span>
+            <span className="text-gray-400">-</span>
             <input
               type="date"
               value={endDate}
@@ -375,7 +375,7 @@ const SiigoInvoices = () => {
             {(startDate || endDate) && (
               <button
                 onClick={() => { setStartDate(''); setEndDate(''); }}
-                className="p-2 hover:bg-ink-100 rounded-lg text-ink-500"
+                className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
                 title="Limpiar fechas"
               >
                 <X size={16} />
@@ -383,7 +383,7 @@ const SiigoInvoices = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Filter size={16} className="text-ink-400" />
+            <Filter size={16} className="text-gray-400" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -394,7 +394,7 @@ const SiigoInvoices = () => {
               <option value="pending">Pendientes</option>
             </select>
           </div>
-          <div className="text-sm text-ink-500">
+          <div className="text-sm text-gray-500">
             Mostrando {filteredInvoices.length} de {invoices.length}
           </div>
         </div>
@@ -402,9 +402,9 @@ const SiigoInvoices = () => {
 
       {/* Selection Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 flex items-center gap-4">
-          <CheckSquare className="text-primary-600" size={20} />
-          <span className="font-medium text-primary-700">
+        <div className="bg-gray-50 border border-primary-200 rounded-xl p-4 flex items-center gap-4">
+          <CheckSquare className="text-[#1A1A2E]" size={20} />
+          <span className="font-medium text-[#1A1A2E]">
             {selectedIds.size} factura(s) seleccionada(s)
           </span>
           <button
@@ -432,46 +432,46 @@ const SiigoInvoices = () => {
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-ink-50">
+            <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left w-12">
-                  <button onClick={toggleSelectAll} className="text-ink-500 hover:text-primary-600">
+                  <button onClick={toggleSelectAll} className="text-gray-500 hover:text-[#1A1A2E]">
                     {isAllSelected ? (
-                      <CheckSquare size={18} className="text-primary-600" />
+                      <CheckSquare size={18} className="text-[#1A1A2E]" />
                     ) : isSomeSelected ? (
-                      <MinusSquare size={18} className="text-primary-600" />
+                      <MinusSquare size={18} className="text-[#1A1A2E]" />
                     ) : (
                       <Square size={18} />
                     )}
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Factura
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Cliente
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Fecha
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   Total
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   Saldo
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Estado
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-ink-500 uppercase">
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Ver
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-100">
+            <tbody className="divide-y divide-gray-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-ink-500">
+                  <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                     No se encontraron facturas con los filtros seleccionados
                   </td>
                 </tr>
@@ -484,7 +484,7 @@ const SiigoInvoices = () => {
                   return (
                     <tr
                       key={invoice.id}
-                      className={`hover:bg-ink-50 cursor-pointer ${isSelected ? 'bg-primary-50' : ''}`}
+                      className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-gray-50' : ''}`}
                       onClick={() => toggleSelect(invoice.id)}
                     >
                       <td className="px-4 py-3">
@@ -493,10 +493,10 @@ const SiigoInvoices = () => {
                             e.stopPropagation();
                             toggleSelect(invoice.id);
                           }}
-                          className="text-ink-400 hover:text-primary-600"
+                          className="text-gray-400 hover:text-[#1A1A2E]"
                         >
                           {isSelected ? (
-                            <CheckSquare size={18} className="text-primary-600" />
+                            <CheckSquare size={18} className="text-[#1A1A2E]" />
                           ) : (
                             <Square size={18} />
                           )}
@@ -508,28 +508,28 @@ const SiigoInvoices = () => {
                             <FileText size={16} />
                           </div>
                           <div>
-                            <p className="font-medium text-ink-900">{invoice.name}</p>
-                            <p className="text-xs text-ink-500">{invoice.prefix}-{invoice.number}</p>
+                            <p className="font-medium text-[#1A1A2E]">{invoice.name}</p>
+                            <p className="text-xs text-gray-500">{invoice.prefix}-{invoice.number}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <User size={14} className="text-ink-400" />
+                          <User size={14} className="text-gray-400" />
                           <div>
-                            <p className="text-sm text-ink-900">{customerInfo.name || 'Cliente'}</p>
-                            <p className="text-xs text-ink-500">{invoice.customer?.identification}</p>
+                            <p className="text-sm text-[#1A1A2E]">{customerInfo.name || 'Cliente'}</p>
+                            <p className="text-xs text-gray-500">{invoice.customer?.identification}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 text-sm text-ink-600">
-                          <Calendar size={14} className="text-ink-400" />
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Calendar size={14} className="text-gray-400" />
                           {formatDate(invoice.date)}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="font-semibold text-ink-900">
+                        <span className="font-semibold text-[#1A1A2E]">
                           {formatCurrency(invoice.total)}
                         </span>
                       </td>
@@ -583,19 +583,19 @@ const SiigoInvoices = () => {
       <div className="card p-4">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-sm text-ink-500">Total Facturas</p>
-            <p className="text-xl font-bold text-ink-900">
+            <p className="text-sm text-gray-500">Total Facturas</p>
+            <p className="text-xl font-bold text-[#1A1A2E]">
               {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
             </p>
           </div>
           <div>
-            <p className="text-sm text-ink-500">Pagadas</p>
+            <p className="text-sm text-gray-500">Pagadas</p>
             <p className="text-xl font-bold text-emerald-600">
               {formatCurrency(filteredInvoices.filter(inv => inv.balance === 0).reduce((sum, inv) => sum + (inv.total || 0), 0))}
             </p>
           </div>
           <div>
-            <p className="text-sm text-ink-500">Pendiente por Cobrar</p>
+            <p className="text-sm text-gray-500">Pendiente por Cobrar</p>
             <p className="text-xl font-bold text-amber-600">
               {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0))}
             </p>

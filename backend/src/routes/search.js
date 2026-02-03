@@ -73,25 +73,25 @@ router.get('/', async (req, res) => {
       tasks: tasks.map(t => ({
         ...t,
         icon: 'check-square',
-        url: `/tasks?highlight=${t.id}`,
+        url: `/app/tasks?highlight=${t.id}`,
         subtitle: t.project_name || 'Sin proyecto'
       })),
       projects: projects.map(p => ({
         ...p,
         icon: 'folder-kanban',
-        url: `/projects/${p.id}`,
+        url: `/app/projects/${p.id}`,
         subtitle: p.client_name || 'Sin cliente'
       })),
       clients: clients.map(c => ({
         ...c,
         icon: 'users',
-        url: `/clients?highlight=${c.id}`,
+        url: `/app/clients?highlight=${c.id}`,
         subtitle: c.secondary_name || c.email || ''
       })),
       team: team.map(m => ({
         ...m,
         icon: 'user',
-        url: `/team?highlight=${m.id}`,
+        url: `/app/team?highlight=${m.id}`,
         subtitle: m.position || m.role || ''
       })),
       invoices: invoices.map(i => ({

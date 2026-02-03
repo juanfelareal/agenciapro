@@ -119,7 +119,7 @@ function ClientPlatformSettings() {
       );
     } catch (error) {
       setConnectingFacebook(false);
-      alert('Error al iniciar conexion: ' + (error.response?.data?.error || error.message));
+      alert('Error al iniciar conexión: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -175,7 +175,7 @@ function ClientPlatformSettings() {
       await platformCredentialsAPI.testFacebook(credentialId);
       loadData();
     } catch (error) {
-      alert('Error al probar conexion: ' + (error.response?.data?.error || error.message));
+      alert('Error al probar conexión: ' + (error.response?.data?.error || error.message));
     } finally {
       setTesting((prev) => ({ ...prev, [credentialId]: false }));
     }
@@ -279,24 +279,24 @@ function ClientPlatformSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1A1A2E]" />
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/clients')}
+          onClick={() => navigate('/app/clients')}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configurar Plataformas</h1>
-          <p className="text-gray-500">{client?.company || client?.name}</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Configurar Plataformas</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{client?.company || client?.name}</p>
         </div>
       </div>
 
@@ -345,7 +345,7 @@ function ClientPlatformSettings() {
                         onClick={() => testFacebookAccount(account.id)}
                         disabled={testing[account.id]}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
-                        title="Probar conexion"
+                        title="Probar conexión"
                       >
                         {testing[account.id] ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -386,7 +386,7 @@ function ClientPlatformSettings() {
             </button>
 
             <p className="text-xs text-gray-400 mt-3 text-center">
-              Se abrira una ventana para autorizar el acceso a tus cuentas de anuncios
+              Se abrirá una ventana para autorizar el acceso a tus cuentas de anuncios
             </p>
           </div>
         </div>
@@ -416,7 +416,7 @@ function ClientPlatformSettings() {
                 value={shopifyForm.store_url}
                 onChange={(e) => setShopifyForm((prev) => ({ ...prev, store_url: e.target.value }))}
                 placeholder="mi-tienda.myshopify.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]"
               />
             </div>
 
@@ -429,7 +429,7 @@ function ClientPlatformSettings() {
                 value={shopifyForm.access_token}
                 onChange={(e) => setShopifyForm((prev) => ({ ...prev, access_token: e.target.value }))}
                 placeholder="shpat_xxxxx..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Crea una app privada en tu tienda Shopify para obtener el token
@@ -440,7 +440,7 @@ function ClientPlatformSettings() {
             {testResults.shopify && (
               <div className={`p-3 rounded-lg ${testResults.shopify.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                 {testResults.shopify.success ? (
-                  <p>Conexion exitosa: {testResults.shopify.storeName}</p>
+                  <p>Conexión exitosa: {testResults.shopify.storeName}</p>
                 ) : (
                   <p>Error: {testResults.shopify.error}</p>
                 )}
@@ -450,7 +450,7 @@ function ClientPlatformSettings() {
             {/* Last sync info */}
             {credentials.shopify?.last_sync_at && (
               <p className="text-xs text-gray-400">
-                Ultima sincronizacion: {new Date(credentials.shopify.last_sync_at).toLocaleString('es-CO')}
+                Última sincronización: {new Date(credentials.shopify.last_sync_at).toLocaleString('es-CO')}
               </p>
             )}
 
@@ -458,7 +458,7 @@ function ClientPlatformSettings() {
               <button
                 onClick={saveShopify}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 Guardar

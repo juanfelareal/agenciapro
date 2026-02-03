@@ -44,11 +44,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Landing page - public homepage */}
+        <Route path="/" element={<Landing />} />
+
         {/* Login page - no layout */}
         <Route path="/login" element={<Login />} />
-
-        {/* Landing page - no layout */}
-        <Route path="/landing" element={<Landing />} />
 
         {/* Portal Login - no layout */}
         <Route path="/portal/login" element={<PortalLogin />} />
@@ -115,12 +115,12 @@ function App() {
 
         {/* App routes with Layout */}
         <Route
-          path="/*"
+          path="/app/*"
           element={
             <Layout>
               <Routes>
                 <Route
-                  path="/"
+                  index
                   element={
                     <ProtectedRoute permission="dashboard">
                       <Dashboard />
@@ -128,7 +128,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/clients"
+                  path="clients"
                   element={
                     <ProtectedRoute permission="clients">
                       <Clients />
@@ -136,7 +136,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/projects"
+                  path="projects"
                   element={
                     <ProtectedRoute permission="projects">
                       <Projects />
@@ -144,7 +144,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/projects/:id"
+                  path="projects/:id"
                   element={
                     <ProtectedRoute permission="projects">
                       <ProjectBoard />
@@ -152,7 +152,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/tasks"
+                  path="tasks"
                   element={
                     <ProtectedRoute permission="tasks">
                       <Tasks />
@@ -160,7 +160,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/team"
+                  path="team"
                   element={
                     <ProtectedRoute permission="team">
                       <Team />
@@ -168,7 +168,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/invoices"
+                  path="invoices"
                   element={
                     <ProtectedRoute permission="invoices">
                       <Invoices />
@@ -176,7 +176,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/expenses"
+                  path="expenses"
                   element={
                     <ProtectedRoute permission="expenses">
                       <Expenses />
@@ -184,16 +184,16 @@ function App() {
                   }
                 />
                 <Route
-                  path="/comisiones"
+                  path="comisiones"
                   element={
                     <ProtectedRoute permission="comisiones">
                       <Comisiones />
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/inbox" element={<Inbox />} />
+                <Route path="inbox" element={<Inbox />} />
                 <Route
-                  path="/calendario"
+                  path="calendario"
                   element={
                     <ProtectedRoute permission="calendario">
                       <Calendar />
@@ -201,7 +201,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/automatizaciones"
+                  path="automatizaciones"
                   element={
                     <ProtectedRoute permission="automatizaciones">
                       <Automations />
@@ -209,7 +209,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/reportes"
+                  path="reportes"
                   element={
                     <ProtectedRoute permission="reportes">
                       <Reports />
@@ -217,7 +217,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/notas"
+                  path="notas"
                   element={
                     <ProtectedRoute permission="notas">
                       <Notes />
@@ -225,7 +225,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/metricas"
+                  path="metricas"
                   element={
                     <ProtectedRoute permission="metricas">
                       <MetricsDashboard />
@@ -233,7 +233,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/metricas/cliente/:clientId"
+                  path="metricas/cliente/:clientId"
                   element={
                     <ProtectedRoute permission="metricas">
                       <ClientMetrics />
@@ -241,7 +241,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/clients/:id/plataformas"
+                  path="clients/:id/plataformas"
                   element={
                     <ProtectedRoute permission="clients">
                       <ClientPlatformSettings />
@@ -249,7 +249,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/sops"
+                  path="sops"
                   element={
                     <ProtectedRoute permission="sops">
                       <SOPs />
@@ -257,7 +257,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/plantillas-proyecto"
+                  path="plantillas-proyecto"
                   element={
                     <ProtectedRoute permission="plantillas">
                       <ProjectTemplates />
@@ -265,7 +265,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/timesheet"
+                  path="timesheet"
                   element={
                     <ProtectedRoute permission="timesheet">
                       <Timesheet />
@@ -273,7 +273,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/time-reports"
+                  path="time-reports"
                   element={
                     <ProtectedRoute permission="time_reports">
                       <TimeReports />
@@ -281,7 +281,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/siigo"
+                  path="siigo"
                   element={
                     <ProtectedRoute permission="siigo">
                       <SiigoSettings />
@@ -289,7 +289,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/siigo/customers"
+                  path="siigo/customers"
                   element={
                     <ProtectedRoute permission="siigo">
                       <SiigoCustomers />
@@ -297,7 +297,7 @@ function App() {
                   }
                 />
                 <Route
-                  path="/siigo/invoices"
+                  path="siigo/invoices"
                   element={
                     <ProtectedRoute permission="siigo">
                       <SiigoInvoices />

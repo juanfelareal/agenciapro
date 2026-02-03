@@ -160,7 +160,7 @@ const SiigoSettings = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="animate-spin text-ink-400" size={32} />
+        <RefreshCw className="animate-spin text-gray-400" size={32} />
       </div>
     );
   }
@@ -170,8 +170,8 @@ const SiigoSettings = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-900">Integración Siigo</h1>
-          <p className="text-ink-500 text-sm mt-1">
+          <h1 className="text-2xl font-semibold text-[#1A1A2E]">Integración Siigo</h1>
+          <p className="text-gray-500 text-sm mt-1">
             Configura la conexión con Siigo para facturación electrónica
           </p>
         </div>
@@ -189,7 +189,7 @@ const SiigoSettings = () => {
       {/* Connection Status */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
             <Link2 size={20} />
             Estado de Conexión
           </h2>
@@ -209,26 +209,26 @@ const SiigoSettings = () => {
         {settings && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-ink-500">Usuario</p>
-              <p className="font-medium text-ink-900">{settings.username || '-'}</p>
+              <p className="text-gray-500">Usuario</p>
+              <p className="font-medium text-[#1A1A2E]">{settings.username || '-'}</p>
             </div>
             <div>
-              <p className="text-ink-500">Token válido hasta</p>
-              <p className="font-medium text-ink-900">{formatDate(settings.token_expires_at)}</p>
+              <p className="text-gray-500">Token válido hasta</p>
+              <p className="font-medium text-[#1A1A2E]">{formatDate(settings.token_expires_at)}</p>
             </div>
             <div>
-              <p className="text-ink-500">Última sincronización</p>
-              <p className="font-medium text-ink-900">{formatDate(settings.last_sync_at)}</p>
+              <p className="text-gray-500">Última sincronización</p>
+              <p className="font-medium text-[#1A1A2E]">{formatDate(settings.last_sync_at)}</p>
             </div>
             <div>
-              <p className="text-ink-500">Creado</p>
-              <p className="font-medium text-ink-900">{formatDate(settings.created_at)}</p>
+              <p className="text-gray-500">Creado</p>
+              <p className="font-medium text-[#1A1A2E]">{formatDate(settings.created_at)}</p>
             </div>
           </div>
         )}
 
         {settings?.has_token && (
-          <div className="flex gap-3 mt-4 pt-4 border-t border-ink-100">
+          <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
             <button
               onClick={handleTestConnection}
               disabled={isTesting}
@@ -246,14 +246,14 @@ const SiigoSettings = () => {
               Sincronizar Datos
             </button>
             <button
-              onClick={() => navigate('/siigo/customers')}
+              onClick={() => navigate('/app/siigo/customers')}
               className="btn-primary flex items-center gap-2"
             >
               <Users size={16} />
               Ver Clientes de Siigo
             </button>
             <button
-              onClick={() => navigate('/siigo/invoices')}
+              onClick={() => navigate('/app/siigo/invoices')}
               className="btn-primary flex items-center gap-2"
             >
               <FileText size={16} />
@@ -275,7 +275,7 @@ const SiigoSettings = () => {
 
       {/* Credentials Form */}
       <div className="card p-6">
-        <h2 className="text-lg font-semibold text-ink-900 flex items-center gap-2 mb-4">
+        <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2 mb-4">
           <Key size={20} />
           Credenciales de API
         </h2>
@@ -292,7 +292,7 @@ const SiigoSettings = () => {
                 className="input"
                 required
               />
-              <p className="text-xs text-ink-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Email registrado en Siigo
               </p>
             </div>
@@ -306,7 +306,7 @@ const SiigoSettings = () => {
                 className="input"
                 required={!settings?.has_token}
               />
-              <p className="text-xs text-ink-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Obtén tu clave en Siigo → Alianzas e Integraciones
               </p>
             </div>
@@ -321,7 +321,7 @@ const SiigoSettings = () => {
               placeholder="Tu Partner ID de Siigo"
               className="input"
             />
-            <p className="text-xs text-ink-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               El Partner ID es proporcionado por Siigo al registrarte como integrador.
               Contacta a Siigo si no lo tienes.
             </p>
@@ -345,15 +345,15 @@ const SiigoSettings = () => {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Document Types */}
           <div className="card p-4">
-            <h3 className="font-semibold text-ink-900 flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-[#1A1A2E] flex items-center gap-2 mb-3">
               <FileText size={18} />
               Tipos de Documento ({referenceData.documentTypes.length})
             </h3>
             <div className="space-y-2 max-h-48 overflow-auto">
               {referenceData.documentTypes.map(doc => (
-                <div key={doc.id} className="flex justify-between text-sm p-2 bg-ink-50 rounded-lg">
-                  <span className="text-ink-700">{doc.name}</span>
-                  <span className="text-ink-400">{doc.code}</span>
+                <div key={doc.id} className="flex justify-between text-sm p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-700">{doc.name}</span>
+                  <span className="text-gray-400">{doc.code}</span>
                 </div>
               ))}
             </div>
@@ -361,15 +361,15 @@ const SiigoSettings = () => {
 
           {/* Payment Types */}
           <div className="card p-4">
-            <h3 className="font-semibold text-ink-900 flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-[#1A1A2E] flex items-center gap-2 mb-3">
               <CreditCard size={18} />
               Métodos de Pago ({referenceData.paymentTypes.length})
             </h3>
             <div className="space-y-2 max-h-48 overflow-auto">
               {referenceData.paymentTypes.map(pay => (
-                <div key={pay.id} className="flex justify-between text-sm p-2 bg-ink-50 rounded-lg">
-                  <span className="text-ink-700">{pay.name}</span>
-                  <span className="text-ink-400">{pay.type}</span>
+                <div key={pay.id} className="flex justify-between text-sm p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-700">{pay.name}</span>
+                  <span className="text-gray-400">{pay.type}</span>
                 </div>
               ))}
             </div>
@@ -377,15 +377,15 @@ const SiigoSettings = () => {
 
           {/* Taxes */}
           <div className="card p-4">
-            <h3 className="font-semibold text-ink-900 flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-[#1A1A2E] flex items-center gap-2 mb-3">
               <Percent size={18} />
               Impuestos ({referenceData.taxes.length})
             </h3>
             <div className="space-y-2 max-h-48 overflow-auto">
               {referenceData.taxes.map(tax => (
-                <div key={tax.id} className="flex justify-between text-sm p-2 bg-ink-50 rounded-lg">
-                  <span className="text-ink-700">{tax.name}</span>
-                  <span className="text-ink-400">{tax.percentage}%</span>
+                <div key={tax.id} className="flex justify-between text-sm p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-700">{tax.name}</span>
+                  <span className="text-gray-400">{tax.percentage}%</span>
                 </div>
               ))}
             </div>

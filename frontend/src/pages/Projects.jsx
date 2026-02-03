@@ -195,11 +195,11 @@ const Projects = () => {
   };
 
   const statusColors = {
-    planning: 'bg-gray-100 text-gray-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    on_hold: 'bg-yellow-100 text-yellow-800',
-    completed: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
+    planning: 'bg-gray-100 text-gray-600',
+    in_progress: 'bg-blue-100 text-blue-700',
+    on_hold: 'bg-amber-100 text-amber-700',
+    completed: 'bg-[#10B981]/10 text-[#10B981]',
+    cancelled: 'bg-red-100 text-red-600',
   };
 
   const statusLabels = {
@@ -305,15 +305,15 @@ const Projects = () => {
   }
 
   return (
-    <div>
-      <div className="mb-8 flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Proyectos</h1>
-          <p className="text-gray-600">Gestión de proyectos y presupuestos</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Proyectos</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestión de proyectos y presupuestos</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
         >
           <Plus size={20} />
           Nuevo Proyecto
@@ -322,16 +322,16 @@ const Projects = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[#BFFF00]/10 border border-[#BFFF00] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-primary-600" />
-            <span className="font-medium text-primary-700">
+            <CheckSquare size={18} className="text-[#1A1A2E]" />
+            <span className="font-medium text-[#1A1A2E]">
               {selectedIds.size} proyecto{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-primary-200" />
+          <div className="h-6 w-px bg-[#1A1A2E]/20" />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-primary-600">Estado:</span>
+            <span className="text-sm text-[#1A1A2E]/70">Estado:</span>
             <button
               onClick={() => handleBulkStatusChange('planning')}
               disabled={bulkUpdating}
@@ -349,25 +349,25 @@ const Projects = () => {
             <button
               onClick={() => handleBulkStatusChange('completed')}
               disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm bg-[#10B981]/10 text-[#10B981] rounded-lg hover:bg-[#10B981]/20 disabled:opacity-50"
             >
               Completado
             </button>
             <button
               onClick={() => handleBulkStatusChange('on_hold')}
               disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 disabled:opacity-50"
             >
               En Espera
             </button>
           </div>
-          <div className="h-6 w-px bg-primary-200" />
+          <div className="h-6 w-px bg-[#1A1A2E]/20" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-primary-600">Cliente:</span>
+            <span className="text-sm text-[#1A1A2E]/70">Cliente:</span>
             <select
               onChange={(e) => handleBulkClientChange(e.target.value)}
               disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-white border border-primary-200 rounded-lg disabled:opacity-50"
+              className="px-3 py-1.5 text-sm bg-white border border-gray-200 rounded-lg disabled:opacity-50"
               defaultValue=""
             >
               <option value="" disabled>Seleccionar...</option>
@@ -379,111 +379,111 @@ const Projects = () => {
               ))}
             </select>
           </div>
-          <div className="h-6 w-px bg-primary-200" />
+          <div className="h-6 w-px bg-[#1A1A2E]/20" />
           <button
             onClick={handleBulkDelete}
             disabled={bulkUpdating}
-            className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-1.5 text-sm bg-red-100 text-red-600 rounded-lg hover:bg-red-200 disabled:opacity-50 flex items-center gap-1"
           >
             {bulkUpdating ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Eliminar
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-100 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[#1A1A2E] hover:bg-[#1A1A2E]/10 rounded-lg"
           >
             Cancelar selección
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-3 py-3 text-center w-12">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-primary-600"
+                  className="text-gray-500 hover:text-[#1A1A2E]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-primary-600" />
+                    <CheckSquare size={18} className="text-[#1A1A2E]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-primary-600" />
+                    <MinusSquare size={18} className="text-[#1A1A2E]" />
                   ) : (
                     <Square size={18} />
                   )}
                 </button>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Proyecto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Cliente
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Estado
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Presupuesto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Gastado
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
             {projects.map((project) => (
               <tr
                 key={project.id}
-                className={`hover:bg-gray-50 ${selectedIds.has(project.id) ? 'bg-primary-50' : ''}`}
+                className={`hover:bg-gray-50 ${selectedIds.has(project.id) ? 'bg-[#BFFF00]/10' : ''}`}
               >
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(project.id)}
-                    className="text-gray-400 hover:text-primary-600"
+                    className="text-gray-400 hover:text-[#1A1A2E]"
                   >
                     {selectedIds.has(project.id) ? (
-                      <CheckSquare size={18} className="text-primary-600" />
+                      <CheckSquare size={18} className="text-[#1A1A2E]" />
                     ) : (
                       <Square size={18} />
                     )}
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap font-medium">{project.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{project.client_name || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">{project.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-500">{project.client_name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs ${statusColors[project.status]}`}>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[project.status]}`}>
                     {statusLabels[project.status]}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">
                   ${project.budget?.toLocaleString('es-CO')}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap font-bold text-[#F97316]">
                   ${project.spent?.toLocaleString('es-CO')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
-                    onClick={() => navigate(`/projects/${project.id}`)}
-                    className="text-primary-600 hover:text-primary-800 mr-3"
+                    onClick={() => navigate(`/app/projects/${project.id}`)}
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
                     title="Ver tablero del proyecto"
                   >
                     <FolderKanban size={18} />
                   </button>
                   <button
                     onClick={() => handleEdit(project)}
-                    className="text-blue-600 hover:text-blue-800 mr-3"
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
                   >
                     <Edit size={18} />
                   </button>
                   <button
                     onClick={() => handleDelete(project.id)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -506,14 +506,14 @@ const Projects = () => {
       `}</style>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}
               </h2>
-              <button onClick={() => setShowModal(false)}>
-                <X size={24} />
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -621,7 +621,7 @@ const Projects = () => {
                     </div>
 
                     {useTemplate && (
-                      <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="bg-[#1A1A2E]/5 p-4 rounded-xl">
                         {/* Source Selector */}
                         <div className="flex gap-2 mb-4">
                           <button
@@ -631,10 +631,10 @@ const Projects = () => {
                               setTemplateProjectId('');
                               setTemplateTasks([]);
                             }}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                               templateSource === 'template'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-white border hover:bg-gray-50'
+                                ? 'bg-[#1A1A2E] text-white'
+                                : 'bg-white border border-gray-100 hover:bg-gray-50'
                             }`}
                           >
                             <FileText size={16} className="inline mr-2" />
@@ -647,10 +647,10 @@ const Projects = () => {
                               setSelectedTemplateId('');
                               setTemplateTasks([]);
                             }}
-                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                               templateSource === 'project'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-white border hover:bg-gray-50'
+                                ? 'bg-[#1A1A2E] text-white'
+                                : 'bg-white border border-gray-100 hover:bg-gray-50'
                             }`}
                           >
                             <Copy size={16} className="inline mr-2" />
@@ -663,12 +663,12 @@ const Projects = () => {
                           <div className="mb-3">
                             <label className="block text-sm font-medium mb-1">Seleccionar plantilla</label>
                             {templates.length === 0 ? (
-                              <p className="text-sm text-gray-600 bg-white p-3 rounded border">
-                                No hay plantillas disponibles. <a href="/plantillas-proyecto" className="text-primary-600 hover:underline">Crear una plantilla</a>
+                              <p className="text-sm text-gray-600 bg-white p-3 rounded-xl border border-gray-100">
+                                No hay plantillas disponibles. <a href="/plantillas-proyecto" className="text-[#1A1A2E] font-medium hover:underline">Crear una plantilla</a>
                               </p>
                             ) : (
                               <select
-                                className="w-full border rounded-lg px-3 py-2 bg-white"
+                                className="w-full border border-gray-100 rounded-xl px-3 py-2 bg-white"
                                 value={selectedTemplateId}
                                 onChange={(e) => handleTemplateChange(e.target.value)}
                               >
@@ -688,7 +688,7 @@ const Projects = () => {
                           <div className="mb-3">
                             <label className="block text-sm font-medium mb-1">Seleccionar proyecto base</label>
                             <select
-                              className="w-full border rounded-lg px-3 py-2 bg-white"
+                              className="w-full border border-gray-100 rounded-xl px-3 py-2 bg-white"
                               value={templateProjectId}
                               onChange={(e) => handleTemplateProjectChange(e.target.value)}
                             >
@@ -722,22 +722,22 @@ const Projects = () => {
                                 return (
                                   <div
                                     key={taskKey}
-                                    className="bg-white p-2 rounded border text-sm"
+                                    className="bg-white p-2 rounded-xl border border-gray-100 text-sm"
                                   >
                                     <div className="flex justify-between items-center mb-2">
-                                      <span className="font-medium">{task.title}</span>
-                                      <span className={`px-2 py-0.5 rounded text-xs ${
-                                        task.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                                        task.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                                        task.priority === 'medium' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-gray-100 text-gray-700'
+                                      <span className="font-medium text-[#1A1A2E]">{task.title}</span>
+                                      <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
+                                        task.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                        task.priority === 'high' ? 'bg-[#F97316]/10 text-[#F97316]' :
+                                        task.priority === 'medium' ? 'bg-[#1A1A2E]/10 text-[#1A1A2E]' :
+                                        'bg-gray-100 text-gray-600'
                                       }`}>
                                         {task.priority}
                                       </span>
                                     </div>
                                     <input
                                       type="date"
-                                      className="w-full border rounded px-2 py-1 text-sm"
+                                      className="w-full border border-gray-100 rounded-lg px-2 py-1 text-sm"
                                       placeholder="Fecha de vencimiento"
                                       value={templateTasksDueDates[taskKey] || ''}
                                       onChange={(e) => setTemplateTasksDueDates({
@@ -759,17 +759,17 @@ const Projects = () => {
                   </div>
                 )}
               </div>
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                 >
                   Guardar
                 </button>

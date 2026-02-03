@@ -2,17 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { X, ChevronDown, User, Flag, Calendar, Folder, Tag, Check, Building2 } from 'lucide-react';
 
 const priorityOptions = [
-  { value: 'low', label: 'Baja', color: 'bg-gray-200 text-gray-700' },
-  { value: 'medium', label: 'Media', color: 'bg-blue-200 text-blue-700' },
-  { value: 'high', label: 'Alta', color: 'bg-orange-200 text-orange-700' },
-  { value: 'urgent', label: 'Urgente', color: 'bg-red-200 text-red-700' },
+  { value: 'low', label: 'Baja', color: 'bg-gray-100 text-gray-600' },
+  { value: 'medium', label: 'Media', color: 'bg-[#1A1A2E]/10 text-[#1A1A2E]' },
+  { value: 'high', label: 'Alta', color: 'bg-[#F97316]/10 text-[#F97316]' },
+  { value: 'urgent', label: 'Urgente', color: 'bg-red-100 text-red-600' },
 ];
 
 const statusOptions = [
   { value: 'todo', label: 'Por Hacer', color: 'bg-gray-100' },
   { value: 'in_progress', label: 'En Progreso', color: 'bg-blue-100' },
-  { value: 'review', label: 'En Revisión', color: 'bg-yellow-100' },
-  { value: 'done', label: 'Completado', color: 'bg-green-100' },
+  { value: 'review', label: 'En Revisión', color: 'bg-amber-100' },
+  { value: 'done', label: 'Completado', color: 'bg-[#10B981]/10' },
 ];
 
 // Multi-select dropdown component
@@ -43,14 +43,14 @@ function MultiSelectDropdown({ label, icon: Icon, options, selected, onChange, r
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors ${
-          selected.length > 0 ? 'border-primary-300 bg-primary-50' : 'border-gray-200'
+        className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-sm hover:bg-gray-50 transition-colors ${
+          selected.length > 0 ? 'border-[#BFFF00] bg-[#BFFF00]/10' : 'border-gray-100 bg-white'
         }`}
       >
         <Icon size={16} className="text-gray-500" />
         <span>{label}</span>
         {selected.length > 0 && (
-          <span className="bg-primary-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+          <span className="bg-[#1A1A2E] text-[#BFFF00] text-xs px-1.5 py-0.5 rounded-full">
             {selected.length}
           </span>
         )}
@@ -58,7 +58,7 @@ function MultiSelectDropdown({ label, icon: Icon, options, selected, onChange, r
       </button>
 
       {isOpen && (
-        <div className="absolute z-20 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-64 overflow-y-auto">
+        <div className="absolute z-20 mt-1 w-56 bg-white border border-gray-100 rounded-xl shadow-lg py-1 max-h-64 overflow-y-auto">
           {options.map((option) => (
             <button
               key={option.value}
@@ -66,10 +66,10 @@ function MultiSelectDropdown({ label, icon: Icon, options, selected, onChange, r
               onClick={() => toggleOption(option.value)}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"
             >
-              <div className={`w-4 h-4 border rounded flex items-center justify-center ${
-                selected.includes(option.value) ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
+              <div className={`w-4 h-4 border rounded-md flex items-center justify-center ${
+                selected.includes(option.value) ? 'bg-[#1A1A2E] border-[#1A1A2E]' : 'border-gray-300'
               }`}>
-                {selected.includes(option.value) && <Check size={12} className="text-white" />}
+                {selected.includes(option.value) && <Check size={12} className="text-[#BFFF00]" />}
               </div>
               {renderOption ? renderOption(option) : <span className="text-sm">{option.label}</span>}
             </button>
@@ -144,7 +144,7 @@ export default function TaskFilters({
   }));
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+    <div className="bg-white border border-gray-100 rounded-2xl p-4 mb-4">
       <div className="flex flex-wrap items-center gap-3">
         {/* Assignee Filter */}
         <MultiSelectDropdown
@@ -155,7 +155,7 @@ export default function TaskFilters({
           onChange={(value) => updateFilter('assignees', value)}
           renderOption={(option) => (
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-medium">
+              <div className="w-6 h-6 rounded-lg bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-xs font-medium">
                 {option.avatar}
               </div>
               <span className="text-sm">{option.label}</span>
@@ -184,7 +184,7 @@ export default function TaskFilters({
             type="date"
             value={filters.dueDateFrom || ''}
             onChange={(e) => updateFilter('dueDateFrom', e.target.value)}
-            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-32"
+            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
             placeholder="Desde"
           />
           <span className="text-gray-400">-</span>
@@ -192,7 +192,7 @@ export default function TaskFilters({
             type="date"
             value={filters.dueDateTo || ''}
             onChange={(e) => updateFilter('dueDateTo', e.target.value)}
-            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-32"
+            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
             placeholder="Hasta"
           />
         </div>

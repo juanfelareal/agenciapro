@@ -41,12 +41,12 @@ function MetricsDashboard() {
   };
 
   const handleSync = async () => {
-    if (!confirm('¿Sincronizar metricas de todos los clientes?')) return;
+    if (!confirm('¿Sincronizar métricas de todos los clientes?')) return;
 
     try {
       setSyncing(true);
       await clientMetricsAPI.syncAll();
-      alert('Sincronizacion iniciada. Los datos se actualizaran en unos minutos.');
+      alert('Sincronización iniciada. Los datos se actualizarán en unos minutos.');
       loadData();
     } catch (error) {
       alert('Error al sincronizar: ' + error.message);
@@ -100,17 +100,17 @@ function MetricsDashboard() {
   };
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Metricas</h1>
-          <p className="text-gray-500">Resumen de todos los clientes</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Resumen de todos los clientes</p>
         </div>
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
         >
           {syncing ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -122,7 +122,7 @@ function MetricsDashboard() {
       </div>
 
       {/* Date Range */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-gray-400" />
@@ -149,8 +149,8 @@ function MetricsDashboard() {
               >
                 {preset === 'today' && 'Hoy'}
                 {preset === 'yesterday' && 'Ayer'}
-                {preset === 'last7' && '7 dias'}
-                {preset === 'last30' && '30 dias'}
+                {preset === 'last7' && '7 días'}
+                {preset === 'last30' && '30 días'}
                 {preset === 'thisMonth' && 'Este mes'}
               </button>
             ))}
@@ -206,13 +206,13 @@ function MetricsDashboard() {
 
         {loading ? (
           <div className="p-8 text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600 mx-auto mb-2" />
-            <p className="text-gray-500">Cargando metricas...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-[#1A1A2E] mx-auto mb-2" />
+            <p className="text-gray-500">Cargando métricas...</p>
           </div>
         ) : data.clients.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <p>No hay datos disponibles para el rango seleccionado.</p>
-            <p className="text-sm mt-2">Conecta Facebook Ads y Shopify a tus clientes para ver metricas.</p>
+            <p className="text-sm mt-2">Conecta Facebook Ads y Shopify a tus clientes para ver métricas.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -273,14 +273,14 @@ function MetricsDashboard() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => navigate(`/metricas/cliente/${client.client_id}`)}
-                          className="p-2 text-gray-400 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)}
+                          className="p-2 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors"
                           title="Ver detalle"
                         >
                           <ChevronRight className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => navigate(`/clients/${client.client_id}/plataformas`)}
+                          onClick={() => navigate(`/app/clients/${client.client_id}/plataformas`)}
                           className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Configurar plataformas"
                         >

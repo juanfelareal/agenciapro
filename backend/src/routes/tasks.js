@@ -10,10 +10,13 @@ router.get('/', async (req, res) => {
   try {
     const { status, project_id, assigned_to, client_id } = req.query;
     let query = `
-      SELECT t.*, p.name as project_name, p.client_id, tm.name as assigned_to_name
+      SELECT t.*, p.name as project_name, p.client_id,
+             tm.name as assigned_to_name,
+             cb.name as created_by_name
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
+      LEFT JOIN team_members cb ON t.created_by = cb.id
       WHERE 1=1
     `;
     const params = [];
@@ -50,10 +53,13 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const task = await db.prepare(`
-      SELECT t.*, p.name as project_name, tm.name as assigned_to_name
+      SELECT t.*, p.name as project_name,
+             tm.name as assigned_to_name,
+             cb.name as created_by_name
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
+      LEFT JOIN team_members cb ON t.created_by = cb.id
       WHERE t.id = ?
     `).get(req.params.id);
 
@@ -84,7 +90,8 @@ router.post('/', async (req, res) => {
       progress,
       color,
       estimated_hours,
-      delivery_url
+      delivery_url,
+      created_by
     } = req.body;
 
     if (!title) {
@@ -95,9 +102,9 @@ router.post('/', async (req, res) => {
       INSERT INTO tasks (
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
-        progress, color, estimated_hours, delivery_url
+        progress, color, estimated_hours, delivery_url, created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       title,
       description,
@@ -113,7 +120,8 @@ router.post('/', async (req, res) => {
       progress || 0,
       color,
       estimated_hours,
-      delivery_url || null
+      delivery_url || null,
+      created_by || null
     );
 
     const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);

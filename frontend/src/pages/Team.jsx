@@ -288,12 +288,12 @@ const Team = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-900 tracking-tight">Equipo</h1>
-          <p className="text-sm text-ink-500 mt-0.5">Gestión de miembros del equipo</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Equipo</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestión de miembros del equipo</p>
         </div>
         <button
           onClick={handleNew}
-          className="btn-primary"
+          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
         >
           <Plus size={18} />
           Nuevo Miembro
@@ -302,35 +302,35 @@ const Team = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {members.map((member) => (
-          <div key={member.id} className="card-interactive p-5 group">
+          <div key={member.id} className="bg-white rounded-2xl border border-gray-100 p-5 group hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-ink-900 to-ink-700 flex items-center justify-center text-white font-semibold text-lg">
+                <div className="w-12 h-12 rounded-xl bg-[#1A1A2E] flex items-center justify-center text-[#BFFF00] font-semibold text-lg">
                   {member.name?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-ink-900">{member.name}</h3>
-                  <p className="text-xs text-ink-500">{member.position || 'Sin cargo'}</p>
+                  <h3 className="font-semibold text-[#1A1A2E]">{member.name}</h3>
+                  <p className="text-xs text-gray-500">{member.position || 'Sin cargo'}</p>
                 </div>
               </div>
               <span
-                className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
                   member.status === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-ink-100 text-ink-600'
+                    ? 'bg-[#10B981]/10 text-[#10B981]'
+                    : 'bg-gray-100 text-gray-600'
                 }`}
               >
                 {member.status === 'active' ? 'Activo' : 'Inactivo'}
               </span>
             </div>
-            <div className="space-y-2 mb-4 text-sm text-ink-500">
+            <div className="space-y-2 mb-4 text-sm text-gray-500">
               <p>📧 {member.email}</p>
               <p>👤 {roleLabels[member.role]}</p>
             </div>
-            <div className="flex gap-2 pt-3 border-t border-ink-100">
+            <div className="flex gap-2 pt-3 border-t border-gray-100">
               <button
                 onClick={() => handleEdit(member)}
-                className="flex-1 btn-secondary py-2 text-sm"
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm border border-gray-100 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 <Edit size={14} />
                 Editar
@@ -338,7 +338,7 @@ const Team = () => {
               {isAdmin && (
                 <button
                   onClick={() => openPinModal(member)}
-                  className="btn-secondary py-2 px-3"
+                  className="px-3 py-2 border border-gray-100 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
                   title="Establecer PIN de acceso"
                 >
                   <Key size={14} />
@@ -346,7 +346,7 @@ const Team = () => {
               )}
               <button
                 onClick={() => handleDelete(member.id)}
-                className="btn-danger py-2 px-3"
+                className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
               >
                 <Trash2 size={14} />
               </button>
@@ -356,14 +356,14 @@ const Team = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-2xl font-bold">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingMember ? 'Editar Miembro' : 'Nuevo Miembro'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
-                <X size={24} />
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
@@ -446,7 +446,7 @@ const Team = () => {
 
                   {/* Permission Templates */}
                   <div className="mb-4">
-                    <p className="text-sm text-gray-600 mb-2">
+                    <p className="text-sm text-gray-500 mb-2">
                       Plantillas de permisos (aplicar configuración rápida):
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -455,16 +455,16 @@ const Team = () => {
                           key={template.name}
                           type="button"
                           onClick={() => applyTemplate(template)}
-                          className={`px-3 py-1.5 text-sm rounded-lg border-2 flex items-center gap-1.5 transition ${
+                          className={`px-3 py-1.5 text-sm rounded-xl border-2 flex items-center gap-1.5 transition ${
                             selectedTemplate === template.name
-                              ? 'border-primary-500 bg-primary-50 text-primary-700'
+                              ? 'border-[#BFFF00] bg-[#BFFF00]/10 text-[#1A1A2E]'
                               : 'border-gray-200 hover:border-gray-300 text-gray-700'
                           }`}
                           title={template.description}
                         >
                           <span>{template.icon}</span>
                           <span>{template.name}</span>
-                          {selectedTemplate === template.name && <Check size={14} className="text-primary-600" />}
+                          {selectedTemplate === template.name && <Check size={14} className="text-[#1A1A2E]" />}
                         </button>
                       ))}
                     </div>
@@ -472,15 +472,15 @@ const Team = () => {
 
                   {/* Copy Permissions from Another Member */}
                   {getAvailableMembersForCopy().length > 0 && (
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="mb-4 p-3 bg-[#1A1A2E]/5 rounded-xl border border-[#1A1A2E]/10">
                       <div className="flex items-center gap-2 mb-2">
-                        <Users size={16} className="text-blue-600" />
-                        <p className="text-sm font-medium text-blue-800">
+                        <Users size={16} className="text-[#1A1A2E]" />
+                        <p className="text-sm font-medium text-[#1A1A2E]">
                           Mismos permisos que:
                         </p>
                       </div>
                       <select
-                        className="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
                         onChange={(e) => copyPermissionsFromMember(e.target.value)}
                         defaultValue=""
                       >
@@ -493,7 +493,7 @@ const Team = () => {
                           </option>
                         ))}
                       </select>
-                      <p className="text-xs text-blue-600 mt-1">
+                      <p className="text-xs text-gray-500 mt-1">
                         Los permisos del miembro seleccionado se copiarán automáticamente
                       </p>
                     </div>
@@ -504,14 +504,14 @@ const Team = () => {
                     <button
                       type="button"
                       onClick={() => toggleAllPermissions(true)}
-                      className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                      className="text-xs px-2 py-1 bg-[#10B981]/10 text-[#10B981] rounded-lg hover:bg-[#10B981]/20"
                     >
                       Activar todos
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleAllPermissions(false)}
-                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                      className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
                     >
                       Desactivar todos
                     </button>
@@ -525,9 +525,9 @@ const Team = () => {
                         {ALL_PERMISSIONS.filter(p => p.category === category).map((permission) => (
                           <label
                             key={permission.key}
-                            className={`flex items-center gap-2 p-2 rounded-lg border-2 cursor-pointer transition text-sm ${
+                            className={`flex items-center gap-2 p-2 rounded-xl border-2 cursor-pointer transition text-sm ${
                               formData.permissions[permission.key]
-                                ? 'border-primary-500 bg-primary-50'
+                                ? 'border-[#BFFF00] bg-[#BFFF00]/10'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
@@ -544,7 +544,7 @@ const Team = () => {
                                 });
                                 setSelectedTemplate(null);
                               }}
-                              className="w-4 h-4"
+                              className="w-4 h-4 accent-[#1A1A2E]"
                             />
                             <span>{permission.icon}</span>
                             <span className="font-medium truncate">{permission.label}</span>
@@ -557,17 +557,17 @@ const Team = () => {
               </div>
               </div>
 
-              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
                 >
                   Guardar
                 </button>
@@ -579,30 +579,30 @@ const Team = () => {
 
       {/* PIN Modal */}
       {showPinModal && pinMember && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center p-5 border-b">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100">
               <div>
-                <h2 className="text-lg font-semibold text-ink-900">Establecer PIN</h2>
-                <p className="text-sm text-ink-500">{pinMember.name}</p>
+                <h2 className="text-lg font-semibold text-[#1A1A2E]">Establecer PIN</h2>
+                <p className="text-sm text-gray-500">{pinMember.name}</p>
               </div>
               <button
                 onClick={() => setShowPinModal(false)}
-                className="text-ink-400 hover:text-ink-600"
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
               >
-                <X size={20} />
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
               {pinError && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
                   {pinError}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-2">
+                <label className="block text-sm font-medium text-[#1A1A2E] mb-2">
                   Nuevo PIN de acceso
                 </label>
                 <div className="relative">
@@ -611,34 +611,34 @@ const Team = () => {
                     value={pinValue}
                     onChange={(e) => setPinValue(e.target.value)}
                     placeholder="Mínimo 4 caracteres"
-                    className="w-full px-4 py-3 border border-ink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={() => setShowPin(!showPin)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-                <p className="text-xs text-ink-400 mt-2">
+                <p className="text-xs text-gray-500 mt-2">
                   El PIN puede ser una palabra clave memorable (ej: "mipin123")
                 </p>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-5 border-t bg-cream-50 rounded-b-xl">
+            <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
               <button
                 onClick={() => setShowPinModal(false)}
-                className="btn-secondary"
+                className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSetPin}
                 disabled={pinLoading || pinValue.length < 4}
-                className="btn-primary disabled:opacity-50"
+                className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {pinLoading ? (
                   <>

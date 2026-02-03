@@ -58,7 +58,7 @@ export default function PortalMetrics() {
     const isPositive = inverted ? value < 0 : value > 0;
     return (
       <span className={`inline-flex items-center gap-1 text-sm font-medium ${
-        isPositive ? 'text-green-600' : value === 0 ? 'text-ink-400' : 'text-red-500'
+        isPositive ? 'text-green-600' : value === 0 ? 'text-gray-400' : 'text-red-500'
       }`}>
         {value > 0 ? (
           <TrendingUp className="w-4 h-4" />
@@ -73,7 +73,7 @@ export default function PortalMetrics() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-ink-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
       </div>
     );
   }
@@ -85,10 +85,10 @@ export default function PortalMetrics() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-ink-900">Métricas</h1>
-          <p className="text-ink-500 mt-1">Rendimiento de tus campañas y ventas</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Rendimiento de tus campañas y ventas</p>
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-xl border border-ink-200 p-1">
+        <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1">
           {[
             { value: '7d', label: '7 días' },
             { value: '30d', label: '30 días' },
@@ -99,8 +99,8 @@ export default function PortalMetrics() {
               onClick={() => setDateRange(option.value)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 dateRange === option.value
-                  ? 'bg-ink-900 text-white'
-                  : 'text-ink-600 hover:bg-ink-100'
+                  ? 'bg-[#1A1A2E] text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               {option.label}
@@ -110,12 +110,12 @@ export default function PortalMetrics() {
       </div>
 
       {!hasData ? (
-        <div className="bg-white rounded-2xl border border-ink-100 p-12 text-center">
-          <div className="w-16 h-16 bg-ink-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <BarChart3 className="w-8 h-8 text-ink-400" />
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-ink-900 mb-2">Sin métricas disponibles</h3>
-          <p className="text-ink-500">
+          <h3 className="text-lg font-semibold text-[#1A1A2E] mb-2">Sin métricas disponibles</h3>
+          <p className="text-gray-500">
             No hay datos de métricas conectados para tu cuenta.
           </p>
         </div>
@@ -124,7 +124,7 @@ export default function PortalMetrics() {
           {/* Facebook Ads Metrics */}
           {metrics?.facebook && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -135,70 +135,70 @@ export default function PortalMetrics() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Ad Spend */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-violet-600" />
+                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-[#1A1A2E]" />
                     </div>
                     <TrendIndicator value={metrics.facebook.spend_change} inverted />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatCurrency(metrics.facebook.spend)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">Inversión</p>
+                  <p className="text-sm text-gray-500 mt-1">Inversión</p>
                 </div>
 
                 {/* Impressions */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                       <Eye className="w-5 h-5 text-blue-600" />
                     </div>
                     <TrendIndicator value={metrics.facebook.impressions_change} />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatNumber(metrics.facebook.impressions)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">Impresiones</p>
+                  <p className="text-sm text-gray-500 mt-1">Impresiones</p>
                 </div>
 
                 {/* Clicks */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
                       <MousePointer className="w-5 h-5 text-green-600" />
                     </div>
                     <TrendIndicator value={metrics.facebook.clicks_change} />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatNumber(metrics.facebook.clicks)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">Clics</p>
+                  <p className="text-sm text-gray-500 mt-1">Clics</p>
                 </div>
 
                 {/* CTR */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                       <TrendingUp className="w-5 h-5 text-amber-600" />
                     </div>
                     <TrendIndicator value={metrics.facebook.ctr_change} />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatPercent(metrics.facebook.ctr)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">CTR</p>
+                  <p className="text-sm text-gray-500 mt-1">CTR</p>
                 </div>
               </div>
 
               {/* Additional Metrics */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Conversions */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-ink-500">Conversiones</p>
-                      <p className="text-xl font-bold text-ink-900 mt-1">
+                      <p className="text-sm text-gray-500">Conversiones</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
                         {formatNumber(metrics.facebook.conversions)}
                       </p>
                     </div>
@@ -207,11 +207,11 @@ export default function PortalMetrics() {
                 </div>
 
                 {/* CPA */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-ink-500">Costo por Conversión</p>
-                      <p className="text-xl font-bold text-ink-900 mt-1">
+                      <p className="text-sm text-gray-500">Costo por Conversión</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
                         {formatCurrency(metrics.facebook.cpa)}
                       </p>
                     </div>
@@ -220,11 +220,11 @@ export default function PortalMetrics() {
                 </div>
 
                 {/* ROAS */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-ink-500">ROAS</p>
-                      <p className="text-xl font-bold text-ink-900 mt-1">
+                      <p className="text-sm text-gray-500">ROAS</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
                         {(metrics.facebook.roas || 0).toFixed(2)}x
                       </p>
                     </div>
@@ -238,7 +238,7 @@ export default function PortalMetrics() {
           {/* Shopify Metrics */}
           {metrics?.shopify && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
                 <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                   <ShoppingCart className="w-4 h-4 text-green-600" />
                 </div>
@@ -247,59 +247,59 @@ export default function PortalMetrics() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Revenue */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
                       <DollarSign className="w-5 h-5 text-green-600" />
                     </div>
                     <TrendIndicator value={metrics.shopify.revenue_change} />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatCurrency(metrics.shopify.revenue)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">Ingresos</p>
+                  <p className="text-sm text-gray-500 mt-1">Ingresos</p>
                 </div>
 
                 {/* Orders */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                       <ShoppingCart className="w-5 h-5 text-blue-600" />
                     </div>
                     <TrendIndicator value={metrics.shopify.orders_change} />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatNumber(metrics.shopify.orders)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">Pedidos</p>
+                  <p className="text-sm text-gray-500 mt-1">Pedidos</p>
                 </div>
 
                 {/* AOV */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-                      <BarChart3 className="w-5 h-5 text-violet-600" />
+                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-[#1A1A2E]" />
                     </div>
                     <TrendIndicator value={metrics.shopify.aov_change} />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatCurrency(metrics.shopify.aov)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">Ticket Promedio</p>
+                  <p className="text-sm text-gray-500 mt-1">Ticket Promedio</p>
                 </div>
 
                 {/* Customers */}
-                <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                       <Users className="w-5 h-5 text-amber-600" />
                     </div>
                     <TrendIndicator value={metrics.shopify.customers_change} />
                   </div>
-                  <p className="text-2xl font-bold text-ink-900">
+                  <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatNumber(metrics.shopify.customers)}
                   </p>
-                  <p className="text-sm text-ink-500 mt-1">Clientes</p>
+                  <p className="text-sm text-gray-500 mt-1">Clientes</p>
                 </div>
               </div>
             </div>

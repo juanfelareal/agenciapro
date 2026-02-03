@@ -155,8 +155,8 @@ const TimeReports = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-900">Reportes de Tiempo</h1>
-          <p className="text-ink-500 text-sm mt-1">
+          <h1 className="text-2xl font-semibold text-[#1A1A2E]">Reportes de Tiempo</h1>
+          <p className="text-gray-500 text-sm mt-1">
             Análisis de horas trabajadas
           </p>
         </div>
@@ -174,8 +174,8 @@ const TimeReports = () => {
       <div className="card p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <Calendar size={18} className="text-ink-400" />
-            <span className="text-sm font-medium text-ink-600">Periodo:</span>
+            <Calendar size={18} className="text-gray-400" />
+            <span className="text-sm font-medium text-gray-600">Periodo:</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {[
@@ -190,8 +190,8 @@ const TimeReports = () => {
                 onClick={() => setDateRange(option.value)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                   dateRange === option.value
-                    ? 'bg-ink-900 text-white'
-                    : 'bg-ink-100 text-ink-600 hover:bg-ink-200'
+                    ? 'bg-[#1A1A2E] text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {option.label}
@@ -206,7 +206,7 @@ const TimeReports = () => {
                 onChange={(e) => setCustomStartDate(e.target.value)}
                 className="input text-sm py-1.5"
               />
-              <span className="text-ink-400">-</span>
+              <span className="text-gray-400">-</span>
               <input
                 type="date"
                 value={customEndDate}
@@ -226,8 +226,8 @@ const TimeReports = () => {
               <Clock size={20} className="text-success-600" />
             </div>
             <div>
-              <p className="text-sm text-ink-500">Total Horas</p>
-              <p className="text-xl font-bold text-ink-900">
+              <p className="text-sm text-gray-500">Total Horas</p>
+              <p className="text-xl font-bold text-[#1A1A2E]">
                 {reports?.totals?.total_hours || 0}h
               </p>
             </div>
@@ -239,8 +239,8 @@ const TimeReports = () => {
               <DollarSign size={20} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-ink-500">Horas Facturables</p>
-              <p className="text-xl font-bold text-ink-900">
+              <p className="text-sm text-gray-500">Horas Facturables</p>
+              <p className="text-xl font-bold text-[#1A1A2E]">
                 {reports?.totals?.billable_hours || 0}h
               </p>
             </div>
@@ -252,8 +252,8 @@ const TimeReports = () => {
               <FolderKanban size={20} className="text-amber-600" />
             </div>
             <div>
-              <p className="text-sm text-ink-500">Proyectos</p>
-              <p className="text-xl font-bold text-ink-900">
+              <p className="text-sm text-gray-500">Proyectos</p>
+              <p className="text-xl font-bold text-[#1A1A2E]">
                 {reports?.by_project?.length || 0}
               </p>
             </div>
@@ -265,8 +265,8 @@ const TimeReports = () => {
               <Users size={20} className="text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-ink-500">Registros</p>
-              <p className="text-xl font-bold text-ink-900">
+              <p className="text-sm text-gray-500">Registros</p>
+              <p className="text-xl font-bold text-[#1A1A2E]">
                 {reports?.totals?.entry_count || 0}
               </p>
             </div>
@@ -275,12 +275,12 @@ const TimeReports = () => {
       </div>
 
       {isLoading ? (
-        <div className="card p-12 text-center text-ink-500">Cargando reportes...</div>
+        <div className="card p-12 text-center text-gray-500">Cargando reportes...</div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Daily Trend Chart */}
           <div className="card p-4">
-            <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2">
+            <h3 className="font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
               <BarChart3 size={18} />
               Horas por Día
             </h3>
@@ -302,7 +302,7 @@ const TimeReports = () => {
 
           {/* Time by Project (Pie) */}
           <div className="card p-4">
-            <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2">
+            <h3 className="font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
               <PieChart size={18} />
               Distribución por Proyecto
             </h3>
@@ -333,7 +333,7 @@ const TimeReports = () => {
 
           {/* Time by Project (Bar) */}
           <div className="card p-4">
-            <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2">
+            <h3 className="font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
               <FolderKanban size={18} />
               Tiempo por Proyecto
             </h3>
@@ -360,7 +360,7 @@ const TimeReports = () => {
 
           {/* Time by User */}
           <div className="card p-4">
-            <h3 className="font-semibold text-ink-900 mb-4 flex items-center gap-2">
+            <h3 className="font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
               <Users size={18} />
               Tiempo por Usuario
             </h3>
@@ -391,25 +391,25 @@ const TimeReports = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* By Project Table */}
         <div className="card">
-          <div className="p-4 border-b border-ink-100">
-            <h3 className="font-semibold text-ink-900">Detalle por Proyecto</h3>
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-[#1A1A2E]">Detalle por Proyecto</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-ink-50">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left p-3 text-sm font-medium text-ink-600">Proyecto</th>
-                  <th className="text-right p-3 text-sm font-medium text-ink-600">Total</th>
-                  <th className="text-right p-3 text-sm font-medium text-ink-600">Facturable</th>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Proyecto</th>
+                  <th className="text-right p-3 text-sm font-medium text-gray-600">Total</th>
+                  <th className="text-right p-3 text-sm font-medium text-gray-600">Facturable</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-gray-100">
                 {reports?.by_project?.map(project => (
-                  <tr key={project.project_id || 'no'} className="hover:bg-ink-50">
-                    <td className="p-3 font-medium text-ink-900">
+                  <tr key={project.project_id || 'no'} className="hover:bg-gray-50">
+                    <td className="p-3 font-medium text-[#1A1A2E]">
                       {project.project_name || 'Sin proyecto'}
                     </td>
-                    <td className="p-3 text-right text-ink-700">
+                    <td className="p-3 text-right text-gray-700">
                       {formatHours(project.total_minutes)}
                     </td>
                     <td className="p-3 text-right text-success-600">
@@ -424,25 +424,25 @@ const TimeReports = () => {
 
         {/* By User Table */}
         <div className="card">
-          <div className="p-4 border-b border-ink-100">
-            <h3 className="font-semibold text-ink-900">Detalle por Usuario</h3>
+          <div className="p-4 border-b border-gray-100">
+            <h3 className="font-semibold text-[#1A1A2E]">Detalle por Usuario</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-ink-50">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left p-3 text-sm font-medium text-ink-600">Usuario</th>
-                  <th className="text-right p-3 text-sm font-medium text-ink-600">Total</th>
-                  <th className="text-right p-3 text-sm font-medium text-ink-600">Facturable</th>
+                  <th className="text-left p-3 text-sm font-medium text-gray-600">Usuario</th>
+                  <th className="text-right p-3 text-sm font-medium text-gray-600">Total</th>
+                  <th className="text-right p-3 text-sm font-medium text-gray-600">Facturable</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-gray-100">
                 {reports?.by_user?.map(user => (
-                  <tr key={user.user_id || 'no'} className="hover:bg-ink-50">
-                    <td className="p-3 font-medium text-ink-900">
+                  <tr key={user.user_id || 'no'} className="hover:bg-gray-50">
+                    <td className="p-3 font-medium text-[#1A1A2E]">
                       {user.user_name || 'Sin asignar'}
                     </td>
-                    <td className="p-3 text-right text-ink-700">
+                    <td className="p-3 text-right text-gray-700">
                       {formatHours(user.total_minutes)}
                     </td>
                     <td className="p-3 text-right text-success-600">

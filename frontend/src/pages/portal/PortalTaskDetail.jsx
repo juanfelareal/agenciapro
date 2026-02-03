@@ -88,7 +88,7 @@ export default function PortalTaskDetail() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      todo: { bg: 'bg-ink-100', text: 'text-ink-600', label: 'Pendiente' },
+      todo: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Pendiente' },
       in_progress: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'En Progreso' },
       review: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'En Revisión' },
       done: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completada' }
@@ -114,7 +114,7 @@ export default function PortalTaskDetail() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-ink-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
       </div>
     );
   }
@@ -125,9 +125,9 @@ export default function PortalTaskDetail() {
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-ink-900">Tarea no encontrada</h2>
-        <p className="text-ink-500 mt-2 mb-4">Esta tarea no existe o no tienes acceso.</p>
-        <Link to="/portal/tasks" className="text-violet-600 hover:underline">
+        <h2 className="text-xl font-semibold text-[#1A1A2E]">Tarea no encontrada</h2>
+        <p className="text-gray-500 mt-2 mb-4">Esta tarea no existe o no tienes acceso.</p>
+        <Link to="/portal/tasks" className="text-[#1A1A2E] hover:underline">
           Volver a tareas
         </Link>
       </div>
@@ -142,29 +142,29 @@ export default function PortalTaskDetail() {
       {/* Back Link */}
       <Link
         to="/portal/tasks"
-        className="inline-flex items-center gap-2 text-ink-500 hover:text-ink-900 transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Volver a tareas</span>
       </Link>
 
       {/* Task Header */}
-      <div className="bg-white rounded-2xl border border-ink-100 shadow-soft p-6">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
         <div className="flex items-start gap-4">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            task.status === 'done' ? 'bg-green-100' : 'bg-ink-100'
+            task.status === 'done' ? 'bg-green-100' : 'bg-gray-100'
           }`}>
             {task.status === 'done' ? (
               <CheckCircle2 className="w-6 h-6 text-green-600" />
             ) : (
-              <CheckSquare className="w-6 h-6 text-ink-400" />
+              <CheckSquare className="w-6 h-6 text-gray-400" />
             )}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-ink-900">{task.title}</h1>
+            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{task.title}</h1>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               {getStatusBadge(task.status)}
-              <span className="text-ink-500 flex items-center gap-1.5">
+              <span className="text-gray-500 flex items-center gap-1.5">
                 <FolderKanban className="w-4 h-4" />
                 {task.project_name}
               </span>
@@ -174,22 +174,22 @@ export default function PortalTaskDetail() {
 
         {/* Task Description */}
         {task.description && (
-          <div className="mt-6 pt-6 border-t border-ink-100">
-            <h3 className="text-sm font-medium text-ink-700 mb-2">Descripción</h3>
-            <p className="text-ink-600 whitespace-pre-wrap">{task.description}</p>
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Descripción</h3>
+            <p className="text-gray-600 whitespace-pre-wrap">{task.description}</p>
           </div>
         )}
 
         {/* Task Meta */}
-        <div className="mt-6 pt-6 border-t border-ink-100 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {task.assigned_to_name && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
-                <User className="w-5 h-5 text-violet-600" />
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <User className="w-5 h-5 text-[#1A1A2E]" />
               </div>
               <div>
-                <p className="text-xs text-ink-500">Asignado a</p>
-                <p className="font-medium text-ink-900">{task.assigned_to_name}</p>
+                <p className="text-xs text-gray-500">Asignado a</p>
+                <p className="font-medium text-[#1A1A2E]">{task.assigned_to_name}</p>
               </div>
             </div>
           )}
@@ -199,8 +199,8 @@ export default function PortalTaskDetail() {
                 <Calendar className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-xs text-ink-500">Fecha límite</p>
-                <p className="font-medium text-ink-900">
+                <p className="text-xs text-gray-500">Fecha límite</p>
+                <p className="font-medium text-[#1A1A2E]">
                   {new Date(task.due_date).toLocaleDateString('es-CO', {
                     month: 'short',
                     day: 'numeric',
@@ -255,7 +255,7 @@ export default function PortalTaskDetail() {
 
               {task.client_approval_notes && (
                 <div className="mt-3 p-3 bg-white/50 rounded-lg">
-                  <p className="text-sm text-ink-600">
+                  <p className="text-sm text-gray-600">
                     <span className="font-medium">Tus notas:</span> {task.client_approval_notes}
                   </p>
                 </div>
@@ -296,33 +296,33 @@ export default function PortalTaskDetail() {
 
       {/* Comments Section */}
       {hasPermission('can_comment_tasks') && (
-        <div className="bg-white rounded-2xl border border-ink-100 shadow-soft overflow-hidden">
-          <div className="px-6 py-4 border-b border-ink-100 flex items-center gap-3">
-            <MessageSquare className="w-5 h-5 text-ink-400" />
-            <h2 className="font-semibold text-ink-900">Comentarios</h2>
-            <span className="text-sm text-ink-500">({comments.length})</span>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <MessageSquare className="w-5 h-5 text-gray-400" />
+            <h2 className="font-semibold text-[#1A1A2E]">Comentarios</h2>
+            <span className="text-sm text-gray-500">({comments.length})</span>
           </div>
 
           {/* Comments List */}
-          <div className="divide-y divide-ink-100">
+          <div className="divide-y divide-gray-100">
             {comments.length > 0 ? (
               comments.map((comment) => (
                 <div key={comment.id} className="px-6 py-4">
                   <div className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      comment.is_client_comment ? 'bg-violet-100 text-violet-600' : 'bg-ink-100 text-ink-600'
+                      comment.is_client_comment ? 'bg-gray-100 text-[#1A1A2E]' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {(comment.author_name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-ink-900">{comment.author_name}</span>
+                        <span className="font-medium text-[#1A1A2E]">{comment.author_name}</span>
                         {comment.is_client_comment && (
-                          <span className="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-gray-100 text-[#1A1A2E] px-2 py-0.5 rounded-full">
                             Cliente
                           </span>
                         )}
-                        <span className="text-xs text-ink-400">
+                        <span className="text-xs text-gray-400">
                           {new Date(comment.created_at).toLocaleDateString('es-CO', {
                             month: 'short',
                             day: 'numeric',
@@ -331,34 +331,34 @@ export default function PortalTaskDetail() {
                           })}
                         </span>
                       </div>
-                      <p className="text-ink-600 mt-1">{comment.comment}</p>
+                      <p className="text-gray-600 mt-1">{comment.comment}</p>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="px-6 py-8 text-center text-ink-500">
+              <div className="px-6 py-8 text-center text-gray-500">
                 No hay comentarios aún. ¡Sé el primero en comentar!
               </div>
             )}
           </div>
 
           {/* Add Comment */}
-          <div className="px-6 py-4 bg-cream-50 border-t border-ink-100">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
             <form onSubmit={handleAddComment} className="flex gap-3">
               <input
                 type="text"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Escribe un comentario..."
-                className="flex-1 px-4 py-2.5 bg-white border border-ink-200 rounded-xl
+                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl
                          focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <button
                 type="submit"
                 disabled={!newComment.trim() || submitting}
-                className="px-4 py-2.5 bg-ink-900 text-white rounded-xl hover:bg-ink-800
-                         disabled:bg-ink-300 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-gray-800
+                         disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -375,12 +375,12 @@ export default function PortalTaskDetail() {
       {showApprovalModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-ink-900 mb-2">
+            <h3 className="text-xl font-bold text-[#1A1A2E] mb-2">
               {approvalAction === 'approved' ? 'Aprobar Tarea' :
                approvalAction === 'rejected' ? 'Rechazar Tarea' :
                'Solicitar Cambios'}
             </h3>
-            <p className="text-ink-500 mb-4">
+            <p className="text-gray-500 mb-4">
               {approvalAction === 'approved'
                 ? 'Confirma que apruebas esta tarea.'
                 : approvalAction === 'rejected'
@@ -397,7 +397,7 @@ export default function PortalTaskDetail() {
                   : 'Describe el motivo o los cambios necesarios...'
               }
               rows={4}
-              className="w-full px-4 py-3 bg-cream-50 border border-ink-200 rounded-xl
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
                        resize-none"
             />
@@ -408,8 +408,8 @@ export default function PortalTaskDetail() {
                   setShowApprovalModal(false);
                   setApprovalNotes('');
                 }}
-                className="flex-1 px-4 py-2.5 border border-ink-200 text-ink-700 rounded-xl
-                         hover:bg-ink-50 transition-colors font-medium"
+                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
+                         hover:bg-gray-50 transition-colors font-medium"
               >
                 Cancelar
               </button>

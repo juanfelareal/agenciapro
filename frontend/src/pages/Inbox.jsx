@@ -138,10 +138,10 @@ const Inbox = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Bell size={32} className="text-primary-600" />
+            <Bell size={28} className="text-[#1A1A2E]" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Inbox</h1>
-              <p className="text-gray-600">
+              <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Inbox</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
                 {unreadCount > 0
                   ? `Tienes ${unreadCount} notificación${unreadCount !== 1 ? 'es' : ''} sin leer`
                   : 'No tienes notificaciones sin leer'}
@@ -152,7 +152,7 @@ const Inbox = () => {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllAsRead}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] transition-colors"
             >
               <CheckCheck size={20} />
               Marcar todas como leídas
@@ -166,7 +166,7 @@ const Inbox = () => {
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               filter === 'all'
-                ? 'bg-primary-500 text-white'
+                ? 'bg-[#1A1A2E] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -176,7 +176,7 @@ const Inbox = () => {
             onClick={() => setFilter('unread')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               filter === 'unread'
-                ? 'bg-primary-500 text-white'
+                ? 'bg-[#1A1A2E] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -186,7 +186,7 @@ const Inbox = () => {
             onClick={() => setFilter('read')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               filter === 'read'
-                ? 'bg-primary-500 text-white'
+                ? 'bg-[#1A1A2E] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -221,7 +221,7 @@ const Inbox = () => {
               key={notification.id}
               className={`bg-white rounded-lg shadow hover:shadow-md transition-shadow border-l-4 ${
                 !notification.is_read
-                  ? 'border-primary-500'
+                  ? 'border-[#1A1A2E]'
                   : 'border-gray-300'
               }`}
             >
@@ -245,7 +245,7 @@ const Inbox = () => {
                           {getNotificationTypeLabel(notification.type)}
                         </span>
                         {!notification.is_read && (
-                          <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+                          <span className="w-2 h-2 bg-[#1A1A2E] rounded-full"></span>
                         )}
                       </div>
                       <span className="text-sm text-gray-500 whitespace-nowrap">
@@ -262,7 +262,7 @@ const Inbox = () => {
                       {!notification.is_read && (
                         <button
                           onClick={() => handleMarkAsRead(notification.id)}
-                          className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                          className="flex items-center gap-1 text-sm text-[#1A1A2E] hover:text-[#1A1A2E] font-medium"
                         >
                           <Check size={16} />
                           Marcar como leída

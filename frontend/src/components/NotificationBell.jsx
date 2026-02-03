@@ -105,9 +105,9 @@ const NotificationBell = () => {
 
     // Navigate based on notification type
     if (notification.entity_type === 'task') {
-      navigate(`/projects`); // Could navigate to specific task
+      navigate(`/app/projects`); // Could navigate to specific task
     } else if (notification.entity_type === 'comment') {
-      navigate(`/projects`);
+      navigate(`/app/projects`);
     }
 
     setIsOpen(false);
@@ -247,7 +247,7 @@ const NotificationBell = () => {
             <div className="p-3 border-t bg-gray-50">
               <button
                 onClick={() => {
-                  navigate('/inbox');
+                  navigate('/app/inbox');
                   setIsOpen(false);
                 }}
                 className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium"

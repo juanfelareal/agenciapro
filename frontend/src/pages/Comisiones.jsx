@@ -311,12 +311,12 @@ const Comisiones = () => {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Comisiones</h1>
-          <p className="text-gray-600">Gestión de comisiones del equipo</p>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Comisiones</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestión de comisiones del equipo</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <select
@@ -343,7 +343,7 @@ const Comisiones = () => {
           </select>
           <button
             onClick={handleNew}
-            className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600"
+            className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1A1A2E]"
           >
             <Plus size={20} />
             Agregar
@@ -390,7 +390,7 @@ const Comisiones = () => {
               setFilterMember('');
               setFilterClient('');
             }}
-            className="text-sm text-primary-600 hover:text-primary-700 underline"
+            className="text-sm text-[#1A1A2E] hover:text-[#1A1A2E] underline"
           >
             Limpiar filtros
           </button>
@@ -713,7 +713,7 @@ const Comisiones = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E]"
                 >
                   Guardar
                 </button>
@@ -729,7 +729,7 @@ const Comisiones = () => {
           <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <UserPlus size={24} className="text-primary-500" />
+                <UserPlus size={24} className="text-[#1A1A2E]" />
                 Nuevo Cliente
               </h2>
               <button onClick={() => setShowNewClientModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -803,7 +803,7 @@ const Comisiones = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E]"
                 >
                   Crear Cliente
                 </button>

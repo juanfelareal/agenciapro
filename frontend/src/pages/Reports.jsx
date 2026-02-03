@@ -956,10 +956,10 @@ const Reports = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">
             Reportes
           </h1>
-          <p className="text-slate-500 text-sm mt-1">Análisis y métricas de tu agencia</p>
+          <p className="text-sm text-gray-500 mt-0.5">Análisis y métricas de tu agencia</p>
         </div>
       </div>
 
@@ -977,7 +977,7 @@ const Reports = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
+                      ? 'bg-[#1A1A2E] text-white shadow-lg shadow-[#1A1A2E]/25'
                       : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                   }`}
                 >
@@ -1008,7 +1008,7 @@ const Reports = () => {
               <label className="text-xs text-slate-500 block mb-1">Desde</label>
               <input
                 type="date"
-                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
                 value={filters.start_date}
                 onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
               />
@@ -1017,7 +1017,7 @@ const Reports = () => {
               <label className="text-xs text-slate-500 block mb-1">Hasta</label>
               <input
                 type="date"
-                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
                 value={filters.end_date}
                 onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
               />
@@ -1026,7 +1026,7 @@ const Reports = () => {
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Proyecto</label>
                 <select
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
                   value={filters.project_id}
                   onChange={(e) => setFilters({ ...filters, project_id: e.target.value })}
                 >
@@ -1041,7 +1041,7 @@ const Reports = () => {
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Usuario</label>
                 <select
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
                   value={filters.user_id}
                   onChange={(e) => setFilters({ ...filters, user_id: e.target.value })}
                 >
@@ -1056,7 +1056,7 @@ const Reports = () => {
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Cliente</label>
                 <select
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
                   value={filters.client_id}
                   onChange={(e) => setFilters({ ...filters, client_id: e.target.value })}
                 >
@@ -1075,8 +1075,8 @@ const Reports = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="relative">
-            <div className="w-16 h-16 border-4 border-primary-100 rounded-full" />
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-primary-500 rounded-full animate-spin" />
+            <div className="w-16 h-16 border-4 border-gray-100 rounded-full" />
+            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-[#1A1A2E] rounded-full animate-spin" />
           </div>
           <p className="mt-4 text-slate-500">Cargando reporte...</p>
         </div>
