@@ -8,11 +8,12 @@ router.get('/', async (req, res) => {
   try {
     const folders = await db.prepare(`
       SELECT nf.*,
-        (SELECT COUNT(*) FROM notes WHERE folder_id = nf.id) as note_count,
-        (SELECT COUNT(*) FROM note_folders WHERE parent_id = nf.id) as subfolder_count
+        (SELECT COUNT(*) FROM notes WHERE folder_id = nf.id AND organization_id = ?) as note_count,
+        (SELECT COUNT(*) FROM note_folders WHERE parent_id = nf.id AND organization_id = ?) as subfolder_count
       FROM note_folders nf
+      WHERE nf.organization_id = ?
       ORDER BY nf.position ASC, nf.name ASC
-    `).all();
+    `).all(req.orgId, req.orgId, req.orgId);
 
     // Build tree structure
     const buildTree = (parentId = null) => {
@@ -35,10 +36,11 @@ router.get('/flat', async (req, res) => {
   try {
     const folders = await db.prepare(`
       SELECT nf.*,
-        (SELECT COUNT(*) FROM notes WHERE folder_id = nf.id) as note_count
+        (SELECT COUNT(*) FROM notes WHERE folder_id = nf.id AND organization_id = ?) as note_count
       FROM note_folders nf
+      WHERE nf.organization_id = ?
       ORDER BY nf.position ASC, nf.name ASC
-    `).all();
+    `).all(req.orgId, req.orgId);
 
     res.json(folders);
   } catch (error) {
@@ -73,11 +75,11 @@ router.get('/:id', async (req, res) => {
   try {
     const folder = await db.prepare(`
       SELECT nf.*,
-        (SELECT COUNT(*) FROM notes WHERE folder_id = nf.id) as note_count,
-        (SELECT COUNT(*) FROM note_folders WHERE parent_id = nf.id) as subfolder_count
+        (SELECT COUNT(*) FROM notes WHERE folder_id = nf.id AND organization_id = ?) as note_count,
+        (SELECT COUNT(*) FROM note_folders WHERE parent_id = nf.id AND organization_id = ?) as subfolder_count
       FROM note_folders nf
-      WHERE nf.id = ?
-    `).get(req.params.id);
+      WHERE nf.id = ? AND nf.organization_id = ?
+    `).get(req.orgId, req.orgId, req.params.id, req.orgId);
 
     if (!folder) {
       return res.status(404).json({ error: 'Folder not found' });
@@ -85,8 +87,8 @@ router.get('/:id', async (req, res) => {
 
     // Get subfolders
     const subfolders = await db.prepare(`
-      SELECT * FROM note_folders WHERE parent_id = ? ORDER BY position ASC, name ASC
-    `).all(req.params.id);
+      SELECT * FROM note_folders WHERE parent_id = ? AND organization_id = ? ORDER BY position ASC, name ASC
+    `).all(req.params.id, req.orgId);
 
     // Get notes in folder
     const notes = await db.prepare(`
@@ -95,9 +97,9 @@ router.get('/:id', async (req, res) => {
         nc.color as category_color
       FROM notes n
       LEFT JOIN note_categories nc ON n.category_id = nc.id
-      WHERE n.folder_id = ?
+      WHERE n.folder_id = ? AND n.organization_id = ?
       ORDER BY n.is_pinned DESC, n.updated_at DESC
-    `).all(req.params.id);
+    `).all(req.params.id, req.orgId);
 
     res.json({ ...folder, subfolders, notes });
   } catch (error) {
@@ -118,25 +120,23 @@ router.post('/', async (req, res) => {
     let maxPosition;
     if (parent_id) {
       maxPosition = await db.prepare(
-        'SELECT MAX(position) as max FROM note_folders WHERE parent_id = ?'
-      ).get(parent_id);
+        'SELECT MAX(position) as max FROM note_folders WHERE organization_id = ? AND parent_id = ?'
+      ).get(req.orgId, parent_id);
     } else {
       maxPosition = await db.prepare(
-        'SELECT MAX(position) as max FROM note_folders WHERE parent_id IS NULL'
-      ).get();
+        'SELECT MAX(position) as max FROM note_folders WHERE organization_id = ? AND parent_id IS NULL'
+      ).get(req.orgId);
     }
 
     const position = (maxPosition?.max || 0) + 1;
 
-    // Use RETURNING id for PostgreSQL to get the inserted ID
-    const result = await db.query(
-      `INSERT INTO note_folders (name, parent_id, icon, color, position)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [name, parent_id || null, icon || '📁', color || '#6366F1', position]
-    );
+    const result = await db.prepare(`
+      INSERT INTO note_folders (name, parent_id, icon, color, position, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(name, parent_id || null, icon || '📁', color || '#6366F1', position, req.orgId);
 
-    res.status(201).json(result.rows[0]);
+    const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
+    res.status(201).json(folder);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -179,9 +179,10 @@ router.put('/:id', async (req, res) => {
     updates.push('updated_at = CURRENT_TIMESTAMP');
     params.push(req.params.id);
 
-    await db.prepare(`UPDATE note_folders SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+    params.push(req.orgId);
+    await db.prepare(`UPDATE note_folders SET ${updates.join(', ')} WHERE id = ? AND organization_id = ?`).run(...params);
 
-    const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ?').get(req.params.id);
+    const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(folder);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -191,24 +192,51 @@ router.put('/:id', async (req, res) => {
 // Delete folder (moves notes to parent or root)
 router.delete('/:id', async (req, res) => {
   try {
-    const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ?').get(req.params.id);
+    const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!folder) {
       return res.status(404).json({ error: 'Folder not found' });
     }
 
     // Move notes to parent folder (or null for root)
-    await db.prepare('UPDATE notes SET folder_id = ? WHERE folder_id = ?').run(folder.parent_id, req.params.id);
+    await db.prepare('UPDATE notes SET folder_id = ? WHERE folder_id = ? AND organization_id = ?').run(folder.parent_id, req.params.id, req.orgId);
 
     // Move subfolders to parent folder
-    await db.prepare('UPDATE note_folders SET parent_id = ? WHERE parent_id = ?').run(folder.parent_id, req.params.id);
+    await db.prepare('UPDATE note_folders SET parent_id = ? WHERE parent_id = ? AND organization_id = ?').run(folder.parent_id, req.params.id, req.orgId);
 
     // Delete folder
-    await db.prepare('DELETE FROM note_folders WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM note_folders WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
 
     res.json({ message: 'Folder deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Reorder folders
+router.put('/reorder', async (req, res) => {
+  try {
+    const { folders } = req.body; // Array of { id, position, parent_id }
+
+    if (!Array.isArray(folders)) {
+      return res.status(400).json({ error: 'Folders array is required' });
+    }
+
+    const updateStmt = db.prepare(`
+      UPDATE note_folders SET position = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
+    `);
+
+    const orgId = req.orgId;
+    db.transaction(() => {
+      folders.forEach(({ id, position, parent_id }) => {
+        updateStmt.run(position, parent_id || null, id, orgId);
+      });
+    })();
+
+    res.json({ message: 'Folders reordered successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 export default router;

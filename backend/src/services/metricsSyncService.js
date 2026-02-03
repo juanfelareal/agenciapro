@@ -42,7 +42,7 @@ export async function getClientsWithCredentials() {
 export async function createSyncJob(clientId, jobType) {
   const result = await db.prepare(`
     INSERT INTO metrics_sync_jobs (client_id, job_type, status, started_at)
-    VALUES (?, ?, 'running', datetime('now'))
+    VALUES (?, ?, 'running', NOW())
   `).run(clientId, jobType);
 
   return result.lastInsertRowid;
@@ -59,7 +59,7 @@ export async function updateSyncJob(jobId, status, recordsProcessed = 0, errorMe
   await db.prepare(`
     UPDATE metrics_sync_jobs
     SET status = ?,
-        completed_at = datetime('now'),
+        completed_at = NOW(),
         records_processed = ?,
         error_message = ?
     WHERE id = ?
@@ -77,9 +77,9 @@ export async function updateCredentialStatus(table, clientId, status, error = nu
   await db.prepare(`
     UPDATE ${table}
     SET status = ?,
-        last_sync_at = datetime('now'),
+        last_sync_at = NOW(),
         last_error = ?,
-        updated_at = datetime('now')
+        updated_at = NOW()
     WHERE client_id = ?
   `).run(status, error, clientId);
 }
@@ -116,7 +116,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
           overall_roas = ?,
           cost_per_order = ?,
           ad_spend_percentage = ?,
-          updated_at = datetime('now')
+          updated_at = NOW()
       WHERE id = ?
     `).run(
       metrics.shopify_revenue || 0,

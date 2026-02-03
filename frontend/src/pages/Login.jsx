@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,10 @@ const Login = () => {
 
     if (!result.success) {
       setError(result.error);
+    } else if (result.needsOrgSelection) {
+      // Multiple orgs — redirect to selector
+      navigate('/select-org', { replace: true });
+      return;
     }
 
     setLoading(false);
@@ -137,7 +142,10 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center text-sm text-ink-400 mt-6">
-          ¿No tienes acceso? Contacta al administrador.
+          ¿No tienes cuenta?{' '}
+          <Link to="/register" className="text-ink-700 font-medium hover:text-ink-900 transition-colors">
+            Crea tu agencia
+          </Link>
         </p>
       </div>
     </div>

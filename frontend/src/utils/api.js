@@ -39,6 +39,17 @@ export const tasksAPI = {
   delete: (id) => api.delete(`/tasks/${id}`),
 };
 
+// Auth API (multi-tenant)
+export const authAPI = {
+  login: (email, pin) => api.post('/auth/login', { email, pin }),
+  logout: () => api.post('/auth/logout'),
+  getMe: () => api.get('/auth/me'),
+  validateToken: () => api.get('/auth/validate'),
+  selectOrg: (orgId) => api.post('/auth/select-org', { org_id: orgId }),
+  register: (data) => api.post('/auth/register', data),
+  bootstrap: (email, pin, name) => api.post('/auth/bootstrap', { email, pin, name }),
+};
+
 // Team API
 export const teamAPI = {
   getAll: (filters) => api.get('/team', { params: filters }),
@@ -46,7 +57,7 @@ export const teamAPI = {
   create: (data) => api.post('/team', data),
   update: (id, data) => api.put(`/team/${id}`, data),
   delete: (id) => api.delete(`/team/${id}`),
-  // Auth
+  // Legacy auth (kept for backward compat, prefer authAPI)
   login: (email, pin) => api.post('/team/auth/login', { email, pin }),
   logout: () => api.post('/team/auth/logout'),
   getMe: () => api.get('/team/auth/me'),

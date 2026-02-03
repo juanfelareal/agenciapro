@@ -15,7 +15,14 @@ const router = Router();
  */
 router.get('/client/:clientId', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { clientId } = req.params;
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
 
     // Get all Facebook accounts for this client (can have multiple)
     const facebook = await db.prepare(`
@@ -50,14 +57,15 @@ router.get('/client/:clientId', async (req, res) => {
  */
 router.post('/facebook', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { client_id, access_token, ad_account_id } = req.body;
 
     if (!client_id || !access_token || !ad_account_id) {
       return res.status(400).json({ error: 'client_id, access_token y ad_account_id son requeridos' });
     }
 
-    // Check if client exists
-    const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+    // Check if client exists and belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -69,7 +77,7 @@ router.post('/facebook', async (req, res) => {
       // Update existing
       await db.prepare(`
         UPDATE client_facebook_credentials
-        SET access_token = ?, ad_account_id = ?, status = 'active', last_error = NULL, updated_at = datetime('now')
+        SET access_token = ?, ad_account_id = ?, status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ?
       `).run(access_token, ad_account_id, client_id);
 
@@ -95,13 +103,16 @@ router.post('/facebook', async (req, res) => {
  */
 router.post('/facebook/:id/test', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
 
+    // Verify credential belongs to a client in this org
     const credentials = await db.prepare(`
-      SELECT access_token, ad_account_id
-      FROM client_facebook_credentials
-      WHERE id = ?
-    `).get(id);
+      SELECT cfc.access_token, cfc.ad_account_id
+      FROM client_facebook_credentials cfc
+      JOIN clients c ON cfc.client_id = c.id
+      WHERE cfc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
 
     if (!credentials) {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
@@ -114,14 +125,14 @@ router.post('/facebook/:id/test', async (req, res) => {
       // Update status to active
       await db.prepare(`
         UPDATE client_facebook_credentials
-        SET status = 'active', last_error = NULL, updated_at = datetime('now')
+        SET status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(id);
     } else {
       // Update status to error
       await db.prepare(`
         UPDATE client_facebook_credentials
-        SET status = 'error', last_error = ?, updated_at = datetime('now')
+        SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(result.error, id);
     }
@@ -139,13 +150,22 @@ router.post('/facebook/:id/test', async (req, res) => {
  */
 router.delete('/facebook/:id', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
 
-    const result = await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(id);
+    // Verify credential belongs to a client in this org
+    const credential = await db.prepare(`
+      SELECT cfc.id
+      FROM client_facebook_credentials cfc
+      JOIN clients c ON cfc.client_id = c.id
+      WHERE cfc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
 
-    if (result.changes === 0) {
+    if (!credential) {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
     }
+
+    await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(id);
 
     res.json({ message: 'Facebook Ads desconectado exitosamente' });
   } catch (error) {
@@ -164,14 +184,15 @@ router.delete('/facebook/:id', async (req, res) => {
  */
 router.post('/shopify', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { client_id, store_url, access_token } = req.body;
 
     if (!client_id || !store_url || !access_token) {
       return res.status(400).json({ error: 'client_id, store_url y access_token son requeridos' });
     }
 
-    // Check if client exists
-    const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+    // Check if client exists and belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -186,7 +207,7 @@ router.post('/shopify', async (req, res) => {
       // Update existing
       await db.prepare(`
         UPDATE client_shopify_credentials
-        SET store_url = ?, access_token = ?, status = 'active', last_error = NULL, updated_at = datetime('now')
+        SET store_url = ?, access_token = ?, status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ?
       `).run(normalizedUrl, access_token, client_id);
 
@@ -212,13 +233,16 @@ router.post('/shopify', async (req, res) => {
  */
 router.post('/shopify/:id/test', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
 
+    // Verify credential belongs to a client in this org
     const credentials = await db.prepare(`
-      SELECT store_url, access_token
-      FROM client_shopify_credentials
-      WHERE id = ?
-    `).get(id);
+      SELECT csc.store_url, csc.access_token
+      FROM client_shopify_credentials csc
+      JOIN clients c ON csc.client_id = c.id
+      WHERE csc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
 
     if (!credentials) {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
@@ -231,14 +255,14 @@ router.post('/shopify/:id/test', async (req, res) => {
       // Update status to active
       await db.prepare(`
         UPDATE client_shopify_credentials
-        SET status = 'active', last_error = NULL, updated_at = datetime('now')
+        SET status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(id);
     } else {
       // Update status to error
       await db.prepare(`
         UPDATE client_shopify_credentials
-        SET status = 'error', last_error = ?, updated_at = datetime('now')
+        SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(result.error, id);
     }
@@ -256,13 +280,22 @@ router.post('/shopify/:id/test', async (req, res) => {
  */
 router.delete('/shopify/:id', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
 
-    const result = await db.prepare('DELETE FROM client_shopify_credentials WHERE id = ?').run(id);
+    // Verify credential belongs to a client in this org
+    const credential = await db.prepare(`
+      SELECT csc.id
+      FROM client_shopify_credentials csc
+      JOIN clients c ON csc.client_id = c.id
+      WHERE csc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
 
-    if (result.changes === 0) {
+    if (!credential) {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
     }
+
+    await db.prepare('DELETE FROM client_shopify_credentials WHERE id = ?').run(id);
 
     res.json({ message: 'Shopify desconectado exitosamente' });
   } catch (error) {

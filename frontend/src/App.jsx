@@ -3,6 +3,8 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
+import SelectOrganization from './pages/SelectOrganization';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Projects from './pages/Projects';
@@ -49,6 +51,16 @@ function App() {
 
         {/* Login page - no layout */}
         <Route path="/login" element={<Login />} />
+
+        {/* Organization selector - no layout */}
+        <Route path="/select-org" element={<SelectOrganization />} />
+
+        {/* Register page - no layout */}
+        <Route path="/register" element={<Register />} />
+
+        {/* Landing page - no layout */}
+        <Route path="/landing" element={<Landing />} />
+
 
         {/* Portal Login - no layout */}
         <Route path="/portal/login" element={<PortalLogin />} />

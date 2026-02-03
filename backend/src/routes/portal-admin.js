@@ -34,10 +34,11 @@ function generateSessionToken() {
  */
 router.get('/clients/:id/settings', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
 
-    // Check client exists
-    const client = await db.get('SELECT id, name, company FROM clients WHERE id = ?', [id]);
+    // Check client exists and belongs to org
+    const client = await db.get('SELECT id, name, company FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -60,7 +61,7 @@ router.get('/clients/:id/settings', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting portal settings:', error);
-    res.status(500).json({ error: 'Error al obtener configuración del portal' });
+    res.status(500).json({ error: 'Error al obtener configuracion del portal' });
   }
 });
 
@@ -70,6 +71,7 @@ router.get('/clients/:id/settings', async (req, res) => {
  */
 router.put('/clients/:id/settings', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
     const {
       can_view_projects,
@@ -83,8 +85,8 @@ router.put('/clients/:id/settings', async (req, res) => {
       welcome_message
     } = req.body;
 
-    // Check client exists
-    const client = await db.get('SELECT id FROM clients WHERE id = ?', [id]);
+    // Check client exists and belongs to org
+    const client = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -130,7 +132,7 @@ router.put('/clients/:id/settings', async (req, res) => {
     res.json(settings);
   } catch (error) {
     console.error('Error updating portal settings:', error);
-    res.status(500).json({ error: 'Error al actualizar configuración del portal' });
+    res.status(500).json({ error: 'Error al actualizar configuracion del portal' });
   }
 });
 
@@ -144,11 +146,12 @@ router.put('/clients/:id/settings', async (req, res) => {
  */
 router.post('/clients/:id/invite', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
     const { expires_in_days, created_by } = req.body;
 
-    // Check client exists
-    const client = await db.get('SELECT id, name FROM clients WHERE id = ?', [id]);
+    // Check client exists and belongs to org
+    const client = await db.get('SELECT id, name FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -164,7 +167,7 @@ router.post('/clients/:id/invite', async (req, res) => {
     } while (attempts < 10);
 
     if (attempts >= 10) {
-      return res.status(500).json({ error: 'Error generando código único' });
+      return res.status(500).json({ error: 'Error generando codigo unico' });
     }
 
     // Calculate expiration (default: 7 days)
@@ -186,7 +189,7 @@ router.post('/clients/:id/invite', async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating invite:', error);
-    res.status(500).json({ error: 'Error al generar invitación' });
+    res.status(500).json({ error: 'Error al generar invitacion' });
   }
 });
 
@@ -196,7 +199,14 @@ router.post('/clients/:id/invite', async (req, res) => {
  */
 router.get('/clients/:id/access', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
+
+    // Verify client belongs to org
+    const client = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
 
     const tokens = await db.all(`
       SELECT
@@ -221,7 +231,14 @@ router.get('/clients/:id/access', async (req, res) => {
  */
 router.delete('/clients/:id/access/:tokenId', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id, tokenId } = req.params;
+
+    // Verify client belongs to org
+    const client = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
 
     // Verify token belongs to client
     const token = await db.get(
@@ -252,8 +269,15 @@ router.delete('/clients/:id/access/:tokenId', async (req, res) => {
  */
 router.get('/clients/:id/activity', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { id } = req.params;
     const { limit = 20 } = req.query;
+
+    // Verify client belongs to org
+    const client = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
 
     // Get recent comments
     const comments = await db.all(`

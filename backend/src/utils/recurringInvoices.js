@@ -26,16 +26,18 @@ export const createRecurringInvoice = async (client) => {
   const dueDateStr = dueDate.toISOString().split('T')[0];
 
   try {
-    // Check if invoice already exists
-    const existing = await db.prepare('SELECT id FROM invoices WHERE invoice_number = ?').get(invoiceNumber);
+    // Check if invoice already exists (scoped by org)
+    const existing = await db.prepare(
+      'SELECT id FROM invoices WHERE invoice_number = ? AND organization_id = ?'
+    ).get(invoiceNumber, client.organization_id);
     if (existing) {
       console.log(`Invoice ${invoiceNumber} already exists, skipping creation`);
       return null;
     }
 
     const result = await db.prepare(`
-      INSERT INTO invoices (invoice_number, client_id, amount, status, issue_date, due_date, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO invoices (invoice_number, client_id, amount, status, issue_date, due_date, notes, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       invoiceNumber,
       client.id,
@@ -43,7 +45,8 @@ export const createRecurringInvoice = async (client) => {
       'draft',
       issueDateStr,
       dueDateStr,
-      `Factura recurrente generada automáticamente para ${client.company || client.name}`
+      `Factura recurrente generada automáticamente para ${client.company || client.name}`,
+      client.organization_id
     );
 
     return result.lastInsertRowid;
@@ -82,10 +85,11 @@ const calculateNextRecurrenceDate = (fromDate, frequency) => {
 const processInvoiceRecurring = async () => {
   const today = new Date().toISOString().split('T')[0];
 
-  // Get all recurring invoices that are due today or earlier
+  // Get all recurring invoices that are due today or earlier (across all orgs — cron job)
   const recurringInvoices = await db.prepare(`
     SELECT i.*,
-      CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name
+      CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name,
+      c.organization_id
     FROM invoices i
     LEFT JOIN clients c ON i.client_id = c.id
     WHERE i.is_recurring = 1
@@ -97,8 +101,11 @@ const processInvoiceRecurring = async () => {
 
   for (const invoice of recurringInvoices) {
     try {
-      // Generate new invoice number
-      const allInvoices = await db.prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%'").all();
+      // Generate new invoice number (scoped by org)
+      const orgId = invoice.organization_id;
+      const allInvoices = await db.prepare(
+        "SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%' AND organization_id = ?"
+      ).all(orgId);
       let maxNumber = 0;
       allInvoices.forEach(inv => {
         const match = inv.invoice_number.match(/FAC-(\d+)/);
@@ -109,23 +116,24 @@ const processInvoiceRecurring = async () => {
       });
       const newInvoiceNumber = `FAC-${String(maxNumber + 1).padStart(4, '0')}`;
 
-      // Create new invoice with the recurrence_status
+      // Create new invoice with the recurrence_status (includes org_id)
       const result = await db.prepare(`
-        INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date, organization_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         newInvoiceNumber,
         invoice.client_id,
         invoice.project_id,
         invoice.amount,
         invoice.invoice_type,
-        invoice.recurrence_status || 'draft', // Use the configured status for new invoices
+        invoice.recurrence_status || 'draft',
         today,
         invoice.notes ? `${invoice.notes} (Recurrente)` : 'Factura recurrente generada automáticamente',
         1, // Keep as recurring
         invoice.recurrence_frequency,
         invoice.recurrence_status,
-        calculateNextRecurrenceDate(today, invoice.recurrence_frequency)
+        calculateNextRecurrenceDate(today, invoice.recurrence_frequency),
+        orgId
       );
 
       // Update the original invoice's next_recurrence_date
@@ -151,13 +159,13 @@ export const processRecurringInvoices = async () => {
 
     console.log(`🔄 [${new Date().toISOString()}] Checking for recurring invoices (Day ${currentDay})...`);
 
-    // 1. Process client-based recurring invoices
+    // 1. Process client-based recurring invoices (across all orgs — cron job)
     const clients = await db.prepare(`
       SELECT * FROM clients
       WHERE is_recurring = 1
         AND status = 'active'
         AND billing_day = ?
-    `).all(currentDay);
+    `).all(currentDay);  // No org filter needed — cron processes all orgs, each client carries its organization_id
 
     let clientCreated = 0;
     let clientSkipped = 0;

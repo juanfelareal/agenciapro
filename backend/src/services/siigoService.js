@@ -21,7 +21,7 @@ class SiigoService {
     if (existing) {
       await db.prepare(`
         UPDATE siigo_settings
-        SET username = ?, access_key = ?, partner_id = ?, updated_at = datetime('now')
+        SET username = ?, access_key = ?, partner_id = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(username, accessKey, partnerId, existing.id);
       return existing.id;
@@ -78,7 +78,7 @@ class SiigoService {
       // Save token to database
       await db.prepare(`
         UPDATE siigo_settings
-        SET access_token = ?, token_expires_at = ?, updated_at = datetime('now')
+        SET access_token = ?, token_expires_at = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(this.accessToken, this.tokenExpiresAt, credentials.id);
 
@@ -129,8 +129,9 @@ class SiigoService {
 
     // Cache in database
     const stmt = db.prepare(`
-      INSERT OR REPLACE INTO siigo_document_types (siigo_id, code, name, type, active)
+      INSERT INTO siigo_document_types (siigo_id, code, name, type, active)
       VALUES (?, ?, ?, ?, 1)
+      ON CONFLICT (siigo_id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name, type = EXCLUDED.type, active = 1
     `);
 
     for (const doc of data) {
@@ -147,8 +148,9 @@ class SiigoService {
 
     // Cache in database
     const stmt = db.prepare(`
-      INSERT OR REPLACE INTO siigo_payment_types (siigo_id, name, type, active)
+      INSERT INTO siigo_payment_types (siigo_id, name, type, active)
       VALUES (?, ?, ?, 1)
+      ON CONFLICT (siigo_id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, active = 1
     `);
 
     for (const payment of data) {
@@ -164,8 +166,9 @@ class SiigoService {
 
     // Cache in database
     const stmt = db.prepare(`
-      INSERT OR REPLACE INTO siigo_taxes (siigo_id, name, percentage, active)
+      INSERT INTO siigo_taxes (siigo_id, name, percentage, active)
       VALUES (?, ?, ?, 1)
+      ON CONFLICT (siigo_id) DO UPDATE SET name = EXCLUDED.name, percentage = EXCLUDED.percentage, active = 1
     `);
 
     for (const tax of data) {
@@ -411,7 +414,7 @@ class SiigoService {
     // Update local invoice with Siigo ID
     await db.prepare(`
       UPDATE invoices
-      SET siigo_id = ?, siigo_status = 'sent', updated_at = datetime('now')
+      SET siigo_id = ?, siigo_status = 'sent', updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(siigoInvoice.id, invoice.id);
 
@@ -431,7 +434,7 @@ class SiigoService {
     if (credentials) {
       await db.prepare(`
         UPDATE siigo_settings
-        SET last_sync_at = datetime('now'), updated_at = datetime('now')
+        SET last_sync_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(credentials.id);
     }

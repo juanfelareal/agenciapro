@@ -14,11 +14,18 @@ const router = Router();
  */
 router.get('/:clientId', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { clientId } = req.params;
     const { start_date, end_date } = req.query;
 
     if (!start_date || !end_date) {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    }
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
     const metrics = await db.prepare(`
@@ -64,11 +71,18 @@ router.get('/:clientId', async (req, res) => {
  */
 router.get('/:clientId/daily', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { clientId } = req.params;
     const { start_date, end_date } = req.query;
 
     if (!start_date || !end_date) {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    }
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
     const metrics = await db.prepare(`
@@ -108,6 +122,7 @@ router.get('/:clientId/daily', async (req, res) => {
  */
 router.get('/aggregate/all', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { start_date, end_date } = req.query;
 
     if (!start_date || !end_date) {
@@ -128,10 +143,10 @@ router.get('/aggregate/all', async (req, res) => {
         AVG(m.fb_ctr) as avg_ctr
       FROM clients c
       INNER JOIN client_daily_metrics m ON c.id = m.client_id
-      WHERE m.metric_date BETWEEN ? AND ?
+      WHERE m.metric_date BETWEEN ? AND ? AND c.organization_id = ?
       GROUP BY c.id
       ORDER BY total_revenue DESC
-    `).all(start_date, end_date);
+    `).all(start_date, end_date, orgId);
 
     // Calculate derived metrics for each client
     const result = metrics.map(client => {
@@ -181,6 +196,7 @@ router.get('/aggregate/all', async (req, res) => {
  */
 router.get('/summary/all', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const clients = await db.prepare(`
       SELECT
         c.id,
@@ -194,9 +210,9 @@ router.get('/summary/all', async (req, res) => {
       FROM clients c
       LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id
       LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id
-      WHERE c.status = 'active'
+      WHERE c.status = 'active' AND c.organization_id = ?
       ORDER BY c.name
-    `).all();
+    `).all(orgId);
 
     res.json(clients);
   } catch (error) {
@@ -215,8 +231,15 @@ router.get('/summary/all', async (req, res) => {
  */
 router.post('/sync/:clientId', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { clientId } = req.params;
     const { start_date, end_date } = req.body;
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
 
     // Default to yesterday if no dates provided
     let startDate = start_date;
@@ -233,7 +256,7 @@ router.post('/sync/:clientId', async (req, res) => {
 
     if (result.success) {
       res.json({
-        message: `Sincronización completada: ${result.recordsProcessed} días procesados`,
+        message: `Sincronizacion completada: ${result.recordsProcessed} dias procesados`,
         recordsProcessed: result.recordsProcessed
       });
     } else {
@@ -256,7 +279,7 @@ router.post('/sync-all', async (req, res) => {
     const result = await syncAllClientsForDate(date);
 
     res.json({
-      message: `Sincronización completada: ${result.clientsSynced} clientes sincronizados`,
+      message: `Sincronizacion completada: ${result.clientsSynced} clientes sincronizados`,
       clientsSynced: result.clientsSynced,
       errors: result.errors
     });

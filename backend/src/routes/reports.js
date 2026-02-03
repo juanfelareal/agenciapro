@@ -8,28 +8,30 @@ const router = express.Router();
 router.get('/productivity', async (req, res) => {
   try {
     const { start_date, end_date, project_id, user_id } = req.query;
+    const orgId = req.orgId;
 
     // Build date filter
     let dateFilter = '';
     const params = [];
     if (start_date) {
-      dateFilter += ' AND date(t.created_at) >= ?';
+      dateFilter += ' AND t.created_at::DATE >= ?';
       params.push(start_date);
     }
     if (end_date) {
-      dateFilter += ' AND date(t.created_at) <= ?';
+      dateFilter += ' AND t.created_at::DATE <= ?';
       params.push(end_date);
     }
 
     // Tasks by status
     const tasksByStatus = await db.prepare(`
-      SELECT status, COUNT(*) as count
+      SELECT t.status, COUNT(*) as count
       FROM tasks t
-      WHERE 1=1 ${dateFilter}
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.organization_id = ? ${dateFilter}
       ${project_id ? ' AND t.project_id = ?' : ''}
       ${user_id ? ' AND t.assigned_to = ?' : ''}
-      GROUP BY status
-    `).all(...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
+      GROUP BY t.status
+    `).all(orgId, ...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
 
     // Tasks completed per user
     const tasksPerUser = await db.prepare(`
@@ -38,48 +40,53 @@ router.get('/productivity', async (req, res) => {
              COUNT(*) as total
       FROM team_members tm
       LEFT JOIN tasks t ON t.assigned_to = tm.id
-      WHERE tm.status = 'active'
+      LEFT JOIN projects p ON t.project_id = p.id
+      WHERE tm.status = 'active' AND tm.organization_id = ?
       ${dateFilter.replace(/t\./g, 't.')}
       ${project_id ? ' AND t.project_id = ?' : ''}
       GROUP BY tm.id, tm.name
       ORDER BY completed DESC
-    `).all(...params, ...(project_id ? [project_id] : []));
+    `).all(orgId, ...params, ...(project_id ? [project_id] : []));
 
     // On-time vs overdue completion
     const completionStats = await db.prepare(`
       SELECT
-        COUNT(CASE WHEN status = 'done' AND (due_date IS NULL OR date(updated_at) <= date(due_date)) THEN 1 END) as on_time,
-        COUNT(CASE WHEN status = 'done' AND due_date IS NOT NULL AND date(updated_at) > date(due_date) THEN 1 END) as late,
-        COUNT(CASE WHEN status != 'done' AND due_date IS NOT NULL AND date(due_date) < date('now') THEN 1 END) as overdue
+        COUNT(CASE WHEN t.status = 'done' AND (t.due_date IS NULL OR t.updated_at::DATE <= t.due_date::DATE) THEN 1 END) as on_time,
+        COUNT(CASE WHEN t.status = 'done' AND t.due_date IS NOT NULL AND t.updated_at::DATE > t.due_date::DATE THEN 1 END) as late,
+        COUNT(CASE WHEN t.status != 'done' AND t.due_date IS NOT NULL AND t.due_date::DATE < CURRENT_DATE THEN 1 END) as overdue
       FROM tasks t
-      WHERE 1=1 ${dateFilter}
-      ${project_id ? ' AND project_id = ?' : ''}
-      ${user_id ? ' AND assigned_to = ?' : ''}
-    `).get(...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.organization_id = ? ${dateFilter}
+      ${project_id ? ' AND t.project_id = ?' : ''}
+      ${user_id ? ' AND t.assigned_to = ?' : ''}
+    `).get(orgId, ...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
 
     // Tasks by priority
     const tasksByPriority = await db.prepare(`
-      SELECT priority, COUNT(*) as count
+      SELECT t.priority, COUNT(*) as count
       FROM tasks t
-      WHERE 1=1 ${dateFilter}
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.organization_id = ? ${dateFilter}
       ${project_id ? ' AND t.project_id = ?' : ''}
       ${user_id ? ' AND t.assigned_to = ?' : ''}
-      GROUP BY priority
-    `).all(...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
+      GROUP BY t.priority
+    `).all(orgId, ...params, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
 
     // Weekly trend (tasks completed in the last 8 weeks)
     const weeklyTrend = await db.prepare(`
       SELECT
-        strftime('%Y-%W', updated_at) as week,
+        TO_CHAR(t.updated_at, 'IYYY-IW') as week,
         COUNT(*) as completed
-      FROM tasks
-      WHERE status = 'done'
-      AND date(updated_at) >= date('now', '-8 weeks')
-      ${project_id ? ' AND project_id = ?' : ''}
-      ${user_id ? ' AND assigned_to = ?' : ''}
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.status = 'done'
+      AND t.updated_at::DATE >= CURRENT_DATE - INTERVAL '8 weeks'
+      AND p.organization_id = ?
+      ${project_id ? ' AND t.project_id = ?' : ''}
+      ${user_id ? ' AND t.assigned_to = ?' : ''}
       GROUP BY week
       ORDER BY week
-    `).all(...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
+    `).all(orgId, ...(project_id ? [project_id] : []), ...(user_id ? [user_id] : []));
 
     res.json({
       tasksByStatus,
@@ -98,15 +105,16 @@ router.get('/productivity', async (req, res) => {
 router.get('/financial', async (req, res) => {
   try {
     const { start_date, end_date, client_id } = req.query;
+    const orgId = req.orgId;
 
     let dateFilter = '';
     const params = [];
     if (start_date) {
-      dateFilter += ' AND date(created_at) >= ?';
+      dateFilter += ' AND created_at::DATE >= ?';
       params.push(start_date);
     }
     if (end_date) {
-      dateFilter += ' AND date(created_at) <= ?';
+      dateFilter += ' AND created_at::DATE <= ?';
       params.push(end_date);
     }
 
@@ -115,25 +123,27 @@ router.get('/financial', async (req, res) => {
       SELECT c.id, c.name, SUM(i.amount) as total_revenue, COUNT(i.id) as invoice_count
       FROM clients c
       LEFT JOIN invoices i ON i.client_id = c.id AND i.status = 'paid'
+      WHERE c.organization_id = ?
       ${dateFilter.replace(/created_at/g, 'i.created_at')}
       GROUP BY c.id, c.name
       HAVING total_revenue > 0
       ORDER BY total_revenue DESC
       LIMIT 10
-    `).all(...params);
+    `).all(orgId, ...params);
 
     // Revenue by month (last 12 months)
     const revenueByMonth = await db.prepare(`
       SELECT
-        strftime('%Y-%m', issue_date) as month,
+        TO_CHAR(issue_date, 'YYYY-MM') as month,
         SUM(amount) as revenue
       FROM invoices
       WHERE status = 'paid'
-      AND date(issue_date) >= date('now', '-12 months')
+      AND issue_date::DATE >= CURRENT_DATE - INTERVAL '12 months'
+      AND organization_id = ?
       ${client_id ? ' AND client_id = ?' : ''}
       GROUP BY month
       ORDER BY month
-    `).all(...(client_id ? [client_id] : []));
+    `).all(orgId, ...(client_id ? [client_id] : []));
 
     // Invoice summary by status
     const invoiceSummary = await db.prepare(`
@@ -142,10 +152,10 @@ router.get('/financial', async (req, res) => {
         COUNT(*) as count,
         SUM(amount) as total
       FROM invoices i
-      WHERE 1=1 ${dateFilter.replace(/created_at/g, 'i.created_at')}
+      WHERE i.organization_id = ? ${dateFilter.replace(/created_at/g, 'i.created_at')}
       ${client_id ? ' AND client_id = ?' : ''}
       GROUP BY status
-    `).all(...params, ...(client_id ? [client_id] : []));
+    `).all(orgId, ...params, ...(client_id ? [client_id] : []));
 
     // Expenses by category
     const expensesByCategory = await db.prepare(`
@@ -154,36 +164,39 @@ router.get('/financial', async (req, res) => {
         SUM(amount) as total,
         COUNT(*) as count
       FROM expenses e
-      WHERE 1=1 ${dateFilter.replace(/created_at/g, 'e.created_at')}
+      WHERE e.organization_id = ? ${dateFilter.replace(/created_at/g, 'e.created_at')}
       GROUP BY category
       ORDER BY total DESC
-    `).all(...params);
+    `).all(orgId, ...params);
 
     // Monthly expenses (last 12 months)
     const expensesByMonth = await db.prepare(`
       SELECT
-        strftime('%Y-%m', expense_date) as month,
+        TO_CHAR(expense_date, 'YYYY-MM') as month,
         SUM(amount) as total
       FROM expenses
-      WHERE date(expense_date) >= date('now', '-12 months')
+      WHERE expense_date::DATE >= CURRENT_DATE - INTERVAL '12 months'
+      AND organization_id = ?
       GROUP BY month
       ORDER BY month
-    `).all();
+    `).all(orgId);
 
     // Profit calculation (last 12 months)
     const totalRevenueResult = await db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM invoices
       WHERE status = 'paid'
-      AND date(issue_date) >= date('now', '-12 months')
-    `).get();
+      AND issue_date::DATE >= CURRENT_DATE - INTERVAL '12 months'
+      AND organization_id = ?
+    `).get(orgId);
     const totalRevenue = totalRevenueResult.total;
 
     const totalExpensesResult = await db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM expenses
-      WHERE date(expense_date) >= date('now', '-12 months')
-    `).get();
+      WHERE expense_date::DATE >= CURRENT_DATE - INTERVAL '12 months'
+      AND organization_id = ?
+    `).get(orgId);
     const totalExpenses = totalExpensesResult.total;
 
     // Outstanding invoices
@@ -193,7 +206,8 @@ router.get('/financial', async (req, res) => {
         SUM(amount) as total
       FROM invoices
       WHERE status IN ('draft', 'approved', 'invoiced')
-    `).get();
+      AND organization_id = ?
+    `).get(orgId);
 
     res.json({
       revenueByClient,
@@ -219,6 +233,7 @@ router.get('/financial', async (req, res) => {
 router.get('/projects', async (req, res) => {
   try {
     const { status } = req.query;
+    const orgId = req.orgId;
 
     // Projects overview
     const projectsOverview = await db.prepare(`
@@ -232,39 +247,42 @@ router.get('/projects', async (req, res) => {
       LEFT JOIN clients c ON p.client_id = c.id
       LEFT JOIN tasks t ON t.project_id = p.id
       LEFT JOIN expenses e ON e.project_id = p.id
-      WHERE 1=1
+      WHERE p.organization_id = ?
       ${status ? ' AND p.status = ?' : ''}
       GROUP BY p.id
       ORDER BY p.created_at DESC
-    `).all(...(status ? [status] : []));
+    `).all(orgId, ...(status ? [status] : []));
 
     // Projects by status
     const projectsByStatus = await db.prepare(`
       SELECT status, COUNT(*) as count
       FROM projects
+      WHERE organization_id = ?
       GROUP BY status
-    `).all();
+    `).all(orgId);
 
     // Projects by client
     const projectsByClient = await db.prepare(`
       SELECT c.id, c.name, COUNT(p.id) as project_count
       FROM clients c
       LEFT JOIN projects p ON p.client_id = c.id
+      WHERE c.organization_id = ?
       GROUP BY c.id, c.name
       HAVING project_count > 0
       ORDER BY project_count DESC
       LIMIT 10
-    `).all();
+    `).all(orgId);
 
     // Overdue projects (past end_date but not completed)
     const overdueProjects = await db.prepare(`
       SELECT p.*, c.name as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
-      WHERE p.status NOT IN ('completed', 'cancelled')
+      WHERE p.organization_id = ?
+      AND p.status NOT IN ('completed', 'cancelled')
       AND p.end_date IS NOT NULL
-      AND date(p.end_date) < date('now')
-    `).all();
+      AND p.end_date::DATE < CURRENT_DATE
+    `).all(orgId);
 
     // Budget utilization
     const budgetUtilization = await db.prepare(`
@@ -275,10 +293,10 @@ router.get('/projects', async (req, res) => {
         COALESCE(SUM(e.amount), 0) as spent
       FROM projects p
       LEFT JOIN expenses e ON e.project_id = p.id
-      WHERE p.budget > 0
+      WHERE p.budget > 0 AND p.organization_id = ?
       GROUP BY p.id
       ORDER BY (COALESCE(SUM(e.amount), 0) / p.budget) DESC
-    `).all();
+    `).all(orgId);
 
     res.json({
       projectsOverview,
@@ -297,15 +315,16 @@ router.get('/projects', async (req, res) => {
 router.get('/team', async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
+    const orgId = req.orgId;
 
     let dateFilter = '';
     const params = [];
     if (start_date) {
-      dateFilter += ' AND date(t.created_at) >= ?';
+      dateFilter += ' AND t.created_at::DATE >= ?';
       params.push(start_date);
     }
     if (end_date) {
-      dateFilter += ' AND date(t.created_at) <= ?';
+      dateFilter += ' AND t.created_at::DATE <= ?';
       params.push(end_date);
     }
 
@@ -319,13 +338,13 @@ router.get('/team', async (req, res) => {
         COUNT(CASE WHEN t.status = 'done' THEN 1 END) as completed_tasks,
         COUNT(CASE WHEN t.status = 'in_progress' THEN 1 END) as in_progress_tasks,
         COUNT(CASE WHEN t.status = 'todo' THEN 1 END) as pending_tasks,
-        COUNT(CASE WHEN t.status != 'done' AND t.due_date IS NOT NULL AND date(t.due_date) < date('now') THEN 1 END) as overdue_tasks
+        COUNT(CASE WHEN t.status != 'done' AND t.due_date IS NOT NULL AND t.due_date::DATE < CURRENT_DATE THEN 1 END) as overdue_tasks
       FROM team_members tm
       LEFT JOIN tasks t ON t.assigned_to = tm.id ${dateFilter}
-      WHERE tm.status = 'active'
+      WHERE tm.status = 'active' AND tm.organization_id = ?
       GROUP BY tm.id
       ORDER BY completed_tasks DESC
-    `).all(...params);
+    `).all(...params, orgId);
 
     // Workload distribution (current active tasks)
     const workloadDistribution = await db.prepare(`
@@ -336,10 +355,10 @@ router.get('/team', async (req, res) => {
         SUM(COALESCE(t.estimated_hours, 0)) as estimated_hours
       FROM team_members tm
       LEFT JOIN tasks t ON t.assigned_to = tm.id AND t.status NOT IN ('done')
-      WHERE tm.status = 'active'
+      WHERE tm.status = 'active' AND tm.organization_id = ?
       GROUP BY tm.id
       ORDER BY active_tasks DESC
-    `).all();
+    `).all(orgId);
 
     // Tasks by priority per team member
     const tasksByPriorityPerMember = await db.prepare(`
@@ -352,9 +371,9 @@ router.get('/team', async (req, res) => {
         COUNT(CASE WHEN t.priority = 'low' THEN 1 END) as low
       FROM team_members tm
       LEFT JOIN tasks t ON t.assigned_to = tm.id AND t.status NOT IN ('done')
-      WHERE tm.status = 'active'
+      WHERE tm.status = 'active' AND tm.organization_id = ?
       GROUP BY tm.id
-    `).all();
+    `).all(orgId);
 
     // Completion rate by member (last 30 days)
     const completionRates = await db.prepare(`
@@ -365,20 +384,22 @@ router.get('/team', async (req, res) => {
           NULLIF(COUNT(t.id), 0) as completion_rate
       FROM team_members tm
       LEFT JOIN tasks t ON t.assigned_to = tm.id
-        AND date(t.created_at) >= date('now', '-30 days')
-      WHERE tm.status = 'active'
+        AND t.created_at::DATE >= CURRENT_DATE - INTERVAL '30 days'
+      WHERE tm.status = 'active' AND tm.organization_id = ?
       GROUP BY tm.id
       HAVING COUNT(t.id) > 0
       ORDER BY completion_rate DESC
-    `).all();
+    `).all(orgId);
 
     // Unassigned tasks
     const unassignedTasks = await db.prepare(`
       SELECT COUNT(*) as count
-      FROM tasks
-      WHERE assigned_to IS NULL
-      AND status != 'done'
-    `).get();
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.assigned_to IS NULL
+      AND t.status != 'done'
+      AND p.organization_id = ?
+    `).get(orgId);
 
     res.json({
       teamPerformance,

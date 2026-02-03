@@ -10,9 +10,10 @@ router.get('/', async (req, res) => {
       SELECT t.*, COUNT(tt.task_id) as task_count
       FROM tags t
       LEFT JOIN task_tags tt ON t.id = tt.tag_id
+      WHERE t.organization_id = ?
       GROUP BY t.id
       ORDER BY t.name ASC
-    `).all();
+    `).all(req.orgId);
     res.json(tags);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -22,7 +23,7 @@ router.get('/', async (req, res) => {
 // Get tag by ID
 router.get('/:id', async (req, res) => {
   try {
-    const tag = await db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
+    const tag = await db.prepare('SELECT * FROM tags WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!tag) {
       return res.status(404).json({ error: 'Tag not found' });
     }
@@ -42,11 +43,11 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO tags (name, color)
-      VALUES (?, ?)
-    `).run(name.trim(), color || '#6366F1');
+      INSERT INTO tags (name, color, organization_id)
+      VALUES (?, ?, ?)
+    `).run(name.trim(), color || '#6366F1', req.orgId);
 
-    const tag = await db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid);
+    const tag = await db.prepare('SELECT * FROM tags WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(tag);
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -65,10 +66,10 @@ router.put('/:id', async (req, res) => {
       UPDATE tags
       SET name = COALESCE(?, name),
           color = COALESCE(?, color)
-      WHERE id = ?
-    `).run(name?.trim(), color, req.params.id);
+      WHERE id = ? AND organization_id = ?
+    `).run(name?.trim(), color, req.params.id, req.orgId);
 
-    const tag = await db.prepare('SELECT * FROM tags WHERE id = ?').get(req.params.id);
+    const tag = await db.prepare('SELECT * FROM tags WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(tag);
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -81,7 +82,7 @@ router.put('/:id', async (req, res) => {
 // Delete tag
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM tags WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Tag deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -95,9 +96,9 @@ router.get('/task/:taskId', async (req, res) => {
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id
-      WHERE tt.task_id = ?
+      WHERE tt.task_id = ? AND t.organization_id = ?
       ORDER BY t.name ASC
-    `).all(req.params.taskId);
+    `).all(req.params.taskId, req.orgId);
     res.json(tags);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -107,6 +108,12 @@ router.get('/task/:taskId', async (req, res) => {
 // Add tag to task
 router.post('/task/:taskId/tag/:tagId', async (req, res) => {
   try {
+    // Verify tag belongs to this organization
+    const tag = await db.prepare('SELECT id FROM tags WHERE id = ? AND organization_id = ?').get(req.params.tagId, req.orgId);
+    if (!tag) {
+      return res.status(404).json({ error: 'Tag not found' });
+    }
+
     await db.prepare(`
       INSERT OR IGNORE INTO task_tags (task_id, tag_id)
       VALUES (?, ?)
@@ -116,9 +123,9 @@ router.post('/task/:taskId/tag/:tagId', async (req, res) => {
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id
-      WHERE tt.task_id = ?
+      WHERE tt.task_id = ? AND t.organization_id = ?
       ORDER BY t.name ASC
-    `).all(req.params.taskId);
+    `).all(req.params.taskId, req.orgId);
 
     res.json(tags);
   } catch (error) {
@@ -129,6 +136,12 @@ router.post('/task/:taskId/tag/:tagId', async (req, res) => {
 // Remove tag from task
 router.delete('/task/:taskId/tag/:tagId', async (req, res) => {
   try {
+    // Verify tag belongs to this organization
+    const tag = await db.prepare('SELECT id FROM tags WHERE id = ? AND organization_id = ?').get(req.params.tagId, req.orgId);
+    if (!tag) {
+      return res.status(404).json({ error: 'Tag not found' });
+    }
+
     await db.prepare(`
       DELETE FROM task_tags
       WHERE task_id = ? AND tag_id = ?
@@ -138,9 +151,9 @@ router.delete('/task/:taskId/tag/:tagId', async (req, res) => {
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id
-      WHERE tt.task_id = ?
+      WHERE tt.task_id = ? AND t.organization_id = ?
       ORDER BY t.name ASC
-    `).all(req.params.taskId);
+    `).all(req.params.taskId, req.orgId);
 
     res.json(tags);
   } catch (error) {
@@ -157,6 +170,17 @@ router.put('/task/:taskId', async (req, res) => {
       return res.status(400).json({ error: 'tagIds must be an array' });
     }
 
+    // Verify all tags belong to this organization
+    if (tagIds.length > 0) {
+      const placeholders = tagIds.map(() => '?').join(',');
+      const orgTags = await db.prepare(
+        `SELECT id FROM tags WHERE id IN (${placeholders}) AND organization_id = ?`
+      ).all(...tagIds, req.orgId);
+      if (orgTags.length !== tagIds.length) {
+        return res.status(400).json({ error: 'One or more tags do not belong to this organization' });
+      }
+    }
+
     // Remove all existing tags
     await db.prepare('DELETE FROM task_tags WHERE task_id = ?').run(req.params.taskId);
 
@@ -169,9 +193,9 @@ router.put('/task/:taskId', async (req, res) => {
       SELECT t.*
       FROM tags t
       JOIN task_tags tt ON t.id = tt.tag_id
-      WHERE tt.task_id = ?
+      WHERE tt.task_id = ? AND t.organization_id = ?
       ORDER BY t.name ASC
-    `).all(req.params.taskId);
+    `).all(req.params.taskId, req.orgId);
 
     res.json(tags);
   } catch (error) {

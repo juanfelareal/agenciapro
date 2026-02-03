@@ -5,15 +5,15 @@ import { createRecurringInvoice } from '../utils/recurringInvoices.js';
 
 const router = express.Router();
 
-// Get all clients
+// Get all clients (org-scoped)
 router.get('/', async (req, res) => {
   try {
     const { status } = req.query;
-    let query = 'SELECT * FROM clients';
-    const params = [];
+    let query = 'SELECT * FROM clients WHERE organization_id = ?';
+    const params = [req.orgId];
 
     if (status) {
-      query += ' WHERE status = ?';
+      query += ' AND status = ?';
       params.push(status);
     }
 
@@ -25,10 +25,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get client by ID
+// Get client by ID (org-scoped)
 router.get('/:id', async (req, res) => {
   try {
-    const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
+    const client = await db.prepare('SELECT * FROM clients WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
     }
@@ -192,9 +192,9 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO clients (name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, email, phone, company, nit, status || 'active', contract_value || 0, contract_start_date, contract_end_date, notes, is_recurring ? 1 : 0, billing_day, recurring_amount || 0, siigo_id || null);
+      INSERT INTO clients (name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, email, phone, company, nit, status || 'active', contract_value || 0, contract_start_date, contract_end_date, notes, is_recurring ? 1 : 0, billing_day, recurring_amount || 0, siigo_id || null, req.orgId);
 
     const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(result.lastInsertRowid);
 
@@ -217,8 +217,8 @@ router.put('/:id', async (req, res) => {
   try {
     const { name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount } = req.body;
 
-    // Get current client to preserve existing values for partial updates
-    const currentClient = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
+    // Get current client to preserve existing values for partial updates (org-scoped)
+    const currentClient = await db.prepare('SELECT * FROM clients WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!currentClient) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -253,10 +253,10 @@ router.put('/:id', async (req, res) => {
       SET name = ?, email = ?, phone = ?, company = ?, nit = ?, status = ?,
           contract_value = ?, contract_start_date = ?, contract_end_date = ?,
           notes = ?, is_recurring = ?, billing_day = ?, recurring_amount = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND organization_id = ?
     `).run(updatedName, updatedEmail, updatedPhone, updatedCompany, updatedNit, updatedStatus,
            updatedContractValue, updatedContractStartDate, updatedContractEndDate,
-           updatedNotes, updatedIsRecurring, updatedBillingDay, updatedRecurringAmount || 0, req.params.id);
+           updatedNotes, updatedIsRecurring, updatedBillingDay, updatedRecurringAmount || 0, req.params.id, req.orgId);
 
     const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);
 
@@ -274,10 +274,13 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete client
+// Delete client (org-scoped)
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM clients WHERE id = ?').run(req.params.id);
+    const result = await db.prepare('DELETE FROM clients WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
     res.json({ message: 'Client deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

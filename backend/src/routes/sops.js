@@ -24,10 +24,11 @@ router.get('/categories', async (req, res) => {
   try {
     const categories = await db.prepare(`
       SELECT sc.*,
-        (SELECT COUNT(*) FROM sops WHERE category_id = sc.id) as sop_count
+        (SELECT COUNT(*) FROM sops WHERE category_id = sc.id AND organization_id = ?) as sop_count
       FROM sop_categories sc
+      WHERE sc.organization_id = ?
       ORDER BY sc.position ASC, sc.name ASC
-    `).all();
+    `).all(req.orgId, req.orgId);
     res.json(categories);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -44,15 +45,15 @@ router.post('/categories', async (req, res) => {
     }
 
     // Get max position
-    const maxPos = await db.prepare('SELECT MAX(position) as max FROM sop_categories').get();
+    const maxPos = await db.prepare('SELECT MAX(position) as max FROM sop_categories WHERE organization_id = ?').get(req.orgId);
     const position = (maxPos.max || 0) + 1;
 
     const result = await db.prepare(`
-      INSERT INTO sop_categories (name, description, color, icon, position)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(name, description, color || '#6366F1', icon || 'folder', position);
+      INSERT INTO sop_categories (name, description, color, icon, position, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(name, description, color || '#6366F1', icon || 'folder', position, req.orgId);
 
-    const category = await db.prepare('SELECT * FROM sop_categories WHERE id = ?').get(result.lastInsertRowid);
+    const category = await db.prepare('SELECT * FROM sop_categories WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(category);
   } catch (error) {
     if (error.message.includes('UNIQUE constraint')) {
@@ -74,10 +75,10 @@ router.put('/categories/:id', async (req, res) => {
           color = COALESCE(?, color),
           icon = COALESCE(?, icon),
           position = COALESCE(?, position)
-      WHERE id = ?
-    `).run(name, description, color, icon, position, req.params.id);
+      WHERE id = ? AND organization_id = ?
+    `).run(name, description, color, icon, position, req.params.id, req.orgId);
 
-    const category = await db.prepare('SELECT * FROM sop_categories WHERE id = ?').get(req.params.id);
+    const category = await db.prepare('SELECT * FROM sop_categories WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!category) {
       return res.status(404).json({ error: 'Categoría no encontrada' });
     }
@@ -91,14 +92,14 @@ router.put('/categories/:id', async (req, res) => {
 router.delete('/categories/:id', async (req, res) => {
   try {
     // Check if category has SOPs
-    const sopCount = await db.prepare('SELECT COUNT(*) as count FROM sops WHERE category_id = ?').get(req.params.id);
+    const sopCount = await db.prepare('SELECT COUNT(*) as count FROM sops WHERE category_id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (sopCount.count > 0) {
       return res.status(400).json({
         error: `No se puede eliminar. Hay ${sopCount.count} SOP(s) en esta categoría.`
       });
     }
 
-    const result = await db.prepare('DELETE FROM sop_categories WHERE id = ?').run(req.params.id);
+    const result = await db.prepare('DELETE FROM sop_categories WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Categoría no encontrada' });
     }
@@ -124,9 +125,9 @@ router.get('/', async (req, res) => {
       FROM sops s
       LEFT JOIN sop_categories sc ON s.category_id = sc.id
       LEFT JOIN team_members tm ON s.created_by = tm.id
-      WHERE 1=1
+      WHERE s.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (category_id) {
       query += ' AND s.category_id = ?';
@@ -169,8 +170,8 @@ router.get('/:identifier', async (req, res) => {
         FROM sops s
         LEFT JOIN sop_categories sc ON s.category_id = sc.id
         LEFT JOIN team_members tm ON s.created_by = tm.id
-        WHERE s.id = ?
-      `).get(identifier);
+        WHERE s.id = ? AND s.organization_id = ?
+      `).get(identifier, req.orgId);
     } else {
       sop = await db.prepare(`
         SELECT s.*,
@@ -180,8 +181,8 @@ router.get('/:identifier', async (req, res) => {
         FROM sops s
         LEFT JOIN sop_categories sc ON s.category_id = sc.id
         LEFT JOIN team_members tm ON s.created_by = tm.id
-        WHERE s.slug = ?
-      `).get(identifier);
+        WHERE s.slug = ? AND s.organization_id = ?
+      `).get(identifier, req.orgId);
     }
 
     if (!sop) {
@@ -189,7 +190,7 @@ router.get('/:identifier', async (req, res) => {
     }
 
     // Increment view count
-    await db.prepare('UPDATE sops SET view_count = view_count + 1 WHERE id = ?').run(sop.id);
+    await db.prepare('UPDATE sops SET view_count = view_count + 1 WHERE id = ? AND organization_id = ?').run(sop.id, req.orgId);
 
     res.json(sop);
   } catch (error) {
@@ -208,15 +209,15 @@ router.post('/', async (req, res) => {
 
     // Generate unique slug
     let slug = generateSlug(title);
-    const existingSlug = await db.prepare('SELECT id FROM sops WHERE slug = ?').get(slug);
+    const existingSlug = await db.prepare('SELECT id FROM sops WHERE slug = ? AND organization_id = ?').get(slug, req.orgId);
     if (existingSlug) {
       slug = `${slug}-${Date.now()}`;
     }
 
     const result = await db.prepare(`
-      INSERT INTO sops (title, slug, description, content, steps, editor_mode, category_id, created_by, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(title, slug, description, content, steps, editor_mode || 'freeform', category_id, created_by, status || 'draft');
+      INSERT INTO sops (title, slug, description, content, steps, editor_mode, category_id, created_by, status, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(title, slug, description, content, steps, editor_mode || 'freeform', category_id, created_by, status || 'draft', req.orgId);
 
     const sop = await db.prepare(`
       SELECT s.*,
@@ -226,8 +227,8 @@ router.post('/', async (req, res) => {
       FROM sops s
       LEFT JOIN sop_categories sc ON s.category_id = sc.id
       LEFT JOIN team_members tm ON s.created_by = tm.id
-      WHERE s.id = ?
-    `).get(result.lastInsertRowid);
+      WHERE s.id = ? AND s.organization_id = ?
+    `).get(result.lastInsertRowid, req.orgId);
 
     res.status(201).json(sop);
   } catch (error) {
@@ -242,7 +243,7 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
 
     // Get current SOP
-    const currentSop = await db.prepare('SELECT * FROM sops WHERE id = ?').get(id);
+    const currentSop = await db.prepare('SELECT * FROM sops WHERE id = ? AND organization_id = ?').get(id, req.orgId);
     if (!currentSop) {
       return res.status(404).json({ error: 'SOP no encontrado' });
     }
@@ -261,7 +262,7 @@ router.put('/:id', async (req, res) => {
     let slug = currentSop.slug;
     if (title && title !== currentSop.title) {
       slug = generateSlug(title);
-      const existingSlug = await db.prepare('SELECT id FROM sops WHERE slug = ? AND id != ?').get(slug, id);
+      const existingSlug = await db.prepare('SELECT id FROM sops WHERE slug = ? AND id != ? AND organization_id = ?').get(slug, id, req.orgId);
       if (existingSlug) {
         slug = `${slug}-${Date.now()}`;
       }
@@ -287,8 +288,8 @@ router.put('/:id', async (req, res) => {
           version = version + 1,
           updated_at = CURRENT_TIMESTAMP,
           published_at = ?
-      WHERE id = ?
-    `).run(title, slug, description, content, steps, editor_mode, category_id, status, is_pinned, publishedAt, id);
+      WHERE id = ? AND organization_id = ?
+    `).run(title, slug, description, content, steps, editor_mode, category_id, status, is_pinned, publishedAt, id, req.orgId);
 
     const sop = await db.prepare(`
       SELECT s.*,
@@ -298,8 +299,8 @@ router.put('/:id', async (req, res) => {
       FROM sops s
       LEFT JOIN sop_categories sc ON s.category_id = sc.id
       LEFT JOIN team_members tm ON s.created_by = tm.id
-      WHERE s.id = ?
-    `).get(id);
+      WHERE s.id = ? AND s.organization_id = ?
+    `).get(id, req.orgId);
 
     res.json(sop);
   } catch (error) {
@@ -310,15 +311,15 @@ router.put('/:id', async (req, res) => {
 // Toggle pin status
 router.put('/:id/pin', async (req, res) => {
   try {
-    const sop = await db.prepare('SELECT is_pinned FROM sops WHERE id = ?').get(req.params.id);
+    const sop = await db.prepare('SELECT is_pinned FROM sops WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!sop) {
       return res.status(404).json({ error: 'SOP no encontrado' });
     }
 
-    await db.prepare('UPDATE sops SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run(sop.is_pinned ? 0 : 1, req.params.id);
+    await db.prepare('UPDATE sops SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?')
+      .run(sop.is_pinned ? 0 : 1, req.params.id, req.orgId);
 
-    const updated = await db.prepare('SELECT * FROM sops WHERE id = ?').get(req.params.id);
+    const updated = await db.prepare('SELECT * FROM sops WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -328,7 +329,7 @@ router.put('/:id/pin', async (req, res) => {
 // Delete SOP
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await db.prepare('DELETE FROM sops WHERE id = ?').run(req.params.id);
+    const result = await db.prepare('DELETE FROM sops WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'SOP no encontrado' });
     }
@@ -341,6 +342,12 @@ router.delete('/:id', async (req, res) => {
 // Get SOP revision history
 router.get('/:id/revisions', async (req, res) => {
   try {
+    // Verify SOP belongs to this organization
+    const sop = await db.prepare('SELECT id FROM sops WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!sop) {
+      return res.status(404).json({ error: 'SOP no encontrado' });
+    }
+
     const revisions = await db.prepare(`
       SELECT sr.*, tm.name as changed_by_name
       FROM sop_revisions sr

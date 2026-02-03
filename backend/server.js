@@ -7,9 +7,14 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import cron from 'node-cron';
 import { initializeDatabase } from './src/config/database.js';
+import { migrate as runMultiTenancyMigration } from './src/migrations/001-multi-tenancy.js';
 import { processRecurringInvoices } from './src/utils/recurringInvoices.js';
 
+// Import auth middleware
+import { teamAuthMiddleware } from './src/middleware/teamAuth.js';
+
 // Import routes
+import authRoutes from './src/routes/auth.js';
 import clientRoutes from './src/routes/clients.js';
 import projectRoutes from './src/routes/projects.js';
 import taskRoutes from './src/routes/tasks.js';
@@ -95,8 +100,16 @@ httpServer.listen(PORT, '0.0.0.0', () => {
 
   // Initialize database after server starts
   initializeDatabase()
-    .then(() => {
-      console.log('✅ Database ready - Application fully operational');
+    .then(async () => {
+      console.log('✅ Database schema ready');
+      // Run multi-tenancy migration (idempotent — safe to run multiple times)
+      try {
+        await runMultiTenancyMigration();
+        console.log('✅ Multi-tenancy migration complete - Application fully operational');
+      } catch (migrationError) {
+        console.error('⚠️  Multi-tenancy migration skipped or failed:', migrationError.message);
+        console.log('✅ Application operational (migration may have already run)');
+      }
     })
     .catch((error) => {
       console.error('❌ Failed to initialize database:', error);
@@ -104,48 +117,54 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     });
 });
 
-// Routes
-app.use('/api/clients', clientRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/tasks', taskRoutes);
+// Auth routes (public — no middleware)
+app.use('/api/auth', authRoutes);
+
+// Team routes (handles its own auth internally for legacy compat)
 app.use('/api/team', teamRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+
+// All internal routes — protected by teamAuthMiddleware
+app.use('/api/clients', teamAuthMiddleware, clientRoutes);
+app.use('/api/projects', teamAuthMiddleware, projectRoutes);
+app.use('/api/tasks', teamAuthMiddleware, taskRoutes);
+app.use('/api/invoices', teamAuthMiddleware, invoiceRoutes);
+app.use('/api/expenses', teamAuthMiddleware, expenseRoutes);
+app.use('/api/dashboard', teamAuthMiddleware, dashboardRoutes);
 // Monday.com style routes
-app.use('/api/board-columns', boardColumnRoutes);
-app.use('/api/task-dependencies', taskDependencyRoutes);
-app.use('/api/task-comments', taskCommentRoutes);
-app.use('/api/task-files', taskFileRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/commissions', commissionRoutes);
+app.use('/api/board-columns', teamAuthMiddleware, boardColumnRoutes);
+app.use('/api/task-dependencies', teamAuthMiddleware, taskDependencyRoutes);
+app.use('/api/task-comments', teamAuthMiddleware, taskCommentRoutes);
+app.use('/api/task-files', teamAuthMiddleware, taskFileRoutes);
+app.use('/api/notifications', teamAuthMiddleware, notificationRoutes);
+app.use('/api/commissions', teamAuthMiddleware, commissionRoutes);
 // ClickUp-style routes
-app.use('/api/subtasks', subtaskRoutes);
-app.use('/api/tags', tagRoutes);
-app.use('/api/search', searchRoutes);
-app.use('/api/automations', automationRoutes);
-app.use('/api/reports', reportRoutes);
+app.use('/api/subtasks', teamAuthMiddleware, subtaskRoutes);
+app.use('/api/tags', teamAuthMiddleware, tagRoutes);
+app.use('/api/search', teamAuthMiddleware, searchRoutes);
+app.use('/api/automations', teamAuthMiddleware, automationRoutes);
+app.use('/api/reports', teamAuthMiddleware, reportRoutes);
 // Notes (Bloc de notas)
-app.use('/api/notes', noteRoutes);
-app.use('/api/note-categories', noteCategoryRoutes);
-app.use('/api/note-folders', noteFolderRoutes);
+app.use('/api/notes', teamAuthMiddleware, noteRoutes);
+app.use('/api/note-categories', teamAuthMiddleware, noteCategoryRoutes);
+app.use('/api/note-folders', teamAuthMiddleware, noteFolderRoutes);
 // Platform integrations (Facebook Ads & Shopify metrics)
-app.use('/api/platform-credentials', platformCredentialsRoutes);
-app.use('/api/client-metrics', clientMetricsRoutes);
-app.use('/api/oauth/facebook', facebookOAuthRoutes);
+app.use('/api/platform-credentials', teamAuthMiddleware, platformCredentialsRoutes);
+app.use('/api/client-metrics', teamAuthMiddleware, clientMetricsRoutes);
+app.use('/api/oauth/facebook', teamAuthMiddleware, facebookOAuthRoutes);
 // PDF Analysis (RUT extraction with Claude AI)
-app.use('/api/pdf', pdfAnalysisRoutes);
+app.use('/api/pdf', teamAuthMiddleware, pdfAnalysisRoutes);
 // SOPs (Standard Operating Procedures)
-app.use('/api/sops', sopsRoutes);
+app.use('/api/sops', teamAuthMiddleware, sopsRoutes);
 // Project Templates
-app.use('/api/project-templates', projectTemplatesRoutes);
+app.use('/api/project-templates', teamAuthMiddleware, projectTemplatesRoutes);
 // Time Tracking
-app.use('/api/time-entries', timeEntriesRoutes);
+app.use('/api/time-entries', teamAuthMiddleware, timeEntriesRoutes);
 // Siigo Integration
-app.use('/api/siigo', siigoRoutes);
-// Client Portal
+app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
+// Portal admin (internal — needs team auth)
+app.use('/api/portal-admin', teamAuthMiddleware, portalAdminRoutes);
+// Client Portal (public portal — uses its own clientAuthMiddleware)
 app.use('/api/portal', portalRoutes);
-app.use('/api/portal-admin', portalAdminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

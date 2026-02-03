@@ -22,6 +22,7 @@ const SCOPES = '';
  */
 router.get('/url', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { client_id } = req.query;
 
     if (!client_id) {
@@ -32,12 +33,19 @@ router.get('/url', async (req, res) => {
       return res.status(500).json({ error: 'FACEBOOK_APP_ID no configurado en .env' });
     }
 
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
     // Generate state for CSRF protection
     const state = `${client_id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Store state with client_id for later verification
+    // Store state with client_id and orgId for later verification
     oauthSessions.set(state, {
       clientId: client_id,
+      orgId: orgId,
       createdAt: Date.now()
     });
 
@@ -145,6 +153,7 @@ router.get('/callback', async (req, res) => {
     oauthSessions.set(sessionId, {
       accessToken: longLivedToken,
       clientId: clientId,
+      orgId: session.orgId,
       createdAt: Date.now()
     });
 
@@ -187,6 +196,7 @@ router.get('/callback', async (req, res) => {
  */
 router.get('/ad-accounts', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { session_id } = req.query;
 
     if (!session_id) {
@@ -199,6 +209,12 @@ router.get('/ad-accounts', async (req, res) => {
     }
 
     const { accessToken, clientId } = session;
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
 
     // Get user's ad accounts
     const adAccountsUrl = `https://graph.facebook.com/v18.0/me/adaccounts?` +
@@ -247,6 +263,7 @@ router.get('/ad-accounts', async (req, res) => {
  */
 router.post('/link-accounts', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { session_id, client_id, account_ids } = req.body;
 
     if (!session_id || !client_id || !account_ids || !Array.isArray(account_ids)) {
@@ -266,8 +283,8 @@ router.post('/link-accounts', async (req, res) => {
 
     const { accessToken } = session;
 
-    // Verify client exists
-    const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+    // Verify client exists and belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -296,7 +313,7 @@ router.post('/link-accounts', async (req, res) => {
         ad_account_name = excluded.ad_account_name,
         status = 'active',
         last_error = NULL,
-        updated_at = datetime('now')
+        updated_at = CURRENT_TIMESTAMP
     `);
 
     const results = [];
@@ -329,13 +346,22 @@ router.post('/link-accounts', async (req, res) => {
  */
 router.delete('/unlink/:credentialId', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { credentialId } = req.params;
 
-    const result = await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(credentialId);
+    // Verify credential belongs to a client in this org
+    const credential = await db.prepare(`
+      SELECT cfc.id
+      FROM client_facebook_credentials cfc
+      JOIN clients c ON cfc.client_id = c.id
+      WHERE cfc.id = ? AND c.organization_id = ?
+    `).get(credentialId, orgId);
 
-    if (result.changes === 0) {
+    if (!credential) {
       return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
+
+    await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(credentialId);
 
     res.json({ message: 'Cuenta desvinculada exitosamente' });
   } catch (error) {

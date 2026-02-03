@@ -18,9 +18,10 @@ router.get('/stats', async (req, res) => {
     // Build date filter
     let dateFilter = '';
     const params = [];
+    const orgId = req.orgId;
 
     if (start && end) {
-      dateFilter = ' WHERE created_at >= ? AND created_at <= ?';
+      dateFilter = ' AND created_at >= ? AND created_at <= ?';
       params.push(start, end);
     }
 
@@ -32,7 +33,8 @@ router.get('/stats', async (req, res) => {
         SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive,
         SUM(contract_value) as total_contract_value
       FROM clients
-    `).get();
+      WHERE organization_id = ?
+    `).get(orgId);
     stats.clients = clientStats;
 
     // Project stats
@@ -44,27 +46,24 @@ router.get('/stats', async (req, res) => {
         SUM(budget) as total_budget,
         SUM(spent) as total_spent
       FROM projects
-      ${dateFilter}
+      WHERE organization_id = ?${dateFilter}
     `;
-    const projectStats = params.length > 0
-      ? await db.prepare(projectQuery).get(...params)
-      : await db.prepare(projectQuery).get();
+    const projectStats = await db.prepare(projectQuery).get(orgId, ...params);
     stats.projects = projectStats;
 
     // Task stats
     const taskQuery = `
       SELECT
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END) as todo,
-        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-        SUM(CASE WHEN status = 'review' THEN 1 ELSE 0 END) as review,
-        SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done
-      FROM tasks
-      ${dateFilter}
+        SUM(CASE WHEN t.status = 'todo' THEN 1 ELSE 0 END) as todo,
+        SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+        SUM(CASE WHEN t.status = 'review' THEN 1 ELSE 0 END) as review,
+        SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.organization_id = ?${dateFilter.replace(/created_at/g, 't.created_at')}
     `;
-    const taskStats = params.length > 0
-      ? await db.prepare(taskQuery).get(...params)
-      : await db.prepare(taskQuery).get();
+    const taskStats = await db.prepare(taskQuery).get(orgId, ...params);
     stats.tasks = taskStats;
 
     // Finance stats - filter by paid_date for paid invoices, issue_date for total invoiced
@@ -78,18 +77,18 @@ router.get('/stats', async (req, res) => {
           SUM(CASE WHEN status = 'paid' AND paid_date >= ? AND paid_date <= ? THEN amount ELSE 0 END) as total_paid,
           SUM(CASE WHEN (status = 'sent' OR status = 'overdue') AND issue_date >= ? AND issue_date <= ? THEN amount ELSE 0 END) as total_pending
         FROM invoices
-        WHERE issue_date >= ? AND issue_date <= ?
+        WHERE organization_id = ? AND issue_date >= ? AND issue_date <= ?
       `;
       expenseQuery = `
         SELECT
           COUNT(*) as total_expenses,
           SUM(amount) as total_expenses_amount
         FROM expenses
-        WHERE expense_date >= ? AND expense_date <= ?
+        WHERE organization_id = ? AND expense_date >= ? AND expense_date <= ?
       `;
 
-      const invoiceStats = await db.prepare(invoiceQuery).get(start, end, start, end, start, end);
-      const expenseStats = await db.prepare(expenseQuery).get(start, end);
+      const invoiceStats = await db.prepare(invoiceQuery).get(start, end, start, end, orgId, start, end);
+      const expenseStats = await db.prepare(expenseQuery).get(orgId, start, end);
 
       stats.finances = {
         ...invoiceStats,
@@ -104,16 +103,18 @@ router.get('/stats', async (req, res) => {
           SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as total_paid,
           SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN amount ELSE 0 END) as total_pending
         FROM invoices
+        WHERE organization_id = ?
       `;
       expenseQuery = `
         SELECT
           COUNT(*) as total_expenses,
           SUM(amount) as total_expenses_amount
         FROM expenses
+        WHERE organization_id = ?
       `;
 
-      const invoiceStats = await db.prepare(invoiceQuery).get();
-      const expenseStats = await db.prepare(expenseQuery).get();
+      const invoiceStats = await db.prepare(invoiceQuery).get(orgId);
+      const expenseStats = await db.prepare(expenseQuery).get(orgId);
 
       stats.finances = {
         ...invoiceStats,
@@ -133,26 +134,32 @@ router.get('/recent-activity', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
 
+    const orgId = req.orgId;
+
     const recentProjects = await db.prepare(`
       SELECT 'project' as type, id, name as title, status, created_at
       FROM projects
+      WHERE organization_id = ?
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(Math.ceil(limit / 3));
+    `).all(orgId, Math.ceil(limit / 3));
 
     const recentTasks = await db.prepare(`
-      SELECT 'task' as type, id, title, status, created_at
-      FROM tasks
-      ORDER BY created_at DESC
+      SELECT 'task' as type, t.id, t.title, t.status, t.created_at
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.organization_id = ?
+      ORDER BY t.created_at DESC
       LIMIT ?
-    `).all(Math.ceil(limit / 3));
+    `).all(orgId, Math.ceil(limit / 3));
 
     const recentInvoices = await db.prepare(`
       SELECT 'invoice' as type, id, invoice_number as title, status, created_at
       FROM invoices
+      WHERE organization_id = ?
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(Math.ceil(limit / 3));
+    `).all(orgId, Math.ceil(limit / 3));
 
     const activity = [...recentProjects, ...recentTasks, ...recentInvoices]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -167,6 +174,7 @@ router.get('/recent-activity', async (req, res) => {
 // Get upcoming tasks
 router.get('/upcoming-tasks', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const tasks = await db.prepare(`
       SELECT t.*, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
@@ -174,10 +182,11 @@ router.get('/upcoming-tasks', async (req, res) => {
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE t.status != 'done'
         AND t.due_date IS NOT NULL
-        AND t.due_date >= date('now')
+        AND t.due_date >= CURRENT_DATE
+        AND p.organization_id = ?
       ORDER BY t.due_date ASC
       LIMIT 10
-    `).all();
+    `).all(orgId);
 
     res.json(tasks);
   } catch (error) {
@@ -188,14 +197,16 @@ router.get('/upcoming-tasks', async (req, res) => {
 // Get overdue invoices
 router.get('/overdue-invoices', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const invoices = await db.prepare(`
       SELECT i.*, c.name as client_name
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
       WHERE i.status IN ('sent', 'overdue')
-        AND i.due_date < date('now')
+        AND i.due_date < CURRENT_DATE
+        AND i.organization_id = ?
       ORDER BY i.due_date ASC
-    `).all();
+    `).all(orgId);
 
     res.json(invoices);
   } catch (error) {
@@ -207,27 +218,30 @@ router.get('/overdue-invoices', async (req, res) => {
 router.get('/revenue-trend', async (req, res) => {
   try {
     const months = parseInt(req.query.months) || 6;
+    const orgId = req.orgId;
 
     const revenue = await db.prepare(`
       SELECT
-        strftime('%Y-%m', paid_date) as month,
+        TO_CHAR(paid_date, 'YYYY-MM') as month,
         SUM(amount) as revenue
       FROM invoices
       WHERE status = 'paid'
-        AND paid_date >= date('now', '-' || ? || ' months')
+        AND paid_date >= CURRENT_DATE - (? || ' months')::INTERVAL
+        AND organization_id = ?
       GROUP BY month
       ORDER BY month DESC
-    `).all(months);
+    `).all(months, orgId);
 
     const expenses = await db.prepare(`
       SELECT
-        strftime('%Y-%m', expense_date) as month,
+        TO_CHAR(expense_date, 'YYYY-MM') as month,
         SUM(amount) as expenses
       FROM expenses
-      WHERE expense_date >= date('now', '-' || ? || ' months')
+      WHERE expense_date >= CURRENT_DATE - (? || ' months')::INTERVAL
+        AND organization_id = ?
       GROUP BY month
       ORDER BY month DESC
-    `).all(months);
+    `).all(months, orgId);
 
     const trend = revenue.map(r => {
       const exp = expenses.find(e => e.month === r.month);

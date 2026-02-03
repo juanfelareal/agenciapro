@@ -20,9 +20,9 @@ router.get('/', async (req, res) => {
       LEFT JOIN note_folders nf ON n.folder_id = nf.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
       LEFT JOIN note_links nl ON n.id = nl.note_id
-      WHERE 1=1
+      WHERE n.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (category_id) {
       query += ' AND n.category_id = ?';
@@ -93,8 +93,8 @@ router.get('/:id', async (req, res) => {
       FROM notes n
       LEFT JOIN note_categories nc ON n.category_id = nc.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
-      WHERE n.id = ?
-    `).get(req.params.id);
+      WHERE n.id = ? AND n.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
@@ -132,9 +132,9 @@ router.get('/client/:clientId', async (req, res) => {
       LEFT JOIN note_categories nc ON n.category_id = nc.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
       INNER JOIN note_links nl ON n.id = nl.note_id
-      WHERE nl.client_id = ?
+      WHERE nl.client_id = ? AND n.organization_id = ?
       ORDER BY n.is_pinned DESC, n.updated_at DESC
-    `).all(req.params.clientId);
+    `).all(req.params.clientId, req.orgId);
 
     res.json(notes);
   } catch (error) {
@@ -154,9 +154,9 @@ router.get('/project/:projectId', async (req, res) => {
       LEFT JOIN note_categories nc ON n.category_id = nc.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
       INNER JOIN note_links nl ON n.id = nl.note_id
-      WHERE nl.project_id = ?
+      WHERE nl.project_id = ? AND n.organization_id = ?
       ORDER BY n.is_pinned DESC, n.updated_at DESC
-    `).all(req.params.projectId);
+    `).all(req.params.projectId, req.orgId);
 
     res.json(notes);
   } catch (error) {
@@ -176,9 +176,9 @@ router.get('/team/:memberId', async (req, res) => {
       LEFT JOIN note_categories nc ON n.category_id = nc.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
       INNER JOIN note_links nl ON n.id = nl.note_id
-      WHERE nl.team_member_id = ?
+      WHERE nl.team_member_id = ? AND n.organization_id = ?
       ORDER BY n.is_pinned DESC, n.updated_at DESC
-    `).all(req.params.memberId);
+    `).all(req.params.memberId, req.orgId);
 
     res.json(notes);
   } catch (error) {
@@ -196,8 +196,8 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO notes (title, content, content_plain, color, category_id, folder_id, is_pinned, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO notes (title, content, content_plain, color, category_id, folder_id, is_pinned, created_by, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       title,
       content ? JSON.stringify(content) : null,
@@ -206,7 +206,8 @@ router.post('/', async (req, res) => {
       category_id || null,
       folder_id || null,
       is_pinned ? 1 : 0,
-      created_by || null
+      created_by || null,
+      req.orgId
     );
 
     const noteId = result.lastInsertRowid;
@@ -224,7 +225,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    const note = await db.prepare('SELECT * FROM notes WHERE id = ?').get(noteId);
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(noteId, req.orgId);
     res.status(201).json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -240,7 +241,7 @@ router.put('/:id', async (req, res) => {
       UPDATE notes
       SET title = ?, content = ?, content_plain = ?, color = ?,
           category_id = ?, folder_id = ?, is_pinned = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND organization_id = ?
     `).run(
       title,
       content ? JSON.stringify(content) : null,
@@ -249,7 +250,8 @@ router.put('/:id', async (req, res) => {
       category_id || null,
       folder_id || null,
       is_pinned ? 1 : 0,
-      req.params.id
+      req.params.id,
+      req.orgId
     );
 
     // Update links if provided
@@ -271,7 +273,7 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    const note = await db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -281,16 +283,16 @@ router.put('/:id', async (req, res) => {
 // Toggle pin status
 router.put('/:id/pin', async (req, res) => {
   try {
-    const current = await db.prepare('SELECT is_pinned FROM notes WHERE id = ?').get(req.params.id);
+    const current = await db.prepare('SELECT is_pinned FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!current) {
       return res.status(404).json({ error: 'Note not found' });
     }
 
     await db.prepare(`
-      UPDATE notes SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).run(current.is_pinned ? 0 : 1, req.params.id);
+      UPDATE notes SET is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
+    `).run(current.is_pinned ? 0 : 1, req.params.id, req.orgId);
 
-    const note = await db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -303,10 +305,10 @@ router.put('/:id/color', async (req, res) => {
     const { color } = req.body;
 
     await db.prepare(`
-      UPDATE notes SET color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).run(color || '#FFFFFF', req.params.id);
+      UPDATE notes SET color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
+    `).run(color || '#FFFFFF', req.params.id, req.orgId);
 
-    const note = await db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -320,6 +322,26 @@ router.post('/:id/links', async (req, res) => {
 
     if (!client_id && !project_id && !team_member_id) {
       return res.status(400).json({ error: 'At least one entity ID is required' });
+    }
+
+    // Verify note belongs to this org
+    const note = await db.prepare('SELECT id FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Verify linked entities belong to the same org
+    if (client_id) {
+      const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, req.orgId);
+      if (!client) return res.status(400).json({ error: 'Client not found in this organization' });
+    }
+    if (project_id) {
+      const project = await db.prepare('SELECT id FROM projects WHERE id = ? AND organization_id = ?').get(project_id, req.orgId);
+      if (!project) return res.status(400).json({ error: 'Project not found in this organization' });
+    }
+    if (team_member_id) {
+      const member = await db.prepare('SELECT id FROM team_members WHERE id = ? AND organization_id = ?').get(team_member_id, req.orgId);
+      if (!member) return res.status(400).json({ error: 'Team member not found in this organization' });
     }
 
     const result = await db.prepare(`
@@ -337,6 +359,12 @@ router.post('/:id/links', async (req, res) => {
 // Remove link from note
 router.delete('/:id/links/:linkId', async (req, res) => {
   try {
+    // Verify note belongs to this org
+    const note = await db.prepare('SELECT id FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
     await db.prepare('DELETE FROM note_links WHERE id = ? AND note_id = ?').run(req.params.linkId, req.params.id);
     res.json({ message: 'Link removed successfully' });
   } catch (error) {
@@ -347,7 +375,7 @@ router.delete('/:id/links/:linkId', async (req, res) => {
 // Delete note
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM notes WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM notes WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -371,10 +399,10 @@ router.get('/search/query', async (req, res) => {
       FROM notes n
       LEFT JOIN note_categories nc ON n.category_id = nc.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
-      WHERE n.title LIKE ? OR n.content_plain LIKE ?
+      WHERE n.organization_id = ? AND (n.title LIKE ? OR n.content_plain LIKE ?)
       ORDER BY n.is_pinned DESC, n.updated_at DESC
       LIMIT ?
-    `).all(`%${q}%`, `%${q}%`, parseInt(limit));
+    `).all(req.orgId, `%${q}%`, `%${q}%`, parseInt(limit));
 
     res.json(notes);
   } catch (error) {

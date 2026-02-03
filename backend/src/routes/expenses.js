@@ -11,9 +11,9 @@ router.get('/', async (req, res) => {
       SELECT e.*, p.name as project_name
       FROM expenses e
       LEFT JOIN projects p ON e.project_id = p.id
-      WHERE 1=1
+      WHERE e.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (category) {
       query += ' AND e.category = ?';
@@ -50,8 +50,8 @@ router.get('/:id', async (req, res) => {
       SELECT e.*, p.name as project_name
       FROM expenses e
       LEFT JOIN projects p ON e.project_id = p.id
-      WHERE e.id = ?
-    `).get(req.params.id);
+      WHERE e.id = ? AND e.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
@@ -72,21 +72,21 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO expenses (description, category, amount, project_id, expense_date, payment_method, receipt_url, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(description, category, amount, project_id, expense_date, payment_method, receipt_url, notes);
+      INSERT INTO expenses (description, category, amount, project_id, expense_date, payment_method, receipt_url, notes, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(description, category, amount, project_id, expense_date, payment_method, receipt_url, notes, req.orgId);
 
-    // Update project spent amount if project_id is provided
+    // Update project spent amount if project_id is provided (verify project belongs to org)
     if (project_id) {
       await db.prepare(`
         UPDATE projects
         SET spent = spent + ?,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(amount, project_id);
+        WHERE id = ? AND organization_id = ?
+      `).run(amount, project_id, req.orgId);
     }
 
-    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(result.lastInsertRowid);
+    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(expense);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -98,29 +98,33 @@ router.put('/:id', async (req, res) => {
   try {
     const { description, category, amount, project_id, expense_date, payment_method, receipt_url, notes } = req.body;
 
-    // Get old expense to adjust project spent
-    const oldExpense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    // Get old expense to adjust project spent (scoped to org)
+    const oldExpense = await db.prepare('SELECT * FROM expenses WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+
+    if (!oldExpense) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
 
     await db.prepare(`
       UPDATE expenses
       SET description = ?, category = ?, amount = ?, project_id = ?,
           expense_date = ?, payment_method = ?, receipt_url = ?,
           notes = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(description, category, amount, project_id, expense_date, payment_method, receipt_url, notes, req.params.id);
+      WHERE id = ? AND organization_id = ?
+    `).run(description, category, amount, project_id, expense_date, payment_method, receipt_url, notes, req.params.id, req.orgId);
 
-    // Adjust project spent amounts
+    // Adjust project spent amounts (verify projects belong to org)
     if (oldExpense.project_id) {
-      await db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ?')
-        .run(oldExpense.amount, oldExpense.project_id);
+      await db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ? AND organization_id = ?')
+        .run(oldExpense.amount, oldExpense.project_id, req.orgId);
     }
 
     if (project_id) {
-      await db.prepare('UPDATE projects SET spent = spent + ? WHERE id = ?')
-        .run(amount, project_id);
+      await db.prepare('UPDATE projects SET spent = spent + ? WHERE id = ? AND organization_id = ?')
+        .run(amount, project_id, req.orgId);
     }
 
-    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(expense);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -130,15 +134,19 @@ router.put('/:id', async (req, res) => {
 // Delete expense
 router.delete('/:id', async (req, res) => {
   try {
-    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+    const expense = await db.prepare('SELECT * FROM expenses WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
 
-    // Adjust project spent amount
-    if (expense.project_id) {
-      await db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ?')
-        .run(expense.amount, expense.project_id);
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
     }
 
-    await db.prepare('DELETE FROM expenses WHERE id = ?').run(req.params.id);
+    // Adjust project spent amount (verify project belongs to org)
+    if (expense.project_id) {
+      await db.prepare('UPDATE projects SET spent = spent - ? WHERE id = ? AND organization_id = ?')
+        .run(expense.amount, expense.project_id, req.orgId);
+    }
+
+    await db.prepare('DELETE FROM expenses WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -152,9 +160,9 @@ router.get('/summary/by-category', async (req, res) => {
     let query = `
       SELECT category, SUM(amount) as total, COUNT(*) as count
       FROM expenses
-      WHERE 1=1
+      WHERE organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (start_date) {
       query += ' AND expense_date >= ?';

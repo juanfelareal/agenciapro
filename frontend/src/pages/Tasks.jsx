@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
 import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
 import TagSelector from '../components/TagSelector';
 import TaskViewSwitcher from '../components/tasks/TaskViewSwitcher';

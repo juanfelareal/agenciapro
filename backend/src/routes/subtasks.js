@@ -6,6 +6,17 @@ const router = express.Router();
 // Get all subtasks for a task
 router.get('/task/:taskId', async (req, res) => {
   try {
+    // Verify task belongs to org via project
+    const task = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.taskId, req.orgId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     const subtasks = await db.prepare(`
       SELECT * FROM subtasks
       WHERE task_id = ?
@@ -20,7 +31,13 @@ router.get('/task/:taskId', async (req, res) => {
 // Get subtask by ID
 router.get('/:id', async (req, res) => {
   try {
-    const subtask = await db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
+    const subtask = await db.prepare(`
+      SELECT s.* FROM subtasks s
+      JOIN tasks t ON s.task_id = t.id
+      JOIN projects p ON t.project_id = p.id
+      WHERE s.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
     if (!subtask) {
       return res.status(404).json({ error: 'Subtask not found' });
     }
@@ -37,6 +54,17 @@ router.post('/', async (req, res) => {
 
     if (!task_id || !title) {
       return res.status(400).json({ error: 'Task ID and title are required' });
+    }
+
+    // Verify task belongs to org via project
+    const task = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(task_id, req.orgId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
     }
 
     // Get max position if not provided
@@ -63,6 +91,18 @@ router.put('/:id', async (req, res) => {
   try {
     const { title, is_completed, position } = req.body;
 
+    // Verify subtask belongs to org via task→project chain
+    const existing = await db.prepare(`
+      SELECT s.id FROM subtasks s
+      JOIN tasks t ON s.task_id = t.id
+      JOIN projects p ON t.project_id = p.id
+      WHERE s.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Subtask not found' });
+    }
+
     await db.prepare(`
       UPDATE subtasks
       SET title = COALESCE(?, title),
@@ -81,7 +121,13 @@ router.put('/:id', async (req, res) => {
 // Toggle subtask completion
 router.put('/:id/toggle', async (req, res) => {
   try {
-    const subtask = await db.prepare('SELECT * FROM subtasks WHERE id = ?').get(req.params.id);
+    const subtask = await db.prepare(`
+      SELECT s.* FROM subtasks s
+      JOIN tasks t ON s.task_id = t.id
+      JOIN projects p ON t.project_id = p.id
+      WHERE s.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
     if (!subtask) {
       return res.status(404).json({ error: 'Subtask not found' });
     }
@@ -105,6 +151,17 @@ router.put('/reorder/:taskId', async (req, res) => {
       return res.status(400).json({ error: 'subtaskIds must be an array' });
     }
 
+    // Verify task belongs to org via project
+    const task = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.taskId, req.orgId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     // Update positions sequentially
     for (let index = 0; index < subtaskIds.length; index++) {
       await db.prepare('UPDATE subtasks SET position = ? WHERE id = ? AND task_id = ?')
@@ -126,6 +183,18 @@ router.put('/reorder/:taskId', async (req, res) => {
 // Delete subtask
 router.delete('/:id', async (req, res) => {
   try {
+    // Verify subtask belongs to org via task→project chain
+    const existing = await db.prepare(`
+      SELECT s.id FROM subtasks s
+      JOIN tasks t ON s.task_id = t.id
+      JOIN projects p ON t.project_id = p.id
+      WHERE s.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Subtask not found' });
+    }
+
     await db.prepare('DELETE FROM subtasks WHERE id = ?').run(req.params.id);
     res.json({ message: 'Subtask deleted successfully' });
   } catch (error) {
@@ -136,6 +205,17 @@ router.delete('/:id', async (req, res) => {
 // Get subtask progress for a task
 router.get('/task/:taskId/progress', async (req, res) => {
   try {
+    // Verify task belongs to org via project
+    const task = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.taskId, req.orgId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     const stats = await db.prepare(`
       SELECT
         COUNT(*) as total,

@@ -6,6 +6,17 @@ const router = express.Router();
 // Get all dependencies for a task
 router.get('/task/:taskId', async (req, res) => {
   try {
+    // Verify task belongs to org via project
+    const task = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.taskId, req.orgId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     const dependencies = await db.prepare(`
       SELECT td.*, t.title as depends_on_task_title,
              t.status as depends_on_task_status,
@@ -24,6 +35,17 @@ router.get('/task/:taskId', async (req, res) => {
 // Get all tasks that depend on a specific task
 router.get('/task/:taskId/dependents', async (req, res) => {
   try {
+    // Verify task belongs to org via project
+    const task = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.taskId, req.orgId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     const dependents = await db.prepare(`
       SELECT td.*, t.title as task_title,
              t.status as task_status,
@@ -53,6 +75,27 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Cannot create a dependency to itself' });
     }
 
+    // Verify both tasks belong to org via project
+    const taskCheck = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(task_id, req.orgId);
+
+    if (!taskCheck) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    const dependsOnCheck = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(depends_on_task_id, req.orgId);
+
+    if (!dependsOnCheck) {
+      return res.status(404).json({ error: 'Dependency task not found' });
+    }
+
     const result = await db.prepare(`
       INSERT INTO task_dependencies (task_id, depends_on_task_id, dependency_type)
       VALUES (?, ?, ?)
@@ -76,6 +119,18 @@ router.put('/:id', async (req, res) => {
   try {
     const { dependency_type } = req.body;
 
+    // Verify dependency belongs to org via task→project chain
+    const existing = await db.prepare(`
+      SELECT td.id FROM task_dependencies td
+      JOIN tasks t ON td.task_id = t.id
+      JOIN projects p ON t.project_id = p.id
+      WHERE td.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Dependency not found' });
+    }
+
     await db.prepare(`
       UPDATE task_dependencies
       SET dependency_type = ?
@@ -98,6 +153,18 @@ router.put('/:id', async (req, res) => {
 // Delete dependency
 router.delete('/:id', async (req, res) => {
   try {
+    // Verify dependency belongs to org via task→project chain
+    const existing = await db.prepare(`
+      SELECT td.id FROM task_dependencies td
+      JOIN tasks t ON td.task_id = t.id
+      JOIN projects p ON t.project_id = p.id
+      WHERE td.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Dependency not found' });
+    }
+
     await db.prepare('DELETE FROM task_dependencies WHERE id = ?').run(req.params.id);
     res.json({ message: 'Dependency deleted successfully' });
   } catch (error) {
@@ -108,6 +175,15 @@ router.delete('/:id', async (req, res) => {
 // Get dependency chain for Gantt view (project level)
 router.get('/project/:projectId/chain', async (req, res) => {
   try {
+    // Verify project belongs to org
+    const project = await db.prepare(
+      'SELECT id FROM projects WHERE id = ? AND organization_id = ?'
+    ).get(req.params.projectId, req.orgId);
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
     const dependencies = await db.prepare(`
       SELECT td.*,
              t1.title as task_title,

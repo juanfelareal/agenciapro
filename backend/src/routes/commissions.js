@@ -18,9 +18,9 @@ router.get('/report/monthly', async (req, res) => {
       FROM commissions c
       JOIN team_members tm ON c.team_member_id = tm.id
       LEFT JOIN clients cl ON c.client_id = cl.id
-      WHERE 1=1
+      WHERE c.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (month) {
       query += ' AND c.month = ?';
@@ -67,9 +67,9 @@ router.get('/', async (req, res) => {
       FROM commissions c
       JOIN team_members tm ON c.team_member_id = tm.id
       LEFT JOIN clients cl ON c.client_id = cl.id
-      WHERE 1=1
+      WHERE c.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (month) {
       query += ' AND c.month = ?';
@@ -118,8 +118,8 @@ router.get('/:id', async (req, res) => {
       FROM commissions c
       JOIN team_members tm ON c.team_member_id = tm.id
       LEFT JOIN clients cl ON c.client_id = cl.id
-      WHERE c.id = ?
-    `).get(req.params.id);
+      WHERE c.id = ? AND c.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!commission) {
       return res.status(404).json({ error: 'Commission not found' });
@@ -145,23 +145,23 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Month must be between 1 and 12' });
     }
 
-    // Check if team member exists
-    const teamMember = await db.prepare('SELECT id FROM team_members WHERE id = ?').get(team_member_id);
+    // Check if team member exists in this org
+    const teamMember = await db.prepare('SELECT id FROM team_members WHERE id = ? AND organization_id = ?').get(team_member_id, req.orgId);
     if (!teamMember) {
       return res.status(404).json({ error: 'Team member not found' });
     }
 
-    // Check if client exists (if provided)
+    // Check if client exists in this org (if provided)
     if (client_id) {
-      const client = await db.prepare('SELECT id FROM clients WHERE id = ?').get(client_id);
+      const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, req.orgId);
       if (!client) {
         return res.status(404).json({ error: 'Client not found' });
       }
     }
 
     const result = await db.prepare(`
-      INSERT INTO commissions (team_member_id, client_id, otros, month, year, net_sales, commission_amount, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO commissions (team_member_id, client_id, otros, month, year, net_sales, commission_amount, status, notes, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       team_member_id,
       client_id || null,
@@ -171,7 +171,8 @@ router.post('/', async (req, res) => {
       net_sales,
       commission_amount,
       status || 'pending',
-      notes
+      notes,
+      req.orgId
     );
 
     const commission = await db.prepare(`
@@ -184,8 +185,8 @@ router.post('/', async (req, res) => {
       FROM commissions c
       JOIN team_members tm ON c.team_member_id = tm.id
       LEFT JOIN clients cl ON c.client_id = cl.id
-      WHERE c.id = ?
-    `).get(result.lastInsertRowid);
+      WHERE c.id = ? AND c.organization_id = ?
+    `).get(result.lastInsertRowid, req.orgId);
 
     res.status(201).json(commission);
   } catch (error) {
@@ -207,7 +208,7 @@ router.put('/:id', async (req, res) => {
       UPDATE commissions
       SET team_member_id = ?, client_id = ?, otros = ?, month = ?, year = ?, net_sales = ?,
           commission_amount = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND organization_id = ?
     `).run(
       team_member_id,
       client_id || null,
@@ -218,7 +219,8 @@ router.put('/:id', async (req, res) => {
       commission_amount,
       status,
       notes,
-      req.params.id
+      req.params.id,
+      req.orgId
     );
 
     const commission = await db.prepare(`
@@ -231,8 +233,8 @@ router.put('/:id', async (req, res) => {
       FROM commissions c
       JOIN team_members tm ON c.team_member_id = tm.id
       LEFT JOIN clients cl ON c.client_id = cl.id
-      WHERE c.id = ?
-    `).get(req.params.id);
+      WHERE c.id = ? AND c.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!commission) {
       return res.status(404).json({ error: 'Commission not found' });
@@ -256,8 +258,8 @@ router.patch('/:id/status', async (req, res) => {
     await db.prepare(`
       UPDATE commissions
       SET status = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(status, req.params.id);
+      WHERE id = ? AND organization_id = ?
+    `).run(status, req.params.id, req.orgId);
 
     const commission = await db.prepare(`
       SELECT
@@ -269,8 +271,8 @@ router.patch('/:id/status', async (req, res) => {
       FROM commissions c
       JOIN team_members tm ON c.team_member_id = tm.id
       LEFT JOIN clients cl ON c.client_id = cl.id
-      WHERE c.id = ?
-    `).get(req.params.id);
+      WHERE c.id = ? AND c.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!commission) {
       return res.status(404).json({ error: 'Commission not found' });
@@ -290,15 +292,16 @@ router.patch('/:id/status', async (req, res) => {
       }).format(commission.commission_amount);
 
       await db.prepare(`
-        INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, organization_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(
         commission.team_member_id,
         'commission_approved',
         'Comisión Aprobada',
         `Tu comisión de ${formattedAmount} para ${monthName} ${commission.year} ha sido aprobada.`,
         'commission',
-        commission.id
+        commission.id,
+        req.orgId
       );
     }
 
@@ -311,13 +314,13 @@ router.patch('/:id/status', async (req, res) => {
 // Delete commission
 router.delete('/:id', async (req, res) => {
   try {
-    const commission = await db.prepare('SELECT id FROM commissions WHERE id = ?').get(req.params.id);
+    const commission = await db.prepare('SELECT id FROM commissions WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
 
     if (!commission) {
       return res.status(404).json({ error: 'Commission not found' });
     }
 
-    await db.prepare('DELETE FROM commissions WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM commissions WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Commission deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

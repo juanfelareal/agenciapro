@@ -13,8 +13,10 @@ router.get('/user/:userId', async (req, res) => {
       SELECT n.*, tm.name as actor_name
       FROM notifications n
       LEFT JOIN team_members tm ON n.user_id = tm.id
-      WHERE n.user_id = ?
+      WHERE n.user_id = ? AND n.organization_id = ?
     `;
+
+    const params = [userId, req.orgId];
 
     if (unread_only === 'true') {
       query += ' AND n.is_read = 0';
@@ -22,7 +24,7 @@ router.get('/user/:userId', async (req, res) => {
 
     query += ' ORDER BY n.created_at DESC';
 
-    const notifications = await db.prepare(query).all(userId);
+    const notifications = await db.prepare(query).all(...params);
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -36,8 +38,8 @@ router.get('/user/:userId/unread-count', async (req, res) => {
     const result = await db.prepare(`
       SELECT COUNT(*) as count
       FROM notifications
-      WHERE user_id = ? AND is_read = 0
-    `).get(userId);
+      WHERE user_id = ? AND is_read = 0 AND organization_id = ?
+    `).get(userId, req.orgId);
 
     res.json({ count: result.count });
   } catch (error) {
@@ -53,10 +55,13 @@ router.put('/:id/read', async (req, res) => {
     await db.prepare(`
       UPDATE notifications
       SET is_read = 1, read_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(id);
+      WHERE id = ? AND organization_id = ?
+    `).run(id, req.orgId);
 
-    const notification = await db.prepare('SELECT * FROM notifications WHERE id = ?').get(id);
+    const notification = await db.prepare(
+      'SELECT * FROM notifications WHERE id = ? AND organization_id = ?'
+    ).get(id, req.orgId);
+
     res.json(notification);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -71,8 +76,8 @@ router.put('/user/:userId/read-all', async (req, res) => {
     await db.prepare(`
       UPDATE notifications
       SET is_read = 1, read_at = CURRENT_TIMESTAMP
-      WHERE user_id = ? AND is_read = 0
-    `).run(userId);
+      WHERE user_id = ? AND is_read = 0 AND organization_id = ?
+    `).run(userId, req.orgId);
 
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {
@@ -84,7 +89,9 @@ router.put('/user/:userId/read-all', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await db.prepare('DELETE FROM notifications WHERE id = ?').run(id);
+    await db.prepare(
+      'DELETE FROM notifications WHERE id = ? AND organization_id = ?'
+    ).run(id, req.orgId);
     res.json({ message: 'Notification deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -110,9 +117,9 @@ router.post('/', async (req, res) => {
 
     const result = await db.prepare(`
       INSERT INTO notifications (
-        user_id, type, title, message, entity_type, entity_id, metadata
+        user_id, type, title, message, entity_type, entity_id, metadata, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       user_id,
       type,
@@ -120,10 +127,14 @@ router.post('/', async (req, res) => {
       message,
       entity_type,
       entity_id,
-      metadata ? JSON.stringify(metadata) : null
+      metadata ? JSON.stringify(metadata) : null,
+      req.orgId
     );
 
-    const notification = await db.prepare('SELECT * FROM notifications WHERE id = ?').get(result.lastInsertRowid);
+    const notification = await db.prepare(
+      'SELECT * FROM notifications WHERE id = ? AND organization_id = ?'
+    ).get(result.lastInsertRowid, req.orgId);
+
     res.status(201).json(notification);
   } catch (error) {
     res.status(500).json({ error: error.message });

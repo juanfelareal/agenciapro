@@ -25,12 +25,13 @@ import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import TimeTracker from './TimeTracker';
+import OrgSwitcher from './OrgSwitcher';
 
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, hasPermission, logout } = useAuth();
+  const { user, currentOrg, hasPermission, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [finanzasExpanded, setFinanzasExpanded] = useState(false);
 
@@ -141,6 +142,13 @@ const Layout = ({ children }) => {
             <img src="/logo-lareal-sidebar.png" alt="La Real" className="h-12 w-full object-contain object-left" />
           )}
         </div>
+
+        {/* Organization Switcher */}
+        {!sidebarCollapsed && currentOrg && (
+          <div className="px-3 py-2" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
+            <OrgSwitcher />
+          </div>
+        )}
 
         {/* User Info */}
         {!sidebarCollapsed && user && (

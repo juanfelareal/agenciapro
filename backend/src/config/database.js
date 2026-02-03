@@ -842,7 +842,7 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
-    // Team member session tokens
+    // Team member session tokens (legacy — kept for migration compatibility)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS team_session_tokens (
         id SERIAL PRIMARY KEY,
@@ -854,6 +854,84 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // ========================================
+    // MULTI-TENANCY TABLES
+    // ========================================
+
+    // Users (global identity: email + PIN)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        pin_hash TEXT,
+        avatar_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Organizations (tenant)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS organizations (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        logo_url TEXT,
+        plan TEXT DEFAULT 'free',
+        settings JSONB DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // User session tokens (multi-tenant sessions with current_org_id)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_session_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        current_org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        status TEXT CHECK(status IN ('active', 'expired', 'revoked')) DEFAULT 'active',
+        expires_at TIMESTAMP,
+        last_used_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Add multi-tenancy columns to team_members (if not exists)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_members' AND column_name='user_id') THEN
+          ALTER TABLE team_members ADD COLUMN user_id INTEGER REFERENCES users(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_members' AND column_name='organization_id') THEN
+          ALTER TABLE team_members ADD COLUMN organization_id INTEGER REFERENCES organizations(id);
+        END IF;
+      END $$;
+    `);
+
+    // Add organization_id to root tables (if not exists)
+    const rootTablesForOrgId = [
+      'clients', 'projects', 'invoices', 'expenses', 'commissions',
+      'tags', 'note_categories', 'note_folders', 'notes',
+      'sop_categories', 'sops', 'project_templates', 'automations',
+      'notifications', 'activity_log', 'siigo_settings',
+      'siigo_document_types', 'siigo_payment_types', 'siigo_taxes', 'time_entries'
+    ];
+
+    for (const table of rootTablesForOrgId) {
+      await pool.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${table}' AND column_name='organization_id') THEN
+            ALTER TABLE ${table} ADD COLUMN organization_id INTEGER REFERENCES organizations(id);
+          END IF;
+        END $$;
+      `);
+    }
 
     // ========================================
     // PERFORMANCE INDEXES
@@ -910,6 +988,18 @@ export const initializeDatabase = async () => {
     // Cleanup: remove corrupted project templates (pool object saved as name)
     await pool.query(`DELETE FROM project_template_tasks WHERE template_id IN (SELECT id FROM project_templates WHERE name LIKE '{%"_events"%')`);
     await pool.query(`DELETE FROM project_templates WHERE name LIKE '{%"_events"%'`);
+
+    // Multi-tenancy indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_session_tokens_token ON user_session_tokens(token)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_session_tokens_user ON user_session_tokens(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_team_members_org_id ON team_members(organization_id)`);
+
+    for (const table of rootTablesForOrgId) {
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_${table}_org_id ON ${table}(organization_id)`);
+    }
 
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {

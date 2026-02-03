@@ -10,8 +10,9 @@ router.get('/', async (req, res) => {
       SELECT a.*, p.name as project_name
       FROM automations a
       LEFT JOIN projects p ON a.project_id = p.id
+      WHERE a.organization_id = ?
       ORDER BY a.created_at DESC
-    `).all();
+    `).all(req.orgId);
     res.json(automations);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -21,13 +22,19 @@ router.get('/', async (req, res) => {
 // Get automations by project
 router.get('/project/:projectId', async (req, res) => {
   try {
+    // Verify project belongs to this organization
+    const project = await db.prepare('SELECT id FROM projects WHERE id = ? AND organization_id = ?').get(req.params.projectId, req.orgId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
     const automations = await db.prepare(`
       SELECT a.*, p.name as project_name
       FROM automations a
       LEFT JOIN projects p ON a.project_id = p.id
-      WHERE a.project_id = ?
+      WHERE a.project_id = ? AND a.organization_id = ?
       ORDER BY a.created_at DESC
-    `).all(req.params.projectId);
+    `).all(req.params.projectId, req.orgId);
     res.json(automations);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -41,8 +48,8 @@ router.get('/:id', async (req, res) => {
       SELECT a.*, p.name as project_name
       FROM automations a
       LEFT JOIN projects p ON a.project_id = p.id
-      WHERE a.id = ?
-    `).get(req.params.id);
+      WHERE a.id = ? AND a.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!automation) {
       return res.status(404).json({ error: 'Automation not found' });
@@ -62,9 +69,17 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name, trigger type, and action type are required' });
     }
 
+    // Verify project belongs to this organization if provided
+    if (project_id) {
+      const project = await db.prepare('SELECT id FROM projects WHERE id = ? AND organization_id = ?').get(project_id, req.orgId);
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+    }
+
     const result = await db.prepare(`
-      INSERT INTO automations (project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO automations (project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       project_id || null,
       name,
@@ -72,10 +87,11 @@ router.post('/', async (req, res) => {
       trigger_conditions ? JSON.stringify(trigger_conditions) : null,
       action_type,
       action_params ? JSON.stringify(action_params) : null,
-      is_active !== false ? 1 : 0
+      is_active !== false ? 1 : 0,
+      req.orgId
     );
 
-    const automation = await db.prepare('SELECT * FROM automations WHERE id = ?').get(result.lastInsertRowid);
+    const automation = await db.prepare('SELECT * FROM automations WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(automation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -87,11 +103,19 @@ router.put('/:id', async (req, res) => {
   try {
     const { project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active } = req.body;
 
+    // Verify project belongs to this organization if provided
+    if (project_id) {
+      const project = await db.prepare('SELECT id FROM projects WHERE id = ? AND organization_id = ?').get(project_id, req.orgId);
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+    }
+
     await db.prepare(`
       UPDATE automations
       SET project_id = ?, name = ?, trigger_type = ?, trigger_conditions = ?,
           action_type = ?, action_params = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND organization_id = ?
     `).run(
       project_id || null,
       name,
@@ -100,10 +124,11 @@ router.put('/:id', async (req, res) => {
       action_type,
       action_params ? JSON.stringify(action_params) : null,
       is_active !== false ? 1 : 0,
-      req.params.id
+      req.params.id,
+      req.orgId
     );
 
-    const automation = await db.prepare('SELECT * FROM automations WHERE id = ?').get(req.params.id);
+    const automation = await db.prepare('SELECT * FROM automations WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(automation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -113,16 +138,16 @@ router.put('/:id', async (req, res) => {
 // Toggle automation active status
 router.put('/:id/toggle', async (req, res) => {
   try {
-    const current = await db.prepare('SELECT is_active FROM automations WHERE id = ?').get(req.params.id);
+    const current = await db.prepare('SELECT is_active FROM automations WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!current) {
       return res.status(404).json({ error: 'Automation not found' });
     }
 
     await db.prepare(`
-      UPDATE automations SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).run(current.is_active ? 0 : 1, req.params.id);
+      UPDATE automations SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
+    `).run(current.is_active ? 0 : 1, req.params.id, req.orgId);
 
-    const automation = await db.prepare('SELECT * FROM automations WHERE id = ?').get(req.params.id);
+    const automation = await db.prepare('SELECT * FROM automations WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(automation);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -132,7 +157,7 @@ router.put('/:id/toggle', async (req, res) => {
 // Delete automation
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM automations WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM automations WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Automation deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

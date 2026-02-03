@@ -6,6 +6,7 @@ const router = express.Router();
 // Get all time entries with filters
 router.get('/', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { user_id, project_id, task_id, start_date, end_date, is_running } = req.query;
     let query = `
       SELECT te.*,
@@ -16,9 +17,9 @@ router.get('/', async (req, res) => {
       LEFT JOIN tasks t ON te.task_id = t.id
       LEFT JOIN projects p ON te.project_id = p.id
       LEFT JOIN team_members tm ON te.user_id = tm.id
-      WHERE 1=1
+      WHERE te.organization_id = ?
     `;
-    const params = [];
+    const params = [orgId];
 
     if (user_id) {
       query += ' AND te.user_id = ?';
@@ -61,6 +62,7 @@ router.get('/', async (req, res) => {
 // Get running timers for all users
 router.get('/running', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const entries = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
@@ -70,9 +72,9 @@ router.get('/running', async (req, res) => {
       LEFT JOIN tasks t ON te.task_id = t.id
       LEFT JOIN projects p ON te.project_id = p.id
       LEFT JOIN team_members tm ON te.user_id = tm.id
-      WHERE te.is_running = 1
+      WHERE te.is_running = 1 AND te.organization_id = ?
       ORDER BY te.start_time DESC
-    `).all();
+    `).all(orgId);
     res.json(entries);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -82,6 +84,7 @@ router.get('/running', async (req, res) => {
 // Get timesheet data (weekly view)
 router.get('/timesheet', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { user_id, start_date, end_date } = req.query;
 
     if (!start_date || !end_date) {
@@ -100,8 +103,9 @@ router.get('/timesheet', async (req, res) => {
       LEFT JOIN team_members tm ON te.user_id = tm.id
       WHERE DATE(te.start_time) BETWEEN ? AND ?
         AND te.is_running = 0
+        AND te.organization_id = ?
     `;
-    const params = [start_date, end_date];
+    const params = [start_date, end_date, orgId];
 
     if (user_id) {
       query += ' AND te.user_id = ?';
@@ -154,10 +158,11 @@ router.get('/timesheet', async (req, res) => {
 // Get time reports
 router.get('/reports', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { start_date, end_date, group_by = 'project' } = req.query;
 
     let dateFilter = '';
-    const params = [];
+    const params = [orgId];
 
     if (start_date) {
       dateFilter += ' AND DATE(te.start_time) >= ?';
@@ -178,7 +183,7 @@ router.get('/reports', async (req, res) => {
         SUM(CASE WHEN te.billable = 1 THEN te.duration_minutes ELSE 0 END) as billable_minutes
       FROM time_entries te
       LEFT JOIN projects p ON te.project_id = p.id
-      WHERE te.is_running = 0 ${dateFilter}
+      WHERE te.is_running = 0 AND te.organization_id = ? ${dateFilter}
       GROUP BY te.project_id
       ORDER BY total_minutes DESC
     `).all(...params);
@@ -193,7 +198,7 @@ router.get('/reports', async (req, res) => {
         SUM(CASE WHEN te.billable = 1 THEN te.duration_minutes ELSE 0 END) as billable_minutes
       FROM time_entries te
       LEFT JOIN team_members tm ON te.user_id = tm.id
-      WHERE te.is_running = 0 ${dateFilter}
+      WHERE te.is_running = 0 AND te.organization_id = ? ${dateFilter}
       GROUP BY te.user_id
       ORDER BY total_minutes DESC
     `).all(...params);
@@ -205,7 +210,7 @@ router.get('/reports', async (req, res) => {
         SUM(te.duration_minutes) as total_minutes,
         SUM(CASE WHEN te.billable = 1 THEN te.duration_minutes ELSE 0 END) as billable_minutes
       FROM time_entries te
-      WHERE te.is_running = 0 ${dateFilter}
+      WHERE te.is_running = 0 AND te.organization_id = ? ${dateFilter}
       GROUP BY DATE(te.start_time)
       ORDER BY date ASC
     `).all(...params);
@@ -218,7 +223,7 @@ router.get('/reports', async (req, res) => {
         SUM(CASE WHEN te.billable = 0 THEN te.duration_minutes ELSE 0 END) as non_billable_minutes,
         COUNT(te.id) as entry_count
       FROM time_entries te
-      WHERE te.is_running = 0 ${dateFilter}
+      WHERE te.is_running = 0 AND te.organization_id = ? ${dateFilter}
     `).get(...params);
 
     res.json({
@@ -240,6 +245,7 @@ router.get('/reports', async (req, res) => {
 // Get time entry by ID
 router.get('/:id', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const entry = await db.prepare(`
       SELECT te.*,
         t.title as task_title,
@@ -249,8 +255,8 @@ router.get('/:id', async (req, res) => {
       LEFT JOIN tasks t ON te.task_id = t.id
       LEFT JOIN projects p ON te.project_id = p.id
       LEFT JOIN team_members tm ON te.user_id = tm.id
-      WHERE te.id = ?
-    `).get(req.params.id);
+      WHERE te.id = ? AND te.organization_id = ?
+    `).get(req.params.id, orgId);
 
     if (!entry) {
       return res.status(404).json({ error: 'Time entry not found' });
@@ -264,6 +270,7 @@ router.get('/:id', async (req, res) => {
 // Create manual time entry
 router.post('/', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const {
       task_id,
       project_id,
@@ -305,9 +312,9 @@ router.post('/', async (req, res) => {
       INSERT INTO time_entries (
         task_id, project_id, user_id, description,
         start_time, end_time, duration_minutes,
-        is_running, billable, hourly_rate
+        is_running, billable, hourly_rate, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
     `).run(
       task_id || null,
       finalProjectId || null,
@@ -317,7 +324,8 @@ router.post('/', async (req, res) => {
       end_time || null,
       finalDuration || null,
       billable ? 1 : 0,
-      hourly_rate || null
+      hourly_rate || null,
+      orgId
     );
 
     const newEntry = await db.prepare(`
@@ -341,6 +349,7 @@ router.post('/', async (req, res) => {
 // Start timer
 router.post('/start', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { task_id, project_id, user_id, description } = req.body;
 
     if (!user_id) {
@@ -350,8 +359,8 @@ router.post('/start', async (req, res) => {
     // Get current time in ISO format
     const now = new Date().toISOString();
 
-    // Stop any existing running timers for this user
-    const existingTimers = await db.prepare('SELECT * FROM time_entries WHERE user_id = ? AND is_running = 1').all(user_id);
+    // Stop any existing running timers for this user in this org
+    const existingTimers = await db.prepare('SELECT * FROM time_entries WHERE user_id = ? AND is_running = 1 AND organization_id = ?').all(user_id, orgId);
     for (const timer of existingTimers) {
       const startTime = new Date(timer.start_time.includes('T') ? timer.start_time : timer.start_time.replace(' ', 'T') + 'Z');
       const duration = Math.floor((new Date() - startTime) / 60000);
@@ -361,8 +370,8 @@ router.post('/start', async (req, res) => {
             end_time = ?,
             duration_minutes = ?,
             updated_at = ?
-        WHERE id = ?
-      `).run(now, duration, now, timer.id);
+        WHERE id = ? AND organization_id = ?
+      `).run(now, duration, now, timer.id, orgId);
     }
 
     // If task_id provided, get project_id from task
@@ -378,15 +387,16 @@ router.post('/start', async (req, res) => {
     const result = await db.prepare(`
       INSERT INTO time_entries (
         task_id, project_id, user_id, description,
-        start_time, is_running, billable
+        start_time, is_running, billable, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, 1, 1)
+      VALUES (?, ?, ?, ?, ?, 1, 1, ?)
     `).run(
       task_id || null,
       finalProjectId || null,
       user_id,
       description || null,
-      now
+      now,
+      orgId
     );
 
     const newEntry = await db.prepare(`
@@ -410,10 +420,11 @@ router.post('/start', async (req, res) => {
 // Stop timer
 router.post('/:id/stop', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { description } = req.body;
     const entryId = req.params.id;
 
-    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ?').get(entryId);
+    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ? AND organization_id = ?').get(entryId, orgId);
 
     if (!entry) {
       return res.status(404).json({ error: 'Time entry not found' });
@@ -442,8 +453,8 @@ router.post('/:id/stop', async (req, res) => {
             duration_minutes = ?,
             description = ?,
             updated_at = ?
-        WHERE id = ?
-      `).run(nowISO, durationMinutes, description, nowISO, entryId);
+        WHERE id = ? AND organization_id = ?
+      `).run(nowISO, durationMinutes, description, nowISO, entryId, orgId);
     } else {
       await db.prepare(`
         UPDATE time_entries
@@ -451,8 +462,8 @@ router.post('/:id/stop', async (req, res) => {
             end_time = ?,
             duration_minutes = ?,
             updated_at = ?
-        WHERE id = ?
-      `).run(nowISO, durationMinutes, nowISO, entryId);
+        WHERE id = ? AND organization_id = ?
+      `).run(nowISO, durationMinutes, nowISO, entryId, orgId);
     }
 
     const updatedEntry = await db.prepare(`
@@ -476,6 +487,7 @@ router.post('/:id/stop', async (req, res) => {
 // Update time entry
 router.put('/:id', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const {
       task_id,
       project_id,
@@ -487,7 +499,7 @@ router.put('/:id', async (req, res) => {
       hourly_rate
     } = req.body;
 
-    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ?').get(req.params.id);
+    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
 
     if (!entry) {
       return res.status(404).json({ error: 'Time entry not found' });
@@ -511,8 +523,8 @@ router.put('/:id', async (req, res) => {
         duration_minutes = ?,
         billable = COALESCE(?, billable),
         hourly_rate = COALESCE(?, hourly_rate),
-        updated_at = datetime('now')
-      WHERE id = ?
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND organization_id = ?
     `).run(
       task_id,
       project_id,
@@ -522,7 +534,8 @@ router.put('/:id', async (req, res) => {
       finalDuration,
       billable !== undefined ? (billable ? 1 : 0) : null,
       hourly_rate,
-      req.params.id
+      req.params.id,
+      orgId
     );
 
     const updatedEntry = await db.prepare(`
@@ -546,13 +559,14 @@ router.put('/:id', async (req, res) => {
 // Delete time entry
 router.delete('/:id', async (req, res) => {
   try {
-    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ?').get(req.params.id);
+    const orgId = req.orgId;
+    const entry = await db.prepare('SELECT * FROM time_entries WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
 
     if (!entry) {
       return res.status(404).json({ error: 'Time entry not found' });
     }
 
-    await db.prepare('DELETE FROM time_entries WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM time_entries WHERE id = ? AND organization_id = ?').run(req.params.id, orgId);
     res.json({ message: 'Time entry deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -562,13 +576,14 @@ router.delete('/:id', async (req, res) => {
 // Get time logged for a specific task
 router.get('/task/:taskId/summary', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const summary = await db.prepare(`
       SELECT
         SUM(duration_minutes) as total_minutes,
         COUNT(id) as entry_count
       FROM time_entries
-      WHERE task_id = ? AND is_running = 0
-    `).get(req.params.taskId);
+      WHERE task_id = ? AND is_running = 0 AND organization_id = ?
+    `).get(req.params.taskId, orgId);
 
     // Get task estimated hours
     const task = await db.prepare('SELECT estimated_hours FROM tasks WHERE id = ?').get(req.params.taskId);

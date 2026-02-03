@@ -5,7 +5,7 @@ import { processTaskCreated, processTaskUpdated } from '../services/automationEn
 
 const router = express.Router();
 
-// Get all tasks
+// Get all tasks (scoped to organization via project)
 router.get('/', async (req, res) => {
   try {
     const { status, project_id, assigned_to, client_id } = req.query;
@@ -14,12 +14,12 @@ router.get('/', async (req, res) => {
              tm.name as assigned_to_name,
              cb.name as created_by_name
       FROM tasks t
-      LEFT JOIN projects p ON t.project_id = p.id
+      JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
-      WHERE 1=1
+      WHERE p.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (status) {
       query += ' AND t.status = ?';
@@ -32,8 +32,8 @@ router.get('/', async (req, res) => {
     }
 
     if (assigned_to) {
-      query += ' AND t.assigned_to = ?';
-      params.push(assigned_to);
+      query += ' AND t.assigned_to = ? AND tm.organization_id = ?';
+      params.push(assigned_to, req.orgId);
     }
 
     if (client_id) {
@@ -49,7 +49,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get task by ID
+// Get task by ID (scoped to organization via project)
 router.get('/:id', async (req, res) => {
   try {
     const task = await db.prepare(`
@@ -57,11 +57,11 @@ router.get('/:id', async (req, res) => {
              tm.name as assigned_to_name,
              cb.name as created_by_name
       FROM tasks t
-      LEFT JOIN projects p ON t.project_id = p.id
+      JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
-      WHERE t.id = ?
-    `).get(req.params.id);
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
@@ -72,7 +72,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new task
+// Create new task (verify project and assigned_to belong to this org)
 router.post('/', async (req, res) => {
   try {
     const {
@@ -96,6 +96,26 @@ router.post('/', async (req, res) => {
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
+    }
+
+    // Verify project belongs to this organization
+    if (project_id) {
+      const project = await db.prepare(
+        'SELECT id FROM projects WHERE id = ? AND organization_id = ?'
+      ).get(project_id, req.orgId);
+      if (!project) {
+        return res.status(403).json({ error: 'Project does not belong to this organization' });
+      }
+    }
+
+    // Verify assigned team member belongs to this organization
+    if (assigned_to) {
+      const member = await db.prepare(
+        'SELECT id FROM team_members WHERE id = ? AND organization_id = ?'
+      ).get(assigned_to, req.orgId);
+      if (!member) {
+        return res.status(403).json({ error: 'Team member does not belong to this organization' });
+      }
     }
 
     const result = await db.prepare(`
@@ -142,7 +162,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update task
+// Update task (verify org ownership via project)
 router.put('/:id', async (req, res) => {
   try {
     const {
@@ -163,8 +183,36 @@ router.put('/:id', async (req, res) => {
       delivery_url
     } = req.body;
 
-    // Get old task data for comparison
-    const oldTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+    // Get old task data and verify it belongs to this org via its project
+    const oldTask = await db.prepare(`
+      SELECT t.* FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
+    if (!oldTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // If changing project, verify new project belongs to this org
+    if (project_id && project_id !== oldTask.project_id) {
+      const newProject = await db.prepare(
+        'SELECT id FROM projects WHERE id = ? AND organization_id = ?'
+      ).get(project_id, req.orgId);
+      if (!newProject) {
+        return res.status(403).json({ error: 'Target project does not belong to this organization' });
+      }
+    }
+
+    // If assigning to a team member, verify they belong to this org
+    if (assigned_to && assigned_to !== oldTask.assigned_to) {
+      const member = await db.prepare(
+        'SELECT id FROM team_members WHERE id = ? AND organization_id = ?'
+      ).get(assigned_to, req.orgId);
+      if (!member) {
+        return res.status(403).json({ error: 'Team member does not belong to this organization' });
+      }
+    }
 
     await db.prepare(`
       UPDATE tasks
@@ -228,9 +276,20 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete task
+// Delete task (verify org ownership via project)
 router.delete('/:id', async (req, res) => {
   try {
+    // Verify the task belongs to this org before deleting
+    const task = await db.prepare(`
+      SELECT t.id FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
     await db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {

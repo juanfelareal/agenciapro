@@ -6,12 +6,14 @@ const router = express.Router();
 // Get all project templates
 router.get('/', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const templates = await db.prepare(`
       SELECT pt.*,
         (SELECT COUNT(*) FROM project_template_tasks WHERE template_id = pt.id) as task_count
       FROM project_templates pt
+      WHERE pt.organization_id = ?
       ORDER BY pt.name ASC
-    `).all();
+    `).all(orgId);
     res.json(templates);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -21,7 +23,8 @@ router.get('/', async (req, res) => {
 // Get template by ID with tasks
 router.get('/:id', async (req, res) => {
   try {
-    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(req.params.id);
+    const orgId = req.orgId;
+    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
 
     if (!template) {
       return res.status(404).json({ error: 'Plantilla no encontrada' });
@@ -42,17 +45,18 @@ router.get('/:id', async (req, res) => {
 // Create new template
 router.post('/', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { name, description, tasks } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'El nombre es requerido' });
     }
 
-    // Create template
+    // Create template with organization_id
     const result = await db.prepare(`
-      INSERT INTO project_templates (name, description)
-      VALUES (?, ?)
-    `).run(name, description || null);
+      INSERT INTO project_templates (name, description, organization_id)
+      VALUES (?, ?, ?)
+    `).run(name, description || null, orgId);
 
     const templateId = result.lastInsertRowid;
 
@@ -87,9 +91,10 @@ router.post('/', async (req, res) => {
 // Update template
 router.put('/:id', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { name, description } = req.body;
 
-    const currentTemplate = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(req.params.id);
+    const currentTemplate = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
     if (!currentTemplate) {
       return res.status(404).json({ error: 'Plantilla no encontrada' });
     }
@@ -100,8 +105,8 @@ router.put('/:id', async (req, res) => {
     await db.prepare(`
       UPDATE project_templates
       SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(updatedName, updatedDescription, req.params.id);
+      WHERE id = ? AND organization_id = ?
+    `).run(updatedName, updatedDescription, req.params.id, orgId);
 
     const template = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(req.params.id);
     const tasks = await db.prepare('SELECT * FROM project_template_tasks WHERE template_id = ? ORDER BY order_index ASC').all(req.params.id);
@@ -115,12 +120,13 @@ router.put('/:id', async (req, res) => {
 // Delete template
 router.delete('/:id', async (req, res) => {
   try {
-    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(req.params.id);
+    const orgId = req.orgId;
+    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
     if (!template) {
       return res.status(404).json({ error: 'Plantilla no encontrada' });
     }
 
-    await db.prepare('DELETE FROM project_templates WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM project_templates WHERE id = ? AND organization_id = ?').run(req.params.id, orgId);
     res.json({ message: 'Plantilla eliminada exitosamente' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -134,13 +140,15 @@ router.delete('/:id', async (req, res) => {
 // Add task to template
 router.post('/:id/tasks', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { title, description, priority, estimated_hours } = req.body;
 
     if (!title) {
-      return res.status(400).json({ error: 'El título de la tarea es requerido' });
+      return res.status(400).json({ error: 'El titulo de la tarea es requerido' });
     }
 
-    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(req.params.id);
+    // Verify template belongs to org
+    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
     if (!template) {
       return res.status(404).json({ error: 'Plantilla no encontrada' });
     }
@@ -164,7 +172,14 @@ router.post('/:id/tasks', async (req, res) => {
 // Update template task
 router.put('/:id/tasks/:taskId', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { title, description, priority, estimated_hours, order_index } = req.body;
+
+    // Verify template belongs to org
+    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
+    if (!template) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
 
     const currentTask = await db.prepare('SELECT * FROM project_template_tasks WHERE id = ? AND template_id = ?').get(req.params.taskId, req.params.id);
     if (!currentTask) {
@@ -193,6 +208,14 @@ router.put('/:id/tasks/:taskId', async (req, res) => {
 // Delete template task
 router.delete('/:id/tasks/:taskId', async (req, res) => {
   try {
+    const orgId = req.orgId;
+
+    // Verify template belongs to org
+    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
+    if (!template) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
+
     const task = await db.prepare('SELECT * FROM project_template_tasks WHERE id = ? AND template_id = ?').get(req.params.taskId, req.params.id);
     if (!task) {
       return res.status(404).json({ error: 'Tarea no encontrada' });
@@ -208,13 +231,15 @@ router.delete('/:id/tasks/:taskId', async (req, res) => {
 // Reorder tasks
 router.put('/:id/tasks/reorder', async (req, res) => {
   try {
+    const orgId = req.orgId;
     const { taskIds } = req.body;
 
     if (!taskIds || !Array.isArray(taskIds)) {
       return res.status(400).json({ error: 'taskIds array es requerido' });
     }
 
-    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(req.params.id);
+    // Verify template belongs to org
+    const template = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
     if (!template) {
       return res.status(404).json({ error: 'Plantilla no encontrada' });
     }

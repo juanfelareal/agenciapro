@@ -1,5 +1,15 @@
 import db from '../config/database.js';
 
+// Resolve organization_id from a task via its project
+const getOrgIdFromTask = async (taskId) => {
+  const row = await db.prepare(`
+    SELECT p.organization_id FROM tasks t
+    JOIN projects p ON t.project_id = p.id
+    WHERE t.id = ?
+  `).get(taskId);
+  return row?.organization_id || null;
+};
+
 /**
  * Create a notification
  * @param {number} userId - ID del usuario que recibirá la notificación
@@ -10,13 +20,13 @@ import db from '../config/database.js';
  * @param {number} entityId - ID de la entidad
  * @param {object} metadata - Metadata adicional
  */
-export const createNotification = async (userId, type, title, message, entityType = null, entityId = null, metadata = null) => {
+export const createNotification = async (userId, type, title, message, entityType = null, entityId = null, metadata = null, orgId = null) => {
   try {
     const result = await db.prepare(`
       INSERT INTO notifications (
-        user_id, type, title, message, entity_type, entity_id, metadata
+        user_id, type, title, message, entity_type, entity_id, metadata, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       userId,
       type,
@@ -24,7 +34,8 @@ export const createNotification = async (userId, type, title, message, entityTyp
       message,
       entityType,
       entityId,
-      metadata ? JSON.stringify(metadata) : null
+      metadata ? JSON.stringify(metadata) : null,
+      orgId
     );
 
     return result.lastInsertRowid;
@@ -42,6 +53,7 @@ export const notifyTaskAssigned = async (taskId, taskTitle, assignedToId, assign
 
   const assignedBy = await db.prepare('SELECT name FROM team_members WHERE id = ?').get(assignedById);
   const assignedByName = assignedBy ? assignedBy.name : 'Alguien';
+  const orgId = await getOrgIdFromTask(taskId);
 
   await createNotification(
     assignedToId,
@@ -50,7 +62,8 @@ export const notifyTaskAssigned = async (taskId, taskTitle, assignedToId, assign
     `${assignedByName} te ha asignado la tarea: "${taskTitle}"`,
     'task',
     taskId,
-    { assigned_by: assignedById }
+    { assigned_by: assignedById },
+    orgId
   );
 };
 
@@ -58,14 +71,13 @@ export const notifyTaskAssigned = async (taskId, taskTitle, assignedToId, assign
  * Notificar cuando hay un nuevo comentario en una tarea
  */
 export const notifyNewComment = async (taskId, taskTitle, commentId, commenterId, commentText) => {
-  // Obtener información de la tarea
   const task = await db.prepare('SELECT assigned_to, project_id FROM tasks WHERE id = ?').get(taskId);
   if (!task) return;
 
   const commenter = await db.prepare('SELECT name FROM team_members WHERE id = ?').get(commenterId);
   const commenterName = commenter ? commenter.name : 'Alguien';
+  const orgId = await getOrgIdFromTask(taskId);
 
-  // Notificar al asignado (si no es el que comentó)
   if (task.assigned_to && task.assigned_to !== commenterId) {
     await createNotification(
       task.assigned_to,
@@ -74,18 +86,16 @@ export const notifyNewComment = async (taskId, taskTitle, commentId, commenterId
       `${commenterName} comentó en "${taskTitle}": ${commentText.substring(0, 100)}${commentText.length > 100 ? '...' : ''}`,
       'comment',
       commentId,
-      { task_id: taskId, commenter_id: commenterId }
+      { task_id: taskId, commenter_id: commenterId },
+      orgId
     );
   }
-
-  // TODO: Notificar a otros participantes de la tarea (futuros watchers)
 };
 
 /**
  * Notificar menciones en comentarios
  */
 export const notifyMentions = async (commentText, taskId, taskTitle, commentId, mentionerId) => {
-  // Extraer menciones (@usuario)
   const mentionRegex = /@(\w+)/g;
   const mentions = [...commentText.matchAll(mentionRegex)].map(m => m[1]);
 
@@ -93,14 +103,14 @@ export const notifyMentions = async (commentText, taskId, taskTitle, commentId, 
 
   const mentioner = await db.prepare('SELECT name FROM team_members WHERE id = ?').get(mentionerId);
   const mentionerName = mentioner ? mentioner.name : 'Alguien';
+  const orgId = await getOrgIdFromTask(taskId);
 
-  // Buscar usuarios mencionados por nombre o email
   for (const mention of mentions) {
     const user = await db.prepare(`
       SELECT id FROM team_members
-      WHERE LOWER(name) LIKE ? OR LOWER(email) LIKE ?
+      WHERE (LOWER(name) LIKE ? OR LOWER(email) LIKE ?) AND organization_id = ?
       LIMIT 1
-    `).get(`%${mention.toLowerCase()}%`, `%${mention.toLowerCase()}%`);
+    `).get(`%${mention.toLowerCase()}%`, `%${mention.toLowerCase()}%`, orgId);
 
     if (user && user.id !== mentionerId) {
       await createNotification(
@@ -110,7 +120,8 @@ export const notifyMentions = async (commentText, taskId, taskTitle, commentId, 
         `${mentionerName} te mencionó en "${taskTitle}"`,
         'comment',
         commentId,
-        { task_id: taskId, mentioner_id: mentionerId }
+        { task_id: taskId, mentioner_id: mentionerId },
+        orgId
       );
     }
   }
@@ -124,6 +135,7 @@ export const notifyTaskUpdated = async (taskId, taskTitle, assignedToId, updated
 
   const updatedBy = await db.prepare('SELECT name FROM team_members WHERE id = ?').get(updatedById);
   const updatedByName = updatedBy ? updatedBy.name : 'Alguien';
+  const orgId = await getOrgIdFromTask(taskId);
 
   const changesList = Object.keys(changes).join(', ');
 
@@ -134,7 +146,8 @@ export const notifyTaskUpdated = async (taskId, taskTitle, assignedToId, updated
     `${updatedByName} actualizó "${taskTitle}" (${changesList})`,
     'task',
     taskId,
-    { updated_by: updatedById, changes }
+    { updated_by: updatedById, changes },
+    orgId
   );
 };
 
@@ -144,6 +157,8 @@ export const notifyTaskUpdated = async (taskId, taskTitle, assignedToId, updated
 export const notifyTaskDueSoon = async (taskId, taskTitle, assignedToId, dueDate) => {
   if (!assignedToId) return;
 
+  const orgId = await getOrgIdFromTask(taskId);
+
   await createNotification(
     assignedToId,
     'task_due',
@@ -151,7 +166,8 @@ export const notifyTaskDueSoon = async (taskId, taskTitle, assignedToId, dueDate
     `La tarea "${taskTitle}" vence el ${new Date(dueDate).toLocaleDateString('es-ES')}`,
     'task',
     taskId,
-    { due_date: dueDate }
+    { due_date: dueDate },
+    orgId
   );
 };
 
@@ -159,19 +175,19 @@ export const notifyTaskDueSoon = async (taskId, taskTitle, assignedToId, dueDate
  * Notificar cuando una tarea se marca como completada
  */
 export const notifyTaskCompleted = async (taskId, taskTitle, completedById) => {
-  // Obtener el proyecto y notificar a managers/admins
   const task = await db.prepare('SELECT project_id FROM tasks WHERE id = ?').get(taskId);
   if (!task) return;
 
-  const project = await db.prepare('SELECT name FROM projects WHERE id = ?').get(task.project_id);
+  const project = await db.prepare('SELECT name, organization_id FROM projects WHERE id = ?').get(task.project_id);
   const completedBy = await db.prepare('SELECT name FROM team_members WHERE id = ?').get(completedById);
   const completedByName = completedBy ? completedBy.name : 'Alguien';
+  const orgId = project?.organization_id || null;
 
-  // Notificar a managers y admins
+  // Notify managers/admins in the same org
   const managers = await db.prepare(`
     SELECT id FROM team_members
-    WHERE (role = 'manager' OR role = 'admin') AND status = 'active' AND id != ?
-  `).all(completedById);
+    WHERE (role = 'manager' OR role = 'admin') AND status = 'active' AND id != ? AND organization_id = ?
+  `).all(completedById, orgId);
 
   for (const manager of managers) {
     await createNotification(
@@ -181,7 +197,8 @@ export const notifyTaskCompleted = async (taskId, taskTitle, completedById) => {
       `${completedByName} completó la tarea "${taskTitle}" en ${project ? project.name : 'el proyecto'}`,
       'task',
       taskId,
-      { completed_by: completedById }
+      { completed_by: completedById },
+      orgId
     );
   }
 };

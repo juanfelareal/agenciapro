@@ -19,16 +19,29 @@ import { notifyTaskAssigned, notifyTaskUpdated, notifyTaskCompleted } from '../u
  * - change_priority: Change task priority
  */
 
+// Helper: get org_id from a task's project
+const getOrgIdFromTask = async (task) => {
+  if (task.organization_id) return task.organization_id;
+  if (task.project_id) {
+    const project = await db.prepare('SELECT organization_id FROM projects WHERE id = ?').get(task.project_id);
+    return project?.organization_id || null;
+  }
+  return null;
+};
+
 // Process automations when a task is created
 export const processTaskCreated = async (task) => {
   try {
-    // Get active automations for this project or global automations
+    const orgId = await getOrgIdFromTask(task);
+
+    // Get active automations for this project or global automations (scoped by org)
     const automations = await db.prepare(`
       SELECT * FROM automations
       WHERE is_active = 1
       AND trigger_type = 'task_created'
       AND (project_id = ? OR project_id IS NULL)
-    `).all(task.project_id);
+      AND organization_id = ?
+    `).all(task.project_id, orgId);
 
     for (const automation of automations) {
       const conditions = automation.trigger_conditions ? JSON.parse(automation.trigger_conditions) : {};
@@ -46,6 +59,8 @@ export const processTaskCreated = async (task) => {
 // Process automations when a task is updated
 export const processTaskUpdated = async (oldTask, newTask) => {
   try {
+    const orgId = await getOrgIdFromTask(newTask);
+
     // Status change trigger
     if (oldTask.status !== newTask.status) {
       const statusAutomations = await db.prepare(`
@@ -53,7 +68,8 @@ export const processTaskUpdated = async (oldTask, newTask) => {
         WHERE is_active = 1
         AND trigger_type = 'status_change'
         AND (project_id = ? OR project_id IS NULL)
-      `).all(newTask.project_id);
+        AND organization_id = ?
+      `).all(newTask.project_id, orgId);
 
       for (const automation of statusAutomations) {
         const conditions = automation.trigger_conditions ? JSON.parse(automation.trigger_conditions) : {};
@@ -73,7 +89,8 @@ export const processTaskUpdated = async (oldTask, newTask) => {
         WHERE is_active = 1
         AND trigger_type = 'task_assigned'
         AND (project_id = ? OR project_id IS NULL)
-      `).all(newTask.project_id);
+        AND organization_id = ?
+      `).all(newTask.project_id, orgId);
 
       for (const automation of assignAutomations) {
         const conditions = automation.trigger_conditions ? JSON.parse(automation.trigger_conditions) : {};
@@ -92,7 +109,8 @@ export const processTaskUpdated = async (oldTask, newTask) => {
         WHERE is_active = 1
         AND trigger_type = 'priority_change'
         AND (project_id = ? OR project_id IS NULL)
-      `).all(newTask.project_id);
+        AND organization_id = ?
+      `).all(newTask.project_id, orgId);
 
       for (const automation of priorityAutomations) {
         const conditions = automation.trigger_conditions ? JSON.parse(automation.trigger_conditions) : {};
@@ -166,10 +184,11 @@ const executeAction = async (task, automation, context = {}) => {
         if (params.message) {
           const recipientId = params.user_id || task.assigned_to;
           if (recipientId) {
+            const notifOrgId = await getOrgIdFromTask(task);
             await db.prepare(`
-              INSERT INTO notifications (user_id, type, title, message, related_task_id)
-              VALUES (?, 'automation', ?, ?, ?)
-            `).run(recipientId, `Automatización: ${automation.name}`, params.message, task.id);
+              INSERT INTO notifications (user_id, type, title, message, related_task_id, organization_id)
+              VALUES (?, 'automation', ?, ?, ?, ?)
+            `).run(recipientId, `Automatización: ${automation.name}`, params.message, task.id, notifOrgId);
             console.log(`  → Sent notification to user: ${recipientId}`);
           }
         }
@@ -198,20 +217,20 @@ const executeAction = async (task, automation, context = {}) => {
 // Log automation execution for history tracking
 const logAutomationExecution = async (automationId, taskId, success, errorMessage = null) => {
   try {
-    // Check if automation_logs table exists
+    // Check if automation_logs table exists (PostgreSQL)
     const tableExists = await db.prepare(`
-      SELECT name FROM sqlite_master WHERE type='table' AND name='automation_logs'
+      SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'automation_logs'
     `).get();
 
     if (!tableExists) {
-      db.exec(`
-        CREATE TABLE automation_logs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+      await db.exec(`
+        CREATE TABLE IF NOT EXISTS automation_logs (
+          id SERIAL PRIMARY KEY,
           automation_id INTEGER NOT NULL,
           task_id INTEGER NOT NULL,
           success INTEGER DEFAULT 1,
           error_message TEXT,
-          executed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (automation_id) REFERENCES automations(id) ON DELETE CASCADE,
           FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
         )
@@ -240,16 +259,19 @@ export const checkDueDateAutomations = async () => {
       const conditions = automation.trigger_conditions ? JSON.parse(automation.trigger_conditions) : {};
       const daysBefore = conditions.days_before || 1;
 
-      // Find tasks with due dates approaching
+      // Find tasks with due dates approaching, scoped by automation's org via project
       const tasks = await db.prepare(`
-        SELECT * FROM tasks
-        WHERE due_date IS NOT NULL
-        AND status != 'done'
-        AND date(due_date) = date('now', '+' || ? || ' days')
-        AND (? IS NULL OR project_id = ?)
-      `).all(daysBefore, automation.project_id, automation.project_id);
+        SELECT t.* FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.due_date IS NOT NULL
+        AND t.status != 'done'
+        AND t.due_date::DATE = CURRENT_DATE + (? || ' days')::INTERVAL
+        AND (? IS NULL OR t.project_id = ?)
+        AND p.organization_id = ?
+      `).all(daysBefore, automation.project_id, automation.project_id, automation.organization_id);
 
       for (const task of tasks) {
+        task.organization_id = automation.organization_id;
         await executeAction(task, automation);
       }
     }

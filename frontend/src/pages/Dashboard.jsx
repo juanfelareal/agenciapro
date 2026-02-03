@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { dashboardAPI } from '../utils/api';
-import { Calendar, Settings, Plus, RotateCcw, Check, X } from 'lucide-react';
+import { Calendar, TrendingUp, Settings, Plus, RotateCcw, Check, X } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 import WidgetGrid from '../components/dashboard/WidgetGrid';
 import WidgetPicker from '../components/dashboard/WidgetPicker';
@@ -68,6 +68,11 @@ const Dashboard = () => {
   const handleCancelEdit = () => {
     setIsEditMode(false);
   };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+  };
+
 
   const handleSaveEdit = () => {
     setIsEditMode(false);
@@ -162,6 +167,19 @@ const Dashboard = () => {
           </p>
         </div>
       )}
+
+      {/* Period Info Banner - only show when not in edit mode */}
+      {!isEditMode && (
+        <div className="card px-4 py-3 flex items-center gap-3 border-l-4 border-l-accent">
+          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-accent" />
+          </div>
+          <p className="text-sm text-ink-600">
+            Mostrando datos de: <span className="font-semibold text-ink-900">{getPeriodLabel()}</span>
+          </p>
+        </div>
+      )}
+
 
       {/* Widget Grid */}
       <WidgetGrid stats={stats} period={period} />

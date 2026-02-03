@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
 
     const searchTerm = `%${q.trim()}%`;
     const resultLimit = Math.min(parseInt(limit) || 20, 50);
+    const orgId = req.orgId;
 
     // Search tasks
     const tasks = await db.prepare(`
@@ -22,9 +23,9 @@ router.get('/', async (req, res) => {
         t.status, t.priority, p.name as project_name
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
-      WHERE t.title LIKE ? OR t.description LIKE ?
+      WHERE p.organization_id = ? AND (t.title LIKE ? OR t.description LIKE ?)
       LIMIT ?
-    `).all(searchTerm, searchTerm, resultLimit);
+    `).all(orgId, searchTerm, searchTerm, resultLimit);
 
     // Search projects
     const projects = await db.prepare(`
@@ -33,9 +34,9 @@ router.get('/', async (req, res) => {
         p.status, c.company as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
-      WHERE p.name LIKE ? OR p.description LIKE ?
+      WHERE p.organization_id = ? AND (p.name LIKE ? OR p.description LIKE ?)
       LIMIT ?
-    `).all(searchTerm, searchTerm, resultLimit);
+    `).all(orgId, searchTerm, searchTerm, resultLimit);
 
     // Search clients
     const clients = await db.prepare(`
@@ -43,9 +44,9 @@ router.get('/', async (req, res) => {
         id, name, company as secondary_name, 'client' as type,
         email, phone, status
       FROM clients
-      WHERE name LIKE ? OR company LIKE ? OR email LIKE ? OR nit LIKE ?
+      WHERE organization_id = ? AND (name LIKE ? OR company LIKE ? OR email LIKE ? OR nit LIKE ?)
       LIMIT ?
-    `).all(searchTerm, searchTerm, searchTerm, searchTerm, resultLimit);
+    `).all(orgId, searchTerm, searchTerm, searchTerm, searchTerm, resultLimit);
 
     // Search team members
     const team = await db.prepare(`
@@ -53,9 +54,9 @@ router.get('/', async (req, res) => {
         id, name, email as secondary_name, 'team' as type,
         position, role, status
       FROM team_members
-      WHERE name LIKE ? OR email LIKE ? OR position LIKE ?
+      WHERE organization_id = ? AND (name LIKE ? OR email LIKE ? OR position LIKE ?)
       LIMIT ?
-    `).all(searchTerm, searchTerm, searchTerm, resultLimit);
+    `).all(orgId, searchTerm, searchTerm, searchTerm, resultLimit);
 
     // Search invoices
     const invoices = await db.prepare(`
@@ -64,9 +65,9 @@ router.get('/', async (req, res) => {
         i.amount, i.status, c.company as client_name
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
-      WHERE i.invoice_number LIKE ? OR i.notes LIKE ?
+      WHERE i.organization_id = ? AND (i.invoice_number LIKE ? OR i.notes LIKE ?)
       LIMIT ?
-    `).all(searchTerm, searchTerm, resultLimit);
+    `).all(orgId, searchTerm, searchTerm, resultLimit);
 
     // Combine and format results
     const results = {
@@ -130,21 +131,22 @@ router.get('/quick', async (req, res) => {
 
     const searchTerm = `%${q.trim()}%`;
     const resultLimit = Math.min(parseInt(limit) || 10, 20);
+    const orgId = req.orgId;
 
     // Combined search with UNION ALL
     const results = await db.prepare(`
-      SELECT id, title as name, 'task' as type, status FROM tasks WHERE title LIKE ? LIMIT ?
+      SELECT t.id, t.title as name, 'task' as type, t.status FROM tasks t JOIN projects p ON t.project_id = p.id WHERE p.organization_id = ? AND t.title LIKE ? LIMIT ?
       UNION ALL
-      SELECT id, name, 'project' as type, status FROM projects WHERE name LIKE ? LIMIT ?
+      SELECT id, name, 'project' as type, status FROM projects WHERE organization_id = ? AND name LIKE ? LIMIT ?
       UNION ALL
-      SELECT id, COALESCE(company, name) as name, 'client' as type, status FROM clients WHERE name LIKE ? OR company LIKE ? LIMIT ?
+      SELECT id, COALESCE(company, name) as name, 'client' as type, status FROM clients WHERE organization_id = ? AND (name LIKE ? OR company LIKE ?) LIMIT ?
       UNION ALL
-      SELECT id, name, 'team' as type, status FROM team_members WHERE name LIKE ? LIMIT ?
+      SELECT id, name, 'team' as type, status FROM team_members WHERE organization_id = ? AND name LIKE ? LIMIT ?
     `).all(
-      searchTerm, resultLimit,
-      searchTerm, resultLimit,
-      searchTerm, searchTerm, resultLimit,
-      searchTerm, resultLimit
+      orgId, searchTerm, resultLimit,
+      orgId, searchTerm, resultLimit,
+      orgId, searchTerm, searchTerm, resultLimit,
+      orgId, searchTerm, resultLimit
     );
 
     res.json(results.slice(0, resultLimit * 2));

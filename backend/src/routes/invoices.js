@@ -32,9 +32,9 @@ router.get('/', async (req, res) => {
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
       LEFT JOIN projects p ON i.project_id = p.id
-      WHERE 1=1
+      WHERE i.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (status) {
       query += ' AND i.status = ?';
@@ -65,8 +65,8 @@ router.get('/:id', async (req, res) => {
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
       LEFT JOIN projects p ON i.project_id = p.id
-      WHERE i.id = ?
-    `).get(req.params.id);
+      WHERE i.id = ? AND i.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!invoice) {
       return res.status(404).json({ error: 'Invoice not found' });
@@ -111,8 +111,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Client, amount, and issue date are required' });
     }
 
-    // Auto-generate invoice number - find max FAC number
-    const allInvoices = await db.prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%'").all();
+    // Auto-generate invoice number - find max FAC number (scoped to org)
+    const allInvoices = await db.prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%' AND organization_id = ?").all(req.orgId);
     let maxNumber = 0;
     allInvoices.forEach(inv => {
       const match = inv.invoice_number.match(/FAC-(\d+)/);
@@ -130,11 +130,11 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(invoice_number, client_id, project_id, amount, invoice_type || 'con_iva', status || 'draft', issue_date, notes, is_recurring ? 1 : 0, recurrence_frequency || null, recurrence_status || 'draft', next_recurrence_date);
+      INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(invoice_number, client_id, project_id, amount, invoice_type || 'con_iva', status || 'draft', issue_date, notes, is_recurring ? 1 : 0, recurrence_frequency || null, recurrence_status || 'draft', next_recurrence_date, req.orgId);
 
-    const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ?').get(result.lastInsertRowid);
+    const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(invoice);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -147,7 +147,7 @@ router.put('/:id', async (req, res) => {
     const { client_id, project_id, amount, invoice_type, status, issue_date, paid_date, notes, payment_proof, changed_by, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date: providedNextDate } = req.body;
 
     // Get current invoice to check status change and preserve existing values
-    const currentInvoice = await db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
+    const currentInvoice = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!currentInvoice) {
       return res.status(404).json({ error: 'Factura no encontrada' });
     }
@@ -181,12 +181,12 @@ router.put('/:id', async (req, res) => {
           status = ?, issue_date = ?, paid_date = ?, payment_proof = ?,
           notes = ?, is_recurring = ?, recurrence_frequency = ?, recurrence_status = ?, next_recurrence_date = ?,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND organization_id = ?
     `).run(
       updatedClientId, updatedProjectId, updatedAmount, updatedInvoiceType || 'con_iva',
       updatedStatus, updatedIssueDate, updatedPaidDate, updatedPaymentProof,
       updatedNotes, updatedIsRecurring, updatedRecurrenceFrequency || null,
-      updatedRecurrenceStatus || 'draft', updatedNextRecurrenceDate, req.params.id
+      updatedRecurrenceStatus || 'draft', updatedNextRecurrenceDate, req.params.id, req.orgId
     );
 
     // Track status change in history
@@ -198,18 +198,18 @@ router.put('/:id', async (req, res) => {
 
       // Create notification when status changes to 'approved'
       if (updatedStatus === 'approved') {
-        // Get all admin/manager users to notify
+        // Get all admin/manager users to notify (scoped to org)
         const admins = await db.prepare(`
           SELECT id FROM team_members
-          WHERE role IN ('admin', 'manager') AND status = 'active'
-        `).all();
+          WHERE role IN ('admin', 'manager') AND status = 'active' AND organization_id = ?
+        `).all(req.orgId);
 
         const invoice = await db.prepare(`
           SELECT i.*, c.company as client_name
           FROM invoices i
           LEFT JOIN clients c ON i.client_id = c.id
-          WHERE i.id = ?
-        `).get(req.params.id);
+          WHERE i.id = ? AND i.organization_id = ?
+        `).get(req.params.id, req.orgId);
 
         for (const admin of admins) {
           await db.prepare(`
@@ -225,7 +225,7 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ?').get(req.params.id);
+    const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(invoice);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -235,6 +235,12 @@ router.put('/:id', async (req, res) => {
 // Get invoice status history
 router.get('/:id/history', async (req, res) => {
   try {
+    // Verify the invoice belongs to this organization
+    const invoice = await db.prepare('SELECT id FROM invoices WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
     const history = await db.prepare(`
       SELECT h.*, t.name as changed_by_name
       FROM invoice_status_history h
@@ -256,8 +262,8 @@ router.post('/:id/send', async (req, res) => {
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
       LEFT JOIN projects p ON i.project_id = p.id
-      WHERE i.id = ?
-    `).get(req.params.id);
+      WHERE i.id = ? AND i.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!invoice) {
       return res.status(404).json({ error: 'Invoice not found' });
@@ -317,8 +323,8 @@ router.post('/:id/send', async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     // Update invoice status to 'sent'
-    await db.prepare('UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run('sent', req.params.id);
+    await db.prepare('UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?')
+      .run('sent', req.params.id, req.orgId);
 
     res.json({ message: 'Invoice sent successfully' });
   } catch (error) {
@@ -330,7 +336,7 @@ router.post('/:id/send', async (req, res) => {
 // Delete invoice
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM invoices WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM invoices WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Invoice deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

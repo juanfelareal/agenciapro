@@ -11,9 +11,9 @@ router.get('/', async (req, res) => {
       SELECT p.*, c.name as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
-      WHERE 1=1
+      WHERE p.organization_id = ?
     `;
-    const params = [];
+    const params = [req.orgId];
 
     if (status) {
       query += ' AND p.status = ?';
@@ -40,8 +40,8 @@ router.get('/:id', async (req, res) => {
       SELECT p.*, c.name as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
-      WHERE p.id = ?
-    `).get(req.params.id);
+      WHERE p.id = ? AND p.organization_id = ?
+    `).get(req.params.id, req.orgId);
 
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
@@ -71,12 +71,22 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    const result = await db.prepare(`
-      INSERT INTO projects (name, description, client_id, status, budget, spent, start_date, end_date)
-      VALUES (?, ?, ?, ?, ?, 0, ?, ?)
-    `).run(name, description, client_id, status || 'planning', budget || 0, start_date, end_date);
+    // Verify client belongs to the same organization
+    if (client_id) {
+      const client = await db.prepare(
+        'SELECT id FROM clients WHERE id = ? AND organization_id = ?'
+      ).get(client_id, req.orgId);
+      if (!client) {
+        return res.status(400).json({ error: 'Client not found in your organization' });
+      }
+    }
 
-    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').get(result.lastInsertRowid);
+    const result = await db.prepare(`
+      INSERT INTO projects (name, description, client_id, status, budget, spent, start_date, end_date, organization_id)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
+    `).run(name, description, client_id, status || 'planning', budget || 0, start_date, end_date, req.orgId);
+
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -88,15 +98,25 @@ router.put('/:id', async (req, res) => {
   try {
     const { name, description, client_id, status, budget, spent, start_date, end_date } = req.body;
 
+    // Verify client belongs to the same organization
+    if (client_id) {
+      const client = await db.prepare(
+        'SELECT id FROM clients WHERE id = ? AND organization_id = ?'
+      ).get(client_id, req.orgId);
+      if (!client) {
+        return res.status(400).json({ error: 'Client not found in your organization' });
+      }
+    }
+
     await db.prepare(`
       UPDATE projects
       SET name = ?, description = ?, client_id = ?, status = ?,
           budget = ?, spent = ?, start_date = ?, end_date = ?,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(name, description, client_id, status, budget, spent, start_date, end_date, req.params.id);
+      WHERE id = ? AND organization_id = ?
+    `).run(name, description, client_id, status, budget, spent, start_date, end_date, req.params.id, req.orgId);
 
-    const project = await db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
+    const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -108,9 +128,26 @@ router.post('/:id/team', async (req, res) => {
   try {
     const { team_member_id, role } = req.body;
 
+    // Verify project belongs to this organization
+    const project = await db.prepare(
+      'SELECT id FROM projects WHERE id = ? AND organization_id = ?'
+    ).get(req.params.id, req.orgId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Verify team member belongs to the same organization
+    const member = await db.prepare(
+      'SELECT id FROM team_members WHERE id = ? AND organization_id = ?'
+    ).get(team_member_id, req.orgId);
+    if (!member) {
+      return res.status(400).json({ error: 'Team member not found in your organization' });
+    }
+
     await db.prepare(`
-      INSERT OR REPLACE INTO project_team (project_id, team_member_id, role)
+      INSERT INTO project_team (project_id, team_member_id, role)
       VALUES (?, ?, ?)
+      ON CONFLICT (project_id, team_member_id) DO UPDATE SET role = EXCLUDED.role
     `).run(req.params.id, team_member_id, role);
 
     res.json({ message: 'Team member assigned successfully' });
@@ -122,6 +159,14 @@ router.post('/:id/team', async (req, res) => {
 // Remove team member from project
 router.delete('/:id/team/:team_member_id', async (req, res) => {
   try {
+    // Verify project belongs to this organization
+    const project = await db.prepare(
+      'SELECT id FROM projects WHERE id = ? AND organization_id = ?'
+    ).get(req.params.id, req.orgId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
     await db.prepare('DELETE FROM project_team WHERE project_id = ? AND team_member_id = ?')
       .run(req.params.id, req.params.team_member_id);
     res.json({ message: 'Team member removed successfully' });
@@ -133,7 +178,7 @@ router.delete('/:id/team/:team_member_id', async (req, res) => {
 // Delete project
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM projects WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM projects WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
