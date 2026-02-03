@@ -69,11 +69,6 @@ const Dashboard = () => {
     setIsEditMode(false);
   };
 
-  const handleCancelEdit = () => {
-    setIsEditMode(false);
-  };
-
-
   const handleSaveEdit = () => {
     setIsEditMode(false);
   };

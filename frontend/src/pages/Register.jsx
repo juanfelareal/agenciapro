@@ -78,8 +78,8 @@ const Register = () => {
           <div className="w-16 h-16 rounded-2xl bg-ink-900 flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-ink-900">Crea tu agencia</h1>
-          <p className="text-ink-500 mt-1">Registrate gratis y empieza a gestionar</p>
+          <h1 className="text-2xl font-bold text-ink-900">Crea tu organizacion</h1>
+          <p className="text-ink-500 mt-1">Registrate gratis y empieza a gestionar tu equipo</p>
         </div>
 
         {/* Register Card */}
@@ -118,7 +118,7 @@ const Register = () => {
             {/* Org Name */}
             <div>
               <label htmlFor="org_name" className="block text-sm font-medium text-ink-700 mb-2">
-                Nombre de tu agencia
+                Nombre de tu organizacion
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -131,7 +131,7 @@ const Register = () => {
                   value={form.org_name}
                   onChange={handleChange}
                   className="w-full pl-12 pr-4 py-3 bg-cream-50 border border-ink-200 rounded-xl text-ink-900 placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
-                  placeholder="Mi Agencia Digital"
+                  placeholder="Mi Empresa"
                   required
                 />
               </div>

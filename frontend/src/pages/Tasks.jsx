@@ -9,7 +9,6 @@ import TaskFilters from '../components/tasks/TaskFilters';
 import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
 import CalendarView from '../components/tasks/CalendarView';
-import { useAuth } from '../context/AuthContext';
 
 const Tasks = () => {
   const { user } = useAuth();

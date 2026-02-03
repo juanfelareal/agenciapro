@@ -144,7 +144,7 @@ const Login = () => {
         <p className="text-center text-sm text-ink-400 mt-6">
           ¿No tienes cuenta?{' '}
           <Link to="/register" className="text-ink-700 font-medium hover:text-ink-900 transition-colors">
-            Crea tu agencia
+            Crea tu organizacion
           </Link>
         </p>
       </div>

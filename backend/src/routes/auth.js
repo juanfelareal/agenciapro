@@ -406,7 +406,7 @@ router.post('/register', async (req, res) => {
     const { name, email, pin, org_name } = req.body;
 
     if (!name || !email || !pin || !org_name) {
-      return res.status(400).json({ error: 'Nombre, email, PIN y nombre de agencia son requeridos' });
+      return res.status(400).json({ error: 'Nombre, email, PIN y nombre de organizacion son requeridos' });
     }
 
     if (pin.length < 4) {
