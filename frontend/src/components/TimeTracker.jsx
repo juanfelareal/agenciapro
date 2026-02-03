@@ -63,10 +63,17 @@ const TimeTracker = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  };
+
   const fetchRunningTimer = async () => {
     try {
-      const res = await fetch(`${API_URL}/time-entries/running`);
+      const res = await fetch(`${API_URL}/time-entries/running`, { headers: getAuthHeaders() });
+      if (!res.ok) return;
       const data = await res.json();
+      if (!Array.isArray(data)) return;
       const userTimer = data.find(e =>
         user ? e.user_id === user.id : true
       );
@@ -87,9 +94,11 @@ const TimeTracker = () => {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch(`${API_URL}/tasks?status=todo&status=in_progress`);
+      const res = await fetch(`${API_URL}/tasks?status=todo&status=in_progress`, { headers: getAuthHeaders() });
+      if (!res.ok) return;
       const data = await res.json();
-      setTasks(data.slice(0, 20)); // Limit to 20 recent tasks
+      if (!Array.isArray(data)) return;
+      setTasks(data.slice(0, 20));
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }
@@ -97,8 +106,10 @@ const TimeTracker = () => {
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch(`${API_URL}/projects?status=in_progress`);
+      const res = await fetch(`${API_URL}/projects?status=in_progress`, { headers: getAuthHeaders() });
+      if (!res.ok) return;
       const data = await res.json();
+      if (!Array.isArray(data)) return;
       setProjects(data);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -109,10 +120,10 @@ const TimeTracker = () => {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      const userId = user?.id || 1; // Default to 1 if no user selected
+      const userId = user?.id || 1;
       const res = await fetch(`${API_URL}/time-entries/start`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           user_id: userId,
           task_id: selectedTask?.id,
@@ -120,6 +131,7 @@ const TimeTracker = () => {
           description: description || null
         })
       });
+      if (!res.ok) return;
       const data = await res.json();
       setRunningEntry(data);
       setElapsedTime(0);
@@ -136,7 +148,7 @@ const TimeTracker = () => {
     try {
       await fetch(`${API_URL}/time-entries/${runningEntry.id}/stop`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ description })
       });
       setRunningEntry(null);

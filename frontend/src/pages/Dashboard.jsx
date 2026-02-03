@@ -73,6 +73,17 @@ const Dashboard = () => {
     setIsEditMode(false);
   };
 
+  const getPeriodLabel = () => {
+    switch (period) {
+      case 'today': return 'Hoy';
+      case 'week': return 'Esta Semana';
+      case 'month': return 'Este Mes';
+      case 'year': return 'Este Ano';
+      case 'all': return 'Todo el Tiempo';
+      default: return 'Este Mes';
+    }
+  };
+
   if (loading || widgetsLoading) {
     return (
       <div className="space-y-6">
