@@ -907,6 +907,10 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_daily_metrics_client ON client_daily_metrics(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_daily_metrics_date ON client_daily_metrics(metric_date)`);
 
+    // Cleanup: remove corrupted project templates (pool object saved as name)
+    await pool.query(`DELETE FROM project_template_tasks WHERE template_id IN (SELECT id FROM project_templates WHERE name LIKE '{%"_events"%')`);
+    await pool.query(`DELETE FROM project_templates WHERE name LIKE '{%"_events"%'`);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
