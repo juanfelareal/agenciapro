@@ -18,12 +18,12 @@ router.post('/auth/bootstrap', async (req, res) => {
   });
 });
 
-router.post('/auth/login', async (req, res) => {
+router.post('/auth/login', async (req, res, next) => {
   // Import and delegate to auth login handler
   const { default: authRouter } = await import('./auth.js');
   // Forward request through auth router's login
   req.url = '/login';
-  authRouter.handle(req, res);
+  authRouter.handle(req, res, next);
 });
 
 router.post('/auth/logout', teamAuthMiddleware, async (req, res) => {
