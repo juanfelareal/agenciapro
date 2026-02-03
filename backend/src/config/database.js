@@ -51,7 +51,11 @@ const db = {
 
   // Execute a query (INSERT, UPDATE, DELETE) and return info
   async run(sql, params = []) {
-    const convertedSql = convertPlaceholders(sql);
+    let convertedSql = convertPlaceholders(sql);
+    // PostgreSQL needs RETURNING id to get the inserted row's id
+    if (sql.trim().toUpperCase().startsWith('INSERT') && !sql.toUpperCase().includes('RETURNING')) {
+      convertedSql += ' RETURNING id';
+    }
     const result = await pool.query(convertedSql, params);
     return {
       changes: result.rowCount,
@@ -67,6 +71,11 @@ const db = {
   // For compatibility - returns self with methods
   prepare(sql) {
     const convertedSql = convertPlaceholders(sql);
+    // For INSERT queries, add RETURNING id to get the inserted row's id
+    let runSql = convertedSql;
+    if (sql.trim().toUpperCase().startsWith('INSERT') && !sql.toUpperCase().includes('RETURNING')) {
+      runSql = convertedSql + ' RETURNING id';
+    }
     return {
       all: async (...params) => {
         const result = await pool.query(convertedSql, params);
@@ -77,7 +86,7 @@ const db = {
         return result.rows[0];
       },
       run: async (...params) => {
-        const result = await pool.query(convertedSql, params);
+        const result = await pool.query(runSql, params);
         return {
           changes: result.rowCount,
           lastInsertRowid: result.rows[0]?.id
