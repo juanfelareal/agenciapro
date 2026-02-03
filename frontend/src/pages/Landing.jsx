@@ -152,7 +152,7 @@ const Landing = () => {
                 Iniciar sesión
               </Link>
               <Link
-                to="/login"
+                to="/register"
                 className="btn-lime text-sm font-medium px-5 py-2.5 rounded-xl transition-all duration-150 hover:scale-105"
               >
                 Prueba gratis
@@ -189,7 +189,7 @@ const Landing = () => {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
               <Link
-                to="/login"
+                to="/register"
                 className="w-full sm:w-auto btn-dark inline-flex items-center justify-center gap-2 text-base font-medium px-8 py-4 rounded-xl transition-all duration-150 hover:scale-105"
               >
                 Empieza gratis
@@ -532,7 +532,7 @@ const Landing = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              to="/login"
+              to="/register"
               className="w-full sm:w-auto btn-dark inline-flex items-center justify-center gap-2 text-base font-medium px-8 py-4 rounded-xl transition-all duration-150 hover:scale-105"
             >
               Crear cuenta gratis
