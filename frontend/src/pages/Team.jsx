@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { teamAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit, Trash2, X, Copy, Check, Users, Key, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Copy, Check, Users, Key, Eye, EyeOff, Mail } from 'lucide-react';
 
 // All available permissions organized by category
 const ALL_PERMISSIONS = [
@@ -108,6 +108,11 @@ const Team = () => {
   const [pinLoading, setPinLoading] = useState(false);
   const [pinError, setPinError] = useState('');
 
+  // New member PIN + email invite state
+  const [newMemberPin, setNewMemberPin] = useState('');
+  const [showNewMemberPin, setShowNewMemberPin] = useState(false);
+  const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -140,7 +145,12 @@ const Team = () => {
       if (editingMember) {
         await teamAPI.update(editingMember.id, formData);
       } else {
-        await teamAPI.create(formData);
+        const createData = { ...formData };
+        if (newMemberPin) {
+          createData.pin = newMemberPin;
+          createData.send_email = sendWelcomeEmail;
+        }
+        await teamAPI.create(createData);
       }
       setShowModal(false);
       setEditingMember(null);
@@ -193,6 +203,9 @@ const Team = () => {
       permissions: { ...DEFAULT_PERMISSIONS },
     });
     setSelectedTemplate(null);
+    setNewMemberPin('');
+    setShowNewMemberPin(false);
+    setSendWelcomeEmail(true);
   };
 
   const handleNew = () => {
@@ -439,6 +452,52 @@ const Team = () => {
                     onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
                   />
                 </div>
+
+                {/* PIN + Welcome Email (only for new members) */}
+                {!editingMember && (
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="text-lg font-semibold mb-3">Acceso</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">PIN de acceso *</label>
+                        <div className="relative">
+                          <input
+                            type={showNewMemberPin ? 'text' : 'password'}
+                            required
+                            minLength={4}
+                            value={newMemberPin}
+                            onChange={(e) => setNewMemberPin(e.target.value)}
+                            placeholder="Mínimo 4 caracteres"
+                            className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewMemberPin(!showNewMemberPin)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showNewMemberPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          El miembro usará este PIN para iniciar sesión
+                        </p>
+                      </div>
+                      <label className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={sendWelcomeEmail}
+                          onChange={(e) => setSendWelcomeEmail(e.target.checked)}
+                          className="w-4 h-4 accent-[#1A1A2E]"
+                        />
+                        <Mail size={18} className="text-blue-600" />
+                        <div>
+                          <span className="text-sm font-medium text-[#1A1A2E]">Enviar email de bienvenida</span>
+                          <p className="text-xs text-gray-500">Se enviarán las credenciales de acceso al email del miembro</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
 
                 {/* Permissions Section */}
                 <div className="border-t pt-4 mt-4">

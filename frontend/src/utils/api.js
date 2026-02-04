@@ -64,6 +64,7 @@ export const teamAPI = {
   validateToken: () => api.get('/team/auth/validate'),
   setPin: (memberId, pin) => api.post(`/team/${memberId}/set-pin`, { pin }),
   changePin: (currentPin, newPin) => api.post('/team/change-pin', { currentPin, newPin }),
+  leaveOrg: () => api.post('/team/leave-org'),
 };
 
 // Add auth token to requests

@@ -20,6 +20,7 @@ import {
   Link2,
   LogOut,
   Wallet,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -267,6 +268,25 @@ const Layout = ({ children }) => {
 
         {/* Bottom Actions */}
         <div className="p-3 space-y-1 border-t border-gray-100">
+          {/* Settings Link */}
+          <Link
+            to="/app/settings"
+            className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+              isActive('/app/settings')
+                ? 'bg-[#1A1A2E] text-[#BFFF00]'
+                : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100'
+            }`}
+            title={sidebarCollapsed ? 'Mi Cuenta' : ''}
+          >
+            <Settings size={20} className="flex-shrink-0" />
+            {!sidebarCollapsed && <span>Mi Cuenta</span>}
+            {sidebarCollapsed && (
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                Mi Cuenta
+              </div>
+            )}
+          </Link>
+
           {/* Logout Button */}
           <button
             onClick={handleLogout}

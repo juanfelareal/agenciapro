@@ -1,24 +1,11 @@
 import express from 'express';
 import db from '../config/database.js';
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { getEmailTransporter } from '../utils/emailHelper.js';
 
 dotenv.config();
 
 const router = express.Router();
-
-// Email configuration (will be configured via .env)
-const getEmailTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: process.env.EMAIL_PORT || 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-};
 
 // Get all invoices
 router.get('/', async (req, res) => {

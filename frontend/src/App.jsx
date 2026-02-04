@@ -29,6 +29,7 @@ import TimeReports from './pages/TimeReports';
 import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
+import Settings from './pages/Settings';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -316,6 +317,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>
           }

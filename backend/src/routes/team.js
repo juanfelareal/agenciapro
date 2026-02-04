@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import db from '../config/database.js';
 import { teamAuthMiddleware, requireAdmin } from '../middleware/teamAuth.js';
+import { sendWelcomeEmail } from '../utils/emailHelper.js';
 
 const router = express.Router();
 
@@ -236,13 +237,22 @@ router.get('/:id', teamAuthMiddleware, async (req, res) => {
 // Create new team member (in current org)
 router.post('/', teamAuthMiddleware, async (req, res) => {
   try {
-    const { name, email, role, position, status, hire_date, birthday, permissions } = req.body;
+    const { name, email, role, position, status, hire_date, birthday, permissions, pin, send_email } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
 
     const emailLower = email.toLowerCase().trim();
+
+    // Hash PIN if provided
+    let pinHash = null;
+    if (pin) {
+      if (pin.length < 4) {
+        return res.status(400).json({ error: 'El PIN debe tener al menos 4 caracteres' });
+      }
+      pinHash = await bcrypt.hash(pin, 10);
+    }
 
     // Check if a user with this email already exists
     let user = await db.get('SELECT id FROM users WHERE email = ?', [emailLower]);
@@ -256,6 +266,11 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
       user = { id: userResult.lastInsertRowid };
     }
 
+    // Update user pin_hash if PIN was provided
+    if (pinHash) {
+      await db.run('UPDATE users SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [pinHash, user.id]);
+    }
+
     // Check if membership already exists in this org
     const existingMembership = await db.get(
       'SELECT id FROM team_members WHERE user_id = ? AND organization_id = ?',
@@ -266,16 +281,36 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
     }
 
     const result = await db.run(`
-      INSERT INTO team_members (name, email, role, position, status, hire_date, birthday, permissions, user_id, organization_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO team_members (name, email, role, position, status, hire_date, birthday, permissions, pin_hash, user_id, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING id
     `, [
       name, emailLower, role || 'member', position, status || 'active',
       hire_date, birthday, permissions ? JSON.stringify(permissions) : null,
-      user.id, req.orgId
+      pinHash, user.id, req.orgId
     ]);
 
     const member = await db.get('SELECT * FROM team_members WHERE id = ?', [result.lastInsertRowid]);
+
+    // Send welcome email if requested
+    if (send_email && pin) {
+      try {
+        const org = await db.get('SELECT name FROM organizations WHERE id = ?', [req.orgId]);
+        const loginUrl = (process.env.FRONTEND_URL || 'https://agencia.larealmarketing.com') + '/login';
+        await sendWelcomeEmail({
+          to: emailLower,
+          memberName: name,
+          email: emailLower,
+          pin,
+          orgName: org?.name || 'La organización',
+          loginUrl,
+        });
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't fail the member creation, just log the error
+      }
+    }
+
     res.status(201).json(member);
   } catch (error) {
     if (error.message?.includes('UNIQUE') || error.message?.includes('unique')) {
@@ -333,6 +368,46 @@ router.delete('/:id', teamAuthMiddleware, async (req, res) => {
     res.json({ message: 'Team member deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/team/leave-org
+ * Leave current organization (removes team_member record)
+ */
+router.post('/leave-org', teamAuthMiddleware, async (req, res) => {
+  try {
+    const memberId = req.teamMember.id;
+    const orgId = req.orgId;
+
+    // Check if user is the only admin in this org
+    if (req.teamMember.role === 'admin') {
+      const adminCount = await db.get(
+        `SELECT COUNT(*) as count FROM team_members WHERE organization_id = ? AND role = 'admin' AND status = 'active'`,
+        [orgId]
+      );
+      if (adminCount.count <= 1) {
+        return res.status(400).json({
+          error: 'No puedes salir porque eres el único administrador de esta organización. Asigna otro administrador primero.'
+        });
+      }
+    }
+
+    // Delete the team_member record
+    await db.run('DELETE FROM team_members WHERE id = ? AND organization_id = ?', [memberId, orgId]);
+
+    // Revoke current session tokens
+    if (req.tokenId) {
+      await db.run(`UPDATE user_session_tokens SET status = 'revoked' WHERE id = ?`, [req.tokenId]);
+    }
+    if (req.teamMember?.tokenId) {
+      await db.run(`UPDATE team_session_tokens SET status = 'revoked' WHERE id = ?`, [req.teamMember.tokenId]);
+    }
+
+    res.json({ success: true, message: 'Has salido de la organización exitosamente' });
+  } catch (error) {
+    console.error('Error leaving org:', error);
+    res.status(500).json({ error: 'Error al salir de la organización' });
   }
 });
 
