@@ -133,7 +133,7 @@ const Register = () => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const handleLogoUpload = async (e) => {
