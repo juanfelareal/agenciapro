@@ -129,6 +129,64 @@ router.post('/:id/set-pin', teamAuthMiddleware, requireAdmin, async (req, res) =
 });
 
 /**
+ * PUT /api/team/org-logo
+ * Update organization logo (admin only)
+ */
+router.put('/org-logo', teamAuthMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { logo_url } = req.body;
+
+    if (logo_url && logo_url.length > 2 * 1024 * 1024) {
+      return res.status(400).json({ error: 'La imagen es demasiado grande. Máximo 1.5MB.' });
+    }
+
+    await db.run(
+      'UPDATE organizations SET logo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [logo_url || null, req.orgId]
+    );
+
+    res.json({ success: true, message: 'Logo actualizado correctamente', logo_url: logo_url || null });
+  } catch (error) {
+    console.error('Error updating org logo:', error);
+    res.status(500).json({ error: 'Error al actualizar el logo' });
+  }
+});
+
+/**
+ * PUT /api/team/profile
+ * Update own name and position
+ */
+router.put('/profile', teamAuthMiddleware, async (req, res) => {
+  try {
+    const { name, position } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+
+    const trimmedName = name.trim();
+    const trimmedPosition = position?.trim() || null;
+
+    // Update team_member record
+    await db.run(
+      'UPDATE team_members SET name = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [trimmedName, trimmedPosition, req.teamMember.id]
+    );
+
+    // Also update the users table name if user_id exists
+    const member = await db.get('SELECT user_id FROM team_members WHERE id = ?', [req.teamMember.id]);
+    if (member?.user_id) {
+      await db.run('UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [trimmedName, member.user_id]);
+    }
+
+    res.json({ success: true, message: 'Perfil actualizado correctamente' });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Error al actualizar el perfil' });
+  }
+});
+
+/**
  * POST /api/team/change-pin
  * Change own PIN (requires current PIN)
  */

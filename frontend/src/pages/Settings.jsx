@@ -1,12 +1,104 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { teamAPI } from '../utils/api';
-import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield } from 'lucide-react';
+import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2 } from 'lucide-react';
 
 const Settings = () => {
-  const { user, currentOrg, logout } = useAuth();
+  const { user, currentOrg, logout, checkAuth, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const logoInputRef = useRef(null);
+
+  // Org logo state
+  const [logoLoading, setLogoLoading] = useState(false);
+  const [logoMessage, setLogoMessage] = useState(null);
+
+  const handleLogoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setLogoMessage({ type: 'error', text: 'Solo se permiten archivos de imagen' });
+      return;
+    }
+    if (file.size > 1.5 * 1024 * 1024) {
+      setLogoMessage({ type: 'error', text: 'La imagen no puede superar 1.5MB' });
+      return;
+    }
+
+    setLogoLoading(true);
+    setLogoMessage(null);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          await teamAPI.updateOrgLogo(event.target.result);
+          await checkAuth();
+          setLogoMessage({ type: 'success', text: 'Logo actualizado' });
+          setTimeout(() => setLogoMessage(null), 3000);
+        } catch (error) {
+          setLogoMessage({ type: 'error', text: error.response?.data?.error || 'Error al actualizar el logo' });
+        } finally {
+          setLogoLoading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setLogoLoading(false);
+      setLogoMessage({ type: 'error', text: 'Error al leer el archivo' });
+    }
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  };
+
+  const handleRemoveLogo = async () => {
+    setLogoLoading(true);
+    setLogoMessage(null);
+    try {
+      await teamAPI.updateOrgLogo(null);
+      await checkAuth();
+      setLogoMessage({ type: 'success', text: 'Logo eliminado' });
+      setTimeout(() => setLogoMessage(null), 3000);
+    } catch (error) {
+      setLogoMessage({ type: 'error', text: error.response?.data?.error || 'Error al eliminar el logo' });
+    } finally {
+      setLogoLoading(false);
+    }
+  };
+
+  // Profile edit state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [profilePosition, setProfilePosition] = useState(user?.position || '');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
+
+  const handleSaveProfile = async () => {
+    if (!profileName.trim()) {
+      setProfileMessage({ type: 'error', text: 'El nombre es requerido' });
+      return;
+    }
+    setProfileLoading(true);
+    setProfileMessage(null);
+    try {
+      await teamAPI.updateProfile({ name: profileName, position: profilePosition });
+      await checkAuth();
+      setIsEditingProfile(false);
+      setProfileMessage({ type: 'success', text: 'Perfil actualizado' });
+      setTimeout(() => setProfileMessage(null), 3000);
+    } catch (error) {
+      setProfileMessage({ type: 'error', text: error.response?.data?.error || 'Error al actualizar el perfil' });
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const cancelEditProfile = () => {
+    setProfileName(user?.name || '');
+    setProfilePosition(user?.position || '');
+    setIsEditingProfile(false);
+    setProfileMessage(null);
+  };
 
   // Change PIN state
   const [currentPin, setCurrentPin] = useState('');
@@ -80,17 +172,76 @@ const Settings = () => {
 
       {/* Profile Info Card */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-[#1A1A2E] flex items-center justify-center">
-            <User size={20} className="text-[#BFFF00]" />
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#1A1A2E] flex items-center justify-center">
+              <User size={20} className="text-[#BFFF00]" />
+            </div>
+            <h2 className="text-lg font-semibold text-[#1A1A2E]">Información Personal</h2>
           </div>
-          <h2 className="text-lg font-semibold text-[#1A1A2E]">Información Personal</h2>
+          {!isEditingProfile ? (
+            <button
+              onClick={() => {
+                setProfileName(user?.name || '');
+                setProfilePosition(user?.position || '');
+                setIsEditingProfile(true);
+                setProfileMessage(null);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <Pencil size={14} />
+              Editar
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={cancelEditProfile}
+                disabled={profileLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <X size={14} />
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={profileLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+              >
+                {profileLoading ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Check size={14} />
+                )}
+                Guardar
+              </button>
+            </div>
+          )}
         </div>
+
+        {profileMessage && (
+          <div className={`mb-4 p-3 rounded-xl text-sm ${
+            profileMessage.type === 'success'
+              ? 'bg-green-50 border border-green-200 text-green-700'
+              : 'bg-red-50 border border-red-200 text-red-600'
+          }`}>
+            {profileMessage.text}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Nombre</label>
-            <p className="text-sm font-medium text-[#1A1A2E]">{user?.name || '-'}</p>
+            {isEditingProfile ? (
+              <input
+                type="text"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                autoFocus
+              />
+            ) : (
+              <p className="text-sm font-medium text-[#1A1A2E]">{user?.name || '-'}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Email</label>
@@ -98,7 +249,17 @@ const Settings = () => {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cargo</label>
-            <p className="text-sm font-medium text-[#1A1A2E]">{user?.position || '-'}</p>
+            {isEditingProfile ? (
+              <input
+                type="text"
+                value={profilePosition}
+                onChange={(e) => setProfilePosition(e.target.value)}
+                placeholder="Ej: Diseñador, Manager..."
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+              />
+            ) : (
+              <p className="text-sm font-medium text-[#1A1A2E]">{user?.position || '-'}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Rol</label>
@@ -111,13 +272,78 @@ const Settings = () => {
 
         {currentOrg && (
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Organización</label>
-            <div className="flex items-center gap-3">
-              {currentOrg.logo_url && (
-                <img src={currentOrg.logo_url} alt={currentOrg.name} className="h-8 object-contain" />
-              )}
-              <p className="text-sm font-medium text-[#1A1A2E]">{currentOrg.name}</p>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Organización</label>
+            <div className="flex items-center gap-4">
+              {/* Logo area */}
+              <div className="relative group">
+                {currentOrg.logo_url ? (
+                  <img
+                    src={currentOrg.logo_url}
+                    alt={currentOrg.name}
+                    className="w-14 h-14 object-contain rounded-xl border border-gray-200 bg-white p-1"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
+                    <Building2 size={22} className="text-gray-400" />
+                  </div>
+                )}
+                {isAdmin && !logoLoading && (
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <Camera size={18} className="text-white" />
+                  </button>
+                )}
+                {logoLoading && (
+                  <div className="absolute inset-0 rounded-xl bg-white/80 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-[#1A1A2E]/20 border-t-[#1A1A2E] rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#1A1A2E]">{currentOrg.name}</p>
+                {isAdmin && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <button
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={logoLoading}
+                      className="text-xs text-gray-500 hover:text-[#1A1A2E] transition-colors"
+                    >
+                      {currentOrg.logo_url ? 'Cambiar logo' : 'Subir logo'}
+                    </button>
+                    {currentOrg.logo_url && (
+                      <>
+                        <span className="text-gray-300">|</span>
+                        <button
+                          onClick={handleRemoveLogo}
+                          disabled={logoLoading}
+                          className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                className="hidden"
+              />
             </div>
+            {logoMessage && (
+              <div className={`mt-3 p-2.5 rounded-xl text-xs ${
+                logoMessage.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-red-50 border border-red-200 text-red-600'
+              }`}>
+                {logoMessage.text}
+              </div>
+            )}
           </div>
         )}
       </div>
