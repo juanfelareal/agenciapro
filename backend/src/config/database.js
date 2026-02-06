@@ -946,6 +946,42 @@ export const initializeDatabase = async () => {
     }
 
     // ========================================
+    // BACKFILL: Assign organization_id to orphaned rows
+    // ========================================
+    try {
+      const firstOrg = await pool.query(`SELECT id FROM organizations ORDER BY id LIMIT 1`);
+      if (firstOrg.rows.length > 0) {
+        const defaultOrgId = firstOrg.rows[0].id;
+        let totalBackfilled = 0;
+        for (const table of rootTablesForOrgId) {
+          const result = await pool.query(
+            `UPDATE ${table} SET organization_id = $1 WHERE organization_id IS NULL`,
+            [defaultOrgId]
+          );
+          if (result.rowCount > 0) {
+            console.log(`  🔄 Backfill: ${table} — ${result.rowCount} rows assigned to org ${defaultOrgId}`);
+            totalBackfilled += result.rowCount;
+          }
+        }
+        // Also backfill team_members
+        const tmResult = await pool.query(
+          `UPDATE team_members SET organization_id = $1 WHERE organization_id IS NULL`,
+          [defaultOrgId]
+        );
+        if (tmResult.rowCount > 0) {
+          console.log(`  🔄 Backfill: team_members — ${tmResult.rowCount} rows assigned to org ${defaultOrgId}`);
+          totalBackfilled += tmResult.rowCount;
+        }
+        if (totalBackfilled > 0) {
+          console.log(`  ✅ Backfill complete: ${totalBackfilled} total rows updated`);
+        }
+      }
+    } catch (backfillError) {
+      // Organizations table may not exist yet on first run (created by migration)
+      console.log('  ⏭️  Backfill skipped (organizations table not ready yet)');
+    }
+
+    // ========================================
     // PERFORMANCE INDEXES
     // ========================================
     console.log('🔄 Creating performance indexes...');
