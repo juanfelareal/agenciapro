@@ -7,27 +7,27 @@ const router = express.Router();
 // Get all comments for a task
 router.get('/task/:taskId', async (req, res) => {
   try {
-    // Verify task belongs to org via project
-    const task = await db.prepare(`
-      SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
-    `).get(req.params.taskId, req.orgId);
+    // Verify task belongs to org directly
+    const task = await db.get(
+      'SELECT id FROM tasks WHERE id = ? AND organization_id = ?',
+      [req.params.taskId, req.orgId]
+    );
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    const comments = await db.prepare(`
+    const comments = await db.all(`
       SELECT tc.*, tm.name as user_name, tm.email as user_email
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
       WHERE tc.task_id = ?
       ORDER BY tc.created_at DESC
-    `).all(req.params.taskId);
+    `, [req.params.taskId]);
 
     res.json(comments);
   } catch (error) {
+    console.error('Error getting comments:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -41,28 +41,27 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Task ID, user ID and comment are required' });
     }
 
-    // Verify task belongs to org via project
-    const task = await db.prepare(`
-      SELECT t.id, t.title FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
-    `).get(task_id, req.orgId);
+    // Verify task belongs to org directly
+    const task = await db.get(
+      'SELECT id, title FROM tasks WHERE id = ? AND organization_id = ?',
+      [task_id, req.orgId]
+    );
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    const result = await db.prepare(`
-      INSERT INTO task_comments (task_id, user_id, comment)
-      VALUES (?, ?, ?)
-    `).run(task_id, user_id, comment);
+    const result = await db.run(`
+      INSERT INTO task_comments (task_id, user_id, comment, organization_id)
+      VALUES (?, ?, ?, ?)
+    `, [task_id, user_id, comment, req.orgId]);
 
-    const newComment = await db.prepare(`
+    const newComment = await db.get(`
       SELECT tc.*, tm.name as user_name, tm.email as user_email
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
       WHERE tc.id = ?
-    `).get(result.lastInsertRowid);
+    `, [result.lastInsertRowid]);
 
     // Notify assigned user about new comment
     notifyNewComment(task_id, task.title, result.lastInsertRowid, user_id, comment);
@@ -72,6 +71,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(newComment);
   } catch (error) {
+    console.error('Error creating comment:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -81,33 +81,33 @@ router.put('/:id', async (req, res) => {
   try {
     const { comment } = req.body;
 
-    // Verify comment belongs to org via task→project chain
-    const existing = await db.prepare(`
+    // Verify comment belongs to org via task
+    const existing = await db.get(`
       SELECT tc.id FROM task_comments tc
       JOIN tasks t ON tc.task_id = t.id
-      JOIN projects p ON t.project_id = p.id
-      WHERE tc.id = ? AND p.organization_id = ?
-    `).get(req.params.id, req.orgId);
+      WHERE tc.id = ? AND t.organization_id = ?
+    `, [req.params.id, req.orgId]);
 
     if (!existing) {
       return res.status(404).json({ error: 'Comment not found' });
     }
 
-    await db.prepare(`
+    await db.run(`
       UPDATE task_comments
       SET comment = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(comment, req.params.id);
+    `, [comment, req.params.id]);
 
-    const updated = await db.prepare(`
+    const updated = await db.get(`
       SELECT tc.*, tm.name as user_name
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
       WHERE tc.id = ?
-    `).get(req.params.id);
+    `, [req.params.id]);
 
     res.json(updated);
   } catch (error) {
+    console.error('Error updating comment:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -115,21 +115,21 @@ router.put('/:id', async (req, res) => {
 // Delete comment
 router.delete('/:id', async (req, res) => {
   try {
-    // Verify comment belongs to org via task→project chain
-    const existing = await db.prepare(`
+    // Verify comment belongs to org via task
+    const existing = await db.get(`
       SELECT tc.id FROM task_comments tc
       JOIN tasks t ON tc.task_id = t.id
-      JOIN projects p ON t.project_id = p.id
-      WHERE tc.id = ? AND p.organization_id = ?
-    `).get(req.params.id, req.orgId);
+      WHERE tc.id = ? AND t.organization_id = ?
+    `, [req.params.id, req.orgId]);
 
     if (!existing) {
       return res.status(404).json({ error: 'Comment not found' });
     }
 
-    await db.prepare('DELETE FROM task_comments WHERE id = ?').run(req.params.id);
+    await db.run('DELETE FROM task_comments WHERE id = ?', [req.params.id]);
     res.json({ message: 'Comment deleted successfully' });
   } catch (error) {
+    console.error('Error deleting comment:', error);
     res.status(500).json({ error: error.message });
   }
 });

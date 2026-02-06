@@ -58,7 +58,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks'),
       task.subtask_completed = subtaskProgress?.completed || 0;
     }
 
-    res.json(tasks);
+    res.json({ tasks });
   } catch (error) {
     console.error('Error getting portal tasks:', error);
     res.status(500).json({ error: 'Error al cargar tareas' });
@@ -128,12 +128,19 @@ router.get('/:id', clientAuthMiddleware, requirePortalPermission('can_view_tasks
       `, [id]);
     }
 
+    // Merge all comments with is_client_comment flag
+    const comments = [
+      ...teamComments.map(c => ({ ...c, is_client_comment: false, author_name: c.user_name })),
+      ...clientComments.map(c => ({ ...c, is_client_comment: true, author_name: c.client_name }))
+    ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
     res.json({
-      ...task,
-      subtasks,
-      team_comments: teamComments,
-      client_comments: clientComments,
-      files
+      task: {
+        ...task,
+        subtasks,
+        files
+      },
+      comments
     });
   } catch (error) {
     console.error('Error getting portal task:', error);
@@ -317,6 +324,75 @@ router.post('/:id/comments', clientAuthMiddleware, requirePortalPermission('can_
   } catch (error) {
     console.error('Error adding comment:', error);
     res.status(500).json({ error: 'Error al agregar comentario' });
+  }
+});
+
+/**
+ * POST /api/portal/tasks
+ * Create a new task from the client portal
+ */
+router.post('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { title, description, project_id, priority } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'El titulo es requerido' });
+    }
+
+    if (!project_id) {
+      return res.status(400).json({ error: 'El proyecto es requerido' });
+    }
+
+    // Verify the project belongs to this client
+    const project = await db.get(
+      'SELECT id, name FROM projects WHERE id = ? AND client_id = ?',
+      [project_id, clientId]
+    );
+
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    const validPriorities = ['low', 'medium', 'high', 'urgent'];
+    const taskPriority = validPriorities.includes(priority) ? priority : 'medium';
+
+    const result = await db.run(`
+      INSERT INTO tasks (title, description, project_id, status, priority, visible_to_client, created_by)
+      VALUES (?, ?, ?, 'todo', ?, 1, NULL)
+    `, [title.trim(), description?.trim() || null, project_id, taskPriority]);
+
+    // Notify team members assigned to this project
+    const projectMembers = await db.all(`
+      SELECT tm.id FROM project_team pt
+      JOIN team_members tm ON pt.team_member_id = tm.id
+      WHERE pt.project_id = ?
+    `, [project_id]);
+
+    for (const member of projectMembers) {
+      await db.run(`
+        INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, related_task_id)
+        VALUES (?, 'task_created', ?, ?, 'task', ?, ?)
+      `, [
+        member.id,
+        'Nueva tarea de cliente',
+        `${req.client.name} creo una tarea en "${project.name}": ${title.trim()}`,
+        result.lastInsertRowid,
+        result.lastInsertRowid
+      ]);
+    }
+
+    const newTask = await db.get(`
+      SELECT t.*, p.name as project_name
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = ?
+    `, [result.lastInsertRowid]);
+
+    res.status(201).json({ task: newTask });
+  } catch (error) {
+    console.error('Error creating portal task:', error);
+    res.status(500).json({ error: 'Error al crear tarea' });
   }
 });
 

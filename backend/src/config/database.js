@@ -915,11 +915,23 @@ export const initializeDatabase = async () => {
 
     // Add organization_id to root tables (if not exists)
     const rootTablesForOrgId = [
+      // Core business entities
       'clients', 'projects', 'invoices', 'expenses', 'commissions',
+      // Tasks and related
+      'tasks', 'subtasks', 'task_comments', 'task_files', 'board_columns',
+      // Project team
+      'project_team',
+      // Tags and notes
       'tags', 'note_categories', 'note_folders', 'notes',
+      // SOPs and templates
       'sop_categories', 'sops', 'project_templates', 'automations',
-      'notifications', 'activity_log', 'siigo_settings',
-      'siigo_document_types', 'siigo_payment_types', 'siigo_taxes', 'time_entries'
+      // Notifications and activity
+      'notifications', 'activity_log', 'time_entries',
+      // Client portal and integrations
+      'client_access_tokens', 'client_portal_settings', 'client_comments', 'client_notifications',
+      'client_facebook_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
+      // Siigo (accounting integration)
+      'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes'
     ];
 
     for (const table of rootTablesForOrgId) {
@@ -953,6 +965,11 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_org_id ON tasks(organization_id)`);
+
+    // Subtasks indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON subtasks(task_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subtasks_org_id ON subtasks(organization_id)`);
 
     // Invoices indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_client_id ON invoices(client_id)`);

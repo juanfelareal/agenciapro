@@ -54,8 +54,8 @@ export default function PortalTaskDetail() {
 
     setSubmitting(true);
     try {
-      const response = await portalTasksAPI.addComment(id, { comment: newComment.trim() });
-      setComments([...comments, response.comment]);
+      const response = await portalTasksAPI.addComment(id, newComment.trim());
+      setComments([...comments, response]);
       setNewComment('');
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -72,7 +72,7 @@ export default function PortalTaskDetail() {
   const submitApproval = async () => {
     setSubmitting(true);
     try {
-      await portalTasksAPI.approve(id, {
+      await portalTasksAPI.submitApproval(id, {
         action: approvalAction,
         notes: approvalNotes.trim()
       });

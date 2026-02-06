@@ -28,7 +28,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_projects
       progress: p.task_count > 0 ? Math.round((p.completed_task_count / p.task_count) * 100) : 0
     }));
 
-    res.json(projectsWithProgress);
+    res.json({ projects: projectsWithProgress });
   } catch (error) {
     console.error('Error getting portal projects:', error);
     res.status(500).json({ error: 'Error al cargar proyectos' });
@@ -77,12 +77,14 @@ router.get('/:id', clientAuthMiddleware, requirePortalPermission('can_view_proje
     }
 
     res.json({
-      ...project,
+      project: {
+        ...project,
+        progress: tasks.length > 0
+          ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100)
+          : 0
+      },
       tasks,
-      team,
-      progress: tasks.length > 0
-        ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100)
-        : 0
+      team
     });
   } catch (error) {
     console.error('Error getting portal project:', error);

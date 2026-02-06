@@ -44,7 +44,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_invoices
 
     res.json({
       invoices,
-      totals: {
+      summary: {
         total: totals?.total || 0,
         paid: totals?.paid || 0,
         pending: totals?.pending || 0

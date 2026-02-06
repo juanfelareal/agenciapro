@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { usePortal } from '../../context/PortalContext';
-import { portalTasksAPI } from '../../utils/portalApi';
+import { portalTasksAPI, portalProjectsAPI } from '../../utils/portalApi';
 import {
   CheckSquare,
   Clock,
@@ -11,7 +11,9 @@ import {
   Filter,
   Loader2,
   ArrowRight,
-  FolderKanban
+  FolderKanban,
+  Plus,
+  X
 } from 'lucide-react';
 
 export default function PortalTasks() {
@@ -22,6 +24,11 @@ export default function PortalTasks() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [approvalFilter, setApprovalFilter] = useState(searchParams.get('requires_approval') === '1' ? 'pending' : 'all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [newTask, setNewTask] = useState({ title: '', description: '', project_id: '', priority: 'medium' });
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     loadTasks();
@@ -35,6 +42,43 @@ export default function PortalTasks() {
       console.error('Error loading tasks:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenCreateModal = async () => {
+    setCreateError('');
+    try {
+      const response = await portalProjectsAPI.getAll();
+      setProjects(response.projects || []);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+    setNewTask({ title: '', description: '', project_id: '', priority: 'medium' });
+    setShowCreateModal(true);
+  };
+
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!newTask.title.trim() || !newTask.project_id || creating) return;
+
+    setCreating(true);
+    setCreateError('');
+    try {
+      await portalTasksAPI.create({
+        title: newTask.title.trim(),
+        description: newTask.description.trim() || undefined,
+        project_id: parseInt(newTask.project_id),
+        priority: newTask.priority
+      });
+      setShowCreateModal(false);
+      setLoading(true);
+      await loadTasks();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      const errorMessage = error.response?.data?.error || 'Error al crear la tarea. Intenta de nuevo.';
+      setCreateError(errorMessage);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -93,9 +137,19 @@ export default function PortalTasks() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Mis Tareas</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Revisa el estado de todas tus tareas</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Mis Tareas</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Revisa el estado de todas tus tareas</p>
+        </div>
+        <button
+          onClick={handleOpenCreateModal}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl
+                   hover:bg-gray-800 transition-colors font-medium text-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Nueva Tarea
+        </button>
       </div>
 
       {/* Pending Approval Alert */}
@@ -213,6 +267,123 @@ export default function PortalTasks() {
               ? 'No se encontraron tareas con los filtros aplicados.'
               : 'Aún no tienes tareas asignadas.'}
           </p>
+        </div>
+      )}
+
+      {/* Create Task Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-[#1A1A2E]">Nueva Tarea</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {createError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                {createError}
+              </div>
+            )}
+
+            {projects.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <FolderKanban className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-gray-600 font-medium">No tienes proyectos asignados</p>
+                <p className="text-sm text-gray-500 mt-1">Contacta al equipo para que te asignen un proyecto.</p>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="mt-4 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl
+                           hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+            <form onSubmit={handleCreateTask} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                <input
+                  type="text"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  placeholder="Describe brevemente la tarea..."
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripcion</label>
+                <textarea
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  placeholder="Agrega detalles o instrucciones..."
+                  rows={3}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Proyecto *</label>
+                <select
+                  value={newTask.project_id}
+                  onChange={(e) => setNewTask({ ...newTask, project_id: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none"
+                >
+                  <option value="">Selecciona un proyecto</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+                <select
+                  value={newTask.priority}
+                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none"
+                >
+                  <option value="low">Baja</option>
+                  <option value="medium">Media</option>
+                  <option value="high">Alta</option>
+                  <option value="urgent">Urgente</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
+                           hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newTask.title.trim() || !newTask.project_id || creating}
+                  className="flex-1 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl font-medium
+                           hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {creating ? 'Creando...' : 'Crear Tarea'}
+                </button>
+              </div>
+            </form>
+            )}
+          </div>
         </div>
       )}
     </div>

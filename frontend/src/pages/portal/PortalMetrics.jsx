@@ -28,7 +28,7 @@ export default function PortalMetrics() {
   const loadMetrics = async () => {
     setLoading(true);
     try {
-      const response = await portalMetricsAPI.get({ range: dateRange });
+      const response = await portalMetricsAPI.getSummary({ range: dateRange });
       setMetrics(response);
     } catch (error) {
       console.error('Error loading metrics:', error);

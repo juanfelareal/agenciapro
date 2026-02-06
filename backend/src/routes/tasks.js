@@ -5,7 +5,7 @@ import { processTaskCreated, processTaskUpdated } from '../services/automationEn
 
 const router = express.Router();
 
-// Get all tasks (scoped to organization via project)
+// Get all tasks (scoped to organization directly)
 router.get('/', async (req, res) => {
   try {
     const { status, project_id, assigned_to, client_id } = req.query;
@@ -14,10 +14,10 @@ router.get('/', async (req, res) => {
              tm.name as assigned_to_name,
              cb.name as created_by_name
       FROM tasks t
-      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
-      WHERE p.organization_id = ?
+      WHERE t.organization_id = ?
     `;
     const params = [req.orgId];
 
@@ -32,8 +32,8 @@ router.get('/', async (req, res) => {
     }
 
     if (assigned_to) {
-      query += ' AND t.assigned_to = ? AND tm.organization_id = ?';
-      params.push(assigned_to, req.orgId);
+      query += ' AND t.assigned_to = ?';
+      params.push(assigned_to);
     }
 
     if (client_id) {
@@ -42,37 +42,39 @@ router.get('/', async (req, res) => {
     }
 
     query += ' ORDER BY t.created_at DESC';
-    const tasks = await db.prepare(query).all(...params);
+    const tasks = await db.all(query, params);
     res.json(tasks);
   } catch (error) {
+    console.error('Error getting tasks:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get task by ID (scoped to organization via project)
+// Get task by ID (scoped to organization directly)
 router.get('/:id', async (req, res) => {
   try {
-    const task = await db.prepare(`
+    const task = await db.get(`
       SELECT t.*, p.name as project_name,
              tm.name as assigned_to_name,
              cb.name as created_by_name
       FROM tasks t
-      JOIN projects p ON t.project_id = p.id
+      LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
-      WHERE t.id = ? AND p.organization_id = ?
-    `).get(req.params.id, req.orgId);
+      WHERE t.id = ? AND t.organization_id = ?
+    `, [req.params.id, req.orgId]);
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
     res.json(task);
   } catch (error) {
+    console.error('Error getting task:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Create new task (verify project and assigned_to belong to this org)
+// Create new task (project is optional, organization_id is required)
 router.post('/', async (req, res) => {
   try {
     const {
@@ -98,57 +100,58 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    // Verify project belongs to this organization
+    // Verify project belongs to this organization (if provided)
     if (project_id) {
-      const project = await db.prepare(
-        'SELECT id FROM projects WHERE id = ? AND organization_id = ?'
-      ).get(project_id, req.orgId);
+      const project = await db.get(
+        'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
+        [project_id, req.orgId]
+      );
       if (!project) {
         return res.status(403).json({ error: 'Project does not belong to this organization' });
       }
     }
 
-    // Verify assigned team member belongs to this organization
+    // Verify assigned team member belongs to this organization (if provided)
     if (assigned_to) {
-      const member = await db.prepare(
-        'SELECT id FROM team_members WHERE id = ? AND organization_id = ?'
-      ).get(assigned_to, req.orgId);
+      const member = await db.get(
+        'SELECT id FROM team_members WHERE id = ? AND organization_id = ?',
+        [assigned_to, req.orgId]
+      );
       if (!member) {
         return res.status(403).json({ error: 'Team member does not belong to this organization' });
       }
     }
 
-    const result = await db.prepare(`
+    const result = await db.run(`
       INSERT INTO tasks (
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
-        progress, color, estimated_hours, delivery_url, created_by
+        progress, color, estimated_hours, delivery_url, created_by, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
       title,
-      description,
+      description || null,
       project_id || null,
       assigned_to || null,
       status || 'todo',
       priority || 'medium',
-      due_date,
+      due_date || null,
       is_recurring ? 1 : 0,
       recurrence_pattern ? JSON.stringify(recurrence_pattern) : null,
-      timeline_start,
-      timeline_end,
+      timeline_start || null,
+      timeline_end || null,
       progress || 0,
-      color,
-      estimated_hours,
+      color || null,
+      estimated_hours || null,
       delivery_url || null,
-      created_by || null
-    );
+      created_by || null,
+      req.orgId
+    ]);
 
-    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+    const task = await db.get('SELECT * FROM tasks WHERE id = ?', [result.lastInsertRowid]);
 
     // Notify user if task was assigned
-    // Note: We don't have the current user context, so we pass 0 as placeholder
-    // In production, this should come from authentication middleware
     if (assigned_to) {
       notifyTaskAssigned(result.lastInsertRowid, title, assigned_to, 0);
     }
@@ -158,11 +161,12 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(task);
   } catch (error) {
+    console.error('Error creating task:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Update task (verify org ownership via project)
+// Update task (verify org ownership directly)
 router.put('/:id', async (req, res) => {
   try {
     const {
@@ -183,12 +187,11 @@ router.put('/:id', async (req, res) => {
       delivery_url
     } = req.body;
 
-    // Get old task data and verify it belongs to this org via its project
-    const oldTask = await db.prepare(`
-      SELECT t.* FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
-    `).get(req.params.id, req.orgId);
+    // Get old task data and verify it belongs to this org
+    const oldTask = await db.get(
+      'SELECT * FROM tasks WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
 
     if (!oldTask) {
       return res.status(404).json({ error: 'Task not found' });
@@ -196,9 +199,10 @@ router.put('/:id', async (req, res) => {
 
     // If changing project, verify new project belongs to this org
     if (project_id && project_id !== oldTask.project_id) {
-      const newProject = await db.prepare(
-        'SELECT id FROM projects WHERE id = ? AND organization_id = ?'
-      ).get(project_id, req.orgId);
+      const newProject = await db.get(
+        'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
+        [project_id, req.orgId]
+      );
       if (!newProject) {
         return res.status(403).json({ error: 'Target project does not belong to this organization' });
       }
@@ -206,42 +210,44 @@ router.put('/:id', async (req, res) => {
 
     // If assigning to a team member, verify they belong to this org
     if (assigned_to && assigned_to !== oldTask.assigned_to) {
-      const member = await db.prepare(
-        'SELECT id FROM team_members WHERE id = ? AND organization_id = ?'
-      ).get(assigned_to, req.orgId);
+      const member = await db.get(
+        'SELECT id FROM team_members WHERE id = ? AND organization_id = ?',
+        [assigned_to, req.orgId]
+      );
       if (!member) {
         return res.status(403).json({ error: 'Team member does not belong to this organization' });
       }
     }
 
-    await db.prepare(`
+    await db.run(`
       UPDATE tasks
       SET title = ?, description = ?, project_id = ?, assigned_to = ?,
           status = ?, priority = ?, due_date = ?, is_recurring = ?,
           recurrence_pattern = ?, timeline_start = ?, timeline_end = ?,
           progress = ?, color = ?, estimated_hours = ?, delivery_url = ?,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(
+      WHERE id = ? AND organization_id = ?
+    `, [
       title,
-      description,
+      description || null,
       project_id || null,
       assigned_to || null,
       status,
       priority,
-      due_date,
+      due_date || null,
       is_recurring ? 1 : 0,
       recurrence_pattern ? JSON.stringify(recurrence_pattern) : null,
-      timeline_start,
-      timeline_end,
-      progress,
-      color,
-      estimated_hours,
+      timeline_start || null,
+      timeline_end || null,
+      progress || null,
+      color || null,
+      estimated_hours || null,
       delivery_url || null,
-      req.params.id
-    );
+      req.params.id,
+      req.orgId
+    ]);
 
-    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+    const task = await db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
 
     // Notification logic
     if (oldTask) {
@@ -272,27 +278,28 @@ router.put('/:id', async (req, res) => {
 
     res.json(task);
   } catch (error) {
+    console.error('Error updating task:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Delete task (verify org ownership via project)
+// Delete task (verify org ownership directly)
 router.delete('/:id', async (req, res) => {
   try {
     // Verify the task belongs to this org before deleting
-    const task = await db.prepare(`
-      SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
-    `).get(req.params.id, req.orgId);
+    const task = await db.get(
+      'SELECT id FROM tasks WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    await db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
+    await db.run('DELETE FROM tasks WHERE id = ?', [req.params.id]);
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
+    console.error('Error deleting task:', error);
     res.status(500).json({ error: error.message });
   }
 });

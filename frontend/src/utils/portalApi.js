@@ -110,6 +110,11 @@ export const portalTasksAPI = {
     const response = await portalApi.post(`/tasks/${id}/comments`, { comment });
     return response.data;
   },
+
+  create: async (data) => {
+    const response = await portalApi.post('/tasks', data);
+    return response.data;
+  },
 };
 
 // ============================================
