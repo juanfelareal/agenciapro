@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
 import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -63,20 +63,6 @@ const Tasks = () => {
       days: [],
     },
   });
-  const [assigneeSearch, setAssigneeSearch] = useState('');
-  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
-  const assigneeDropdownRef = useRef(null);
-
-  // Close assignee dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (assigneeDropdownRef.current && !assigneeDropdownRef.current.contains(e.target)) {
-        setShowAssigneeDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     loadData();
@@ -274,8 +260,6 @@ const Tasks = () => {
     setSubtaskProgress({ total: 0, completed: 0, progress: 0 });
     setShowNewProject(false);
     setNewProjectName('');
-    setAssigneeSearch('');
-    setShowAssigneeDropdown(false);
   };
 
   const handleCreateProject = async () => {
@@ -377,8 +361,6 @@ const Tasks = () => {
     setSelectedTagIds(tags.map(t => t.id));
     // Load subtask progress
     setSubtaskProgress(taskSubtaskProgress[task.id] || { total: 0, completed: 0, progress: 0 });
-    setAssigneeSearch('');
-    setShowAssigneeDropdown(false);
     setShowModal(true);
   };
 
@@ -599,91 +581,57 @@ const Tasks = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Asignado a</label>
-                  <div className="relative" ref={assigneeDropdownRef}>
-                    {/* Selected assignee chips */}
-                    <div
-                      className="w-full border border-gray-100 rounded-xl px-3 py-2 flex flex-wrap gap-1.5 items-center min-h-[42px] cursor-text focus-within:ring-2 focus-within:ring-[#BFFF00]"
-                      onClick={() => setShowAssigneeDropdown(true)}
-                    >
+                  <select
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    value=""
+                    onChange={(e) => {
+                      const memberId = Number(e.target.value);
+                      if (memberId && !formData.assignee_ids.includes(memberId)) {
+                        setFormData({ ...formData, assignee_ids: [...formData.assignee_ids, memberId] });
+                      }
+                    }}
+                  >
+                    <option value="">
+                      {formData.assignee_ids.length === 0 ? 'Seleccionar persona...' : '+ Agregar otra persona'}
+                    </option>
+                    {teamMembers
+                      .filter((m) => !formData.assignee_ids.includes(m.id))
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>{member.name}</option>
+                      ))}
+                  </select>
+                  {/* Selected assignee chips */}
+                  {formData.assignee_ids.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {formData.assignee_ids.map((id) => {
                         const member = teamMembers.find((m) => m.id === Number(id));
                         if (!member) return null;
                         return (
                           <span
                             key={id}
-                            className="inline-flex items-center gap-1 bg-[#1A1A2E] text-white text-xs px-2 py-1 rounded-lg"
+                            className="inline-flex items-center gap-1.5 bg-[#1A1A2E] text-white text-xs pl-1.5 pr-1 py-1 rounded-lg"
                           >
-                            <span className="w-4 h-4 rounded bg-[#BFFF00] text-[#1A1A2E] flex items-center justify-center text-[10px] font-bold">
+                            <span className="w-5 h-5 rounded-md bg-[#BFFF00] text-[#1A1A2E] flex items-center justify-center text-[10px] font-bold flex-shrink-0">
                               {member.name.charAt(0).toUpperCase()}
                             </span>
-                            {member.name}
+                            <span>{member.name}</span>
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={() =>
                                 setFormData({
                                   ...formData,
                                   assignee_ids: formData.assignee_ids.filter((aid) => aid !== id),
-                                });
-                              }}
-                              className="ml-0.5 hover:text-red-300"
+                                })
+                              }
+                              className="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
                             >
                               <X size={12} />
                             </button>
                           </span>
                         );
                       })}
-                      <input
-                        type="text"
-                        className="flex-1 min-w-[80px] outline-none text-sm bg-transparent"
-                        placeholder={formData.assignee_ids.length === 0 ? 'Buscar personas...' : ''}
-                        value={assigneeSearch}
-                        onChange={(e) => {
-                          setAssigneeSearch(e.target.value);
-                          setShowAssigneeDropdown(true);
-                        }}
-                        onFocus={() => setShowAssigneeDropdown(true)}
-                      />
                     </div>
-                    {/* Dropdown */}
-                    {showAssigneeDropdown && (
-                      <div className="absolute z-20 mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                        {teamMembers
-                          .filter(
-                            (m) =>
-                              !formData.assignee_ids.includes(m.id) &&
-                              m.name.toLowerCase().includes(assigneeSearch.toLowerCase())
-                          )
-                          .map((member) => (
-                            <button
-                              key={member.id}
-                              type="button"
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={() => {
-                                setFormData({
-                                  ...formData,
-                                  assignee_ids: [...formData.assignee_ids, member.id],
-                                });
-                                setAssigneeSearch('');
-                                setShowAssigneeDropdown(false);
-                              }}
-                            >
-                              <span className="w-6 h-6 rounded-lg bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-xs font-medium">
-                                {member.name.charAt(0).toUpperCase()}
-                              </span>
-                              {member.name}
-                            </button>
-                          ))}
-                        {teamMembers.filter(
-                          (m) =>
-                            !formData.assignee_ids.includes(m.id) &&
-                            m.name.toLowerCase().includes(assigneeSearch.toLowerCase())
-                        ).length === 0 && (
-                          <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Estado</label>
