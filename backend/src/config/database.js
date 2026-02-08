@@ -309,6 +309,18 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Task assignees (many-to-many for multi-assignment)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS task_assignees (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        team_member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(task_id, team_member_id)
+      )
+    `);
+
     // Task dependencies
     await pool.query(`
       CREATE TABLE IF NOT EXISTS task_dependencies (
@@ -982,6 +994,22 @@ export const initializeDatabase = async () => {
     }
 
     // ========================================
+    // BACKFILL: Migrate existing assigned_to into task_assignees
+    // ========================================
+    try {
+      const backfillResult = await pool.query(`
+        INSERT INTO task_assignees (task_id, team_member_id, organization_id)
+        SELECT id, assigned_to, organization_id FROM tasks WHERE assigned_to IS NOT NULL
+        ON CONFLICT (task_id, team_member_id) DO NOTHING
+      `);
+      if (backfillResult.rowCount > 0) {
+        console.log(`  🔄 Backfill task_assignees: ${backfillResult.rowCount} rows migrated from assigned_to`);
+      }
+    } catch (backfillAssigneesError) {
+      console.log('  ⏭️  task_assignees backfill skipped:', backfillAssigneesError.message);
+    }
+
+    // ========================================
     // PERFORMANCE INDEXES
     // ========================================
     console.log('🔄 Creating performance indexes...');
@@ -1028,6 +1056,11 @@ export const initializeDatabase = async () => {
     // Notifications indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read)`);
+
+    // Task assignees indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_task_assignees_task ON task_assignees(task_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_task_assignees_member ON task_assignees(team_member_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_task_assignees_org ON task_assignees(organization_id)`);
 
     // Time entries indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_time_entries_user_id ON time_entries(user_id)`);

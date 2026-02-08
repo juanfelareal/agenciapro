@@ -45,6 +45,12 @@ export default function ListView({
       let aValue = a[sortConfig.key];
       let bValue = b[sortConfig.key];
 
+      // For assignee column, sort by first assignee name
+      if (sortConfig.key === 'assigned_to_name') {
+        aValue = a.assignees?.[0]?.name || a.assigned_to_name || '';
+        bValue = b.assignees?.[0]?.name || b.assigned_to_name || '';
+      }
+
       // Handle null/undefined
       if (aValue == null) aValue = '';
       if (bValue == null) bValue = '';
@@ -220,7 +226,29 @@ export default function ListView({
                     {task.project_name || '-'}
                   </td>
                   <td className="px-4 py-3">
-                    {task.assigned_to_name ? (
+                    {task.assignees?.length > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                          {task.assignees.slice(0, 3).map((a) => (
+                            <div
+                              key={a.id}
+                              className="w-6 h-6 rounded-lg bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-xs font-medium ring-1 ring-white"
+                              title={a.name}
+                            >
+                              {a.name.charAt(0).toUpperCase()}
+                            </div>
+                          ))}
+                          {task.assignees.length > 3 && (
+                            <div className="w-6 h-6 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-medium ring-1 ring-white">
+                              +{task.assignees.length - 3}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm text-gray-600 truncate max-w-[120px]">
+                          {task.assignees.map(a => a.name).join(', ')}
+                        </span>
+                      </div>
+                    ) : task.assigned_to_name ? (
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-xs font-medium">
                           {task.assigned_to_name.charAt(0).toUpperCase()}

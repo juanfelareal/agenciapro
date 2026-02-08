@@ -17,7 +17,7 @@ const TasksUpcomingWidget = ({ widget }) => {
         // Filter tasks assigned to current user, not done, with due date
         const upcoming = allTasks
           .filter(t =>
-            t.assigned_to === user?.id &&
+            (t.assignees?.some(a => a.id === user?.id) || t.assigned_to === user?.id) &&
             t.status !== 'done' &&
             t.due_date
           )

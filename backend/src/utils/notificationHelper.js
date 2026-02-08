@@ -47,28 +47,34 @@ export const createNotification = async (userId, type, title, message, entityTyp
 
 /**
  * Notificar cuando se asigna una tarea
+ * @param {number|number[]} assignedToIds - ID o array de IDs de los asignados
  */
-export const notifyTaskAssigned = async (taskId, taskTitle, assignedToId, assignedById) => {
-  if (!assignedToId || assignedToId === assignedById) return;
+export const notifyTaskAssigned = async (taskId, taskTitle, assignedToIds, assignedById) => {
+  const ids = Array.isArray(assignedToIds) ? assignedToIds : [assignedToIds];
+  if (ids.length === 0) return;
 
   const assignedBy = await db.prepare('SELECT name FROM team_members WHERE id = ?').get(assignedById);
   const assignedByName = assignedBy ? assignedBy.name : 'Alguien';
   const orgId = await getOrgIdFromTask(taskId);
 
-  await createNotification(
-    assignedToId,
-    'task_assigned',
-    'Nueva tarea asignada',
-    `${assignedByName} te ha asignado la tarea: "${taskTitle}"`,
-    'task',
-    taskId,
-    { assigned_by: assignedById },
-    orgId
-  );
+  for (const assignedToId of ids) {
+    if (!assignedToId || assignedToId === assignedById) continue;
+
+    await createNotification(
+      assignedToId,
+      'task_assigned',
+      'Nueva tarea asignada',
+      `${assignedByName} te ha asignado la tarea: "${taskTitle}"`,
+      'task',
+      taskId,
+      { assigned_by: assignedById },
+      orgId
+    );
+  }
 };
 
 /**
- * Notificar cuando hay un nuevo comentario en una tarea
+ * Notificar cuando hay un nuevo comentario en una tarea (a todos los assignees)
  */
 export const notifyNewComment = async (taskId, taskTitle, commentId, commenterId, commentText) => {
   const task = await db.prepare('SELECT assigned_to, project_id FROM tasks WHERE id = ?').get(taskId);
@@ -78,17 +84,31 @@ export const notifyNewComment = async (taskId, taskTitle, commentId, commenterId
   const commenterName = commenter ? commenter.name : 'Alguien';
   const orgId = await getOrgIdFromTask(taskId);
 
-  if (task.assigned_to && task.assigned_to !== commenterId) {
-    await createNotification(
-      task.assigned_to,
-      'comment',
-      'Nuevo comentario',
-      `${commenterName} comentó en "${taskTitle}": ${commentText.substring(0, 100)}${commentText.length > 100 ? '...' : ''}`,
-      'comment',
-      commentId,
-      { task_id: taskId, commenter_id: commenterId },
-      orgId
-    );
+  // Get all assignees from junction table
+  const assignees = await db.all(
+    'SELECT team_member_id FROM task_assignees WHERE task_id = ?',
+    [taskId]
+  );
+  const assigneeIds = assignees.map(a => a.team_member_id);
+
+  // Fallback to assigned_to if no entries in task_assignees
+  if (assigneeIds.length === 0 && task.assigned_to) {
+    assigneeIds.push(task.assigned_to);
+  }
+
+  for (const assigneeId of assigneeIds) {
+    if (assigneeId && assigneeId !== commenterId) {
+      await createNotification(
+        assigneeId,
+        'comment',
+        'Nuevo comentario',
+        `${commenterName} comentó en "${taskTitle}": ${commentText.substring(0, 100)}${commentText.length > 100 ? '...' : ''}`,
+        'comment',
+        commentId,
+        { task_id: taskId, commenter_id: commenterId },
+        orgId
+      );
+    }
   }
 };
 
@@ -129,9 +149,11 @@ export const notifyMentions = async (commentText, taskId, taskTitle, commentId, 
 
 /**
  * Notificar cuando se actualiza una tarea importante
+ * @param {number|number[]} assignedToIds - ID o array de IDs de los asignados
  */
-export const notifyTaskUpdated = async (taskId, taskTitle, assignedToId, updatedById, changes) => {
-  if (!assignedToId || assignedToId === updatedById) return;
+export const notifyTaskUpdated = async (taskId, taskTitle, assignedToIds, updatedById, changes) => {
+  const ids = Array.isArray(assignedToIds) ? assignedToIds : [assignedToIds];
+  if (ids.length === 0) return;
 
   const updatedBy = await db.prepare('SELECT name FROM team_members WHERE id = ?').get(updatedById);
   const updatedByName = updatedBy ? updatedBy.name : 'Alguien';
@@ -139,16 +161,20 @@ export const notifyTaskUpdated = async (taskId, taskTitle, assignedToId, updated
 
   const changesList = Object.keys(changes).join(', ');
 
-  await createNotification(
-    assignedToId,
-    'task_updated',
-    'Tarea actualizada',
-    `${updatedByName} actualizó "${taskTitle}" (${changesList})`,
-    'task',
-    taskId,
-    { updated_by: updatedById, changes },
-    orgId
-  );
+  for (const assignedToId of ids) {
+    if (!assignedToId || assignedToId === updatedById) continue;
+
+    await createNotification(
+      assignedToId,
+      'task_updated',
+      'Tarea actualizada',
+      `${updatedByName} actualizó "${taskTitle}" (${changesList})`,
+      'task',
+      taskId,
+      { updated_by: updatedById, changes },
+      orgId
+    );
+  }
 };
 
 /**

@@ -19,7 +19,7 @@ const TableView = ({ projectId }) => {
     description: '',
     status: 'todo',
     priority: 'medium',
-    assigned_to: '',
+    assignee_ids: [],
     timeline_start: '',
     timeline_end: '',
     progress: 0,
@@ -79,7 +79,7 @@ const TableView = ({ projectId }) => {
       description: '',
       status: 'todo',
       priority: 'medium',
-      assigned_to: '',
+      assignee_ids: [],
       timeline_start: '',
       timeline_end: '',
       progress: 0,
@@ -95,7 +95,7 @@ const TableView = ({ projectId }) => {
       description: task.description || '',
       status: task.status,
       priority: task.priority,
-      assigned_to: task.assigned_to || '',
+      assignee_ids: (task.assignees || []).map(a => a.id),
       timeline_start: task.timeline_start || '',
       timeline_end: task.timeline_end || '',
       progress: task.progress || 0,
@@ -109,6 +109,7 @@ const TableView = ({ projectId }) => {
     try {
       const taskData = {
         ...formData,
+        assignee_ids: formData.assignee_ids.map(Number),
         project_id: projectId,
       };
 
@@ -185,18 +186,35 @@ const TableView = ({ projectId }) => {
 
       case 'people':
         return (
-          <select
-            value={task.assigned_to || ''}
-            onChange={(e) => handleTaskUpdate(task.id, 'assigned_to', e.target.value || null)}
-            className="w-full px-2 py-1 border rounded text-sm"
-          >
-            <option value="">Sin asignar</option>
-            {teamMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-1 flex-wrap">
+            {task.assignees?.length > 0 ? (
+              <>
+                <div className="flex -space-x-1.5">
+                  {task.assignees.slice(0, 3).map((a) => (
+                    <span
+                      key={a.id}
+                      className="w-5 h-5 rounded-full bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
+                      title={a.name}
+                    >
+                      {a.name.charAt(0).toUpperCase()}
+                    </span>
+                  ))}
+                  {task.assignees.length > 3 && (
+                    <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] ring-1 ring-white">
+                      +{task.assignees.length - 3}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-gray-600 truncate max-w-[100px]">
+                  {task.assignees.map(a => a.name).join(', ')}
+                </span>
+              </>
+            ) : task.assigned_to_name ? (
+              <span className="text-sm text-gray-600">{task.assigned_to_name}</span>
+            ) : (
+              <span className="text-sm text-gray-400">Sin asignar</span>
+            )}
+          </div>
         );
 
       case 'timeline':
@@ -457,18 +475,33 @@ const TableView = ({ projectId }) => {
 
                   <div>
                     <label className="block text-sm font-medium mb-1">Asignado a</label>
-                    <select
-                      className="w-full border rounded-lg px-3 py-2"
-                      value={formData.assigned_to}
-                      onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                    >
-                      <option value="">Sin asignar</option>
-                      {teamMembers.map((member) => (
-                        <option key={member.id} value={member.id}>
-                          {member.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="border rounded-lg px-2 py-1.5 flex flex-wrap gap-1 min-h-[38px]">
+                      {formData.assignee_ids.map((id) => {
+                        const member = teamMembers.find(m => m.id === Number(id));
+                        if (!member) return null;
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1 bg-gray-100 text-sm px-2 py-0.5 rounded">
+                            {member.name}
+                            <button type="button" onClick={() => setFormData({ ...formData, assignee_ids: formData.assignee_ids.filter(a => a !== id) })} className="text-gray-400 hover:text-red-500">&times;</button>
+                          </span>
+                        );
+                      })}
+                      <select
+                        className="flex-1 min-w-[100px] border-0 outline-none text-sm"
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value && !formData.assignee_ids.includes(Number(e.target.value))) {
+                            setFormData({ ...formData, assignee_ids: [...formData.assignee_ids, Number(e.target.value)] });
+                          }
+                          e.target.value = '';
+                        }}
+                      >
+                        <option value="">Agregar persona...</option>
+                        {teamMembers.filter(m => !formData.assignee_ids.includes(m.id)).map(member => (
+                          <option key={member.id} value={member.id}>{member.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div>

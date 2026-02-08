@@ -21,7 +21,7 @@ const TasksPriorityWidget = ({ widget }) => {
 
         // Filter tasks assigned to current user and not done
         const myTasks = allTasks.filter(t =>
-          t.assigned_to === user?.id && t.status !== 'done'
+          (t.assignees?.some(a => a.id === user?.id) || t.assigned_to === user?.id) && t.status !== 'done'
         );
 
         // Count by priority

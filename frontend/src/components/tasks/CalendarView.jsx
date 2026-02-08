@@ -251,9 +251,11 @@ export default function CalendarView({
                           {getProjectName(task.project_id)}
                         </div>
                       )}
-                      {view === 'week' && task.assigned_to_name && (
+                      {view === 'week' && (task.assignees?.length > 0 || task.assigned_to_name) && (
                         <div className="text-gray-400 truncate text-[10px]">
-                          👤 {task.assigned_to_name}
+                          👤 {task.assignees?.length > 0
+                            ? task.assignees.map(a => a.name).join(', ')
+                            : task.assigned_to_name}
                         </div>
                       )}
                     </div>

@@ -42,7 +42,9 @@ const GanttView = ({ projectId }) => {
             progressSelectedColor: '#4338ca',
           },
           project: task.project_name,
-          assignee: task.assigned_to_name,
+          assignee: task.assignees?.length > 0
+            ? task.assignees.map(a => a.name).join(', ')
+            : task.assigned_to_name,
           priority: task.priority,
           status: task.status,
         }));

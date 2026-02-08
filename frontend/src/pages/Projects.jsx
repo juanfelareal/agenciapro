@@ -124,7 +124,9 @@ const Projects = () => {
               title: task.title,
               description: task.description || '',
               project_id: newProjectId,
-              assigned_to: task.assigned_to || null,
+              assignee_ids: task.assignees?.length > 0
+                ? task.assignees.map(a => a.id)
+                : (task.assigned_to ? [task.assigned_to] : []),
               status: 'todo', // Reset status for new project
               priority: task.priority || 'medium',
               due_date: templateTasksDueDates[taskKey] || null, // Use individual due date

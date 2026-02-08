@@ -182,9 +182,19 @@ const executeAction = async (task, automation, context = {}) => {
 
       case 'send_notification':
         if (params.message) {
-          const recipientId = params.user_id || task.assigned_to;
-          if (recipientId) {
-            const notifOrgId = await getOrgIdFromTask(task);
+          const notifOrgId = await getOrgIdFromTask(task);
+          // Get all assignees from junction table, fallback to assigned_to
+          let recipientIds = [];
+          if (params.user_id) {
+            recipientIds = [params.user_id];
+          } else {
+            const assignees = await db.prepare('SELECT team_member_id FROM task_assignees WHERE task_id = ?').all(task.id);
+            recipientIds = assignees.map(a => a.team_member_id);
+            if (recipientIds.length === 0 && task.assigned_to) {
+              recipientIds = [task.assigned_to];
+            }
+          }
+          for (const recipientId of recipientIds) {
             await db.prepare(`
               INSERT INTO notifications (user_id, type, title, message, related_task_id, organization_id)
               VALUES (?, 'automation', ?, ?, ?, ?)

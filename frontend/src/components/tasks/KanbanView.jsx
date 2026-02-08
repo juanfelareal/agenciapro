@@ -143,11 +143,35 @@ export default function KanbanView({
                         <span className="text-gray-400">Asignado por:</span> {task.created_by_name}
                       </p>
                     )}
-                    {task.assigned_to_name && (
+                    {/* Multiple assignees */}
+                    {task.assignees?.length > 0 ? (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-gray-400">Asignado a:</span>
+                        <div className="flex -space-x-1.5">
+                          {task.assignees.slice(0, 3).map((a) => (
+                            <span
+                              key={a.id}
+                              className="w-5 h-5 rounded-full bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
+                              title={a.name}
+                            >
+                              {a.name.charAt(0).toUpperCase()}
+                            </span>
+                          ))}
+                          {task.assignees.length > 3 && (
+                            <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] font-medium ring-1 ring-white">
+                              +{task.assignees.length - 3}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-gray-500 truncate">
+                          {task.assignees.map(a => a.name).join(', ')}
+                        </span>
+                      </div>
+                    ) : task.assigned_to_name ? (
                       <p className="text-gray-500">
                         <span className="text-gray-400">Asignado a:</span> {task.assigned_to_name}
                       </p>
-                    )}
+                    ) : null}
                     {task.due_date && (
                       <p className="text-gray-500">
                         <span className="text-gray-400">Fecha de entrega:</span> {new Date(task.due_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
