@@ -361,7 +361,7 @@ router.delete('/unlink/:credentialId', async (req, res) => {
       return res.status(404).json({ error: 'Cuenta no encontrada' });
     }
 
-    await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(credentialId);
+    await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ? AND organization_id = ?').run(credentialId, orgId);
 
     res.json({ message: 'Cuenta desvinculada exitosamente' });
   } catch (error) {

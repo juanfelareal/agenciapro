@@ -78,7 +78,7 @@ router.post('/', async (req, res) => {
       VALUES (?, ?, ?, ?)
     `, [task_id, title, newPosition, req.orgId]);
 
-    const subtask = await db.get('SELECT * FROM subtasks WHERE id = ?', [result.lastInsertRowid]);
+    const subtask = await db.get('SELECT * FROM subtasks WHERE id = ? AND organization_id = ?', [result.lastInsertRowid, req.orgId]);
     res.status(201).json(subtask);
   } catch (error) {
     console.error('Error creating subtask:', error);
@@ -110,7 +110,7 @@ router.put('/:id', async (req, res) => {
       WHERE id = ?
     `, [title, is_completed, position, req.params.id]);
 
-    const subtask = await db.get('SELECT * FROM subtasks WHERE id = ?', [req.params.id]);
+    const subtask = await db.get('SELECT * FROM subtasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json(subtask);
   } catch (error) {
     console.error('Error updating subtask:', error);
@@ -134,7 +134,7 @@ router.put('/:id/toggle', async (req, res) => {
     const newCompleted = subtask.is_completed ? 0 : 1;
     await db.run('UPDATE subtasks SET is_completed = ? WHERE id = ?', [newCompleted, req.params.id]);
 
-    const updatedSubtask = await db.get('SELECT * FROM subtasks WHERE id = ?', [req.params.id]);
+    const updatedSubtask = await db.get('SELECT * FROM subtasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json(updatedSubtask);
   } catch (error) {
     console.error('Error toggling subtask:', error);
@@ -194,7 +194,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Subtask not found' });
     }
 
-    await db.run('DELETE FROM subtasks WHERE id = ?', [req.params.id]);
+    await db.run('DELETE FROM subtasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json({ message: 'Subtask deleted successfully' });
   } catch (error) {
     console.error('Error deleting subtask:', error);

@@ -126,7 +126,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Comment not found' });
     }
 
-    await db.run('DELETE FROM task_comments WHERE id = ?', [req.params.id]);
+    await db.run('DELETE FROM task_comments WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json({ message: 'Comment deleted successfully' });
   } catch (error) {
     console.error('Error deleting comment:', error);

@@ -131,7 +131,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Column not found' });
     }
 
-    await db.prepare('DELETE FROM board_columns WHERE id = ?').run(req.params.id);
+    await db.prepare('DELETE FROM board_columns WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Column deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

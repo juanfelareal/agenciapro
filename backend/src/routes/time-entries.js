@@ -299,10 +299,10 @@ router.post('/', async (req, res) => {
       finalDuration = Math.round((end - start) / 60000);
     }
 
-    // If task_id provided, get project_id from task
+    // If task_id provided, get project_id from task (scoped to org)
     let finalProjectId = project_id;
     if (task_id && !project_id) {
-      const task = await db.prepare('SELECT project_id FROM tasks WHERE id = ?').get(task_id);
+      const task = await db.prepare('SELECT project_id FROM tasks WHERE id = ? AND organization_id = ?').get(task_id, orgId);
       if (task) {
         finalProjectId = task.project_id;
       }
@@ -374,10 +374,10 @@ router.post('/start', async (req, res) => {
       `).run(now, duration, now, timer.id, orgId);
     }
 
-    // If task_id provided, get project_id from task
+    // If task_id provided, get project_id from task (scoped to org)
     let finalProjectId = project_id;
     if (task_id && !project_id) {
-      const task = await db.prepare('SELECT project_id FROM tasks WHERE id = ?').get(task_id);
+      const task = await db.prepare('SELECT project_id FROM tasks WHERE id = ? AND organization_id = ?').get(task_id, orgId);
       if (task) {
         finalProjectId = task.project_id;
       }
@@ -585,8 +585,8 @@ router.get('/task/:taskId/summary', async (req, res) => {
       WHERE task_id = ? AND is_running = 0 AND organization_id = ?
     `).get(req.params.taskId, orgId);
 
-    // Get task estimated hours
-    const task = await db.prepare('SELECT estimated_hours FROM tasks WHERE id = ?').get(req.params.taskId);
+    // Get task estimated hours (scoped to org)
+    const task = await db.prepare('SELECT estimated_hours FROM tasks WHERE id = ? AND organization_id = ?').get(req.params.taskId, orgId);
 
     res.json({
       total_minutes: summary.total_minutes || 0,

@@ -165,7 +165,7 @@ router.delete('/facebook/:id', async (req, res) => {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
     }
 
-    await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM client_facebook_credentials WHERE id = ? AND organization_id = ?').run(id, orgId);
 
     res.json({ message: 'Facebook Ads desconectado exitosamente' });
   } catch (error) {
@@ -295,7 +295,7 @@ router.delete('/shopify/:id', async (req, res) => {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
     }
 
-    await db.prepare('DELETE FROM client_shopify_credentials WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM client_shopify_credentials WHERE id = ? AND organization_id = ?').run(id, orgId);
 
     res.json({ message: 'Shopify desconectado exitosamente' });
   } catch (error) {

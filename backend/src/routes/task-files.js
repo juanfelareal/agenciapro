@@ -83,7 +83,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    await db.run('DELETE FROM task_files WHERE id = ?', [req.params.id]);
+    await db.run('DELETE FROM task_files WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
 
     res.json({ message: 'File deleted successfully', file });
   } catch (error) {

@@ -149,7 +149,7 @@ router.post('/', async (req, res) => {
       req.orgId
     ]);
 
-    const task = await db.get('SELECT * FROM tasks WHERE id = ?', [result.lastInsertRowid]);
+    const task = await db.get('SELECT * FROM tasks WHERE id = ? AND organization_id = ?', [result.lastInsertRowid, req.orgId]);
 
     // Notify user if task was assigned
     if (assigned_to) {
@@ -247,7 +247,7 @@ router.put('/:id', async (req, res) => {
       req.orgId
     ]);
 
-    const task = await db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+    const task = await db.get('SELECT * FROM tasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
 
     // Notification logic
     if (oldTask) {
@@ -296,7 +296,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    await db.run('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+    await db.run('DELETE FROM tasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
     console.error('Error deleting task:', error);
