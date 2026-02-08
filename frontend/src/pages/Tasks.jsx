@@ -514,6 +514,7 @@ const Tasks = () => {
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   />
                 </div>
+                <div className="col-span-2 grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Proyecto</label>
                   {showNewProject ? (
@@ -632,6 +633,7 @@ const Tasks = () => {
                       })}
                     </div>
                   )}
+                </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Estado</label>
