@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI } from '../utils/api';
 import NoteEditor from '../components/NoteEditor';
-import { useCollaboration } from '../hooks/useCollaboration';
+// import { useCollaboration } from '../hooks/useCollaboration'; // Disabled temporarily
 import { useAuth } from '../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 import {
@@ -68,19 +68,11 @@ const Notes = () => {
   const [activeNote, setActiveNote] = useState(null); // For full-page view
   const [isEditing, setIsEditing] = useState(false);
 
-  // Collaboration - only active for existing notes being edited
-  const collaborativeNoteId = activeNote?.id !== 'new' && isEditing ? activeNote?.id : null;
-  const {
-    doc: ydoc,
-    awareness,
-    connected: collabConnected,
-    synced: collabSynced,
-    collaborators,
-    collaboratorCount
-  } = useCollaboration(
-    collaborativeNoteId,
-    currentUser ? { name: currentUser.name, color: getRandomColor(currentUser.id) } : null
-  );
+  // Collaboration disabled temporarily - using standard editor
+  // TODO: Fix collaboration sync issues before re-enabling
+  const collabConnected = false;
+  const collaboratorCount = 0;
+  const collaborators = [];
 
   // Form data for note editing
   const [formData, setFormData] = useState({
@@ -787,33 +779,18 @@ const Notes = () => {
           {/* Content */}
           <div className="prose prose-slate max-w-none">
             {isEditing ? (
-              activeNote.id !== 'new' && ydoc ? (
-                // Collaborative editor for existing notes
-                <NoteEditor
-                  collaborative={true}
-                  ydoc={ydoc}
-                  awareness={awareness}
-                  user={currentUser ? { name: currentUser.name, color: getRandomColor(currentUser.id) } : null}
-                  onChange={({ text }) => setFormData(prev => ({
-                    ...prev,
-                    content_plain: text
-                  }))}
-                  placeholder="Escribe tu nota aquí..."
-                  minHeight="400px"
-                />
-              ) : (
-                // Standard editor for new notes
-                <NoteEditor
-                  content={formData.content}
-                  onChange={({ json, text }) => setFormData(prev => ({
-                    ...prev,
-                    content: json,
-                    content_plain: text
-                  }))}
-                  placeholder="Escribe tu nota aquí..."
-                  minHeight="400px"
-                />
-              )
+              // Standard editor for all notes (collaboration disabled temporarily)
+              <NoteEditor
+                key={activeNote.id}
+                content={formData.content}
+                onChange={({ json, text }) => setFormData(prev => ({
+                  ...prev,
+                  content: json,
+                  content_plain: text
+                }))}
+                placeholder="Escribe tu nota aquí..."
+                minHeight="400px"
+              />
             ) : (
               <NoteEditor
                 content={formData.content}
