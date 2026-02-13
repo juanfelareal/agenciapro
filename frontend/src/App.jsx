@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Projects from './pages/Projects';
 import ProjectBoard from './pages/ProjectBoard';
+import ProjectDetail from './pages/ProjectDetail';
 import Tasks from './pages/Tasks';
 import Team from './pages/Team';
 import Invoices from './pages/Invoices';
@@ -160,7 +161,7 @@ function App() {
                   path="projects/:id"
                   element={
                     <ProtectedRoute permission="projects">
-                      <ProjectBoard />
+                      <ProjectDetail />
                     </ProtectedRoute>
                   }
                 />
