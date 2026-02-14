@@ -456,7 +456,12 @@ const Projects = () => {
                     )}
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">{project.name}</td>
+                <td
+                  className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E] cursor-pointer hover:text-[#F97316] transition-colors"
+                  onClick={() => navigate(`/app/projects/${project.id}`)}
+                >
+                  {project.name}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-500">{project.client_name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[project.status]}`}>
