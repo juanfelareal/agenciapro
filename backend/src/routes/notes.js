@@ -316,9 +316,14 @@ router.put('/:id', async (req, res) => {
 // Toggle pin status
 router.put('/:id/pin', async (req, res) => {
   try {
-    const current = await db.prepare('SELECT is_pinned FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    const current = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!current) {
       return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Check access to private notes
+    if (current.visibility === 'private' && current.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'No tienes acceso a esta nota privada' });
     }
 
     await db.prepare(`
@@ -336,6 +341,17 @@ router.put('/:id/pin', async (req, res) => {
 router.put('/:id/color', async (req, res) => {
   try {
     const { color } = req.body;
+
+    // Check note exists and access
+    const existing = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Check access to private notes
+    if (existing.visibility === 'private' && existing.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'No tienes acceso a esta nota privada' });
+    }
 
     await db.prepare(`
       UPDATE notes SET color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
@@ -388,9 +404,14 @@ router.post('/:id/links', async (req, res) => {
     }
 
     // Verify note belongs to this org
-    const note = await db.prepare('SELECT id FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Check access to private notes
+    if (note.visibility === 'private' && note.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'No tienes acceso a esta nota privada' });
     }
 
     // Verify linked entities belong to the same org
@@ -423,9 +444,14 @@ router.post('/:id/links', async (req, res) => {
 router.delete('/:id/links/:linkId', async (req, res) => {
   try {
     // Verify note belongs to this org
-    const note = await db.prepare('SELECT id FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Check access to private notes
+    if (note.visibility === 'private' && note.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'No tienes acceso a esta nota privada' });
     }
 
     await db.prepare('DELETE FROM note_links WHERE id = ? AND note_id = ?').run(req.params.linkId, req.params.id);
@@ -438,6 +464,17 @@ router.delete('/:id/links/:linkId', async (req, res) => {
 // Delete note
 router.delete('/:id', async (req, res) => {
   try {
+    // Verify note exists
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Check access to private notes - only creator can delete
+    if (note.visibility === 'private' && note.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'No tienes acceso a esta nota privada' });
+    }
+
     await db.prepare('DELETE FROM notes WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
