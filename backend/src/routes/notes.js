@@ -221,7 +221,7 @@ router.post('/', async (req, res) => {
       category_id || null,
       folder_id || null,
       is_pinned ? 1 : 0,
-      created_by || null,
+      req.teamMember.id,
       visibility || 'organization',
       req.orgId
     );
