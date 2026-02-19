@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI } from '../utils/api';
 import NoteEditor from '../components/NoteEditor';
+import NoteShareModal from '../components/NoteShareModal';
 // import { useCollaboration } from '../hooks/useCollaboration'; // Disabled temporarily
 import { useAuth } from '../context/AuthContext';
 import html2pdf from 'html2pdf.js';
@@ -30,7 +31,13 @@ import {
   Download,
   Wifi,
   WifiOff,
-  Users
+  Users,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  Share2,
+  MessageSquare
 } from 'lucide-react';
 
 const NOTE_COLORS = [
@@ -83,8 +90,12 @@ const Notes = () => {
     category_id: null,
     folder_id: null,
     is_pinned: false,
+    visibility: 'organization',
     links: []
   });
+
+  // Filter for private notes only
+  const [showPrivateOnly, setShowPrivateOnly] = useState(false);
 
   // Folder modal
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -96,13 +107,16 @@ const Notes = () => {
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#6366F1' });
   const [editingCategory, setEditingCategory] = useState(null);
 
+  // Share modal
+  const [showShareModal, setShowShareModal] = useState(false);
+
   useEffect(() => {
     loadInitialData();
   }, []);
 
   useEffect(() => {
     loadNotes();
-  }, [searchQuery, selectedCategory, selectedFolder, showPinnedOnly]);
+  }, [searchQuery, selectedCategory, selectedFolder, showPinnedOnly, showPrivateOnly]);
 
   const loadInitialData = async () => {
     try {
@@ -134,6 +148,7 @@ const Notes = () => {
       if (selectedFolder === 'root') params.folder_id = 'null';
       else if (selectedFolder) params.folder_id = selectedFolder;
       if (showPinnedOnly) params.pinned = 'true';
+      if (showPrivateOnly) params.visibility = 'private';
 
       const response = await notesAPI.getAll(params);
       setNotes(response.data || []);
@@ -171,6 +186,7 @@ const Notes = () => {
         category_id: fullNote.category_id,
         folder_id: fullNote.folder_id,
         is_pinned: fullNote.is_pinned,
+        visibility: fullNote.visibility || 'organization',
         links: fullNote.links || []
       });
       setIsEditing(false);
@@ -190,6 +206,7 @@ const Notes = () => {
       category_id: null,
       folder_id: selectedFolder === 'root' ? null : selectedFolder,
       is_pinned: false,
+      visibility: showPrivateOnly ? 'private' : 'organization',
       links: []
     });
     setIsEditing(true);
@@ -664,6 +681,17 @@ const Notes = () => {
                 >
                   {formData.is_pinned ? <PinOff size={18} /> : <Pin size={18} />}
                 </button>
+                {/* Share button - only for non-private notes */}
+                {formData.visibility !== 'private' && (
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                    title="Compartir nota"
+                  >
+                    <Share2 size={16} />
+                    Compartir
+                  </button>
+                )}
                 <button
                   onClick={handleExportPDF}
                   className="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -756,13 +784,36 @@ const Notes = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Privacy toggle */}
+              <button
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  visibility: prev.visibility === 'private' ? 'organization' : 'private'
+                }))}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
+                  formData.visibility === 'private'
+                    ? 'bg-amber-50 border-amber-300 text-amber-700'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+                title={formData.visibility === 'private' ? 'Nota privada - Solo tú puedes verla' : 'Nota visible para toda la organización'}
+              >
+                {formData.visibility === 'private' ? <Lock size={16} /> : <Unlock size={16} />}
+                <span className="text-sm">{formData.visibility === 'private' ? 'Privada' : 'Organización'}</span>
+              </button>
             </div>
           )}
 
-          {/* Category badge (view mode) */}
-          {!isEditing && formData.category_id && (
-            <div className="mb-4">
-              {categories.find(c => c.id === formData.category_id) && (
+          {/* Category badge and privacy indicator (view mode) */}
+          {!isEditing && (formData.category_id || formData.visibility === 'private') && (
+            <div className="mb-4 flex items-center gap-2 flex-wrap">
+              {formData.visibility === 'private' && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-sm rounded-full bg-amber-50 text-amber-700">
+                  <Lock size={14} />
+                  Nota privada
+                </span>
+              )}
+              {formData.category_id && categories.find(c => c.id === formData.category_id) && (
                 <span
                   className="inline-block px-3 py-1 text-sm rounded-full"
                   style={{
@@ -915,6 +966,14 @@ const Notes = () => {
             </div>
           )}
         </div>
+
+        {/* Share Modal */}
+        <NoteShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          noteId={activeNote?.id}
+          noteTitle={formData.title}
+        />
       </div>
     );
   }
@@ -945,11 +1004,11 @@ const Notes = () => {
           {/* All Notes */}
           <div
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-              selectedFolder === null
+              selectedFolder === null && !showPrivateOnly
                 ? 'bg-gray-100 text-[#1A1A2E]'
                 : 'hover:bg-slate-100 text-slate-700'
             }`}
-            onClick={() => setSelectedFolder(null)}
+            onClick={() => { setSelectedFolder(null); setShowPrivateOnly(false); }}
           >
             <Home size={16} />
             <span className="flex-1 text-sm font-medium">Todas las notas</span>
@@ -959,14 +1018,27 @@ const Notes = () => {
           {/* Unfiled Notes */}
           <div
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-              selectedFolder === 'root'
+              selectedFolder === 'root' && !showPrivateOnly
                 ? 'bg-gray-100 text-[#1A1A2E]'
                 : 'hover:bg-slate-100 text-slate-700'
             }`}
-            onClick={() => setSelectedFolder('root')}
+            onClick={() => { setSelectedFolder('root'); setShowPrivateOnly(false); }}
           >
             <FileText size={16} />
             <span className="flex-1 text-sm font-medium">Sin carpeta</span>
+          </div>
+
+          {/* Private Notes */}
+          <div
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+              showPrivateOnly
+                ? 'bg-amber-50 text-amber-700'
+                : 'hover:bg-slate-100 text-slate-700'
+            }`}
+            onClick={() => { setShowPrivateOnly(!showPrivateOnly); setSelectedFolder(null); }}
+          >
+            <Lock size={16} />
+            <span className="flex-1 text-sm font-medium">Mis notas privadas</span>
           </div>
 
           {/* Divider */}
@@ -1005,8 +1077,11 @@ const Notes = () => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">
-              {selectedFolder === null
+            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight flex items-center gap-2">
+              {showPrivateOnly && <Lock size={20} className="text-amber-600" />}
+              {showPrivateOnly
+                ? 'Mis notas privadas'
+                : selectedFolder === null
                 ? 'Todas las notas'
                 : selectedFolder === 'root'
                 ? 'Sin carpeta'
@@ -1077,12 +1152,15 @@ const Notes = () => {
                   style={{ backgroundColor: note.color || '#FFFFFF' }}
                   onClick={() => handleOpenNote(note)}
                 >
-                  {/* Pinned indicator */}
-                  {note.is_pinned === 1 && (
-                    <div className="absolute top-3 right-3">
+                  {/* Pinned and Private indicators */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                    {note.visibility === 'private' && (
+                      <Lock size={14} className="text-amber-600" title="Nota privada" />
+                    )}
+                    {note.is_pinned === 1 && (
                       <Pin size={16} className="text-amber-500 fill-amber-500" />
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* Content */}
                   <div className="p-4 min-h-[140px]">

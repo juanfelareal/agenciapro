@@ -6,7 +6,7 @@ const router = express.Router();
 // Get all notes with filters
 router.get('/', async (req, res) => {
   try {
-    const { category_id, folder_id, pinned, search, client_id, project_id, team_member_id, limit = 50 } = req.query;
+    const { category_id, folder_id, pinned, search, client_id, project_id, team_member_id, visibility, limit = 50 } = req.query;
 
     let query = `
       SELECT DISTINCT n.*,
@@ -21,8 +21,15 @@ router.get('/', async (req, res) => {
       LEFT JOIN team_members tm ON n.created_by = tm.id
       LEFT JOIN note_links nl ON n.id = nl.note_id
       WHERE n.organization_id = ?
+        AND (n.visibility = 'organization' OR n.visibility IS NULL OR (n.visibility = 'private' AND n.created_by = ?))
     `;
-    const params = [req.orgId];
+    const params = [req.orgId, req.teamMember.id];
+
+    // Filter to show only private notes
+    if (visibility === 'private') {
+      query += ' AND n.visibility = ? AND n.created_by = ?';
+      params.push('private', req.teamMember.id);
+    }
 
     if (category_id) {
       query += ' AND n.category_id = ?';
@@ -100,6 +107,11 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Note not found' });
     }
 
+    // Check access to private notes
+    if (note.visibility === 'private' && note.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'No tienes acceso a esta nota privada' });
+    }
+
     // Get links
     const links = await db.prepare(`
       SELECT nl.*,
@@ -133,8 +145,9 @@ router.get('/client/:clientId', async (req, res) => {
       LEFT JOIN team_members tm ON n.created_by = tm.id
       INNER JOIN note_links nl ON n.id = nl.note_id
       WHERE nl.client_id = ? AND n.organization_id = ?
+        AND (n.visibility = 'organization' OR n.visibility IS NULL OR (n.visibility = 'private' AND n.created_by = ?))
       ORDER BY n.is_pinned DESC, n.updated_at DESC
-    `).all(req.params.clientId, req.orgId);
+    `).all(req.params.clientId, req.orgId, req.teamMember.id);
 
     res.json(notes);
   } catch (error) {
@@ -155,8 +168,9 @@ router.get('/project/:projectId', async (req, res) => {
       LEFT JOIN team_members tm ON n.created_by = tm.id
       INNER JOIN note_links nl ON n.id = nl.note_id
       WHERE nl.project_id = ? AND n.organization_id = ?
+        AND (n.visibility = 'organization' OR n.visibility IS NULL OR (n.visibility = 'private' AND n.created_by = ?))
       ORDER BY n.is_pinned DESC, n.updated_at DESC
-    `).all(req.params.projectId, req.orgId);
+    `).all(req.params.projectId, req.orgId, req.teamMember.id);
 
     res.json(notes);
   } catch (error) {
@@ -177,8 +191,9 @@ router.get('/team/:memberId', async (req, res) => {
       LEFT JOIN team_members tm ON n.created_by = tm.id
       INNER JOIN note_links nl ON n.id = nl.note_id
       WHERE nl.team_member_id = ? AND n.organization_id = ?
+        AND (n.visibility = 'organization' OR n.visibility IS NULL OR (n.visibility = 'private' AND n.created_by = ?))
       ORDER BY n.is_pinned DESC, n.updated_at DESC
-    `).all(req.params.memberId, req.orgId);
+    `).all(req.params.memberId, req.orgId, req.teamMember.id);
 
     res.json(notes);
   } catch (error) {
@@ -189,15 +204,15 @@ router.get('/team/:memberId', async (req, res) => {
 // Create note
 router.post('/', async (req, res) => {
   try {
-    const { title, content, content_plain, color, category_id, folder_id, is_pinned, created_by, links } = req.body;
+    const { title, content, content_plain, color, category_id, folder_id, is_pinned, created_by, visibility, links } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
 
     const result = await db.prepare(`
-      INSERT INTO notes (title, content, content_plain, color, category_id, folder_id, is_pinned, created_by, organization_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO notes (title, content, content_plain, color, category_id, folder_id, is_pinned, created_by, visibility, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       title,
       content ? JSON.stringify(content) : null,
@@ -207,6 +222,7 @@ router.post('/', async (req, res) => {
       folder_id || null,
       is_pinned ? 1 : 0,
       created_by || null,
+      visibility || 'organization',
       req.orgId
     );
 
@@ -235,12 +251,28 @@ router.post('/', async (req, res) => {
 // Update note
 router.put('/:id', async (req, res) => {
   try {
-    const { title, content, content_plain, color, category_id, folder_id, is_pinned, links } = req.body;
+    const { title, content, content_plain, color, category_id, folder_id, is_pinned, visibility, links } = req.body;
+
+    // Check if note exists and user has access
+    const existingNote = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!existingNote) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Check access to private notes
+    if (existingNote.visibility === 'private' && existingNote.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'No tienes acceso a esta nota privada' });
+    }
+
+    // Only creator can change visibility
+    const newVisibility = (visibility !== undefined && existingNote.created_by === req.teamMember.id)
+      ? visibility
+      : existingNote.visibility || 'organization';
 
     await db.prepare(`
       UPDATE notes
       SET title = ?, content = ?, content_plain = ?, color = ?,
-          category_id = ?, folder_id = ?, is_pinned = ?, updated_at = CURRENT_TIMESTAMP
+          category_id = ?, folder_id = ?, is_pinned = ?, visibility = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `).run(
       title,
@@ -250,6 +282,7 @@ router.put('/:id', async (req, res) => {
       category_id || null,
       folder_id || null,
       is_pinned ? 1 : 0,
+      newVisibility,
       req.params.id,
       req.orgId
     );
@@ -310,6 +343,36 @@ router.put('/:id/color', async (req, res) => {
 
     const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(note);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update note visibility (only creator can change)
+router.put('/:id/visibility', async (req, res) => {
+  try {
+    const { visibility } = req.body;
+
+    if (!['organization', 'private'].includes(visibility)) {
+      return res.status(400).json({ error: 'Visibility must be "organization" or "private"' });
+    }
+
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    // Only creator can change visibility
+    if (note.created_by !== req.teamMember.id) {
+      return res.status(403).json({ error: 'Solo el creador puede cambiar la visibilidad de la nota' });
+    }
+
+    await db.prepare(`
+      UPDATE notes SET visibility = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
+    `).run(visibility, req.params.id, req.orgId);
+
+    const updatedNote = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    res.json(updatedNote);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -399,10 +462,12 @@ router.get('/search/query', async (req, res) => {
       FROM notes n
       LEFT JOIN note_categories nc ON n.category_id = nc.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
-      WHERE n.organization_id = ? AND (n.title LIKE ? OR n.content_plain LIKE ?)
+      WHERE n.organization_id = ?
+        AND (n.title LIKE ? OR n.content_plain LIKE ?)
+        AND (n.visibility = 'organization' OR n.visibility IS NULL OR (n.visibility = 'private' AND n.created_by = ?))
       ORDER BY n.is_pinned DESC, n.updated_at DESC
       LIMIT ?
-    `).all(req.orgId, `%${q}%`, `%${q}%`, parseInt(limit));
+    `).all(req.orgId, `%${q}%`, `%${q}%`, req.teamMember.id, parseInt(limit));
 
     res.json(notes);
   } catch (error) {

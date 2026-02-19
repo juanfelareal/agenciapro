@@ -57,6 +57,8 @@ import siigoRoutes from './src/routes/siigo.js';
 // Client Portal
 import portalRoutes from './src/routes/portal/index.js';
 import portalAdminRoutes from './src/routes/portal-admin.js';
+// Note sharing (public links)
+import noteShareRoutes from './src/routes/note-share.js';
 // Real-time Collaboration
 import { setupCollaboration } from './src/services/collaborationService.js';
 
@@ -165,6 +167,8 @@ app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
 app.use('/api/portal-admin', teamAuthMiddleware, portalAdminRoutes);
 // Client Portal (public portal — uses its own clientAuthMiddleware)
 app.use('/api/portal', portalRoutes);
+// Note sharing (has both authenticated and public routes internally)
+app.use('/api/note-share', noteShareRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

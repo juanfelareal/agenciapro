@@ -128,6 +128,33 @@ export const initializeDatabase = async () => {
   }
 
   try {
+    // Users table (must be created first - referenced by other tables)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        pin_hash TEXT,
+        avatar_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Organizations table (must be created early - referenced by many tables)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS organizations (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        logo_url TEXT,
+        plan TEXT DEFAULT 'free',
+        settings JSONB DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Clients table (CRM)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clients (
@@ -510,6 +537,81 @@ export const initializeDatabase = async () => {
           ALTER TABLE notes ADD COLUMN yjs_state TEXT;
         END IF;
       END $$;
+    `);
+
+    // Add visibility column to notes for private notes feature
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='visibility') THEN
+          ALTER TABLE notes ADD COLUMN visibility TEXT CHECK(visibility IN ('organization', 'private')) DEFAULT 'organization';
+        END IF;
+      END $$;
+    `);
+
+    // Note share tokens (for public sharing)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS note_share_tokens (
+        id SERIAL PRIMARY KEY,
+        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        status TEXT CHECK(status IN ('active', 'revoked')) DEFAULT 'active',
+        allow_comments INTEGER DEFAULT 1,
+        allow_edits INTEGER DEFAULT 0,
+        created_by INTEGER REFERENCES team_members(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        last_accessed_at TIMESTAMP,
+        access_count INTEGER DEFAULT 0,
+        organization_id INTEGER REFERENCES organizations(id)
+      )
+    `);
+
+    // Note comments (from clients via public link)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS note_comments (
+        id SERIAL PRIMARY KEY,
+        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+        share_token_id INTEGER REFERENCES note_share_tokens(id) ON DELETE SET NULL,
+        parent_id INTEGER REFERENCES note_comments(id) ON DELETE CASCADE,
+        author_name TEXT NOT NULL,
+        author_type TEXT CHECK(author_type IN ('client', 'team')) DEFAULT 'client',
+        content TEXT NOT NULL,
+        selection_from INTEGER,
+        selection_to INTEGER,
+        quoted_text TEXT,
+        is_resolved INTEGER DEFAULT 0,
+        resolved_by INTEGER REFERENCES team_members(id),
+        resolved_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        organization_id INTEGER REFERENCES organizations(id)
+      )
+    `);
+
+    // Add parent_id column if it doesn't exist (for replies)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='note_comments' AND column_name='parent_id') THEN
+          ALTER TABLE note_comments ADD COLUMN parent_id INTEGER REFERENCES note_comments(id) ON DELETE CASCADE;
+        END IF;
+      END $$;
+    `);
+
+    // Note client edits (edits from clients shown in red)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS note_client_edits (
+        id SERIAL PRIMARY KEY,
+        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+        share_token_id INTEGER NOT NULL REFERENCES note_share_tokens(id) ON DELETE CASCADE,
+        author_name TEXT NOT NULL,
+        content_json TEXT NOT NULL,
+        status TEXT CHECK(status IN ('pending', 'accepted', 'rejected')) DEFAULT 'pending',
+        reviewed_by INTEGER REFERENCES team_members(id),
+        reviewed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        organization_id INTEGER REFERENCES organizations(id)
+      )
     `);
 
     // Facebook credentials

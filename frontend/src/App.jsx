@@ -20,6 +20,7 @@ import Calendar from './pages/Calendar';
 import Automations from './pages/Automations';
 import Reports from './pages/Reports';
 import Notes from './pages/Notes';
+import SharedNoteView from './pages/SharedNoteView';
 import MetricsDashboard from './pages/MetricsDashboard';
 import ClientMetrics from './pages/ClientMetrics';
 import ClientPlatformSettings from './pages/ClientPlatformSettings';
@@ -63,6 +64,8 @@ function App() {
         {/* Landing page - no layout */}
         <Route path="/landing" element={<Landing />} />
 
+        {/* Shared note view - public, no auth required */}
+        <Route path="/share/:token" element={<SharedNoteView />} />
 
         {/* Portal Login - no layout */}
         <Route path="/portal/login" element={<PortalLogin />} />
