@@ -66,9 +66,12 @@ class FacebookAdsIntegration {
             'clicks',
             'ctr',
             'cpc',
+            'cpm',
             'actions',
             'action_values',
-            'cost_per_action_type'
+            'cost_per_action_type',
+            'video_3_sec_watched_actions',
+            'video_thruplay_watched_actions'
           ].join(','),
           level: 'account'
         }
@@ -114,6 +117,49 @@ class FacebookAdsIntegration {
   }
 
   /**
+   * Parse cost per action by action type (e.g., 'purchase', 'landing_page_view')
+   * @param {Array} costPerActionType - Facebook cost_per_action_type array
+   * @param {string} actionType - The action type to look for
+   * @returns {number}
+   */
+  parseCostPerAction(costPerActionType, actionType) {
+    if (!costPerActionType || !Array.isArray(costPerActionType)) return 0;
+    const entry = costPerActionType.find(a => a.action_type === actionType);
+    return entry ? parseFloat(entry.value) || 0 : 0;
+  }
+
+  /**
+   * Parse landing page views from actions array
+   * @param {Array} actions - Facebook actions array
+   * @returns {number}
+   */
+  parseLandingPageViews(actions) {
+    if (!actions || !Array.isArray(actions)) return 0;
+    const entry = actions.find(a => a.action_type === 'landing_page_view');
+    return entry ? parseInt(entry.value) || 0 : 0;
+  }
+
+  /**
+   * Parse 3-second video views
+   * @param {Array} videoActions - Facebook video_3_sec_watched_actions array
+   * @returns {number}
+   */
+  parseVideo3SecViews(videoActions) {
+    if (!videoActions || !Array.isArray(videoActions)) return 0;
+    return videoActions.reduce((sum, a) => sum + (parseInt(a.value) || 0), 0);
+  }
+
+  /**
+   * Parse thruplay video views
+   * @param {Array} thruplayActions - Facebook video_thruplay_watched_actions array
+   * @returns {number}
+   */
+  parseThruplayViews(thruplayActions) {
+    if (!thruplayActions || !Array.isArray(thruplayActions)) return 0;
+    return thruplayActions.reduce((sum, a) => sum + (parseInt(a.value) || 0), 0);
+  }
+
+  /**
    * Get metrics for a date range with calculated values
    * @param {string} startDate - Start date in YYYY-MM-DD format
    * @param {string} endDate - End date in YYYY-MM-DD format
@@ -128,9 +174,17 @@ class FacebookAdsIntegration {
       const clicks = parseInt(day.clicks) || 0;
       const ctr = parseFloat(day.ctr) || 0;
       const cpc = parseFloat(day.cpc) || 0;
+      const cpm = parseFloat(day.cpm) || 0;
       const conversions = this.parseConversions(day.actions);
       const revenue = this.parseRevenue(day.action_values);
       const roas = spend > 0 ? revenue / spend : 0;
+      const costPerPurchase = this.parseCostPerAction(day.cost_per_action_type, 'purchase');
+      const costPerLandingPageView = this.parseCostPerAction(day.cost_per_action_type, 'landing_page_view');
+      const landingPageViews = this.parseLandingPageViews(day.actions);
+      const video3SecViews = this.parseVideo3SecViews(day.video_3_sec_watched_actions);
+      const videoThruplayViews = this.parseThruplayViews(day.video_thruplay_watched_actions);
+      const hookRate = impressions > 0 ? (video3SecViews / impressions) * 100 : 0;
+      const holdRate = video3SecViews > 0 ? (videoThruplayViews / video3SecViews) * 100 : 0;
 
       return {
         date: day.date_start,
@@ -139,9 +193,17 @@ class FacebookAdsIntegration {
         clicks,
         ctr,
         cpc,
+        cpm,
         conversions,
         revenue,
-        roas
+        roas,
+        costPerPurchase,
+        costPerLandingPageView,
+        landingPageViews,
+        video3SecViews,
+        videoThruplayViews,
+        hookRate,
+        holdRate
       };
     });
   }

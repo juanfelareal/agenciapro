@@ -21,6 +21,9 @@ import Automations from './pages/Automations';
 import Reports from './pages/Reports';
 import Notes from './pages/Notes';
 import SharedNoteView from './pages/SharedNoteView';
+import SharedDashboard from './pages/SharedDashboard';
+import CRM from './pages/CRM';
+import CRMDealDetail from './pages/CRMDealDetail';
 import MetricsDashboard from './pages/MetricsDashboard';
 import ClientMetrics from './pages/ClientMetrics';
 import ClientPlatformSettings from './pages/ClientPlatformSettings';
@@ -35,6 +38,7 @@ import Settings from './pages/Settings';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
+import { PortalProvider } from './context/PortalContext';
 import PortalProtectedRoute from './components/portal/PortalProtectedRoute';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalDashboard from './pages/portal/PortalDashboard';
@@ -67,8 +71,11 @@ function App() {
         {/* Shared note view - public, no auth required */}
         <Route path="/share/:token" element={<SharedNoteView />} />
 
-        {/* Portal Login - no layout */}
-        <Route path="/portal/login" element={<PortalLogin />} />
+        {/* Shared dashboard - public, no auth required */}
+        <Route path="/d/:token" element={<SharedDashboard />} />
+
+        {/* Portal Login - no layout but needs PortalProvider */}
+        <Route path="/portal/login" element={<PortalProvider><PortalLogin /></PortalProvider>} />
 
         {/* Portal routes with PortalLayout */}
         <Route path="/portal" element={<PortalLayout />}>
@@ -238,6 +245,22 @@ function App() {
                   element={
                     <ProtectedRoute permission="notas">
                       <Notes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="crm"
+                  element={
+                    <ProtectedRoute permission="crm">
+                      <CRM />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="crm/:id"
+                  element={
+                    <ProtectedRoute permission="crm">
+                      <CRMDealDetail />
                     </ProtectedRoute>
                   }
                 />

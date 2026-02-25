@@ -11,11 +11,17 @@ import {
   RefreshCw,
   Calendar,
   Settings,
-  Loader2
+  Loader2,
+  Share2,
+  Eye,
+  Video,
+  Target,
+  Tag
 } from 'lucide-react';
 import { clientsAPI, clientMetricsAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import MetricsTable from '../components/MetricsTable';
+import DashboardShareModal from '../components/DashboardShareModal';
 
 function ClientMetrics() {
   const { clientId } = useParams();
@@ -26,6 +32,7 @@ function ClientMetrics() {
   const [dailyMetrics, setDailyMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const [dateRange, setDateRange] = useState({
     start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -122,7 +129,11 @@ function ClientMetrics() {
     { key: 'fb_spend', label: 'Inversion', type: 'currency', align: 'right' },
     { key: 'cost_per_order', label: 'Costo/Pedido', type: 'currency', align: 'right' },
     { key: 'overall_roas', label: 'ROAS', type: 'decimal', align: 'right' },
-    { key: 'ad_spend_percentage', label: '% Inversion', type: 'percent', align: 'right' }
+    { key: 'ad_spend_percentage', label: '% Inversion', type: 'percent', align: 'right' },
+    { key: 'fb_cpm', label: 'CPM', type: 'currency', align: 'right' },
+    { key: 'fb_cost_per_purchase', label: 'Costo/Compra', type: 'currency', align: 'right' },
+    { key: 'fb_hook_rate', label: 'Hook Rate', type: 'percent', align: 'right' },
+    { key: 'fb_hold_rate', label: 'Hold Rate', type: 'percent', align: 'right' }
   ];
 
   if (!client) {
@@ -150,6 +161,13 @@ function ClientMetrics() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            <Share2 className="w-4 h-4" />
+            Compartir
+          </button>
           <button
             onClick={() => navigate(`/app/clients/${clientId}/plataformas`)}
             className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
@@ -288,6 +306,86 @@ function ClientMetrics() {
         />
       </div>
 
+      {/* New Metrics Row: Facebook Expanded */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <MetricCard
+          title="CPM"
+          value={metrics?.cpm}
+          icon={Eye}
+          iconBgColor="bg-sky-100"
+          iconColor="text-sky-600"
+          format="currency"
+          loading={loading}
+        />
+        <MetricCard
+          title="Costo por Compra"
+          value={metrics?.cost_per_purchase}
+          icon={Target}
+          iconBgColor="bg-rose-100"
+          iconColor="text-rose-600"
+          format="currency"
+          loading={loading}
+        />
+        <MetricCard
+          title="Hook Rate"
+          value={metrics?.hook_rate}
+          icon={Video}
+          iconBgColor="bg-amber-100"
+          iconColor="text-amber-600"
+          format="percent"
+          loading={loading}
+        />
+        <MetricCard
+          title="Hold Rate"
+          value={metrics?.hold_rate}
+          icon={Video}
+          iconBgColor="bg-violet-100"
+          iconColor="text-violet-600"
+          format="percent"
+          loading={loading}
+        />
+      </div>
+
+      {/* New Metrics Row: Shopify Expanded */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <MetricCard
+          title="Tasa de Conversión"
+          value={metrics?.conversion_rate}
+          icon={TrendingUp}
+          iconBgColor="bg-teal-100"
+          iconColor="text-teal-600"
+          format="percent"
+          loading={loading}
+        />
+        <MetricCard
+          title="Sesiones"
+          value={metrics?.total_sessions}
+          icon={MousePointerClick}
+          iconBgColor="bg-cyan-100"
+          iconColor="text-cyan-600"
+          format="integer"
+          loading={loading}
+        />
+        <MetricCard
+          title="Impuestos"
+          value={metrics?.total_tax}
+          icon={Receipt}
+          iconBgColor="bg-gray-100"
+          iconColor="text-gray-600"
+          format="currency"
+          loading={loading}
+        />
+        <MetricCard
+          title="Descuentos"
+          value={metrics?.total_discounts}
+          icon={Tag}
+          iconBgColor="bg-lime-100"
+          iconColor="text-lime-600"
+          format="currency"
+          loading={loading}
+        />
+      </div>
+
       {/* Daily Metrics Table */}
       <MetricsTable
         title="Seguimiento Diario"
@@ -296,6 +394,14 @@ function ClientMetrics() {
         loading={loading}
         emptyMessage="No hay datos para el rango seleccionado. Sincroniza las métricas para obtener datos."
       />
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <DashboardShareModal
+          clientId={clientId}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }

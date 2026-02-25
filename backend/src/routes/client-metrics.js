@@ -40,7 +40,13 @@ router.get('/:clientId', async (req, res) => {
         SUM(fb_clicks) as total_clicks,
         SUM(fb_conversions) as total_conversions,
         AVG(fb_ctr) as avg_ctr,
-        AVG(fb_cpc) as avg_cpc
+        AVG(fb_cpc) as avg_cpc,
+        SUM(shopify_total_tax) as total_tax,
+        SUM(shopify_total_discounts) as total_discounts,
+        SUM(shopify_sessions) as total_sessions,
+        SUM(fb_video_3sec_views) as total_video_3sec_views,
+        SUM(fb_video_thruplay_views) as total_video_thruplay_views,
+        SUM(fb_landing_page_views) as total_landing_page_views
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
     `).get(clientId, start_date, end_date);
@@ -55,7 +61,18 @@ router.get('/:clientId', async (req, res) => {
       roas: totalAdSpend > 0 ? totalRevenue / totalAdSpend : 0,
       cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
       ad_spend_percentage: totalRevenue > 0 ? (totalAdSpend / totalRevenue) * 100 : 0,
-      ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0
+      ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+      cpm: metrics.total_impressions > 0 ? (totalAdSpend / metrics.total_impressions) * 1000 : 0,
+      cost_per_purchase: metrics.total_conversions > 0 ? totalAdSpend / metrics.total_conversions : 0,
+      hook_rate: metrics.total_impressions > 0 ? ((metrics.total_video_3sec_views || 0) / metrics.total_impressions) * 100 : 0,
+      hold_rate: (metrics.total_video_3sec_views || 0) > 0 ? ((metrics.total_video_thruplay_views || 0) / metrics.total_video_3sec_views) * 100 : 0,
+      conversion_rate: (metrics.total_sessions || 0) > 0 ? (totalOrders / metrics.total_sessions) * 100 : 0,
+      total_tax: metrics.total_tax || 0,
+      total_discounts: metrics.total_discounts || 0,
+      total_sessions: metrics.total_sessions || 0,
+      total_landing_page_views: metrics.total_landing_page_views || 0,
+      total_video_3sec_views: metrics.total_video_3sec_views || 0,
+      total_video_thruplay_views: metrics.total_video_thruplay_views || 0
     };
 
     res.json(result);
@@ -103,7 +120,19 @@ router.get('/:clientId/daily', async (req, res) => {
         total_revenue,
         overall_roas,
         cost_per_order,
-        ad_spend_percentage
+        ad_spend_percentage,
+        fb_cpm,
+        fb_cost_per_purchase,
+        fb_landing_page_views,
+        fb_cost_per_landing_page_view,
+        fb_video_3sec_views,
+        fb_video_thruplay_views,
+        fb_hook_rate,
+        fb_hold_rate,
+        shopify_total_tax,
+        shopify_total_discounts,
+        shopify_sessions,
+        shopify_conversion_rate
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
       ORDER BY metric_date DESC
@@ -140,7 +169,13 @@ router.get('/aggregate/all', async (req, res) => {
         SUM(m.fb_spend) as total_ad_spend,
         SUM(m.fb_impressions) as total_impressions,
         SUM(m.fb_clicks) as total_clicks,
-        AVG(m.fb_ctr) as avg_ctr
+        AVG(m.fb_ctr) as avg_ctr,
+        SUM(m.shopify_total_tax) as total_tax,
+        SUM(m.shopify_total_discounts) as total_discounts,
+        SUM(m.shopify_sessions) as total_sessions,
+        SUM(m.fb_video_3sec_views) as total_video_3sec_views,
+        SUM(m.fb_video_thruplay_views) as total_video_thruplay_views,
+        SUM(m.fb_landing_page_views) as total_landing_page_views
       FROM clients c
       INNER JOIN client_daily_metrics m ON c.id = m.client_id
       WHERE m.metric_date BETWEEN ? AND ? AND c.organization_id = ?
@@ -159,7 +194,12 @@ router.get('/aggregate/all', async (req, res) => {
         roas: totalAdSpend > 0 ? totalRevenue / totalAdSpend : 0,
         cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
         ad_spend_percentage: totalRevenue > 0 ? (totalAdSpend / totalRevenue) * 100 : 0,
-        ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0
+        ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+        cpm: totalAdSpend > 0 && client.total_impressions > 0 ? (totalAdSpend / client.total_impressions) * 1000 : 0,
+        cost_per_purchase: client.total_conversions > 0 ? totalAdSpend / (client.total_conversions || 1) : 0,
+        total_tax: client.total_tax || 0,
+        total_discounts: client.total_discounts || 0,
+        total_sessions: client.total_sessions || 0
       };
     });
 

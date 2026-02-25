@@ -61,6 +61,12 @@ import portalAdminRoutes from './src/routes/portal-admin.js';
 import noteShareRoutes from './src/routes/note-share.js';
 // Real-time Collaboration
 import { setupCollaboration } from './src/services/collaborationService.js';
+// AI Insights
+import { generateAllWeeklyInsights } from './src/services/insightService.js';
+// Dashboard Share (public links for dashboards)
+import dashboardShareRoutes from './src/routes/dashboard-share.js';
+// CRM
+import crmRoutes from './src/routes/crm.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -169,6 +175,10 @@ app.use('/api/portal-admin', teamAuthMiddleware, portalAdminRoutes);
 app.use('/api/portal', portalRoutes);
 // Note sharing (has both authenticated and public routes internally)
 app.use('/api/note-share', noteShareRoutes);
+// Dashboard share (has both authenticated and public routes internally)
+app.use('/api/dashboard-share', dashboardShareRoutes);
+// CRM (has both authenticated and webhook routes internally)
+app.use('/api/crm', crmRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -216,3 +226,20 @@ cron.schedule('0 2 * * *', async () => {
 });
 
 console.log('✅ Metrics sync cron job scheduled (daily at 2:00 AM Colombia time)');
+
+// Setup cron job for weekly AI insights
+// Runs every Monday at 7:00 AM
+cron.schedule('0 7 * * 1', async () => {
+  console.log('⏰ Generating weekly AI insights...');
+  try {
+    await generateAllWeeklyInsights();
+    console.log('✅ Weekly AI insights generated');
+  } catch (error) {
+    console.error('❌ Error generating insights:', error.message);
+  }
+}, {
+  scheduled: true,
+  timezone: "America/Bogota"
+});
+
+console.log('✅ Weekly AI insights cron job scheduled (Monday 7:00 AM Colombia time)');

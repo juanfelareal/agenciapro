@@ -11,6 +11,7 @@ const ALL_PERMISSIONS = [
   { key: 'reportes', label: 'Reportes', icon: '📉', category: 'General' },
   // CRM & Projects
   { key: 'clients', label: 'Clientes', icon: '👥', category: 'CRM' },
+  { key: 'crm', label: 'CRM', icon: '🎯', category: 'CRM' },
   { key: 'projects', label: 'Proyectos', icon: '📁', category: 'CRM' },
   { key: 'plantillas', label: 'Plantillas Proyecto', icon: '📋', category: 'CRM' },
   // Tasks & Time

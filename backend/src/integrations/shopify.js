@@ -118,6 +118,8 @@ class ShopifyIntegration {
   calculateMetricsFromOrders(orders) {
     let totalRevenue = 0;
     let totalRefunds = 0;
+    let totalTax = 0;
+    let totalDiscounts = 0;
     let orderCount = 0;
 
     orders.forEach(order => {
@@ -128,6 +130,8 @@ class ShopifyIntegration {
       if (order.financial_status === 'paid' || order.financial_status === 'partially_refunded') {
         orderCount++;
         totalRevenue += parseFloat(order.total_price) || 0;
+        totalTax += parseFloat(order.total_tax) || 0;
+        totalDiscounts += parseFloat(order.total_discounts) || 0;
 
         // Calculate refunds
         if (order.refunds && order.refunds.length > 0) {
@@ -148,19 +152,71 @@ class ShopifyIntegration {
       orders: orderCount,
       aov,
       refunds: totalRefunds,
-      netRevenue
+      netRevenue,
+      totalTax,
+      totalDiscounts
     };
+  }
+
+  /**
+   * Get sessions count using Shopify GraphQL Admin API (ShopifyQL)
+   * @param {string} startDate - Start date in YYYY-MM-DD format
+   * @param {string} endDate - End date in YYYY-MM-DD format
+   * @returns {Promise<number>}
+   */
+  async getSessions(startDate, endDate) {
+    try {
+      const query = `{
+        shopifyqlQuery(query: "FROM visits SINCE ${startDate} UNTIL ${endDate} SHOW sum(totalSessions)") {
+          __typename
+          ... on TableResponse {
+            tableData {
+              rowData
+            }
+          }
+        }
+      }`;
+
+      const response = await axios.post(
+        `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
+        { query },
+        {
+          headers: {
+            'X-Shopify-Access-Token': this.accessToken,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const tableData = response.data?.data?.shopifyqlQuery?.tableData;
+      if (tableData?.rowData?.length > 0) {
+        return parseInt(tableData.rowData[0]) || 0;
+      }
+      return 0;
+    } catch (error) {
+      // Graceful: return 0 if scope read_analytics not available (403)
+      console.warn(`Could not fetch sessions for ${this.storeUrl}:`, error.response?.status || error.message);
+      return 0;
+    }
   }
 
   /**
    * Get metrics for a date range
    * @param {string} startDate - Start date in YYYY-MM-DD format
    * @param {string} endDate - End date in YYYY-MM-DD format
-   * @returns {Promise<{revenue, orders, aov, refunds, netRevenue}>}
+   * @returns {Promise<{revenue, orders, aov, refunds, netRevenue, totalTax, totalDiscounts, sessions, conversionRate}>}
    */
   async getMetrics(startDate, endDate) {
     const orders = await this.getOrders(startDate, endDate);
-    return this.calculateMetricsFromOrders(orders);
+    const metrics = this.calculateMetricsFromOrders(orders);
+    const sessions = await this.getSessions(startDate, endDate);
+    const conversionRate = sessions > 0 ? (metrics.orders / sessions) * 100 : 0;
+
+    return {
+      ...metrics,
+      sessions,
+      conversionRate
+    };
   }
 
   /**

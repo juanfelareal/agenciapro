@@ -350,4 +350,37 @@ export const portalAdminAPI = {
   },
 };
 
+// Dashboard Share API
+export const dashboardShareAPI = {
+  createShare: (clientId, data) => api.post(`/dashboard-share/clients/${clientId}/share`, data),
+  getShares: (clientId) => api.get(`/dashboard-share/clients/${clientId}/shares`),
+  revokeShare: (clientId, tokenId) => api.delete(`/dashboard-share/clients/${clientId}/share/${tokenId}`),
+};
+
+// CRM API
+export const crmAPI = {
+  // Stages
+  getStages: () => api.get('/crm/stages'),
+  // Deals
+  getDeals: (params) => api.get('/crm/deals', { params }),
+  getDeal: (id) => api.get(`/crm/deals/${id}`),
+  createDeal: (data) => api.post('/crm/deals', data),
+  updateDeal: (id, data) => api.put(`/crm/deals/${id}`, data),
+  deleteDeal: (id) => api.delete(`/crm/deals/${id}`),
+  moveDeal: (id, stage_id) => api.patch(`/crm/deals/${id}/stage`, { stage_id }),
+  // Activities
+  getActivities: (dealId) => api.get(`/crm/deals/${dealId}/activities`),
+  createActivity: (dealId, data) => api.post(`/crm/deals/${dealId}/activities`, data),
+  deleteActivity: (id) => api.delete(`/crm/activities/${id}`),
+  // Transcript
+  processTranscript: (dealId, text) => api.post(`/crm/deals/${dealId}/transcript`, { text }),
+  // Convert
+  convertToClient: (dealId) => api.post(`/crm/deals/${dealId}/convert`),
+  // Proposals
+  getTemplates: () => api.get('/crm/proposals/templates'),
+  generateProposal: (data) => api.post('/crm/proposals/generate', data),
+  generateCustomProposal: (data) => api.post('/crm/proposals/generate-custom', data),
+  deployProposal: (data) => api.post('/crm/proposals/deploy', data),
+};
+
 export default api;

@@ -145,6 +145,11 @@ export const portalMetricsAPI = {
     const response = await portalApi.get('/metrics/daily', { params });
     return response.data;
   },
+
+  getInsight: async () => {
+    const response = await portalApi.get('/metrics/insight');
+    return response.data;
+  },
 };
 
 // ============================================

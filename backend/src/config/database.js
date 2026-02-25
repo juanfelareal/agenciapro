@@ -1189,6 +1189,202 @@ export const initializeDatabase = async () => {
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_${table}_org_id ON ${table}(organization_id)`);
     }
 
+    // Add shopify_customers column if not exists
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_daily_metrics' AND column_name='shopify_customers') THEN
+          ALTER TABLE client_daily_metrics ADD COLUMN shopify_customers INTEGER DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+
+    // Add expanded metrics columns (Facebook Ads + Shopify)
+    const newMetricColumns = [
+      { name: 'fb_cpm', type: 'REAL DEFAULT 0' },
+      { name: 'fb_cost_per_purchase', type: 'REAL DEFAULT 0' },
+      { name: 'fb_landing_page_views', type: 'INTEGER DEFAULT 0' },
+      { name: 'fb_cost_per_landing_page_view', type: 'REAL DEFAULT 0' },
+      { name: 'fb_video_3sec_views', type: 'INTEGER DEFAULT 0' },
+      { name: 'fb_video_thruplay_views', type: 'INTEGER DEFAULT 0' },
+      { name: 'fb_hook_rate', type: 'REAL DEFAULT 0' },
+      { name: 'fb_hold_rate', type: 'REAL DEFAULT 0' },
+      { name: 'shopify_total_tax', type: 'REAL DEFAULT 0' },
+      { name: 'shopify_total_discounts', type: 'REAL DEFAULT 0' },
+      { name: 'shopify_sessions', type: 'INTEGER DEFAULT 0' },
+      { name: 'shopify_conversion_rate', type: 'REAL DEFAULT 0' },
+    ];
+
+    for (const col of newMetricColumns) {
+      await pool.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_daily_metrics' AND column_name='${col.name}') THEN
+            ALTER TABLE client_daily_metrics ADD COLUMN ${col.name} ${col.type};
+          END IF;
+        END $$;
+      `);
+    }
+
+    // ========================================
+    // AI INSIGHTS
+    // ========================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ai_insights (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        insight_type TEXT DEFAULT 'weekly',
+        content TEXT NOT NULL,
+        metrics_snapshot JSONB,
+        week_start TEXT,
+        week_end TEXT,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ========================================
+    // DASHBOARD SHARE TOKENS
+    // ========================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS dashboard_share_tokens (
+        id SERIAL PRIMARY KEY,
+        token TEXT NOT NULL UNIQUE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES team_members(id),
+        status TEXT CHECK(status IN ('active', 'revoked')) DEFAULT 'active',
+        expires_at TIMESTAMP,
+        access_count INTEGER DEFAULT 0,
+        last_accessed_at TIMESTAMP,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ========================================
+    // CRM TABLES
+    // ========================================
+
+    // Pipeline stages
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS crm_pipeline_stages (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        color TEXT DEFAULT '#6B7280',
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Deals
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS crm_deals (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        client_name TEXT,
+        email TEXT,
+        phone TEXT,
+        company TEXT,
+        source TEXT,
+        estimated_value REAL DEFAULT 0,
+        stage_id INTEGER REFERENCES crm_pipeline_stages(id) ON DELETE SET NULL,
+        notes TEXT,
+        assigned_to INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        won_at TIMESTAMP,
+        lost_at TIMESTAMP,
+        lost_reason TEXT,
+        converted_client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Deal activities
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS crm_activities (
+        id SERIAL PRIMARY KEY,
+        deal_id INTEGER NOT NULL REFERENCES crm_deals(id) ON DELETE CASCADE,
+        type TEXT CHECK(type IN ('note','call','email','meeting','transcript','stage_change','proposal_sent')) NOT NULL,
+        title TEXT,
+        content TEXT,
+        metadata JSONB DEFAULT '{}',
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ========================================
+    // PROPOSAL TEMPLATES
+    // ========================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS proposal_templates (
+        id SERIAL PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        description TEXT,
+        template_path TEXT NOT NULL,
+        variables JSONB DEFAULT '[]',
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed default pipeline stages (only if empty)
+    const stageCount = await pool.query('SELECT COUNT(*) as count FROM crm_pipeline_stages');
+    if (parseInt(stageCount.rows[0].count) === 0) {
+      const defaultStages = [
+        { name: 'Lead', position: 0, color: '#6B7280' },
+        { name: 'Contactado', position: 1, color: '#3B82F6' },
+        { name: 'Reunión', position: 2, color: '#8B5CF6' },
+        { name: 'Propuesta Enviada', position: 3, color: '#F59E0B' },
+        { name: 'Negociación', position: 4, color: '#EF4444' },
+        { name: 'Cliente Ganado', position: 5, color: '#22C55E' },
+        { name: 'Perdido', position: 6, color: '#DC2626' },
+      ];
+      for (const stage of defaultStages) {
+        await pool.query(
+          'INSERT INTO crm_pipeline_stages (name, position, color) VALUES ($1, $2, $3)',
+          [stage.name, stage.position, stage.color]
+        );
+      }
+    }
+
+    // Seed default proposal templates (only if empty)
+    const templateCount = await pool.query('SELECT COUNT(*) as count FROM proposal_templates');
+    if (parseInt(templateCount.rows[0].count) === 0) {
+      await pool.query(
+        `INSERT INTO proposal_templates (slug, name, description, template_path, variables)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          'shopify-migration',
+          'Migración/Creación Shopify',
+          'Propuesta de migración o creación de sitio web en Shopify + Contenido IA opcional',
+          '/Users/realjuanfe/plantillas-presentaciones/migracion-shopify/plantilla.html',
+          JSON.stringify([
+            'NOMBRE_CLIENTE', 'LOGO_CLIENTE', 'PAIN_1', 'PAIN_2', 'PAIN_3', 'PAIN_4',
+            'PRECIO_BASICO', 'PRECIO_PRO', 'PRECIO_PREMIUM'
+          ])
+        ]
+      );
+      await pool.query(
+        `INSERT INTO proposal_templates (slug, name, description, template_path, variables)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          'pauta-metodo-real',
+          'Pauta + Método REAL',
+          'Propuesta de gestión de pauta digital con acompañamiento en Método REAL',
+          '/Users/realjuanfe/plantillas-presentaciones/pauta-metodo-real/plantilla.html',
+          JSON.stringify([
+            'NOMBRE_CLIENTE', 'LOGO_CLIENTE', 'INVERSION_MENSUAL', 'PAIN_1', 'PAIN_2',
+            'PRECIO_PAUTA', 'PRECIO_METODO'
+          ])
+        ]
+      );
+    }
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
