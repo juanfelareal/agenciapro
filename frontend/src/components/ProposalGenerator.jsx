@@ -20,6 +20,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
   const [repoName, setRepoName] = useState('');
   const [deployResult, setDeployResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
 
   const STEPS = isCustom
     ? ['Elegir plantilla', 'Describir servicios', 'Vista previa', 'Publicar']
@@ -78,6 +79,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
 
   const handleGenerate = async () => {
     setGenerating(true);
+    setError('');
     try {
       if (isCustom) {
         const res = await crmAPI.generateCustomProposal({
@@ -94,8 +96,9 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
         setGeneratedHtml(res.data.html);
       }
       setStep(2);
-    } catch (error) {
-      console.error('Error generating:', error);
+    } catch (err) {
+      console.error('Error generating:', err);
+      setError(err.response?.data?.error || 'Error generando la propuesta. Verifica que el backend esté corriendo.');
     } finally {
       setGenerating(false);
     }
@@ -266,6 +269,11 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                   </div>
                 </div>
               </div>
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
             </div>
           )}
 

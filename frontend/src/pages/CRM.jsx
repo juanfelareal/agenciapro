@@ -145,6 +145,18 @@ function StageColumn({ stage, deals, onDealClick }) {
           <DealCard key={deal.id} deal={deal} onClick={onDealClick} />
         ))}
       </div>
+
+      {/* Footer with total */}
+      {totalValue > 0 && (
+        <div className="px-3 py-2.5 border-t border-gray-200/60">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">Total</span>
+            <span className="text-xs font-bold text-[#1A1A2E]">
+              {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(totalValue)}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

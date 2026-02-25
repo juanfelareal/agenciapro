@@ -12,12 +12,16 @@ import { spawn } from 'child_process';
  */
 export async function askClaude(prompt, { model = 'sonnet', timeout = 120000 } = {}) {
   return new Promise((resolve, reject) => {
+    // Remove CLAUDECODE env var to avoid nested session detection
+    const cleanEnv = { ...process.env, NO_COLOR: '1' };
+    delete cleanEnv.CLAUDECODE;
+
     const child = spawn('claude', [
       '-p',
       '--model', model,
       '--no-session-persistence',
     ], {
-      env: { ...process.env, NO_COLOR: '1', CLAUDECODE: '' },
+      env: cleanEnv,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 

@@ -378,9 +378,9 @@ export const crmAPI = {
   convertToClient: (dealId) => api.post(`/crm/deals/${dealId}/convert`),
   // Proposals
   getTemplates: () => api.get('/crm/proposals/templates'),
-  generateProposal: (data) => api.post('/crm/proposals/generate', data),
-  generateCustomProposal: (data) => api.post('/crm/proposals/generate-custom', data),
-  deployProposal: (data) => api.post('/crm/proposals/deploy', data),
+  generateProposal: (data) => api.post('/crm/proposals/generate', data, { timeout: 150000 }),
+  generateCustomProposal: (data) => api.post('/crm/proposals/generate-custom', data, { timeout: 150000 }),
+  deployProposal: (data) => api.post('/crm/proposals/deploy', data, { timeout: 60000 }),
 };
 
 export default api;
