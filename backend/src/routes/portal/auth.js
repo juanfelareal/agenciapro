@@ -41,30 +41,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Código de invitación inválido' });
     }
 
-    // Check expiration
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
-      await db.run(`UPDATE client_access_tokens SET status = 'expired' WHERE id = ?`, [invite.id]);
-      return res.status(401).json({ error: 'El código de invitación ha expirado' });
-    }
-
-    // Mark invite as active (if first use)
-    if (invite.status === 'pending') {
-      await db.run(`
-        UPDATE client_access_tokens
-        SET status = 'active', activated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `, [invite.id]);
-    }
-
-    // Generate session token
+    // Generate session token (permanent, no expiration)
     const sessionToken = generateSessionToken();
-    const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
     // Create session
     await db.run(`
       INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, last_used_at)
-      VALUES (?, ?, 'session', 'active', ?, CURRENT_TIMESTAMP)
-    `, [invite.client_id, sessionToken, sessionExpires.toISOString()]);
+      VALUES (?, ?, 'session', 'active', NULL, CURRENT_TIMESTAMP)
+    `, [invite.client_id, sessionToken]);
 
     // Get portal settings
     let settings = await db.get(`
@@ -79,7 +63,6 @@ router.post('/login', async (req, res) => {
 
     res.json({
       token: sessionToken,
-      expires_at: sessionExpires.toISOString(),
       client: {
         id: invite.client_id,
         name: invite.client_name,

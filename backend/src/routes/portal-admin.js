@@ -151,7 +151,7 @@ router.post('/clients/:id/invite', async (req, res) => {
   try {
     const orgId = req.orgId;
     const { id } = req.params;
-    const { expires_in_days, created_by } = req.body || {};
+    const { created_by } = req.body || {};
 
     // Check client exists and belongs to org
     const client = await db.get('SELECT id, name FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
@@ -173,21 +173,15 @@ router.post('/clients/:id/invite', async (req, res) => {
       return res.status(500).json({ error: 'Error generando codigo unico' });
     }
 
-    // Calculate expiration (default: 7 days)
-    const expiresAt = expires_in_days
-      ? new Date(Date.now() + expires_in_days * 24 * 60 * 60 * 1000)
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    // Create invite token
+    // Create invite token (permanent, no expiration)
     await db.run(`
       INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, created_by)
-      VALUES (?, ?, 'invite', 'pending', ?, ?)
-    `, [id, inviteCode, expiresAt.toISOString(), created_by || null]);
+      VALUES (?, ?, 'invite', 'active', NULL, ?)
+    `, [id, inviteCode, created_by || null]);
 
     res.json({
       invite_code: inviteCode,
       client_name: client.name,
-      expires_at: expiresAt.toISOString(),
       portal_url: `/portal/login?code=${inviteCode}`
     });
   } catch (error) {

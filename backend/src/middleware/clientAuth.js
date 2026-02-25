@@ -28,13 +28,6 @@ export const clientAuthMiddleware = async (req, res, next) => {
       return res.status(401).json({ error: 'Token inválido o expirado.' });
     }
 
-    // Check expiration
-    if (tokenRecord.expires_at && new Date(tokenRecord.expires_at) < new Date()) {
-      // Mark as expired
-      await db.run(`UPDATE client_access_tokens SET status = 'expired' WHERE id = ?`, [tokenRecord.id]);
-      return res.status(401).json({ error: 'Sesión expirada. Por favor inicie sesión nuevamente.' });
-    }
-
     // Get portal settings for this client
     const settings = await db.get(`
       SELECT * FROM client_portal_settings WHERE client_id = ?
