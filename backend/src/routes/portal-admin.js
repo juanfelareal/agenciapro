@@ -151,7 +151,7 @@ router.post('/clients/:id/invite', async (req, res) => {
   try {
     const orgId = req.orgId;
     const { id } = req.params;
-    const { expires_in_days, created_by } = req.body;
+    const { expires_in_days, created_by } = req.body || {};
 
     // Check client exists and belongs to org
     const client = await db.get('SELECT id, name FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
