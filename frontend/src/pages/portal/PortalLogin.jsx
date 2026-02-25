@@ -7,24 +7,24 @@ export default function PortalLogin() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated } = usePortal();
+  const { login, logout, isAuthenticated } = usePortal();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Check for code in URL
+  // Check for code in URL — if present, clear existing session first
   useEffect(() => {
     const urlCode = searchParams.get('code');
     if (urlCode) {
+      // If already authenticated with a different session, clear it so the new code can be used
+      if (isAuthenticated) {
+        logout();
+      }
       setCode(urlCode);
-    }
-  }, [searchParams]);
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
+    } else if (isAuthenticated) {
+      // No code in URL and already authenticated — redirect to portal
       navigate('/portal');
     }
-  }, [isAuthenticated, navigate]);
+  }, [searchParams, isAuthenticated]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

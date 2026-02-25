@@ -589,7 +589,7 @@ router.post('/proposals/generate-custom', async (req, res) => {
               if (meta.budget_signals) dealContext += `\nPresupuesto: ${meta.budget_signals}`;
               if (meta.current_metrics) dealContext += `\nMétricas: ${meta.current_metrics}`;
               if (meta.next_steps?.length) dealContext += `\nPróximos pasos: ${meta.next_steps.join('; ')}`;
-              if (meta.full_transcript) dealContext += `\n\nTRANSCRIPCIÓN COMPLETA:\n${meta.full_transcript}`;
+              if (meta.full_transcript) dealContext += `\n\nTRANSCRIPCIÓN COMPLETA:\n${meta.full_transcript.substring(0, 3000)}`;
             } catch { /* ignore */ }
           }
         }
@@ -649,7 +649,8 @@ IMPORTANTE:
 - El paquete recomendado debe alinearse con lo que el cliente necesita
 - Usa lenguaje profesional pero cercano, en español colombiano`;
 
-    const content = await askClaudeJSON(prompt, { timeout: 120000 });
+    console.log(`[Proposal] Generating for deal ${deal_id}, prompt length: ${prompt.length} chars`);
+    const content = await askClaudeJSON(prompt, { model: 'sonnet', timeout: 180000 });
 
     // Now build the HTML using the template shell
     const html = buildCustomPresentation(content, clientName);
