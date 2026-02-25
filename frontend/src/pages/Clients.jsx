@@ -49,6 +49,54 @@ const Clients = () => {
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
+  // Resizable columns
+  const tableRef = useRef(null);
+  const [columnWidths, setColumnWidths] = useState({
+    checkbox: 48,
+    empresa: 320,
+    nit: 130,
+    contacto: 200,
+    email: 200,
+    estado: 80,
+    valor: 130,
+    acciones: 140,
+  });
+  const resizingRef = useRef(null);
+
+  const handleResizeStart = (e, columnKey) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = columnWidths[columnKey];
+
+    const handleMouseMove = (moveEvent) => {
+      const diff = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startWidth + diff);
+      setColumnWidths(prev => ({ ...prev, [columnKey]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      resizingRef.current = null;
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    resizingRef.current = columnKey;
+  };
+
+  const ResizeHandle = ({ columnKey }) => (
+    <div
+      onMouseDown={(e) => handleResizeStart(e, columnKey)}
+      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-500 z-10"
+      style={{ transform: 'translateX(50%)' }}
+    />
+  );
+
   useEffect(() => {
     loadClients();
   }, []);
@@ -506,10 +554,10 @@ const Clients = () => {
       )}
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-        <table className="w-full min-w-[1100px]">
+        <table ref={tableRef} className="min-w-[1100px]" style={{ tableLayout: 'fixed', width: Object.values(columnWidths).reduce((a, b) => a + b, 0) }}>
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-3 py-3 text-center w-12">
+              <th className="px-3 py-3 text-center relative" style={{ width: columnWidths.checkbox }}>
                 <button
                   onClick={toggleSelectAll}
                   className="text-gray-500 hover:text-[#1A1A2E]"
@@ -524,25 +572,31 @@ const Clients = () => {
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.empresa }}>
                 Empresa
+                <ResizeHandle columnKey="empresa" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.nit }}>
                 NIT/Cédula
+                <ResizeHandle columnKey="nit" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.contacto }}>
                 Contacto
+                <ResizeHandle columnKey="contacto" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.email }}>
                 Email
+                <ResizeHandle columnKey="email" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.estado }}>
                 Estado
+                <ResizeHandle columnKey="estado" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.valor }}>
                 Valor Contrato
+                <ResizeHandle columnKey="valor" />
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: columnWidths.acciones }}>
                 Acciones
               </th>
             </tr>
@@ -565,10 +619,10 @@ const Clients = () => {
                     )}
                   </button>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">{client.company || client.name}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{client.nit || '-'}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{client.name || '-'}</td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{client.email || '-'}</td>
+                <td className="px-4 py-4 font-medium text-[#1A1A2E] truncate" title={client.company || client.name}>{client.company || client.name}</td>
+                <td className="px-4 py-4 text-sm text-gray-500 truncate">{client.nit || '-'}</td>
+                <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
+                <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.email}>{client.email || '-'}</td>
                 <td className="px-4 py-4 whitespace-nowrap">
                   <span
                     className={`px-2 py-1 rounded-lg text-xs font-medium ${
