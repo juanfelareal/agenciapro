@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { ChevronUp, ChevronDown, Download } from 'lucide-react';
 
 /**
  * MetricsTable - Table component for displaying daily/weekly metrics
- * Similar to Master Metrics style with sorting and export
+ * Similar to Master Metrics style with sorting, export, and resizable columns
  */
 function MetricsTable({
   data = [],
@@ -13,6 +13,44 @@ function MetricsTable({
   emptyMessage = 'No hay datos disponibles'
 }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+
+  // Resizable columns: initialize widths from columns or defaults
+  const defaultWidth = 120;
+  const [columnWidths, setColumnWidths] = useState(() => {
+    const widths = {};
+    columns.forEach((col) => {
+      widths[col.key] = col.width || (col.type === 'date' ? 110 : defaultWidth);
+    });
+    return widths;
+  });
+  const resizingRef = useRef(null);
+
+  const handleResizeStart = useCallback((e, columnKey) => {
+    e.preventDefault();
+    e.stopPropagation(); // Don't trigger sort
+    const startX = e.clientX;
+    const startWidth = columnWidths[columnKey] || defaultWidth;
+
+    const handleMouseMove = (moveEvent) => {
+      const diff = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startWidth + diff);
+      setColumnWidths(prev => ({ ...prev, [columnKey]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      resizingRef.current = null;
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    resizingRef.current = columnKey;
+  }, [columnWidths]);
 
   // Format value based on column type
   const formatValue = (value, type) => {
@@ -93,6 +131,8 @@ function MetricsTable({
     URL.revokeObjectURL(url);
   };
 
+  const totalWidth = columns.reduce((sum, col) => sum + (columnWidths[col.key] || defaultWidth), 0);
+
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
@@ -124,23 +164,29 @@ function MetricsTable({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table style={{ tableLayout: 'fixed', width: totalWidth, minWidth: '100%' }}>
           <thead className="bg-gray-50">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors relative"
+                  style={{ width: columnWidths[column.key] || defaultWidth }}
                   onClick={() => handleSort(column.key)}
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 truncate">
                     {column.label}
                     {sortConfig.key === column.key && (
                       sortConfig.direction === 'asc'
-                        ? <ChevronUp className="w-4 h-4" />
-                        : <ChevronDown className="w-4 h-4" />
+                        ? <ChevronUp className="w-4 h-4 flex-shrink-0" />
+                        : <ChevronDown className="w-4 h-4 flex-shrink-0" />
                     )}
                   </div>
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, column.key)}
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-500 z-10"
+                    style={{ transform: 'translateX(50%)' }}
+                  />
                 </th>
               ))}
             </tr>
@@ -158,7 +204,8 @@ function MetricsTable({
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className={`px-4 py-3 text-sm ${column.align === 'right' ? 'text-right' : 'text-left'} ${column.className || ''}`}
+                      className={`px-4 py-3 text-sm truncate ${column.align === 'right' ? 'text-right' : 'text-left'} ${column.className || ''}`}
+                      title={String(formatValue(row[column.key], column.type))}
                     >
                       {formatValue(row[column.key], column.type)}
                     </td>
