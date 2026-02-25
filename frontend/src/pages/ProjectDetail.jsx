@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI, tasksAPI, teamAPI, tagsAPI, subtasksAPI } from '../utils/api';
+import { projectsAPI, tasksAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
 import {
   ArrowLeft,
   Home,
@@ -61,6 +61,20 @@ const ProjectDetail = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [selectedTagIds, setSelectedTagIds] = useState([]);
+
+  // Project edit states
+  const [showProjectEditModal, setShowProjectEditModal] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  const [clients, setClients] = useState([]);
+  const [projectFormData, setProjectFormData] = useState({
+    name: '',
+    description: '',
+    client_id: '',
+    status: 'planning',
+    budget: 0,
+    start_date: '',
+    end_date: '',
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -287,6 +301,38 @@ const ProjectDetail = () => {
     });
   };
 
+  const handleEditProject = async () => {
+    setProjectFormData({
+      name: project.name || '',
+      description: project.description || '',
+      client_id: project.client_id || '',
+      status: project.status || 'planning',
+      budget: project.budget || 0,
+      start_date: project.start_date || '',
+      end_date: project.end_date || '',
+    });
+    try {
+      const clientsRes = await clientsAPI.getAll('active');
+      setClients(clientsRes.data || []);
+    } catch { /* ignore */ }
+    setShowProjectEditModal(true);
+  };
+
+  const handleSaveProject = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingProject(true);
+      await projectsAPI.update(parseInt(id), projectFormData);
+      setShowProjectEditModal(false);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating project:', error);
+      alert('Error al guardar el proyecto');
+    } finally {
+      setSavingProject(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -323,7 +369,11 @@ const ProjectDetail = () => {
             <span>Volver a proyectos</span>
           </button>
           <div className="flex items-center gap-2">
-            <button className="p-2 text-gray-400 hover:text-[#163B3B] hover:bg-gray-100 rounded-lg transition-colors">
+            <button
+              onClick={handleEditProject}
+              className="p-2 text-gray-400 hover:text-[#163B3B] hover:bg-gray-100 rounded-lg transition-colors"
+              title="Editar proyecto"
+            >
               <Edit size={18} />
             </button>
             <button className="p-2 text-gray-400 hover:text-[#163B3B] hover:bg-gray-100 rounded-lg transition-colors">
@@ -514,6 +564,123 @@ const ProjectDetail = () => {
           />
         )}
       </div>
+
+      {/* Project Edit Modal */}
+      {showProjectEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-[#163B3B]">Editar proyecto</h2>
+            </div>
+
+            <form onSubmit={handleSaveProject} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input
+                  type="text"
+                  value={projectFormData.name}
+                  onChange={(e) => setProjectFormData({ ...projectFormData, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                <textarea
+                  value={projectFormData.description}
+                  onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                <select
+                  value={projectFormData.client_id}
+                  onChange={(e) => setProjectFormData({ ...projectFormData, client_id: e.target.value || null })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                >
+                  <option value="">Sin cliente</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.company || c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <select
+                    value={projectFormData.status}
+                    onChange={(e) => setProjectFormData({ ...projectFormData, status: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  >
+                    <option value="planning">Planeación</option>
+                    <option value="layout">Layout</option>
+                    <option value="diseno_3d">Diseño 3D</option>
+                    <option value="materializacion">Materialización</option>
+                    <option value="presupuesto">Presupuesto</option>
+                    <option value="cierre">Cierre</option>
+                    <option value="postventas">Postventas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto</label>
+                  <input
+                    type="number"
+                    value={projectFormData.budget}
+                    onChange={(e) => setProjectFormData({ ...projectFormData, budget: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
+                  <input
+                    type="date"
+                    value={projectFormData.start_date}
+                    onChange={(e) => setProjectFormData({ ...projectFormData, start_date: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha fin</label>
+                  <input
+                    type="date"
+                    value={projectFormData.end_date}
+                    onChange={(e) => setProjectFormData({ ...projectFormData, end_date: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowProjectEditModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProject}
+                  className="px-4 py-2 bg-[#163B3B] text-white rounded-xl hover:bg-[#1e4d4d] transition-colors disabled:opacity-50"
+                >
+                  {savingProject ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Task Modal */}
       {showModal && (
