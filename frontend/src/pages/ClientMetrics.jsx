@@ -460,18 +460,22 @@ function ClientMetrics() {
 
         {ads !== null && !adsLoading && ads.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
                   <th className="text-left py-3 px-3 font-medium text-gray-500">Campaña</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
-                  <th className="text-right py-3 px-3 font-medium text-gray-500">Impresiones</th>
-                  <th className="text-right py-3 px-3 font-medium text-gray-500">Clics</th>
-                  <th className="text-right py-3 px-3 font-medium text-gray-500">CTR</th>
-                  <th className="text-right py-3 px-3 font-medium text-gray-500">Conv.</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Presupuesto</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">CPM</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Frecuencia</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">CTR único</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Clics enlace</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">CPC</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Visitas página</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Resultados</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Resultado</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">ROAS</th>
-                  <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Compra</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Hook Rate</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Hold Rate</th>
                   <th className="py-3 px-3 w-10"></th>
@@ -491,12 +495,16 @@ function ClientMetrics() {
                         {ad.campaign_name}
                       </td>
                       <td className="py-3 px-3 text-right font-medium">{fmtCurrency(ad.spend)}</td>
-                      <td className="py-3 px-3 text-right">{fmtNumber(ad.impressions)}</td>
-                      <td className="py-3 px-3 text-right">{fmtNumber(ad.clicks)}</td>
-                      <td className="py-3 px-3 text-right">{fmtPercent(ad.ctr)}</td>
+                      <td className="py-3 px-3 text-right">{ad.budget ? fmtCurrency(ad.budget) : '—'}</td>
+                      <td className="py-3 px-3 text-right">{fmtCurrency(ad.cpm)}</td>
+                      <td className="py-3 px-3 text-right">{(ad.frequency || 0).toFixed(2)}</td>
+                      <td className="py-3 px-3 text-right">{fmtPercent(ad.unique_ctr)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(ad.link_clicks)}</td>
+                      <td className="py-3 px-3 text-right">{fmtCurrency(ad.cpc)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(ad.landing_page_views)}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(ad.conversions)}</td>
-                      <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{fmtCurrency(ad.cost_per_purchase)}</td>
+                      <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(ad.hook_rate)}</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(ad.hold_rate)}</td>
                       <td className="py-3 px-1">
@@ -524,9 +532,14 @@ function ClientMetrics() {
                   const totSpend = ads.reduce((s, a) => s + a.spend, 0);
                   const totImpressions = ads.reduce((s, a) => s + a.impressions, 0);
                   const totClicks = ads.reduce((s, a) => s + a.clicks, 0);
+                  const totLinkClicks = ads.reduce((s, a) => s + (a.link_clicks || 0), 0);
+                  const totLandingPageViews = ads.reduce((s, a) => s + (a.landing_page_views || 0), 0);
                   const totConversions = ads.reduce((s, a) => s + a.conversions, 0);
                   const totRevenue = ads.reduce((s, a) => s + (a.revenue || 0), 0);
-                  const avgCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
+                  const avgCpm = totImpressions > 0 ? (totSpend / totImpressions) * 1000 : 0;
+                  const avgFrequency = ads.length > 0 ? ads.reduce((s, a) => s + (a.frequency || 0), 0) / ads.length : 0;
+                  const avgUniqueCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
+                  const avgCpc = totClicks > 0 ? totSpend / totClicks : 0;
                   const avgRoas = totSpend > 0 ? totRevenue / totSpend : 0;
                   const avgCostPerPurchase = totConversions > 0 ? totSpend / totConversions : 0;
                   const adsWithHook = ads.filter(a => a.hook_rate > 0);
@@ -538,12 +551,16 @@ function ClientMetrics() {
                       <td className="py-3 px-3">Total</td>
                       <td className="py-3 px-3"></td>
                       <td className="py-3 px-3 text-right">{fmtCurrency(totSpend)}</td>
-                      <td className="py-3 px-3 text-right">{fmtNumber(totImpressions)}</td>
-                      <td className="py-3 px-3 text-right">{fmtNumber(totClicks)}</td>
-                      <td className="py-3 px-3 text-right">{fmtPercent(avgCtr)}</td>
+                      <td className="py-3 px-3"></td>
+                      <td className="py-3 px-3 text-right">{fmtCurrency(avgCpm)}</td>
+                      <td className="py-3 px-3 text-right">{avgFrequency.toFixed(2)}</td>
+                      <td className="py-3 px-3 text-right">{fmtPercent(avgUniqueCtr)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(totLinkClicks)}</td>
+                      <td className="py-3 px-3 text-right">{fmtCurrency(avgCpc)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(totLandingPageViews)}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(totConversions)}</td>
-                      <td className="py-3 px-3 text-right">{avgRoas.toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{fmtCurrency(avgCostPerPurchase)}</td>
+                      <td className="py-3 px-3 text-right">{avgRoas.toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(avgHookRate)}</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(avgHoldRate)}</td>
                       <td className="py-3 px-1"></td>

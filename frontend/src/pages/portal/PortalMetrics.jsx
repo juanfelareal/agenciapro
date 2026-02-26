@@ -676,18 +676,22 @@ export default function PortalMetrics() {
 
           {ads !== null && !adsLoading && ads.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="border-b border-gray-100">
                     <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
                     <th className="text-left py-3 px-3 font-medium text-gray-500">Campaña</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Impresiones</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Clics</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">CTR</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Conv.</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Presupuesto</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">CPM</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Frecuencia</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">CTR único</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Clics enlace</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">CPC</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Visitas página</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Resultados</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Resultado</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">ROAS</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Compra</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Hook Rate</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Hold Rate</th>
                     <th className="py-3 px-3 w-10"></th>
@@ -703,12 +707,16 @@ export default function PortalMetrics() {
                         {ad.campaign_name}
                       </td>
                       <td className="py-3 px-3 text-right font-medium">{formatCurrency(ad.spend)}</td>
-                      <td className="py-3 px-3 text-right">{formatNumber(ad.impressions)}</td>
-                      <td className="py-3 px-3 text-right">{formatNumber(ad.clicks)}</td>
-                      <td className="py-3 px-3 text-right">{formatPercent(ad.ctr)}</td>
+                      <td className="py-3 px-3 text-right">{ad.budget ? formatCurrency(ad.budget) : '—'}</td>
+                      <td className="py-3 px-3 text-right">{formatCurrency(ad.cpm)}</td>
+                      <td className="py-3 px-3 text-right">{(ad.frequency || 0).toFixed(2)}</td>
+                      <td className="py-3 px-3 text-right">{formatPercent(ad.unique_ctr)}</td>
+                      <td className="py-3 px-3 text-right">{formatNumber(ad.link_clicks)}</td>
+                      <td className="py-3 px-3 text-right">{formatCurrency(ad.cpc)}</td>
+                      <td className="py-3 px-3 text-right">{formatNumber(ad.landing_page_views)}</td>
                       <td className="py-3 px-3 text-right">{formatNumber(ad.conversions)}</td>
-                      <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{formatCurrency(ad.cost_per_purchase)}</td>
+                      <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{formatPercent(ad.hook_rate)}</td>
                       <td className="py-3 px-3 text-right">{formatPercent(ad.hold_rate)}</td>
                       <td className="py-3 px-1">
@@ -732,9 +740,14 @@ export default function PortalMetrics() {
                     const totSpend = ads.reduce((s, a) => s + a.spend, 0);
                     const totImpressions = ads.reduce((s, a) => s + a.impressions, 0);
                     const totClicks = ads.reduce((s, a) => s + a.clicks, 0);
+                    const totLinkClicks = ads.reduce((s, a) => s + (a.link_clicks || 0), 0);
+                    const totLandingPageViews = ads.reduce((s, a) => s + (a.landing_page_views || 0), 0);
                     const totConversions = ads.reduce((s, a) => s + a.conversions, 0);
                     const totRevenue = ads.reduce((s, a) => s + (a.revenue || 0), 0);
-                    const avgCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
+                    const avgCpm = totImpressions > 0 ? (totSpend / totImpressions) * 1000 : 0;
+                    const avgFrequency = ads.length > 0 ? ads.reduce((s, a) => s + (a.frequency || 0), 0) / ads.length : 0;
+                    const avgUniqueCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
+                    const avgCpc = totClicks > 0 ? totSpend / totClicks : 0;
                     const avgRoas = totSpend > 0 ? totRevenue / totSpend : 0;
                     const avgCostPerPurchase = totConversions > 0 ? totSpend / totConversions : 0;
                     const adsWithHook = ads.filter(a => a.hook_rate > 0);
@@ -746,12 +759,16 @@ export default function PortalMetrics() {
                         <td className="py-3 px-3">Total</td>
                         <td className="py-3 px-3"></td>
                         <td className="py-3 px-3 text-right">{formatCurrency(totSpend)}</td>
-                        <td className="py-3 px-3 text-right">{formatNumber(totImpressions)}</td>
-                        <td className="py-3 px-3 text-right">{formatNumber(totClicks)}</td>
-                        <td className="py-3 px-3 text-right">{formatPercent(avgCtr)}</td>
+                        <td className="py-3 px-3"></td>
+                        <td className="py-3 px-3 text-right">{formatCurrency(avgCpm)}</td>
+                        <td className="py-3 px-3 text-right">{avgFrequency.toFixed(2)}</td>
+                        <td className="py-3 px-3 text-right">{formatPercent(avgUniqueCtr)}</td>
+                        <td className="py-3 px-3 text-right">{formatNumber(totLinkClicks)}</td>
+                        <td className="py-3 px-3 text-right">{formatCurrency(avgCpc)}</td>
+                        <td className="py-3 px-3 text-right">{formatNumber(totLandingPageViews)}</td>
                         <td className="py-3 px-3 text-right">{formatNumber(totConversions)}</td>
-                        <td className="py-3 px-3 text-right">{avgRoas.toFixed(2)}x</td>
                         <td className="py-3 px-3 text-right">{formatCurrency(avgCostPerPurchase)}</td>
+                        <td className="py-3 px-3 text-right">{avgRoas.toFixed(2)}x</td>
                         <td className="py-3 px-3 text-right">{formatPercent(avgHookRate)}</td>
                         <td className="py-3 px-3 text-right">{formatPercent(avgHoldRate)}</td>
                         <td className="py-3 px-1"></td>

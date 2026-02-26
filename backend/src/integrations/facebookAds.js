@@ -246,6 +246,9 @@ class FacebookAdsIntegration {
         'ctr',
         'cpc',
         'cpm',
+        'frequency',
+        'unique_ctr',
+        'inline_link_clicks',
         'actions',
         'action_values',
         'cost_per_action_type',
@@ -278,6 +281,10 @@ class FacebookAdsIntegration {
       const ctr = parseFloat(ad.ctr) || 0;
       const cpc = parseFloat(ad.cpc) || 0;
       const cpm = parseFloat(ad.cpm) || 0;
+      const frequency = parseFloat(ad.frequency) || 0;
+      const uniqueCtr = parseFloat(ad.unique_ctr) || 0;
+      const linkClicks = parseInt(ad.inline_link_clicks) || 0;
+      const landingPageViews = this.parseLandingPageViews(ad.actions);
       const conversions = this.parseConversions(ad.actions);
       const revenue = this.parseRevenue(ad.action_values);
       const roas = spend > 0 ? revenue / spend : 0;
@@ -298,6 +305,10 @@ class FacebookAdsIntegration {
         ctr,
         cpc,
         cpm,
+        frequency,
+        unique_ctr: uniqueCtr,
+        link_clicks: linkClicks,
+        landing_page_views: landingPageViews,
         conversions,
         revenue,
         roas,
@@ -307,29 +318,38 @@ class FacebookAdsIntegration {
       };
     });
 
-    // Fetch preview links in chunks of 50
+    // Fetch preview links and adset budgets in chunks of 50
     const adIds = ads.map(a => a.ad_id);
-    const previewLinks = {};
+    const adExtras = {};
     for (let i = 0; i < adIds.length; i += 50) {
       const chunk = adIds.slice(i, i + 50);
       try {
         const response = await axios.get(`${FB_GRAPH_API_URL}/`, {
           params: {
             ids: chunk.join(','),
-            fields: 'preview_shareable_link',
+            fields: 'preview_shareable_link,adset{daily_budget,lifetime_budget}',
             access_token: this.accessToken
           }
         });
         for (const [id, data] of Object.entries(response.data)) {
-          previewLinks[id] = data.preview_shareable_link || null;
+          const dailyBudget = data.adset?.daily_budget ? parseFloat(data.adset.daily_budget) / 100 : 0;
+          const lifetimeBudget = data.adset?.lifetime_budget ? parseFloat(data.adset.lifetime_budget) / 100 : 0;
+          adExtras[id] = {
+            preview_url: data.preview_shareable_link || null,
+            budget: dailyBudget || lifetimeBudget || 0,
+            budget_type: dailyBudget ? 'daily' : lifetimeBudget ? 'lifetime' : null
+          };
         }
       } catch (e) {
-        // Preview links are optional — don't fail the whole request
+        // Extras are optional — don't fail the whole request
       }
     }
 
     ads.forEach(ad => {
-      ad.preview_url = previewLinks[ad.ad_id] || null;
+      const extra = adExtras[ad.ad_id] || {};
+      ad.preview_url = extra.preview_url || null;
+      ad.budget = extra.budget || 0;
+      ad.budget_type = extra.budget_type || null;
     });
 
     // Sort by spend DESC
