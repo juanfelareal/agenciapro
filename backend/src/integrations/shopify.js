@@ -116,20 +116,29 @@ class ShopifyIntegration {
    * @returns {{revenue, orders, aov, refunds, netRevenue}}
    */
   calculateMetricsFromOrders(orders) {
-    let totalRevenue = 0;
+    let totalRevenue = 0;    // total_price (includes shipping + tax)
+    let totalSubtotal = 0;   // subtotal_price (products - discounts, no shipping/tax)
     let totalRefunds = 0;
     let totalTax = 0;
     let totalDiscounts = 0;
     let orderCount = 0;
+    let pendingOrders = 0;
 
     orders.forEach(order => {
       // Skip cancelled orders
       if (order.cancelled_at) return;
 
+      // Count pending/unpaid orders
+      if (order.financial_status === 'pending' || order.financial_status === 'authorized' || order.financial_status === 'partially_paid') {
+        pendingOrders++;
+        return; // Don't count in revenue
+      }
+
       // Count paid orders
       if (order.financial_status === 'paid' || order.financial_status === 'partially_refunded') {
         orderCount++;
         totalRevenue += parseFloat(order.total_price) || 0;
+        totalSubtotal += parseFloat(order.subtotal_price) || 0;
         totalTax += parseFloat(order.total_tax) || 0;
         totalDiscounts += parseFloat(order.total_discounts) || 0;
 
@@ -144,17 +153,18 @@ class ShopifyIntegration {
       }
     });
 
-    const netRevenue = totalRevenue - totalRefunds;
+    const netRevenue = totalSubtotal - totalRefunds;  // Fixed: without shipping/tax
     const aov = orderCount > 0 ? totalRevenue / orderCount : 0;
 
     return {
-      revenue: totalRevenue,
+      revenue: totalRevenue,       // "Venta Total" = total_price
       orders: orderCount,
       aov,
       refunds: totalRefunds,
-      netRevenue,
+      netRevenue,                  // "Venta Neta" = subtotal - refunds (= Shopify "Ventas netas")
       totalTax,
-      totalDiscounts
+      totalDiscounts,
+      pendingOrders                // Pedidos sin pagar
     };
   }
 

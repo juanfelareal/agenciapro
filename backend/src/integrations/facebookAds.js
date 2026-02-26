@@ -224,6 +224,96 @@ class FacebookAdsIntegration {
   }
 
   /**
+   * Get ad-level insights for a date range (on-demand, not stored in DB)
+   * @param {string} startDate - Start date in YYYY-MM-DD format
+   * @param {string} endDate - End date in YYYY-MM-DD format
+   * @returns {Promise<Array>} Array of ad objects with metrics, sorted by spend DESC
+   */
+  async getAdLevelInsights(startDate, endDate) {
+    let allData = [];
+    let url = `${FB_GRAPH_API_URL}/${this.adAccountId}/insights`;
+    let params = {
+      access_token: this.accessToken,
+      time_range: JSON.stringify({ since: startDate, until: endDate }),
+      fields: [
+        'ad_id',
+        'ad_name',
+        'adset_name',
+        'campaign_name',
+        'spend',
+        'impressions',
+        'clicks',
+        'ctr',
+        'cpc',
+        'cpm',
+        'actions',
+        'action_values',
+        'cost_per_action_type',
+        'video_play_actions'
+      ].join(','),
+      level: 'ad',
+      limit: 500
+    };
+
+    // Fetch with pagination
+    let hasNext = true;
+    while (hasNext) {
+      const response = await axios.get(url, { params });
+      const data = response.data.data || [];
+      allData = allData.concat(data);
+
+      if (response.data.paging?.next) {
+        url = response.data.paging.next;
+        params = {}; // next URL already contains all params
+      } else {
+        hasNext = false;
+      }
+    }
+
+    // Parse each ad's metrics
+    const ads = allData.map(ad => {
+      const spend = parseFloat(ad.spend) || 0;
+      const impressions = parseInt(ad.impressions) || 0;
+      const clicks = parseInt(ad.clicks) || 0;
+      const ctr = parseFloat(ad.ctr) || 0;
+      const cpc = parseFloat(ad.cpc) || 0;
+      const cpm = parseFloat(ad.cpm) || 0;
+      const conversions = this.parseConversions(ad.actions);
+      const revenue = this.parseRevenue(ad.action_values);
+      const roas = spend > 0 ? revenue / spend : 0;
+      const costPerPurchase = this.parseCostPerAction(ad.cost_per_action_type, 'purchase');
+      const video3SecViews = this.parseVideo3SecViews(ad.video_play_actions, ad.actions);
+      const videoThruplayViews = this.parseThruplayViews(ad.actions);
+      const hookRate = impressions > 0 ? (video3SecViews / impressions) * 100 : 0;
+      const holdRate = video3SecViews > 0 ? (videoThruplayViews / video3SecViews) * 100 : 0;
+
+      return {
+        ad_id: ad.ad_id,
+        ad_name: ad.ad_name,
+        adset_name: ad.adset_name,
+        campaign_name: ad.campaign_name,
+        spend,
+        impressions,
+        clicks,
+        ctr,
+        cpc,
+        cpm,
+        conversions,
+        revenue,
+        roas,
+        cost_per_purchase: costPerPurchase,
+        hook_rate: hookRate,
+        hold_rate: holdRate
+      };
+    });
+
+    // Sort by spend DESC
+    ads.sort((a, b) => b.spend - a.spend);
+
+    return ads;
+  }
+
+  /**
    * Get aggregated metrics for a date range
    * @param {string} startDate - Start date in YYYY-MM-DD format
    * @param {string} endDate - End date in YYYY-MM-DD format

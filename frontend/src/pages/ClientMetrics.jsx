@@ -43,6 +43,8 @@ function ClientMetrics() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [ads, setAds] = useState(null);
+  const [adsLoading, setAdsLoading] = useState(false);
 
   const [dateRange, setDateRange] = useState({
     start: getColombiaDate(-7),
@@ -68,9 +70,23 @@ function ClientMetrics() {
     }
   };
 
+  const loadAds = async () => {
+    setAdsLoading(true);
+    try {
+      const res = await clientMetricsAPI.getAds(clientId, dateRange.start, dateRange.end);
+      setAds(res.data.ads || []);
+    } catch (error) {
+      console.error('Error loading ads:', error);
+      setAds([]);
+    } finally {
+      setAdsLoading(false);
+    }
+  };
+
   const loadMetrics = async () => {
     try {
       setLoading(true);
+      setAds(null);
       const [metricsRes, dailyRes] = await Promise.all([
         clientMetricsAPI.getMetrics(clientId, dateRange.start, dateRange.end),
         clientMetricsAPI.getDailyMetrics(clientId, dateRange.start, dateRange.end)
@@ -135,6 +151,7 @@ function ClientMetrics() {
     { key: 'metric_date', label: 'Fecha', type: 'date' },
     { key: 'shopify_net_revenue', label: 'Venta Neta', type: 'currency', align: 'right' },
     { key: 'shopify_orders', label: 'Pedidos', type: 'integer', align: 'right' },
+    { key: 'shopify_pending_orders', label: 'Pendientes', type: 'integer', align: 'right' },
     { key: 'shopify_aov', label: 'Ticket Promedio', type: 'currency', align: 'right' },
     { key: 'fb_spend', label: 'Inversion', type: 'currency', align: 'right' },
     { key: 'cost_per_order', label: 'Costo/Pedido', type: 'currency', align: 'right' },
@@ -359,6 +376,15 @@ function ClientMetrics() {
       {/* New Metrics Row: Shopify Expanded */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
+          title="Pedidos Pendientes"
+          value={metrics?.total_pending_orders}
+          icon={ShoppingCart}
+          iconBgColor="bg-red-100"
+          iconColor="text-red-600"
+          format="integer"
+          loading={loading}
+        />
+        <MetricCard
           title="Tasa de Conversión"
           value={metrics?.conversion_rate}
           icon={TrendingUp}
@@ -394,6 +420,90 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
         />
+      </div>
+
+      {/* Ad-Level Performance */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+            <Target className="w-5 h-5 text-blue-500" />
+            Rendimiento por Anuncio
+          </h3>
+          {ads === null && (
+            <button
+              onClick={loadAds}
+              disabled={adsLoading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+            >
+              {adsLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+              Ver anuncios
+            </button>
+          )}
+        </div>
+
+        {adsLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          </div>
+        )}
+
+        {ads !== null && !adsLoading && ads.length === 0 && (
+          <p className="text-sm text-gray-500 text-center py-8">
+            No hay anuncios con actividad en este periodo
+          </p>
+        )}
+
+        {ads !== null && !adsLoading && ads.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
+                  <th className="text-left py-3 px-3 font-medium text-gray-500">Campaña</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Impresiones</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Clics</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">CTR</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Conv.</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">ROAS</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Compra</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Hook Rate</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Hold Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ads.map((ad) => {
+                  const fmtCurrency = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
+                  const fmtNumber = (v) => new Intl.NumberFormat('es-CO').format(v || 0);
+                  const fmtPercent = (v) => `${(v || 0).toFixed(2)}%`;
+                  return (
+                    <tr key={ad.ad_id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <td className="py-3 px-3 max-w-[200px] truncate" title={ad.ad_name}>
+                        {ad.ad_name}
+                      </td>
+                      <td className="py-3 px-3 max-w-[160px] truncate text-gray-500" title={ad.campaign_name}>
+                        {ad.campaign_name}
+                      </td>
+                      <td className="py-3 px-3 text-right font-medium">{fmtCurrency(ad.spend)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(ad.impressions)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(ad.clicks)}</td>
+                      <td className="py-3 px-3 text-right">{fmtPercent(ad.ctr)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(ad.conversions)}</td>
+                      <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
+                      <td className="py-3 px-3 text-right">{fmtCurrency(ad.cost_per_purchase)}</td>
+                      <td className="py-3 px-3 text-right">{fmtPercent(ad.hook_rate)}</td>
+                      <td className="py-3 px-3 text-right">{fmtPercent(ad.hold_rate)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Daily Metrics Table */}

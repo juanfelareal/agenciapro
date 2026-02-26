@@ -150,6 +150,11 @@ export const portalMetricsAPI = {
     const response = await portalApi.get('/metrics/insight');
     return response.data;
   },
+
+  getAds: async (params = {}) => {
+    const response = await portalApi.get('/metrics/ads', { params });
+    return response.data;
+  },
 };
 
 // ============================================

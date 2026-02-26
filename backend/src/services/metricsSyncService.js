@@ -120,6 +120,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
           shopify_total_discounts = ?,
           shopify_sessions = ?,
           shopify_conversion_rate = ?,
+          shopify_pending_orders = ?,
           fb_spend = ?,
           fb_impressions = ?,
           fb_clicks = ?,
@@ -152,6 +153,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.shopify_total_discounts || 0,
       metrics.shopify_sessions || 0,
       metrics.shopify_conversion_rate || 0,
+      metrics.shopify_pending_orders || 0,
       metrics.fb_spend || 0,
       metrics.fb_impressions || 0,
       metrics.fb_clicks || 0,
@@ -180,12 +182,13 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
         client_id, metric_date,
         shopify_revenue, shopify_orders, shopify_aov, shopify_refunds, shopify_net_revenue,
         shopify_total_tax, shopify_total_discounts, shopify_sessions, shopify_conversion_rate,
+        shopify_pending_orders,
         fb_spend, fb_impressions, fb_clicks, fb_ctr, fb_cpc, fb_cpm,
         fb_conversions, fb_revenue, fb_roas,
         fb_cost_per_purchase, fb_landing_page_views, fb_cost_per_landing_page_view,
         fb_video_3sec_views, fb_video_thruplay_views, fb_hook_rate, fb_hold_rate,
         total_revenue, overall_roas, cost_per_order, ad_spend_percentage
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       clientId, date,
       metrics.shopify_revenue || 0,
@@ -197,6 +200,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.shopify_total_discounts || 0,
       metrics.shopify_sessions || 0,
       metrics.shopify_conversion_rate || 0,
+      metrics.shopify_pending_orders || 0,
       metrics.fb_spend || 0,
       metrics.fb_impressions || 0,
       metrics.fb_clicks || 0,
@@ -265,7 +269,7 @@ export async function syncClientForDate(clientId, date) {
     return { success: false, error: 'Cliente no encontrado' };
   }
 
-  let shopifyMetrics = { revenue: 0, orders: 0, aov: 0, refunds: 0, netRevenue: 0, totalTax: 0, totalDiscounts: 0, sessions: 0, conversionRate: 0 };
+  let shopifyMetrics = { revenue: 0, orders: 0, aov: 0, refunds: 0, netRevenue: 0, totalTax: 0, totalDiscounts: 0, sessions: 0, conversionRate: 0, pendingOrders: 0 };
   let fbMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerPurchase: 0, costPerLandingPageView: 0, landingPageViews: 0, video3SecViews: 0, videoThruplayViews: 0, hookRate: 0, holdRate: 0 };
   let shopifyOk = false;
   let fbOk = false;
@@ -317,6 +321,7 @@ export async function syncClientForDate(clientId, date) {
     shopify_total_discounts: shopifyMetrics.totalDiscounts,
     shopify_sessions: shopifyMetrics.sessions,
     shopify_conversion_rate: shopifyMetrics.conversionRate,
+    shopify_pending_orders: shopifyMetrics.pendingOrders,
     fb_spend: fbMetrics.spend,
     fb_impressions: fbMetrics.impressions,
     fb_clicks: fbMetrics.clicks,
@@ -506,7 +511,12 @@ export async function syncAllClientsSmart(startDate = null, endDate = null) {
     try {
       const clientName = client.name || client.company;
       const existingDates = await getExistingDates(client.id, startDate, endDate);
-      const missingDates = allDates.filter(d => !existingDates.has(d));
+      // Always re-sync last 7 days to catch payment status changes and fix stale data
+      const forceResyncDate = getColombiaDate(-7);
+      const missingDates = allDates.filter(d => {
+        if (d >= forceResyncDate) return true;  // Always re-sync recent days
+        return !existingDates.has(d);
+      });
 
       if (missingDates.length === 0) {
         console.log(`  ✅ ${clientName}: all ${allDates.length} days already synced, skipping`);

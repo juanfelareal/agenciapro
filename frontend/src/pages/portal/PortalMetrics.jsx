@@ -31,6 +31,8 @@ export default function PortalMetrics() {
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30d');
+  const [ads, setAds] = useState(null);
+  const [adsLoading, setAdsLoading] = useState(false);
 
   useEffect(() => {
     loadMetrics();
@@ -38,6 +40,7 @@ export default function PortalMetrics() {
 
   const loadMetrics = async () => {
     setLoading(true);
+    setAds(null);
     try {
       const [summaryRes, dailyRes, insightRes] = await Promise.all([
         portalMetricsAPI.getSummary({ range: dateRange }),
@@ -51,6 +54,19 @@ export default function PortalMetrics() {
       console.error('Error loading metrics:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAds = async () => {
+    setAdsLoading(true);
+    try {
+      const res = await portalMetricsAPI.getAds({ range: dateRange });
+      setAds(res.ads || []);
+    } catch (error) {
+      console.error('Error loading ads:', error);
+      setAds([]);
+    } finally {
+      setAdsLoading(false);
     }
   };
 
@@ -325,42 +341,40 @@ export default function PortalMetrics() {
                 </div>
               </div>
 
-              {/* Creative Performance (only if video data exists) */}
-              {(metrics.facebook.hook_rate > 0 || metrics.facebook.hold_rate > 0) && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Video className="w-4 h-4" />
-                    Rendimiento Creativo
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Hook Rate */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-500">Hook Rate (3s)</p>
-                          <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                            {formatPercent(metrics.facebook.hook_rate)}
-                          </p>
-                        </div>
-                        <TrendIndicator value={metrics.facebook.hook_rate_change} />
+              {/* Creative Performance */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Video className="w-4 h-4" />
+                  Rendimiento Creativo
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Hook Rate */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Hook Rate (3s)</p>
+                        <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                          {formatPercent(metrics.facebook.hook_rate)}
+                        </p>
                       </div>
+                      <TrendIndicator value={metrics.facebook.hook_rate_change} />
                     </div>
+                  </div>
 
-                    {/* Hold Rate */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-gray-500">Hold Rate (ThruPlay)</p>
-                          <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                            {formatPercent(metrics.facebook.hold_rate)}
-                          </p>
-                        </div>
-                        <TrendIndicator value={metrics.facebook.hold_rate_change} />
+                  {/* Hold Rate */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Hold Rate (ThruPlay)</p>
+                        <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                          {formatPercent(metrics.facebook.hold_rate)}
+                        </p>
                       </div>
+                      <TrendIndicator value={metrics.facebook.hold_rate_change} />
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -575,7 +589,7 @@ export default function PortalMetrics() {
               </div>
 
               {/* Video Performance Chart (Hook Rate + Hold Rate) */}
-              {hasVideoData && (
+              {metrics?.facebook && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
                   <h3 className="text-base font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
                     <Video className="w-4 h-4 text-amber-500" />
@@ -621,6 +635,87 @@ export default function PortalMetrics() {
             </div>
           )}
         </>
+      )}
+
+      {/* Ad-Level Performance */}
+      {metrics?.facebook && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
+              <Target className="w-4 h-4 text-blue-500" />
+              Rendimiento por Anuncio
+            </h3>
+            {ads === null && (
+              <button
+                onClick={loadAds}
+                disabled={adsLoading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+              >
+                {adsLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <BarChart3 className="w-4 h-4" />
+                )}
+                Ver anuncios
+              </button>
+            )}
+          </div>
+
+          {adsLoading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+            </div>
+          )}
+
+          {ads !== null && !adsLoading && ads.length === 0 && (
+            <p className="text-sm text-gray-500 text-center py-8">
+              No hay anuncios con actividad en este periodo
+            </p>
+          )}
+
+          {ads !== null && !adsLoading && ads.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
+                    <th className="text-left py-3 px-3 font-medium text-gray-500">Campaña</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Impresiones</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Clics</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">CTR</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Conv.</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">ROAS</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Compra</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Hook Rate</th>
+                    <th className="text-right py-3 px-3 font-medium text-gray-500">Hold Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ads.map((ad) => (
+                    <tr key={ad.ad_id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <td className="py-3 px-3 max-w-[200px] truncate" title={ad.ad_name}>
+                        {ad.ad_name}
+                      </td>
+                      <td className="py-3 px-3 max-w-[160px] truncate text-gray-500" title={ad.campaign_name}>
+                        {ad.campaign_name}
+                      </td>
+                      <td className="py-3 px-3 text-right font-medium">{formatCurrency(ad.spend)}</td>
+                      <td className="py-3 px-3 text-right">{formatNumber(ad.impressions)}</td>
+                      <td className="py-3 px-3 text-right">{formatNumber(ad.clicks)}</td>
+                      <td className="py-3 px-3 text-right">{formatPercent(ad.ctr)}</td>
+                      <td className="py-3 px-3 text-right">{formatNumber(ad.conversions)}</td>
+                      <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
+                      <td className="py-3 px-3 text-right">{formatCurrency(ad.cost_per_purchase)}</td>
+                      <td className="py-3 px-3 text-right">{formatPercent(ad.hook_rate)}</td>
+                      <td className="py-3 px-3 text-right">{formatPercent(ad.hold_rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Info Note */}

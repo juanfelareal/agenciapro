@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../config/database.js';
 import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllClientsSmart } from '../services/metricsSyncService.js';
+import FacebookAdsIntegration from '../integrations/facebookAds.js';
 
 const router = Router();
 
@@ -58,7 +59,8 @@ router.get('/:clientId', async (req, res) => {
         SUM(shopify_sessions) as total_sessions,
         SUM(fb_video_3sec_views) as total_video_3sec_views,
         SUM(fb_video_thruplay_views) as total_video_thruplay_views,
-        SUM(fb_landing_page_views) as total_landing_page_views
+        SUM(fb_landing_page_views) as total_landing_page_views,
+        SUM(shopify_pending_orders) as total_pending_orders
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
     `).get(clientId, start_date, end_date);
@@ -84,7 +86,8 @@ router.get('/:clientId', async (req, res) => {
       total_sessions: metrics.total_sessions || 0,
       total_landing_page_views: metrics.total_landing_page_views || 0,
       total_video_3sec_views: metrics.total_video_3sec_views || 0,
-      total_video_thruplay_views: metrics.total_video_thruplay_views || 0
+      total_video_thruplay_views: metrics.total_video_thruplay_views || 0,
+      total_pending_orders: metrics.total_pending_orders || 0
     };
 
     res.json(result);
@@ -144,7 +147,8 @@ router.get('/:clientId/daily', async (req, res) => {
         shopify_total_tax,
         shopify_total_discounts,
         shopify_sessions,
-        shopify_conversion_rate
+        shopify_conversion_rate,
+        shopify_pending_orders
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
       ORDER BY metric_date DESC
@@ -187,7 +191,8 @@ router.get('/aggregate/all', async (req, res) => {
         SUM(m.shopify_sessions) as total_sessions,
         SUM(m.fb_video_3sec_views) as total_video_3sec_views,
         SUM(m.fb_video_thruplay_views) as total_video_thruplay_views,
-        SUM(m.fb_landing_page_views) as total_landing_page_views
+        SUM(m.fb_landing_page_views) as total_landing_page_views,
+        SUM(m.shopify_pending_orders) as total_pending_orders
       FROM clients c
       INNER JOIN client_daily_metrics m ON c.id = m.client_id
       WHERE m.metric_date BETWEEN ? AND ? AND c.organization_id = ?
@@ -269,6 +274,50 @@ router.get('/summary/all', async (req, res) => {
     res.json(clients);
   } catch (error) {
     console.error('Error fetching client summary:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/client-metrics/:clientId/ads
+ * Get ad-level insights (on-demand from Facebook API)
+ */
+router.get('/:clientId/ads', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { clientId } = req.params;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    }
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    // Get Facebook credentials
+    const fbCred = await db.prepare(
+      'SELECT access_token, ad_account_id FROM client_facebook_credentials WHERE client_id = ?'
+    ).get(clientId);
+
+    if (!fbCred || !fbCred.ad_account_id) {
+      return res.json({ ads: [], message: 'Sin conexión Facebook' });
+    }
+
+    const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+    if (!accessToken) {
+      return res.json({ ads: [], message: 'Sin token de acceso Facebook' });
+    }
+
+    const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
+    const ads = await fb.getAdLevelInsights(start_date, end_date);
+
+    res.json({ ads });
+  } catch (error) {
+    console.error('Error fetching ad-level insights:', error.response?.data || error.message);
     res.status(500).json({ error: error.message });
   }
 });

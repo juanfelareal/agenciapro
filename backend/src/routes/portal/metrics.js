@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
+import FacebookAdsIntegration from '../../integrations/facebookAds.js';
 
 const router = express.Router();
 
@@ -65,7 +66,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(fb_landing_page_views), 0) as total_landing_page_views,
         COALESCE(SUM(shopify_total_tax), 0) as total_tax,
         COALESCE(SUM(shopify_total_discounts), 0) as total_discounts,
-        COALESCE(SUM(shopify_sessions), 0) as total_sessions
+        COALESCE(SUM(shopify_sessions), 0) as total_sessions,
+        COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -88,7 +90,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(fb_landing_page_views), 0) as total_landing_page_views,
         COALESCE(SUM(shopify_total_tax), 0) as total_tax,
         COALESCE(SUM(shopify_total_discounts), 0) as total_discounts,
-        COALESCE(SUM(shopify_sessions), 0) as total_sessions
+        COALESCE(SUM(shopify_sessions), 0) as total_sessions,
+        COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -119,6 +122,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const hookRate = fbImpressions > 0 ? (video3sec / fbImpressions) * 100 : 0;
     const holdRate = video3sec > 0 ? (thruplay / video3sec) * 100 : 0;
     const conversionRate = sessions > 0 ? (orders / sessions) * 100 : 0;
+    const pendingOrders = current?.total_pending_orders || 0;
 
     // Previous derived
     const prevSpend = previous?.total_ad_spend || 0;
@@ -144,6 +148,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const prevHookRate = prevImpressions > 0 ? (prevVideo3sec / prevImpressions) * 100 : 0;
     const prevHoldRate = prevVideo3sec > 0 ? (prevThruplay / prevVideo3sec) * 100 : 0;
     const prevConversionRate = prevSessions > 0 ? (prevOrders / prevSessions) * 100 : 0;
+    const prevPendingOrders = previous?.total_pending_orders || 0;
 
     // Connected platforms
     const facebookAccounts = await db.all(`
@@ -216,6 +221,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         sessions_change: calcChange(sessions, prevSessions),
         conversion_rate: conversionRate,
         conversion_rate_change: calcChange(conversionRate, prevConversionRate),
+        pending_orders: pendingOrders,
+        pending_orders_change: calcChange(pendingOrders, prevPendingOrders),
       };
     }
 
@@ -248,6 +255,40 @@ router.get('/daily', clientAuthMiddleware, requirePortalPermission('can_view_met
   } catch (error) {
     console.error('Error getting daily metrics:', error);
     res.status(500).json({ error: 'Error al cargar métricas diarias' });
+  }
+});
+
+/**
+ * GET /api/portal/metrics/ads
+ * Get ad-level insights (on-demand from Facebook API)
+ */
+router.get('/ads', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { startDate, endDate } = resolveRange(req.query);
+
+    // Get Facebook credentials
+    const fbCred = await db.get(
+      'SELECT access_token, ad_account_id FROM client_facebook_credentials WHERE client_id = ?',
+      [clientId]
+    );
+
+    if (!fbCred || !fbCred.ad_account_id) {
+      return res.json({ ads: [], message: 'Sin conexión Facebook' });
+    }
+
+    const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+    if (!accessToken) {
+      return res.json({ ads: [], message: 'Sin token de acceso Facebook' });
+    }
+
+    const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
+    const ads = await fb.getAdLevelInsights(startDate, endDate);
+
+    res.json({ ads });
+  } catch (error) {
+    console.error('Error fetching portal ad-level insights:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar anuncios' });
   }
 });
 
