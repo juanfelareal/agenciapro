@@ -29,7 +29,8 @@ import {
   Filter,
   UserCircle,
   MapPin,
-  ChevronRight
+  ChevronRight,
+  Tag
 } from 'lucide-react';
 
 export default function PortalMetrics() {
@@ -48,6 +49,8 @@ export default function PortalMetrics() {
   const [compareDates, setCompareDates] = useState({ start: '', end: '' });
   const [demographics, setDemographics] = useState(null);
   const [demographicsLoading, setDemographicsLoading] = useState(false);
+  const [categories, setCategories] = useState(null);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   useEffect(() => {
     if (dateRange !== 'custom') {
@@ -119,6 +122,7 @@ export default function PortalMetrics() {
     setAds(null);
     setTopProducts(null);
     setDemographics(null);
+    setCategories(null);
     try {
       const params = getApiParams();
       const [summaryRes, dailyRes, insightRes] = await Promise.all([
@@ -172,6 +176,19 @@ export default function PortalMetrics() {
       setDemographics({ facebook: null, shopify: null, avatar: null });
     } finally {
       setDemographicsLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const res = await portalMetricsAPI.getCategories(getApiParams());
+      setCategories(res.categories || []);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
     }
   };
 
@@ -1035,64 +1052,127 @@ export default function PortalMetrics() {
             </div>
           )}
 
-          {/* Conversion Funnel */}
-          {funnelData && funnelData.maxValue > 0 && (
+          {/* Venta por Categorías (Colecciones) */}
+          {metrics?.shopify && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-              <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2 mb-6">
-                <Filter className="w-4 h-4 text-indigo-500" />
-                Embudo de Conversión
-              </h3>
-              <div className="space-y-1">
-                {funnelData.steps.map((step, idx) => {
-                  const widthPct = funnelData.maxValue > 0
-                    ? Math.max(25, (step.value / funnelData.maxValue) * 100)
-                    : 25;
-                  const rate = funnelData.rates[idx];
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-teal-500" />
+                  Venta por Categorías
+                </h3>
+                {categories === null && (
+                  <button
+                    onClick={loadCategories}
+                    disabled={categoriesLoading}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+                  >
+                    {categoriesLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Tag className="w-4 h-4" />
+                    )}
+                    Ver categorías
+                  </button>
+                )}
+              </div>
 
-                  return (
-                    <div key={step.label}>
-                      {/* Step bar */}
-                      <div className="flex justify-center">
-                        <div
-                          className="relative rounded-xl px-5 py-3.5 flex items-center justify-between text-white font-medium transition-all"
-                          style={{
-                            width: `${widthPct}%`,
-                            backgroundColor: step.color,
-                            minWidth: '200px',
-                          }}
-                        >
-                          <span className="flex items-center gap-2 text-sm">
-                            <span>{step.icon}</span> {step.label}
+              {categoriesLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+              )}
+
+              {categories !== null && !categoriesLoading && categories.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-8">
+                  No hay datos de categorías en este periodo
+                </p>
+              )}
+
+              {categories !== null && !categoriesLoading && categories.length > 0 && (
+                <div className="space-y-3">
+                  {categories.slice(0, 15).map((cat, idx) => {
+                    const maxRevenue = categories[0]?.revenue || 1;
+                    const barPct = (cat.revenue / maxRevenue) * 100;
+                    return (
+                      <div key={idx} className="flex items-center gap-4">
+                        <span className="text-sm font-medium text-[#1A1A2E] w-[35%] min-w-[120px] truncate" title={cat.collection}>
+                          {cat.collection}
+                        </span>
+                        <div className="flex-1 flex items-center gap-3">
+                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${barPct}%`, backgroundColor: '#2DD4BF' }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold text-[#1A1A2E] w-[120px] text-right flex-shrink-0">
+                            {formatCurrency(cat.revenue)}
                           </span>
-                          <span className="text-sm font-bold">{formatNumber(step.value)}</span>
                         </div>
                       </div>
-                      {/* Rate badge between steps */}
-                      {rate && (
-                        <div className="flex justify-center py-1.5">
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${getSemaphore(rate.value, rate.key).bg}`}>
-                            <span>{getSemaphore(rate.value, rate.key).icon}</span>
-                            <span className={getSemaphore(rate.value, rate.key).color}>
-                              {rate.label}: {rate.value.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Threshold legend */}
-              <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                <span className="font-medium">Umbrales:</span>
-                <span>🟢 CTR ≥ 1.5%</span>
-                <span>🟢 Landing ≥ 60%</span>
-                <span>🟢 ATC ≥ 8%</span>
-                <span>🟢 Conv ≥ 25%</span>
-                <span className="text-gray-400">| 🟡 Medio | 🔴 Bajo</span>
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
+
+          {/* Conversion Funnel */}
+          {funnelData && funnelData.maxValue > 0 && (() => {
+            const widths = [100, 80, 62, 46, 32];
+            return (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2 mb-6">
+                  <Filter className="w-4 h-4 text-indigo-500" />
+                  Embudo de Conversión
+                </h3>
+                <div className="flex flex-col items-center">
+                  {funnelData.steps.map((step, idx) => {
+                    const topW = widths[idx];
+                    const botW = widths[idx + 1] || widths[idx] * 0.75;
+                    const rate = funnelData.rates[idx];
+                    const clipLeft = ((100 - topW) / 2);
+                    const clipRight = ((100 + topW) / 2);
+                    const clipBotLeft = ((100 - botW) / 2);
+                    const clipBotRight = ((100 + botW) / 2);
+
+                    return (
+                      <div key={step.label} className="w-full flex flex-col items-center">
+                        {/* Trapezoid step */}
+                        <div
+                          className="w-full flex flex-col items-center justify-center py-5 text-white"
+                          style={{
+                            backgroundColor: '#1E293B',
+                            clipPath: `polygon(${clipLeft}% 0%, ${clipRight}% 0%, ${clipBotRight}% 100%, ${clipBotLeft}% 100%)`,
+                          }}
+                        >
+                          <span className="text-xs font-medium text-gray-300 tracking-wide">{step.label}</span>
+                          <span className="text-2xl font-bold mt-0.5">{formatNumber(step.value)}</span>
+                        </div>
+                        {/* Rate row between steps */}
+                        {rate && (
+                          <div className="w-full flex items-center justify-center py-2.5 border-b border-gray-100">
+                            <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${getSemaphore(rate.value, rate.key).color}`}>
+                              {getSemaphore(rate.value, rate.key).icon} {rate.label}: {rate.value.toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Threshold legend */}
+                <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                  <span className="font-medium">Umbrales:</span>
+                  <span>🟢 CTR ≥ 1.5%</span>
+                  <span>🟢 Landing ≥ 60%</span>
+                  <span>🟢 ATC ≥ 8%</span>
+                  <span>🟢 Conv ≥ 25%</span>
+                  <span className="text-gray-400">| 🟡 Medio | 🔴 Bajo</span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Top 5 Anuncios */}
           {metrics?.facebook && (

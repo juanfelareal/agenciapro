@@ -304,6 +304,99 @@ class ShopifyIntegration {
   }
 
   /**
+   * Get product → collection titles map using GraphQL
+   * @returns {Promise<Object<number, string[]>>}
+   */
+  async getProductCollectionMap() {
+    const productCollections = {};
+    let hasNextPage = true;
+    let cursor = null;
+
+    while (hasNextPage) {
+      const afterClause = cursor ? `, after: "${cursor}"` : '';
+      const query = `{
+        products(first: 250${afterClause}) {
+          edges {
+            node {
+              legacyResourceId
+              collections(first: 10) {
+                edges { node { title } }
+              }
+            }
+            cursor
+          }
+          pageInfo { hasNextPage }
+        }
+      }`;
+
+      const response = await axios.post(
+        `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
+        { query },
+        {
+          headers: {
+            'X-Shopify-Access-Token': this.accessToken,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const edges = response.data?.data?.products?.edges || [];
+      edges.forEach(edge => {
+        const productId = parseInt(edge.node.legacyResourceId);
+        const collections = edge.node.collections.edges.map(c => c.node.title);
+        if (collections.length > 0) {
+          productCollections[productId] = collections;
+        }
+      });
+
+      hasNextPage = response.data?.data?.products?.pageInfo?.hasNextPage || false;
+      cursor = edges.length > 0 ? edges[edges.length - 1].cursor : null;
+      if (!cursor) hasNextPage = false;
+    }
+
+    return productCollections;
+  }
+
+  /**
+   * Get sales aggregated by collection for a date range
+   * @param {string} startDate
+   * @param {string} endDate
+   * @returns {Promise<Array<{collection, revenue, quantity, orders}>>}
+   */
+  async getSalesByCollection(startDate, endDate) {
+    const [orders, productCollections] = await Promise.all([
+      this.getOrders(startDate, endDate),
+      this.getProductCollectionMap()
+    ]);
+
+    const collectionMap = {};
+    orders.forEach(order => {
+      if (order.cancelled_at) return;
+      if (order.financial_status !== 'paid' && order.financial_status !== 'partially_refunded') return;
+
+      const orderCounted = new Set();
+      (order.line_items || []).forEach(item => {
+        const collections = productCollections[item.product_id] || ['Sin categoría'];
+        const itemRevenue = (parseFloat(item.price) || 0) * (item.quantity || 0);
+
+        collections.forEach(col => {
+          if (!collectionMap[col]) {
+            collectionMap[col] = { collection: col, revenue: 0, quantity: 0, orders: 0 };
+          }
+          collectionMap[col].revenue += itemRevenue;
+          collectionMap[col].quantity += item.quantity || 0;
+          if (!orderCounted.has(col)) {
+            collectionMap[col].orders += 1;
+            orderCounted.add(col);
+          }
+        });
+      });
+    });
+
+    return Object.values(collectionMap).sort((a, b) => b.revenue - a.revenue);
+  }
+
+  /**
    * Get daily metrics breakdown for a date range
    * @param {string} startDate
    * @param {string} endDate

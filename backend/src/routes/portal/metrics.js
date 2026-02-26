@@ -401,6 +401,34 @@ router.get('/top-products', clientAuthMiddleware, requirePortalPermission('can_v
 });
 
 /**
+ * GET /api/portal/metrics/categories
+ * Get sales by Shopify collection (on-demand)
+ */
+router.get('/categories', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { startDate, endDate } = resolveRange(req.query);
+
+    const shopifyCred = await db.get(
+      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = ? AND status = ?',
+      [clientId, 'active']
+    );
+
+    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
+      return res.json({ categories: [], message: 'Sin conexión Shopify' });
+    }
+
+    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
+    const categories = await shopify.getSalesByCollection(startDate, endDate);
+
+    res.json({ categories });
+  } catch (error) {
+    console.error('Error fetching categories:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar categorías' });
+  }
+});
+
+/**
  * GET /api/portal/metrics/demographics
  * Get demographic breakdown: Meta age/gender + Shopify regions + brand avatar
  */
