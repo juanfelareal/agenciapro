@@ -269,10 +269,7 @@ router.get('/callback-status', async (req, res) => {
     return res.json({ pending: true });
   }
 
-  // Clean up after reading
-  callbackResults.delete(state);
-
-  // Clean up old results (older than 5 minutes)
+  // Clean up old results (older than 5 minutes) but keep current one for re-polls
   const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
   for (const [key, value] of callbackResults.entries()) {
     if (value.createdAt < fiveMinutesAgo) {

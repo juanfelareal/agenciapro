@@ -228,18 +228,9 @@ function ClientPlatformSettings() {
       // Poll for callback result (fallback since window.opener is lost in cross-origin redirects)
       const pollInterval = setInterval(async () => {
         try {
-          // Stop polling if popup was closed manually without completing
-          if (popup && popup.closed) {
-            const pollRes = await shopifyOAuthAPI.pollCallbackStatus(oauthState);
-            if (pollRes.data.pending) {
-              // Popup closed without completing OAuth
-              clearInterval(pollInterval);
-              setConnectingShopify(false);
-              return;
-            }
-          }
-
           const pollRes = await shopifyOAuthAPI.pollCallbackStatus(oauthState);
+
+          // Result found — handle it
           if (!pollRes.data.pending) {
             clearInterval(pollInterval);
             if (pollRes.data.type === 'shopify_oauth_success') {
@@ -250,6 +241,13 @@ function ClientPlatformSettings() {
               setConnectingShopify(false);
               alert('Error al conectar con Shopify: ' + (pollRes.data.error || 'Error desconocido'));
             }
+            return;
+          }
+
+          // Still pending — if popup is closed, give up
+          if (popup && popup.closed) {
+            clearInterval(pollInterval);
+            setConnectingShopify(false);
           }
         } catch {
           // Ignore polling errors, will retry
