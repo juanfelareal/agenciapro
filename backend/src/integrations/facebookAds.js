@@ -307,6 +307,31 @@ class FacebookAdsIntegration {
       };
     });
 
+    // Fetch preview links in chunks of 50
+    const adIds = ads.map(a => a.ad_id);
+    const previewLinks = {};
+    for (let i = 0; i < adIds.length; i += 50) {
+      const chunk = adIds.slice(i, i + 50);
+      try {
+        const response = await axios.get(`${FB_GRAPH_API_URL}/`, {
+          params: {
+            ids: chunk.join(','),
+            fields: 'preview_shareable_link',
+            access_token: this.accessToken
+          }
+        });
+        for (const [id, data] of Object.entries(response.data)) {
+          previewLinks[id] = data.preview_shareable_link || null;
+        }
+      } catch (e) {
+        // Preview links are optional — don't fail the whole request
+      }
+    }
+
+    ads.forEach(ad => {
+      ad.preview_url = previewLinks[ad.ad_id] || null;
+    });
+
     // Sort by spend DESC
     ads.sort((a, b) => b.spend - a.spend);
 

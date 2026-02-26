@@ -500,15 +500,17 @@ function ClientMetrics() {
                       <td className="py-3 px-3 text-right">{fmtPercent(ad.hook_rate)}</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(ad.hold_rate)}</td>
                       <td className="py-3 px-1">
-                        <a
-                          href={`https://www.facebook.com/adsmanager/manage/ads?act=&selected_ad_ids=${ad.ad_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                          title="Ver en Facebook Ads Manager"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
+                        {ad.preview_url && (
+                          <a
+                            href={ad.preview_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Ver anuncio"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
                       </td>
                     </tr>
                   );
