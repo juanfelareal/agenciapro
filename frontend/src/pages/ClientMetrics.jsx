@@ -19,6 +19,10 @@ import {
   Tag,
   ExternalLink
 } from 'lucide-react';
+import {
+  LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
 import { clientsAPI, clientMetricsAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import MetricsTable from '../components/MetricsTable';
@@ -422,6 +426,165 @@ function ClientMetrics() {
           loading={loading}
         />
       </div>
+
+      {/* Charts Section */}
+      {dailyMetrics.length > 1 && !loading && (() => {
+        const chartData = [...dailyMetrics]
+          .sort((a, b) => a.metric_date.localeCompare(b.metric_date))
+          .map(d => ({
+            date: d.metric_date,
+            venta: d.shopify_net_revenue || 0,
+            inversion: d.fb_spend || 0,
+            roas: d.overall_roas || 0,
+            costoCompra: d.fb_cost_per_purchase || 0,
+            costoPedido: d.cost_per_order || 0,
+            pedidos: d.shopify_orders || 0,
+            cpm: d.fb_cpm || 0,
+            hookRate: d.fb_hook_rate || 0,
+            holdRate: d.fb_hold_rate || 0,
+          }));
+
+        const fmtDate = (v) => {
+          const d = new Date(v + 'T00:00:00');
+          return `${d.getDate()}/${d.getMonth() + 1}`;
+        };
+        const fmtCurr = (v) => {
+          if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
+          if (v >= 1000) return `$${(v / 1000).toFixed(0)}K`;
+          return `$${v}`;
+        };
+        const fmtFullCurr = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
+
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* 1. Venta vs Inversión */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Venta vs Inversión</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                    formatter={(value, name) => [fmtFullCurr(value), name === 'venta' ? 'Venta Neta' : 'Inversión Ads']}
+                    labelFormatter={fmtDate}
+                  />
+                  <Legend formatter={(v) => v === 'venta' ? 'Venta Neta' : 'Inversión Ads'} />
+                  <Bar dataKey="inversion" fill="#3B82F6" opacity={0.3} radius={[3, 3, 0, 0]} />
+                  <Line type="monotone" dataKey="venta" stroke="#22C55E" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 2. ROAS */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">ROAS</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="roasGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(1)}x`} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                    formatter={(value) => [`${Number(value).toFixed(2)}x`, 'ROAS']}
+                    labelFormatter={fmtDate}
+                  />
+                  <Area type="monotone" dataKey="roas" stroke="#8B5CF6" strokeWidth={2} fill="url(#roasGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 3. Costo por Compra (Meta+Shopify blend) */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Costo por Compra vs Costo por Pedido</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                    formatter={(value, name) => [fmtFullCurr(value), name === 'costoCompra' ? 'Costo/Compra (Meta)' : 'Costo/Pedido (Real)']}
+                    labelFormatter={fmtDate}
+                  />
+                  <Legend formatter={(v) => v === 'costoCompra' ? 'Costo/Compra (Meta)' : 'Costo/Pedido (Real)'} />
+                  <Line type="monotone" dataKey="costoPedido" stroke="#F59E0B" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="costoCompra" stroke="#EF4444" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 4. CPM */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">CPM</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="cpmGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                    formatter={(value) => [fmtFullCurr(value), 'CPM']}
+                    labelFormatter={fmtDate}
+                  />
+                  <Area type="monotone" dataKey="cpm" stroke="#3B82F6" strokeWidth={2} fill="url(#cpmGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 5. Hook Rate + Hold Rate */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Hook Rate vs Hold Rate</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(0)}%`} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                    formatter={(value, name) => [`${Number(value).toFixed(2)}%`, name === 'hookRate' ? 'Hook Rate' : 'Hold Rate']}
+                    labelFormatter={fmtDate}
+                  />
+                  <Legend formatter={(v) => v === 'hookRate' ? 'Hook Rate (3s)' : 'Hold Rate (ThruPlay)'} />
+                  <Line type="monotone" dataKey="hookRate" stroke="#F59E0B" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="holdRate" stroke="#8B5CF6" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 6. Pedidos diarios */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Pedidos por Día</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                    formatter={(value) => [value, 'Pedidos']}
+                    labelFormatter={fmtDate}
+                  />
+                  <Bar dataKey="pedidos" fill="#22C55E" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Ad-Level Performance */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
