@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,12 +9,10 @@ import {
   AlertCircle,
   RefreshCw,
   Trash2,
-  Save,
   Loader2,
-  ExternalLink,
   Check
 } from 'lucide-react';
-import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI } from '../utils/api';
+import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, shopifyOAuthAPI } from '../utils/api';
 
 function ClientPlatformSettings() {
   const { id: clientId } = useParams();
@@ -23,7 +21,6 @@ function ClientPlatformSettings() {
   const [client, setClient] = useState(null);
   const [credentials, setCredentials] = useState({ facebook: [], shopify: null });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState({});
 
   // Facebook OAuth state
@@ -34,8 +31,13 @@ function ClientPlatformSettings() {
   const [oauthSessionId, setOauthSessionId] = useState(null);
   const [linkingAccounts, setLinkingAccounts] = useState(false);
 
-  // Shopify form state
-  const [shopifyForm, setShopifyForm] = useState({ store_url: '', access_token: '' });
+  // Shopify OAuth state
+  const [connectingShopify, setConnectingShopify] = useState(false);
+  const [shopifyOauthSessionId, setShopifyOauthSessionId] = useState(null);
+  const [showStoreConfirmModal, setShowStoreConfirmModal] = useState(false);
+  const [storeInfo, setStoreInfo] = useState(null);
+  const [linkingStore, setLinkingStore] = useState(false);
+  const [shopifyStoreUrlInput, setShopifyStoreUrlInput] = useState('');
   const [testResults, setTestResults] = useState({ shopify: null });
 
   // Load client and credentials
@@ -54,6 +56,14 @@ function ClientPlatformSettings() {
       } else if (event.data?.type === 'facebook_oauth_error') {
         setConnectingFacebook(false);
         alert('Error al conectar con Facebook: ' + event.data.error);
+      } else if (event.data?.type === 'shopify_oauth_success') {
+        setConnectingShopify(false);
+        setShopifyOauthSessionId(event.data.sessionId);
+        // Load store info for confirmation
+        await loadStoreInfo(event.data.sessionId);
+      } else if (event.data?.type === 'shopify_oauth_error') {
+        setConnectingShopify(false);
+        alert('Error al conectar con Shopify: ' + event.data.error);
       }
     };
 
@@ -86,12 +96,9 @@ function ClientPlatformSettings() {
         });
       }
 
-      // Pre-fill Shopify form if credentials exist
+      // Pre-fill Shopify store URL input if credentials exist
       if (credentialsRes.data.shopify) {
-        setShopifyForm({
-          store_url: credentialsRes.data.shopify.store_url || '',
-          access_token: '••••••••'
-        });
+        setShopifyStoreUrlInput(credentialsRes.data.shopify.store_url || '');
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -193,39 +200,69 @@ function ClientPlatformSettings() {
     }
   };
 
-  // Shopify functions
-  const saveShopify = async () => {
-    if (!shopifyForm.store_url || !shopifyForm.access_token) {
-      alert('Por favor completa todos los campos de Shopify');
-      return;
-    }
-
-    if (shopifyForm.access_token === '••••••••') {
-      alert('Por favor ingresa un nuevo Access Token');
+  // Shopify OAuth functions
+  const connectWithShopify = async () => {
+    const storeUrl = shopifyStoreUrlInput.trim();
+    if (!storeUrl) {
+      alert('Ingresa la URL de tu tienda Shopify');
       return;
     }
 
     try {
-      setSaving(true);
-      await platformCredentialsAPI.connectShopify({
-        client_id: parseInt(clientId),
-        store_url: shopifyForm.store_url,
-        access_token: shopifyForm.access_token
-      });
-      alert('Shopify conectado exitosamente');
-      loadData();
+      setConnectingShopify(true);
+      const res = await shopifyOAuthAPI.getAuthUrl(clientId, storeUrl);
+
+      // Open popup
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.innerWidth - width) / 2;
+      const top = window.screenY + (window.innerHeight - height) / 2;
+
+      window.open(
+        res.data.authUrl,
+        'shopify_oauth',
+        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
+      );
     } catch (error) {
-      alert('Error al conectar Shopify: ' + (error.response?.data?.error || error.message));
+      setConnectingShopify(false);
+      alert('Error al iniciar conexión: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const loadStoreInfo = async (sessionId) => {
+    try {
+      const res = await shopifyOAuthAPI.getStoreInfo(sessionId);
+      setStoreInfo(res.data);
+      setShowStoreConfirmModal(true);
+    } catch (error) {
+      alert('Error al obtener info de la tienda: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const linkShopifyStore = async () => {
+    if (!shopifyOauthSessionId) return;
+
+    try {
+      setLinkingStore(true);
+      await shopifyOAuthAPI.linkStore({
+        session_id: shopifyOauthSessionId,
+        client_id: parseInt(clientId)
+      });
+
+      setShowStoreConfirmModal(false);
+      setShopifyOauthSessionId(null);
+      setStoreInfo(null);
+      loadData();
+      alert('Tienda vinculada exitosamente');
+    } catch (error) {
+      alert('Error al vincular tienda: ' + (error.response?.data?.error || error.message));
     } finally {
-      setSaving(false);
+      setLinkingStore(false);
     }
   };
 
   const testShopify = async () => {
-    if (!credentials.shopify?.id) {
-      alert('Primero guarda las credenciales de Shopify');
-      return;
-    }
+    if (!credentials.shopify?.id) return;
 
     try {
       setTesting((prev) => ({ ...prev, shopify: true }));
@@ -242,17 +279,17 @@ function ClientPlatformSettings() {
     }
   };
 
-  const disconnectShopify = async () => {
+  const disconnectShopifyOAuth = async () => {
     if (!credentials.shopify?.id) return;
     if (!confirm('¿Seguro que quieres desconectar Shopify?')) return;
 
     try {
-      await platformCredentialsAPI.disconnectShopify(credentials.shopify.id);
-      setShopifyForm({ store_url: '', access_token: '' });
+      await shopifyOAuthAPI.unlinkStore(credentials.shopify.id);
+      setShopifyStoreUrlInput('');
       setTestResults((prev) => ({ ...prev, shopify: null }));
       loadData();
     } catch (error) {
-      alert('Error al desconectar: ' + error.message);
+      alert('Error al desconectar: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -400,96 +437,183 @@ function ClientPlatformSettings() {
               </div>
               <div>
                 <h2 className="font-semibold text-gray-900">Shopify</h2>
-                <p className="text-sm text-gray-500">Conectar tienda</p>
+                <p className="text-sm text-gray-500">
+                  {credentials.shopify ? 'Tienda conectada' : 'Sin tienda conectada'}
+                </p>
               </div>
             </div>
             {credentials.shopify && <StatusBadge status={credentials.shopify.status} />}
           </div>
 
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Store URL
-              </label>
-              <input
-                type="text"
-                value={shopifyForm.store_url}
-                onChange={(e) => setShopifyForm((prev) => ({ ...prev, store_url: e.target.value }))}
-                placeholder="mi-tienda.myshopify.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]"
-              />
-            </div>
+          <div className="p-6">
+            {/* Connected Store */}
+            {credentials.shopify ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <ShoppingBag className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{credentials.shopify.store_url}</p>
+                      {credentials.shopify.last_sync_at && (
+                        <p className="text-xs text-gray-500">
+                          Última sync: {new Date(credentials.shopify.last_sync_at).toLocaleString('es-CO')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={testShopify}
+                      disabled={testing.shopify}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                      title="Probar conexión"
+                    >
+                      {testing.shopify ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={disconnectShopifyOAuth}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Desconectar"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Access Token
-              </label>
-              <input
-                type="password"
-                value={shopifyForm.access_token}
-                onChange={(e) => setShopifyForm((prev) => ({ ...prev, access_token: e.target.value }))}
-                placeholder="shpat_xxxxx..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Crea una app privada en tu tienda Shopify para obtener el token
-              </p>
-            </div>
-
-            {/* Test result */}
-            {testResults.shopify && (
-              <div className={`p-3 rounded-lg ${testResults.shopify.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                {testResults.shopify.success ? (
-                  <p>Conexión exitosa: {testResults.shopify.storeName}</p>
-                ) : (
-                  <p>Error: {testResults.shopify.error}</p>
+                {/* Test result */}
+                {testResults.shopify && (
+                  <div className={`p-3 rounded-lg ${testResults.shopify.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    {testResults.shopify.success ? (
+                      <p>Conexión exitosa: {testResults.shopify.storeName}</p>
+                    ) : (
+                      <p>Error: {testResults.shopify.error}</p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    URL de la tienda
+                  </label>
+                  <input
+                    type="text"
+                    value={shopifyStoreUrlInput}
+                    onChange={(e) => setShopifyStoreUrlInput(e.target.value)}
+                    placeholder="mi-tienda.myshopify.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
 
-            {/* Last sync info */}
-            {credentials.shopify?.last_sync_at && (
-              <p className="text-xs text-gray-400">
-                Última sincronización: {new Date(credentials.shopify.last_sync_at).toLocaleString('es-CO')}
-              </p>
-            )}
+                <button
+                  onClick={connectWithShopify}
+                  disabled={connectingShopify}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {connectingShopify ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Conectando...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-5 h-5" />
+                      Conectar con Shopify
+                    </>
+                  )}
+                </button>
 
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={saveShopify}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] transition-colors disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                Guardar
-              </button>
-              {credentials.shopify && (
-                <>
-                  <button
-                    onClick={testShopify}
-                    disabled={testing.shopify}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                  >
-                    {testing.shopify ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                    Probar
-                  </button>
-                  <button
-                    onClick={disconnectShopify}
-                    className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Desconectar
-                  </button>
-                </>
-              )}
-            </div>
+                <p className="text-xs text-gray-400 text-center">
+                  Se abrirá una ventana para autorizar el acceso a tu tienda
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Shopify Store Confirmation Modal */}
+      {showStoreConfirmModal && storeInfo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Confirmar Tienda</h3>
+                <p className="text-sm text-gray-500">Verifica que sea la tienda correcta</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowStoreConfirmModal(false);
+                  setShopifyOauthSessionId(null);
+                  setStoreInfo(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XCircle className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="bg-green-50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                    <ShoppingBag className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{storeInfo.store.name}</p>
+                    <p className="text-sm text-gray-500">{storeInfo.store.url}</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 text-sm text-gray-600">
+                  {storeInfo.store.email && (
+                    <span>{storeInfo.store.email}</span>
+                  )}
+                  {storeInfo.store.currency && (
+                    <span>Moneda: {storeInfo.store.currency}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowStoreConfirmModal(false);
+                  setShopifyOauthSessionId(null);
+                  setStoreInfo(null);
+                }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={linkShopifyStore}
+                disabled={linkingStore}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {linkingStore ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Vinculando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Vincular tienda
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Account Selection Modal */}
       {showAccountsModal && (

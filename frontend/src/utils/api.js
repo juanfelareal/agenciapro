@@ -287,6 +287,16 @@ export const facebookOAuthAPI = {
   unlinkAccount: (credentialId) => api.delete(`/oauth/facebook/unlink/${credentialId}`),
 };
 
+// Shopify OAuth API
+export const shopifyOAuthAPI = {
+  getAuthUrl: (clientId, storeUrl) =>
+    api.get(`/oauth/shopify/url?client_id=${clientId}&store_url=${encodeURIComponent(storeUrl)}`),
+  getStoreInfo: (sessionId) =>
+    api.get(`/oauth/shopify/store-info?session_id=${sessionId}`),
+  linkStore: (data) => api.post('/oauth/shopify/link-store', data),
+  unlinkStore: (credentialId) => api.delete(`/oauth/shopify/unlink/${credentialId}`),
+};
+
 // PDF Analysis API (RUT extraction with Claude AI)
 export const pdfAnalysisAPI = {
   analyzeRut: (formData) => api.post('/pdf/analyze-rut', formData, {

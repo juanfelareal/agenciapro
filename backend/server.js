@@ -43,6 +43,7 @@ import { checkDueDateAutomations } from './src/services/automationEngine.js';
 import platformCredentialsRoutes from './src/routes/platform-credentials.js';
 import clientMetricsRoutes from './src/routes/client-metrics.js';
 import facebookOAuthRoutes from './src/routes/facebook-oauth.js';
+import shopifyOAuthRoutes from './src/routes/shopify-oauth.js';
 import { syncAllClientsForDate } from './src/services/metricsSyncService.js';
 // PDF Analysis (RUT extraction with Claude AI)
 import pdfAnalysisRoutes from './src/routes/pdf-analysis.js';
@@ -164,6 +165,11 @@ app.use('/api/oauth/facebook', (req, res, next) => {
   if (req.path === '/callback') return next();
   teamAuthMiddleware(req, res, next);
 }, facebookOAuthRoutes);
+// Shopify OAuth: callback must be public (redirect from Shopify has no auth token)
+app.use('/api/oauth/shopify', (req, res, next) => {
+  if (req.path === '/callback') return next();
+  teamAuthMiddleware(req, res, next);
+}, shopifyOAuthRoutes);
 // PDF Analysis (RUT extraction with Claude AI)
 app.use('/api/pdf', teamAuthMiddleware, pdfAnalysisRoutes);
 // SOPs (Standard Operating Procedures)
