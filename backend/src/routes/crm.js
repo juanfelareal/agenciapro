@@ -264,10 +264,13 @@ router.post('/deals/:id/transcript', async (req, res) => {
     const deal = await db.get('SELECT * FROM crm_deals WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     if (!deal) return res.status(404).json({ error: 'Deal no encontrado' });
 
+    // Limit transcript to 5000 chars for faster processing
+    const trimmedText = text.length > 5000 ? text.substring(0, 5000) + '\n[...transcripción recortada]' : text;
+
     const prompt = `Analiza esta transcripción de una reunión de ventas y extrae la siguiente información en formato JSON. Responde SOLO con el JSON, sin markdown ni texto adicional.
 
 Transcripción:
-${text}
+${trimmedText}
 
 Extrae:
 {
@@ -280,11 +283,13 @@ Extrae:
   "urgency": "alta/media/baja"
 }`;
 
+    console.log(`[Transcript] Processing for deal ${req.params.id}, prompt length: ${prompt.length} chars`);
+
     let extracted;
     try {
-      extracted = await askClaudeJSON(prompt);
+      extracted = await askClaudeJSON(prompt, { timeout: 180000 });
     } catch {
-      const rawText = await askClaude(prompt);
+      const rawText = await askClaude(prompt, { timeout: 180000 });
       extracted = { summary: rawText };
     }
 

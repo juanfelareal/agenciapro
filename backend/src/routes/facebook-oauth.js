@@ -8,7 +8,8 @@ const oauthSessions = new Map();
 
 const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
 const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
-const REDIRECT_URI = 'http://localhost:3000/api/oauth/facebook/callback';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+const REDIRECT_URI = `${BACKEND_URL}/api/oauth/facebook/callback`;
 
 // Permissions needed for Facebook Marketing API
 // For development mode, we start with no special scopes
