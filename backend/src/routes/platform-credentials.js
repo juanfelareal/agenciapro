@@ -59,9 +59,16 @@ router.post('/facebook', async (req, res) => {
   try {
     const orgId = req.orgId;
     const { client_id, access_token, ad_account_id } = req.body;
+    const systemToken = process.env.FACEBOOK_SYSTEM_USER_TOKEN;
 
-    if (!client_id || !access_token || !ad_account_id) {
-      return res.status(400).json({ error: 'client_id, access_token y ad_account_id son requeridos' });
+    if (!client_id || !ad_account_id) {
+      return res.status(400).json({ error: 'client_id y ad_account_id son requeridos' });
+    }
+
+    // Use system user token as fallback
+    const tokenToUse = access_token || systemToken;
+    if (!tokenToUse) {
+      return res.status(400).json({ error: 'access_token es requerido (o configura FACEBOOK_SYSTEM_USER_TOKEN)' });
     }
 
     // Check if client exists and belongs to org
@@ -79,7 +86,7 @@ router.post('/facebook', async (req, res) => {
         UPDATE client_facebook_credentials
         SET access_token = ?, ad_account_id = ?, status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ?
-      `).run(access_token, ad_account_id, client_id);
+      `).run(tokenToUse, ad_account_id, client_id);
 
       res.json({ message: 'Credenciales de Facebook actualizadas', id: existing.id });
     } else {
@@ -87,7 +94,7 @@ router.post('/facebook', async (req, res) => {
       const result = await db.prepare(`
         INSERT INTO client_facebook_credentials (client_id, access_token, ad_account_id)
         VALUES (?, ?, ?)
-      `).run(client_id, access_token, ad_account_id);
+      `).run(client_id, tokenToUse, ad_account_id);
 
       res.status(201).json({ message: 'Facebook Ads conectado exitosamente', id: result.lastInsertRowid });
     }
@@ -118,7 +125,8 @@ router.post('/facebook/:id/test', async (req, res) => {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
     }
 
-    const facebook = new FacebookAdsIntegration(credentials.access_token, credentials.ad_account_id);
+    const tokenForTest = credentials.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+    const facebook = new FacebookAdsIntegration(tokenForTest, credentials.ad_account_id);
     const result = await facebook.testConnection();
 
     if (result.success) {

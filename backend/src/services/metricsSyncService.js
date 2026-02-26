@@ -12,6 +12,8 @@ import ShopifyIntegration from '../integrations/shopify.js';
  * @returns {Array}
  */
 export async function getClientsWithCredentials() {
+  const systemToken = process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+
   const query = `
     SELECT
       c.id,
@@ -30,7 +32,17 @@ export async function getClientsWithCredentials() {
       AND (fb.id IS NOT NULL OR sh.id IS NOT NULL)
   `;
 
-  return await db.prepare(query).all();
+  const clients = await db.prepare(query).all();
+
+  // Use System User token as fallback when client has ad_account_id but no personal token
+  if (systemToken) {
+    return clients.map(c => ({
+      ...c,
+      fb_access_token: c.fb_access_token || (c.fb_ad_account_id ? systemToken : null)
+    }));
+  }
+
+  return clients;
 }
 
 /**
