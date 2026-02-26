@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { usePortal } from '../../context/PortalContext';
 import { portalMetricsAPI } from '../../utils/portalApi';
+import MetricsTable from '../../components/MetricsTable';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -23,7 +24,8 @@ import {
   Receipt,
   Percent,
   ExternalLink,
-  Package
+  Package,
+  ArrowLeftRight
 } from 'lucide-react';
 
 export default function PortalMetrics() {
@@ -38,6 +40,8 @@ export default function PortalMetrics() {
   const [adsLoading, setAdsLoading] = useState(false);
   const [topProducts, setTopProducts] = useState(null);
   const [topProductsLoading, setTopProductsLoading] = useState(false);
+  const [compareMode, setCompareMode] = useState('previous'); // 'previous' | 'year' | 'custom' | 'none'
+  const [compareDates, setCompareDates] = useState({ start: '', end: '' });
 
   useEffect(() => {
     if (dateRange !== 'custom') {
@@ -51,11 +55,57 @@ export default function PortalMetrics() {
     }
   }, [customDates.start, customDates.end]);
 
-  const getApiParams = () => {
-    if (dateRange === 'custom' && customDates.start && customDates.end) {
-      return { start_date: customDates.start, end_date: customDates.end };
+  // Reload when compareMode changes (skip initial mount to avoid double-call)
+  const compareMounted = useRef(false);
+  useEffect(() => {
+    if (!compareMounted.current) {
+      compareMounted.current = true;
+      return;
     }
-    return { range: dateRange };
+    if (compareMode !== 'custom') {
+      loadMetrics();
+    }
+  }, [compareMode]);
+
+  // Reload when custom compare dates are set
+  useEffect(() => {
+    if (compareMode === 'custom' && compareDates.start && compareDates.end) {
+      loadMetrics();
+    }
+  }, [compareDates.start, compareDates.end]);
+
+  const getApiParams = () => {
+    const params = dateRange === 'custom' && customDates.start && customDates.end
+      ? { start_date: customDates.start, end_date: customDates.end }
+      : { range: dateRange };
+
+    // Resolve current start/end for year comparison
+    if (compareMode === 'year') {
+      let s, e;
+      if (params.start_date && params.end_date) {
+        s = params.start_date;
+        e = params.end_date;
+      } else {
+        const days = parseInt(dateRange) || 30;
+        e = new Date().toISOString().split('T')[0];
+        s = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      }
+      const yearBack = (d) => {
+        const dt = new Date(d + 'T00:00:00');
+        dt.setFullYear(dt.getFullYear() - 1);
+        return dt.toISOString().split('T')[0];
+      };
+      params.compare_start = yearBack(s);
+      params.compare_end = yearBack(e);
+    } else if (compareMode === 'custom' && compareDates.start && compareDates.end) {
+      params.compare_start = compareDates.start;
+      params.compare_end = compareDates.end;
+    } else if (compareMode === 'none') {
+      params.compare_mode = 'none';
+    }
+    // 'previous' → no extra params, backend auto-calculates
+
+    return params;
   };
 
   const loadMetrics = async () => {
@@ -139,6 +189,7 @@ export default function PortalMetrics() {
   };
 
   const TrendIndicator = ({ value, inverted = false }) => {
+    if (value === undefined || value === null) return null;
     const isPositive = inverted ? value < 0 : value > 0;
     return (
       <span className={`inline-flex items-center gap-1 text-sm font-medium ${
@@ -180,6 +231,135 @@ export default function PortalMetrics() {
   }));
 
   const tooltipStyle = { borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' };
+
+  // --- Daily table columns (filtered by connected platforms) ---
+  const dailyColumns = useMemo(() => {
+    const cols = [{ key: 'metric_date', label: 'Fecha', type: 'date' }];
+
+    if (metrics?.shopify) {
+      cols.push(
+        { key: 'shopify_revenue', label: 'Venta Total', type: 'currency', align: 'right' },
+        { key: 'shopify_orders', label: 'Pedidos', type: 'integer', align: 'right' },
+        { key: 'shopify_aov', label: 'Ticket', type: 'currency', align: 'right' },
+      );
+    }
+    if (metrics?.facebook) {
+      cols.push(
+        { key: 'fb_spend', label: 'Inversión', type: 'currency', align: 'right' },
+      );
+    }
+    if (metrics?.blended || (metrics?.shopify && metrics?.facebook)) {
+      cols.push(
+        { key: 'overall_roas', label: 'ROAS', type: 'decimal', align: 'right' },
+        { key: 'cost_per_order', label: 'Costo/Pedido', type: 'currency', align: 'right' },
+      );
+    }
+    if (metrics?.facebook) {
+      cols.push(
+        { key: 'fb_cpm', label: 'CPM', type: 'currency', align: 'right' },
+        { key: 'fb_cost_per_purchase', label: 'Costo/Compra', type: 'currency', align: 'right' },
+      );
+    }
+    if (metrics?.shopify) {
+      cols.push(
+        { key: 'shopify_sessions', label: 'Sesiones', type: 'integer', align: 'right' },
+        { key: 'shopify_conversion_rate', label: 'Conversión', type: 'percent', align: 'right' },
+      );
+    }
+    if (metrics?.facebook) {
+      cols.push(
+        { key: 'fb_hook_rate', label: 'Hook Rate', type: 'percent', align: 'right' },
+        { key: 'fb_hold_rate', label: 'Hold Rate', type: 'percent', align: 'right' },
+      );
+    }
+
+    return cols;
+  }, [metrics]);
+
+  // Enrich daily data with computed fields
+  const enrichedDailyData = useMemo(() => {
+    return dailyData.map(d => ({
+      ...d,
+      shopify_aov: d.shopify_orders > 0 ? d.shopify_revenue / d.shopify_orders : 0,
+      cost_per_order: d.shopify_orders > 0 && d.fb_spend > 0 ? d.fb_spend / d.shopify_orders : 0,
+    }));
+  }, [dailyData]);
+
+  // --- Weekly aggregation ---
+  const weeklyData = useMemo(() => {
+    if (!dailyData.length) return [];
+
+    const getISOWeekData = (dateStr) => {
+      const d = new Date(dateStr + 'T00:00:00');
+      // Find Monday of this week
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d);
+      monday.setDate(diff);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      // ISO week number
+      const jan4 = new Date(monday.getFullYear(), 0, 4);
+      const weekNum = Math.ceil(((monday - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+      return {
+        key: `${monday.getFullYear()}-W${String(weekNum).padStart(2, '0')}`,
+        weekNum,
+        monday,
+        sunday,
+        label: `Sem ${weekNum} (${monday.getDate()}/${monday.getMonth() + 1} - ${sunday.getDate()}/${sunday.getMonth() + 1})`
+      };
+    };
+
+    const weeks = {};
+    for (const d of dailyData) {
+      const w = getISOWeekData(d.metric_date);
+      if (!weeks[w.key]) {
+        weeks[w.key] = {
+          week_label: w.label,
+          _sort: w.monday.getTime(),
+          revenue: 0, orders: 0, spend: 0, sessions: 0,
+          impressions: 0, conversions: 0, pending_orders: 0,
+          video_3sec: 0, thruplay: 0,
+        };
+      }
+      const wk = weeks[w.key];
+      wk.revenue += d.shopify_revenue || 0;
+      wk.orders += d.shopify_orders || 0;
+      wk.spend += d.fb_spend || 0;
+      wk.sessions += d.shopify_sessions || 0;
+      wk.impressions += d.fb_impressions || 0;
+      wk.conversions += d.fb_conversions || 0;
+      wk.pending_orders += d.shopify_pending_orders || 0;
+      wk.video_3sec += d.fb_video_3sec_views || 0;
+      wk.thruplay += d.fb_video_thruplay_views || 0;
+    }
+
+    return Object.values(weeks)
+      .sort((a, b) => a._sort - b._sort)
+      .map(w => ({
+        week_label: w.week_label,
+        shopify_revenue: w.revenue,
+        shopify_orders: w.orders,
+        shopify_aov: w.orders > 0 ? w.revenue / w.orders : 0,
+        fb_spend: w.spend,
+        overall_roas: w.spend > 0 ? w.revenue / w.spend : 0,
+        cost_per_order: w.orders > 0 ? w.spend / w.orders : 0,
+        fb_cpm: w.impressions > 0 ? (w.spend / w.impressions) * 1000 : 0,
+        fb_cost_per_purchase: w.conversions > 0 ? w.spend / w.conversions : 0,
+        shopify_sessions: w.sessions,
+        shopify_conversion_rate: w.sessions > 0 ? (w.orders / w.sessions) * 100 : 0,
+        fb_hook_rate: w.impressions > 0 ? (w.video_3sec / w.impressions) * 100 : 0,
+        fb_hold_rate: w.video_3sec > 0 ? (w.thruplay / w.video_3sec) * 100 : 0,
+      }));
+  }, [dailyData]);
+
+  const weeklyColumns = useMemo(() => {
+    return dailyColumns.map(col =>
+      col.key === 'metric_date'
+        ? { key: 'week_label', label: 'Semana', type: 'string' }
+        : col
+    );
+  }, [dailyColumns]);
 
   return (
     <div className="space-y-6">
@@ -229,6 +409,51 @@ export default function PortalMetrics() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Compare Mode Selector */}
+      <div className="flex flex-wrap items-center gap-2 bg-white rounded-xl border border-gray-100 px-4 py-2.5">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mr-1">
+          <ArrowLeftRight className="w-4 h-4" />
+          Comparar con:
+        </div>
+        <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-0.5">
+          {[
+            { value: 'previous', label: 'Periodo anterior' },
+            { value: 'year', label: 'Año anterior' },
+            { value: 'custom', label: 'Personalizado' },
+            { value: 'none', label: 'Sin comparación' },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setCompareMode(opt.value)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                compareMode === opt.value
+                  ? 'bg-white text-[#1A1A2E] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {compareMode === 'custom' && (
+          <div className="flex items-center gap-2 ml-2">
+            <input
+              type="date"
+              value={compareDates.start}
+              onChange={(e) => setCompareDates(prev => ({ ...prev, start: e.target.value }))}
+              className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white"
+            />
+            <span className="text-gray-400">-</span>
+            <input
+              type="date"
+              value={compareDates.end}
+              onChange={(e) => setCompareDates(prev => ({ ...prev, end: e.target.value }))}
+              className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm bg-white"
+            />
+          </div>
+        )}
       </div>
 
       {/* AI Insight Card */}
@@ -923,6 +1148,28 @@ export default function PortalMetrics() {
             </div>
           )}
         </>
+      )}
+
+      {/* Daily Tracking Table */}
+      {hasData && enrichedDailyData.length > 0 && (
+        <MetricsTable
+          title="Seguimiento Diario"
+          data={enrichedDailyData}
+          columns={dailyColumns}
+          loading={loading}
+          emptyMessage="No hay datos diarios para este periodo"
+        />
+      )}
+
+      {/* Weekly Tracking Table */}
+      {hasData && weeklyData.length > 0 && (
+        <MetricsTable
+          title="Seguimiento Semanal"
+          data={weeklyData}
+          columns={weeklyColumns}
+          loading={loading}
+          emptyMessage="No hay datos semanales para este periodo"
+        />
       )}
 
       {/* Ad-Level Performance */}

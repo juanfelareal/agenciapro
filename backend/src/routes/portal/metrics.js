@@ -11,7 +11,7 @@ const router = express.Router();
  * Also returns the previous period for comparison
  */
 function resolveRange(query) {
-  const { range, start_date, end_date } = query;
+  const { range, start_date, end_date, compare_mode, compare_start, compare_end } = query;
 
   const endDate = end_date || new Date().toISOString().split('T')[0];
   let startDate = start_date;
@@ -23,7 +23,17 @@ function resolveRange(query) {
     startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   }
 
-  // Calculate previous period (same duration, shifted back)
+  // No comparison
+  if (compare_mode === 'none') {
+    return { startDate, endDate, prevStart: null, prevEnd: null };
+  }
+
+  // Custom comparison dates
+  if (compare_start && compare_end) {
+    return { startDate, endDate, prevStart: compare_start, prevEnd: compare_end };
+  }
+
+  // Default: previous period (same duration, shifted back)
   const msStart = new Date(startDate).getTime();
   const msEnd = new Date(endDate).getTime();
   const duration = msEnd - msStart;
@@ -75,8 +85,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         AND metric_date <= ?
     `, [clientId, startDate, endDate]);
 
-    // Previous period aggregated metrics
-    const previous = await db.get(`
+    // Previous period aggregated metrics (skip when no comparison)
+    const previous = prevStart ? await db.get(`
       SELECT
         COALESCE(SUM(shopify_revenue), 0) as total_revenue,
         COALESCE(SUM(shopify_orders), 0) as total_orders,
@@ -97,7 +107,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       WHERE client_id = ?
         AND metric_date >= ?
         AND metric_date <= ?
-    `, [clientId, prevStart, prevEnd]);
+    `, [clientId, prevStart, prevEnd]) : null;
 
     // Derived metrics
     const fbSpend = current?.total_ad_spend || 0;
@@ -164,9 +174,12 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       WHERE client_id = ? AND status = 'active'
     `, [clientId]);
 
+    const hasComparison = previous !== null;
+
     // Build structured response
     const response = {
       period: { start_date: startDate, end_date: endDate },
+      has_comparison: hasComparison,
       connected_platforms: {
         facebook: facebookAccounts,
         shopify: shopifyStore
@@ -177,29 +190,31 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     if (facebookAccounts.length > 0 || fbSpend > 0 || fbImpressions > 0) {
       response.facebook = {
         spend: fbSpend,
-        spend_change: calcChange(fbSpend, prevSpend),
         impressions: fbImpressions,
-        impressions_change: calcChange(fbImpressions, prevImpressions),
         clicks: fbClicks,
-        clicks_change: calcChange(fbClicks, prevClicks),
         ctr: ctr,
-        ctr_change: calcChange(ctr, prevCtr),
         conversions: fbConversions,
-        conversions_change: calcChange(fbConversions, prevConversions),
         cpa: cpa,
-        cpa_change: calcChange(cpa, prevCpa),
         roas: roas,
-        roas_change: calcChange(roas, prevRoas),
         cpm: cpm,
-        cpm_change: calcChange(cpm, prevCpm),
         cost_per_purchase: costPerPurchase,
-        cost_per_purchase_change: calcChange(costPerPurchase, prevCostPerPurchase),
         cost_per_landing_page_view: costPerLPV,
-        cost_per_landing_page_view_change: calcChange(costPerLPV, prevCostPerLPV),
         hook_rate: hookRate,
-        hook_rate_change: calcChange(hookRate, prevHookRate),
         hold_rate: holdRate,
-        hold_rate_change: calcChange(holdRate, prevHoldRate),
+        ...(hasComparison && {
+          spend_change: calcChange(fbSpend, prevSpend),
+          impressions_change: calcChange(fbImpressions, prevImpressions),
+          clicks_change: calcChange(fbClicks, prevClicks),
+          ctr_change: calcChange(ctr, prevCtr),
+          conversions_change: calcChange(fbConversions, prevConversions),
+          cpa_change: calcChange(cpa, prevCpa),
+          roas_change: calcChange(roas, prevRoas),
+          cpm_change: calcChange(cpm, prevCpm),
+          cost_per_purchase_change: calcChange(costPerPurchase, prevCostPerPurchase),
+          cost_per_landing_page_view_change: calcChange(costPerLPV, prevCostPerLPV),
+          hook_rate_change: calcChange(hookRate, prevHookRate),
+          hold_rate_change: calcChange(holdRate, prevHoldRate),
+        }),
       };
     }
 
@@ -207,23 +222,25 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     if (shopifyStore || revenue > 0 || orders > 0) {
       response.shopify = {
         revenue: revenue,
-        revenue_change: calcChange(revenue, prevRevenue),
         orders: orders,
-        orders_change: calcChange(orders, prevOrders),
         aov: aov,
-        aov_change: calcChange(aov, prevAov),
         customers: customers,
-        customers_change: calcChange(customers, prevCustomers),
         total_tax: totalTax,
-        total_tax_change: calcChange(totalTax, prevTotalTax),
         total_discounts: totalDiscounts,
-        total_discounts_change: calcChange(totalDiscounts, prevTotalDiscounts),
         sessions: sessions,
-        sessions_change: calcChange(sessions, prevSessions),
         conversion_rate: conversionRate,
-        conversion_rate_change: calcChange(conversionRate, prevConversionRate),
         pending_orders: pendingOrders,
-        pending_orders_change: calcChange(pendingOrders, prevPendingOrders),
+        ...(hasComparison && {
+          revenue_change: calcChange(revenue, prevRevenue),
+          orders_change: calcChange(orders, prevOrders),
+          aov_change: calcChange(aov, prevAov),
+          customers_change: calcChange(customers, prevCustomers),
+          total_tax_change: calcChange(totalTax, prevTotalTax),
+          total_discounts_change: calcChange(totalDiscounts, prevTotalDiscounts),
+          sessions_change: calcChange(sessions, prevSessions),
+          conversion_rate_change: calcChange(conversionRate, prevConversionRate),
+          pending_orders_change: calcChange(pendingOrders, prevPendingOrders),
+        }),
       };
     }
 
@@ -241,17 +258,19 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
 
       response.blended = {
         total_revenue: revenue,
-        total_revenue_change: calcChange(revenue, prevRevenue),
         total_ad_spend: fbSpend,
-        total_ad_spend_change: calcChange(fbSpend, prevSpend),
         overall_roas: overallRoas,
-        overall_roas_change: calcChange(overallRoas, prevOverallRoas),
         cost_per_order: costPerOrder,
-        cost_per_order_change: calcChange(costPerOrder, prevCostPerOrder),
         ad_spend_percentage: adSpendPercentage,
-        ad_spend_percentage_change: calcChange(adSpendPercentage, prevAdSpendPercentage),
         margin_after_ads: marginAfterAds,
-        margin_after_ads_change: calcChange(marginAfterAds, prevMarginAfterAds),
+        ...(hasComparison && {
+          total_revenue_change: calcChange(revenue, prevRevenue),
+          total_ad_spend_change: calcChange(fbSpend, prevSpend),
+          overall_roas_change: calcChange(overallRoas, prevOverallRoas),
+          cost_per_order_change: calcChange(costPerOrder, prevCostPerOrder),
+          ad_spend_percentage_change: calcChange(adSpendPercentage, prevAdSpendPercentage),
+          margin_after_ads_change: calcChange(marginAfterAds, prevMarginAfterAds),
+        }),
       };
     }
 
