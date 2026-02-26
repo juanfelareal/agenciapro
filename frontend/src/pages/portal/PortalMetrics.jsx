@@ -205,34 +205,8 @@ export default function PortalMetrics() {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-      </div>
-    );
-  }
-
-  const hasData = metrics?.facebook || metrics?.shopify;
-
-  // Prepare chart data
-  const chartData = dailyData.map(d => ({
-    date: d.metric_date,
-    revenue: d.shopify_revenue || 0,
-    adSpend: d.fb_spend || 0,
-    roas: d.overall_roas || d.fb_roas || 0,
-    hookRate: d.fb_hook_rate || 0,
-    holdRate: d.fb_hold_rate || 0,
-    costoCompra: d.fb_cost_per_purchase || 0,
-    cpm: d.fb_cpm || 0,
-    sessions: d.shopify_sessions || 0,
-    orders: d.shopify_orders || 0,
-    conversionRate: d.shopify_conversion_rate || 0,
-  }));
-
-  const tooltipStyle = { borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' };
-
   // --- Daily table columns (filtered by connected platforms) ---
+  // NOTE: All hooks (useMemo) must be above the early return to avoid React error #310
   const dailyColumns = useMemo(() => {
     const cols = [{ key: 'metric_date', label: 'Fecha', type: 'date' }];
 
@@ -360,6 +334,33 @@ export default function PortalMetrics() {
         : col
     );
   }, [dailyColumns]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+      </div>
+    );
+  }
+
+  const hasData = metrics?.facebook || metrics?.shopify;
+
+  // Prepare chart data
+  const chartData = dailyData.map(d => ({
+    date: d.metric_date,
+    revenue: d.shopify_revenue || 0,
+    adSpend: d.fb_spend || 0,
+    roas: d.overall_roas || d.fb_roas || 0,
+    hookRate: d.fb_hook_rate || 0,
+    holdRate: d.fb_hold_rate || 0,
+    costoCompra: d.fb_cost_per_purchase || 0,
+    cpm: d.fb_cpm || 0,
+    sessions: d.shopify_sessions || 0,
+    orders: d.shopify_orders || 0,
+    conversionRate: d.shopify_conversion_rate || 0,
+  }));
+
+  const tooltipStyle = { borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' };
 
   return (
     <div className="space-y-6">
