@@ -397,6 +397,62 @@ class ShopifyIntegration {
   }
 
   /**
+   * Get sales aggregated by attribution channel
+   * Categorizes orders by referring_site, landing_site and source_name
+   * @param {string} startDate
+   * @param {string} endDate
+   * @returns {Promise<Array<{channel, revenue, orders}>>}
+   */
+  async getSalesByChannel(startDate, endDate) {
+    const allOrders = await this.getOrders(startDate, endDate);
+    const channelMap = {};
+
+    allOrders.forEach(order => {
+      if (order.cancelled_at) return;
+      if (order.financial_status !== 'paid' && order.financial_status !== 'partially_refunded') return;
+
+      const referring = (order.referring_site || '').toLowerCase();
+      const landing = (order.landing_site || '').toLowerCase();
+      const source = (order.source_name || '').toLowerCase();
+
+      let channel = 'Directo / Orgánico';
+
+      if (source === 'shopify_draft_order' || source === 'draft_order') {
+        channel = 'Pedidos preliminares';
+      } else if (
+        referring.includes('facebook.com') || referring.includes('instagram.com') ||
+        referring.includes('fb.com') || referring.includes('l.facebook.com') ||
+        landing.includes('utm_source=facebook') || landing.includes('utm_source=instagram') ||
+        landing.includes('utm_source=fb') || landing.includes('utm_source=ig') ||
+        landing.includes('fbclid=')
+      ) {
+        channel = 'Meta';
+      } else if (
+        referring.includes('klaviyo') || referring.includes('mailchimp') ||
+        referring.includes('sendinblue') || referring.includes('omnisend') ||
+        landing.includes('utm_medium=email') || landing.includes('utm_source=email') ||
+        landing.includes('utm_source=klaviyo') || landing.includes('utm_source=mailchimp')
+      ) {
+        channel = 'Email';
+      } else if (
+        referring.includes('google.com') || landing.includes('utm_source=google') || landing.includes('gclid=')
+      ) {
+        channel = 'Google';
+      } else if (referring.includes('tiktok.com') || landing.includes('utm_source=tiktok')) {
+        channel = 'TikTok';
+      }
+
+      if (!channelMap[channel]) {
+        channelMap[channel] = { channel, revenue: 0, orders: 0 };
+      }
+      channelMap[channel].revenue += parseFloat(order.total_price) || 0;
+      channelMap[channel].orders += 1;
+    });
+
+    return Object.values(channelMap).sort((a, b) => b.revenue - a.revenue);
+  }
+
+  /**
    * Get daily metrics breakdown for a date range
    * @param {string} startDate
    * @param {string} endDate

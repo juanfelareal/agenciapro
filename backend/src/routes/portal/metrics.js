@@ -401,6 +401,34 @@ router.get('/top-products', clientAuthMiddleware, requirePortalPermission('can_v
 });
 
 /**
+ * GET /api/portal/metrics/channels
+ * Get sales by attribution channel (on-demand)
+ */
+router.get('/channels', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { startDate, endDate } = resolveRange(req.query);
+
+    const shopifyCred = await db.get(
+      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = ? AND status = ?',
+      [clientId, 'active']
+    );
+
+    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
+      return res.json({ channels: [], message: 'Sin conexión Shopify' });
+    }
+
+    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
+    const channels = await shopify.getSalesByChannel(startDate, endDate);
+
+    res.json({ channels });
+  } catch (error) {
+    console.error('Error fetching channels:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar canales' });
+  }
+});
+
+/**
  * GET /api/portal/metrics/categories
  * Get sales by Shopify collection (on-demand)
  */

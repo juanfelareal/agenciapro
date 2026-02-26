@@ -4,6 +4,7 @@ import { portalMetricsAPI } from '../../utils/portalApi';
 import MetricsTable from '../../components/MetricsTable';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
+  PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
@@ -51,6 +52,8 @@ export default function PortalMetrics() {
   const [demographicsLoading, setDemographicsLoading] = useState(false);
   const [categories, setCategories] = useState(null);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [channels, setChannels] = useState(null);
+  const [channelsLoading, setChannelsLoading] = useState(false);
 
   useEffect(() => {
     if (dateRange !== 'custom') {
@@ -123,6 +126,7 @@ export default function PortalMetrics() {
     setTopProducts(null);
     setDemographics(null);
     setCategories(null);
+    setChannels(null);
     try {
       const params = getApiParams();
       const [summaryRes, dailyRes, insightRes] = await Promise.all([
@@ -190,6 +194,28 @@ export default function PortalMetrics() {
     } finally {
       setCategoriesLoading(false);
     }
+  };
+
+  const loadChannels = async () => {
+    setChannelsLoading(true);
+    try {
+      const res = await portalMetricsAPI.getChannels(getApiParams());
+      setChannels(res.channels || []);
+    } catch (error) {
+      console.error('Error loading channels:', error);
+      setChannels([]);
+    } finally {
+      setChannelsLoading(false);
+    }
+  };
+
+  const CHANNEL_COLORS = {
+    'Meta': '#3B82F6',
+    'Email': '#8B5CF6',
+    'Pedidos preliminares': '#F59E0B',
+    'Google': '#EF4444',
+    'TikTok': '#10B981',
+    'Directo / Orgánico': '#6B7280',
   };
 
   const formatCurrency = (value) => {
@@ -1114,6 +1140,111 @@ export default function PortalMetrics() {
                   })}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Venta por Canal */}
+          {metrics?.shopify && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-blue-500" />
+                  Venta por Canal
+                </h3>
+                {channels === null && (
+                  <button
+                    onClick={loadChannels}
+                    disabled={channelsLoading}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+                  >
+                    {channelsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <BarChart3 className="w-4 h-4" />
+                    )}
+                    Ver canales
+                  </button>
+                )}
+              </div>
+
+              {channelsLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+              )}
+
+              {channels !== null && !channelsLoading && channels.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-8">
+                  No hay datos de canales en este periodo
+                </p>
+              )}
+
+              {channels !== null && !channelsLoading && channels.length > 0 && (() => {
+                const totalRevenue = channels.reduce((s, c) => s + c.revenue, 0);
+                const totalOrders = channels.reduce((s, c) => s + c.orders, 0);
+                const pieData = channels.map(c => ({
+                  name: c.channel,
+                  value: c.revenue,
+                  orders: c.orders,
+                  pct: totalRevenue > 0 ? (c.revenue / totalRevenue) * 100 : 0,
+                }));
+
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                    {/* Pie Chart */}
+                    <div className="flex justify-center">
+                      <ResponsiveContainer width={280} height={280}>
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={65}
+                            outerRadius={120}
+                            paddingAngle={2}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            {pieData.map((entry, idx) => (
+                              <Cell key={idx} fill={CHANNEL_COLORS[entry.name] || '#9CA3AF'} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                            formatter={(value, name) => [formatCurrency(value), name]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Legend + Details */}
+                    <div className="space-y-3">
+                      {pieData.map((entry, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHANNEL_COLORS[entry.name] || '#9CA3AF' }} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-[#1A1A2E] truncate">{entry.name}</span>
+                              <span className="text-sm font-bold text-[#1A1A2E] ml-2">{formatCurrency(entry.value)}</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <span className="text-xs text-gray-400">{entry.orders} pedidos</span>
+                              <span className="text-xs font-semibold text-gray-500">{entry.pct.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-500">Total</span>
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-[#1A1A2E]">{formatCurrency(totalRevenue)}</span>
+                          <span className="text-xs text-gray-400 ml-2">({totalOrders} pedidos)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

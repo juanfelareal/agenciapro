@@ -166,6 +166,11 @@ export const portalMetricsAPI = {
     return response.data;
   },
 
+  getChannels: async (params = {}) => {
+    const response = await portalApi.get('/metrics/channels', { params });
+    return response.data;
+  },
+
   getCategories: async (params = {}) => {
     const response = await portalApi.get('/metrics/categories', { params });
     return response.data;
