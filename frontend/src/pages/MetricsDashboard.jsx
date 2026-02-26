@@ -38,15 +38,15 @@ function MetricsDashboard() {
     loadData();
   }, [dateRange]);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await clientMetricsAPI.getAggregate(dateRange.start, dateRange.end);
       setData(res.data);
     } catch (error) {
       console.error('Error loading metrics:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -57,9 +57,9 @@ function MetricsDashboard() {
       setSyncing(true);
       await clientMetricsAPI.syncAll();
 
-      // Poll for updates every 10 seconds while sync runs in background
+      // Poll for updates every 10 seconds while sync runs in background (silent refresh)
       const refreshInterval = setInterval(() => {
-        loadData();
+        loadData(true);
       }, 10000);
 
       // Stop polling after 10 minutes max
