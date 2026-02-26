@@ -51,15 +51,16 @@ function MetricsDashboard() {
   };
 
   const handleSync = async () => {
-    if (!confirm('¿Sincronizar métricas de todos los clientes?')) return;
+    if (!confirm('¿Sincronizar métricas de todos los clientes (últimos 365 días)?\n\nSolo se descargarán los días que falten.')) return;
 
     try {
       setSyncing(true);
-      await clientMetricsAPI.syncAll();
-      alert('Sincronización iniciada. Los datos se actualizarán en unos minutos.');
+      const res = await clientMetricsAPI.syncAll();
+      const { daysProcessed, daysSkipped } = res.data;
+      alert(`Sincronización completada:\n• ${daysProcessed} días nuevos sincronizados\n• ${daysSkipped} días omitidos (ya existían)`);
       loadData();
     } catch (error) {
-      alert('Error al sincronizar: ' + error.message);
+      alert('Error al sincronizar: ' + (error.response?.data?.error || error.message));
     } finally {
       setSyncing(false);
     }

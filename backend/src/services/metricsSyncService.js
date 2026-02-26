@@ -376,7 +376,7 @@ function getColombiaDate(offsetDays = 0) {
 }
 
 /**
- * Sync all clients for a specific date (usually yesterday)
+ * Sync all clients for a specific date (used by daily cron)
  * @param {string} date - YYYY-MM-DD (defaults to yesterday in Colombia timezone)
  * @returns {Promise<{success: boolean, clientsSynced: number, errors: Array}>}
  */
@@ -416,9 +416,112 @@ export async function syncAllClientsForDate(date = null) {
   return { success: true, clientsSynced, errors };
 }
 
+/**
+ * Get dates that already have metrics for a client in a given range
+ * @param {number} clientId
+ * @param {string} startDate - YYYY-MM-DD
+ * @param {string} endDate - YYYY-MM-DD
+ * @returns {Set<string>} Set of YYYY-MM-DD dates that already exist
+ */
+async function getExistingDates(clientId, startDate, endDate) {
+  const rows = await db.prepare(`
+    SELECT metric_date FROM client_daily_metrics
+    WHERE client_id = ? AND metric_date BETWEEN ? AND ?
+  `).all(clientId, startDate, endDate);
+
+  return new Set(rows.map(r => {
+    // Normalize to YYYY-MM-DD string (in case DB returns Date object)
+    const d = r.metric_date;
+    if (typeof d === 'string') return d.split('T')[0];
+    return new Date(d).toISOString().split('T')[0];
+  }));
+}
+
+/**
+ * Generate array of YYYY-MM-DD strings between two dates (inclusive)
+ */
+function generateDateRange(startDate, endDate) {
+  const dates = [];
+  const start = new Date(startDate + 'T12:00:00');
+  const end = new Date(endDate + 'T12:00:00');
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
+/**
+ * Sync all clients for a date range, skipping dates that already have data.
+ * Defaults to last 365 days up to yesterday (Colombia timezone).
+ * @param {string} startDate - YYYY-MM-DD (defaults to 365 days ago)
+ * @param {string} endDate - YYYY-MM-DD (defaults to yesterday)
+ * @returns {Promise<{success: boolean, clientsSynced: number, daysProcessed: number, daysSkipped: number, errors: Array}>}
+ */
+export async function syncAllClientsSmart(startDate = null, endDate = null) {
+  if (!endDate) {
+    endDate = getColombiaDate(-1);
+  }
+  if (!startDate) {
+    startDate = getColombiaDate(-365);
+  }
+
+  const clients = await getClientsWithCredentials();
+  let clientsSynced = 0;
+  let totalDaysProcessed = 0;
+  let totalDaysSkipped = 0;
+  const errors = [];
+  const allDates = generateDateRange(startDate, endDate);
+
+  console.log(`\n🔄 Smart sync: ${startDate} → ${endDate} (${allDates.length} days) - ${clients.length} clients`);
+
+  for (const client of clients) {
+    try {
+      const clientName = client.name || client.company;
+      const existingDates = await getExistingDates(client.id, startDate, endDate);
+      const missingDates = allDates.filter(d => !existingDates.has(d));
+
+      if (missingDates.length === 0) {
+        console.log(`  ✅ ${clientName}: all ${allDates.length} days already synced, skipping`);
+        totalDaysSkipped += allDates.length;
+        clientsSynced++;
+        continue;
+      }
+
+      console.log(`  🔄 ${clientName}: ${missingDates.length} days to sync (${existingDates.size} already exist)`);
+      totalDaysSkipped += existingDates.size;
+
+      for (const date of missingDates) {
+        try {
+          await syncClientForDate(client.id, date);
+          totalDaysProcessed++;
+        } catch (err) {
+          console.error(`    Error syncing ${clientName} for ${date}:`, err.message);
+          errors.push({ clientId: client.id, date, error: err.message });
+        }
+      }
+
+      clientsSynced++;
+    } catch (error) {
+      console.error(`  Error processing client ${client.id}:`, error.message);
+      errors.push({ clientId: client.id, error: error.message });
+    }
+  }
+
+  console.log(`✅ Smart sync completed: ${clientsSynced}/${clients.length} clients, ${totalDaysProcessed} days synced, ${totalDaysSkipped} days skipped`);
+
+  return {
+    success: true,
+    clientsSynced,
+    daysProcessed: totalDaysProcessed,
+    daysSkipped: totalDaysSkipped,
+    errors
+  };
+}
+
 export default {
   getClientsWithCredentials,
   syncClientForDate,
   syncClientDateRange,
-  syncAllClientsForDate
+  syncAllClientsForDate,
+  syncAllClientsSmart
 };

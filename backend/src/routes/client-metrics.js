@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import db from '../config/database.js';
-import { syncClientForDate, syncClientDateRange, syncAllClientsForDate } from '../services/metricsSyncService.js';
+import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllClientsSmart } from '../services/metricsSyncService.js';
 
 const router = Router();
 
@@ -320,17 +320,19 @@ router.post('/sync/:clientId', async (req, res) => {
 
 /**
  * POST /api/client-metrics/sync-all
- * Manually sync metrics for all clients (yesterday)
+ * Smart sync: last 365 days for all clients, skipping dates that already have data
  */
 router.post('/sync-all', async (req, res) => {
   try {
-    const { date } = req.body;
+    const { start_date, end_date } = req.body;
 
-    const result = await syncAllClientsForDate(date);
+    const result = await syncAllClientsSmart(start_date, end_date);
 
     res.json({
-      message: `Sincronizacion completada: ${result.clientsSynced} clientes sincronizados`,
+      message: `Sincronización completada: ${result.clientsSynced} clientes, ${result.daysProcessed} días sincronizados, ${result.daysSkipped} días omitidos (ya existían)`,
       clientsSynced: result.clientsSynced,
+      daysProcessed: result.daysProcessed,
+      daysSkipped: result.daysSkipped,
       errors: result.errors
     });
   } catch (error) {
