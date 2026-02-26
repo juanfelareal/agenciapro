@@ -333,6 +333,19 @@ export async function syncClientForDate(clientId, date) {
 }
 
 /**
+ * Generate array of YYYY-MM-DD strings between two dates (inclusive)
+ */
+function generateDateRange(startDate, endDate) {
+  const dates = [];
+  const start = new Date(startDate + 'T12:00:00');
+  const end = new Date(endDate + 'T12:00:00');
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
+/**
  * Sync metrics for a single client for a date range
  * @param {number} clientId
  * @param {string} startDate - YYYY-MM-DD
@@ -344,13 +357,14 @@ export async function syncClientDateRange(clientId, startDate, endDate) {
   let recordsProcessed = 0;
 
   try {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
-      await syncClientForDate(clientId, dateStr);
+    const dates = generateDateRange(startDate, endDate);
+    for (let i = 0; i < dates.length; i++) {
+      await syncClientForDate(clientId, dates[i]);
       recordsProcessed++;
+      // Rate limit: wait 600ms between API calls
+      if (i < dates.length - 1) {
+        await sleep(600);
+      }
     }
 
     await updateSyncJob(jobId, 'completed', recordsProcessed);
@@ -417,6 +431,14 @@ export async function syncAllClientsForDate(date = null) {
 }
 
 /**
+ * Sleep helper for rate limiting
+ * @param {number} ms - Milliseconds to wait
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Get dates that already have metrics for a client in a given range
  * @param {number} clientId
  * @param {string} startDate - YYYY-MM-DD
@@ -435,19 +457,6 @@ async function getExistingDates(clientId, startDate, endDate) {
     if (typeof d === 'string') return d.split('T')[0];
     return new Date(d).toISOString().split('T')[0];
   }));
-}
-
-/**
- * Generate array of YYYY-MM-DD strings between two dates (inclusive)
- */
-function generateDateRange(startDate, endDate) {
-  const dates = [];
-  const start = new Date(startDate + 'T12:00:00');
-  const end = new Date(endDate + 'T12:00:00');
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    dates.push(d.toISOString().split('T')[0]);
-  }
-  return dates;
 }
 
 /**
@@ -490,13 +499,23 @@ export async function syncAllClientsSmart(startDate = null, endDate = null) {
       console.log(`  🔄 ${clientName}: ${missingDates.length} days to sync (${existingDates.size} already exist)`);
       totalDaysSkipped += existingDates.size;
 
-      for (const date of missingDates) {
+      for (let i = 0; i < missingDates.length; i++) {
+        const date = missingDates[i];
         try {
           await syncClientForDate(client.id, date);
           totalDaysProcessed++;
+          // Rate limit: wait 600ms between API calls to respect Shopify/Facebook limits
+          if (i < missingDates.length - 1) {
+            await sleep(600);
+          }
         } catch (err) {
           console.error(`    Error syncing ${clientName} for ${date}:`, err.message);
           errors.push({ clientId: client.id, date, error: err.message });
+          // On rate limit errors, wait longer before continuing
+          if (err.response?.status === 429) {
+            console.log(`    ⏳ Rate limited, waiting 5 seconds...`);
+            await sleep(5000);
+          }
         }
       }
 
