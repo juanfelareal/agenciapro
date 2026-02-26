@@ -129,6 +129,38 @@ router.get('/url', async (req, res) => {
 });
 
 /**
+ * Helper: send HTML page that communicates with parent window via postMessage
+ * Includes visible fallback text in case window.opener is not available
+ */
+function sendCallbackPage(res, data) {
+  const isSuccess = data.type === 'shopify_oauth_success';
+  const jsonData = JSON.stringify(data);
+  const statusText = isSuccess ? 'Conectado exitosamente' : `Error: ${data.error}`;
+  const statusColor = isSuccess ? '#16a34a' : '#dc2626';
+
+  res.send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>AgenciaPro - Shopify</title></head>
+<body style="font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f9fafb">
+  <div style="text-align:center;padding:2rem">
+    <p style="color:${statusColor};font-size:1.1rem;font-weight:600">${statusText}</p>
+    <p style="color:#6b7280;font-size:0.875rem" id="status">Cerrando ventana...</p>
+  </div>
+  <script>
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(${jsonData}, '*');
+        setTimeout(function() { window.close(); }, 500);
+      } else {
+        document.getElementById('status').textContent = 'Puedes cerrar esta ventana y volver a AgenciaPro.';
+      }
+    } catch(e) {
+      document.getElementById('status').textContent = 'Puedes cerrar esta ventana y volver a AgenciaPro.';
+    }
+  </script>
+</body></html>`);
+}
+
+/**
  * GET /api/oauth/shopify/callback
  * Handle OAuth callback from Shopify (PUBLIC - no auth middleware)
  */
@@ -136,74 +168,32 @@ router.get('/callback', async (req, res) => {
   try {
     const { code, shop, state, hmac, timestamp } = req.query;
 
+    console.log('Shopify OAuth callback received:', { code: code ? 'present' : 'missing', shop, state: state ? 'present' : 'missing', hmac: hmac ? 'present' : 'missing' });
+
     // Check for errors (user denied access)
     if (!code || !shop || !state) {
-      return res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage({
-                type: 'shopify_oauth_error',
-                error: 'Autorización cancelada o parámetros faltantes'
-              }, '*');
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      console.log('Shopify callback: missing params');
+      return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Autorización cancelada o parámetros faltantes' });
     }
 
     // Verify HMAC signature
     if (!verifyShopifyHmac(req.query)) {
-      return res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage({
-                type: 'shopify_oauth_error',
-                error: 'Firma HMAC inválida'
-              }, '*');
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      console.log('Shopify callback: HMAC verification failed');
+      return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Firma HMAC inválida' });
     }
 
     // Verify state exists and shop matches
     const session = oauthSessions.get(state);
     if (!session) {
-      return res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage({
-                type: 'shopify_oauth_error',
-                error: 'Sesión expirada o inválida'
-              }, '*');
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      console.log('Shopify callback: state not found in sessions. Active sessions:', oauthSessions.size);
+      return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Sesión expirada o inválida. Intenta de nuevo.' });
     }
 
     const normalizedShop = normalizeStoreUrl(shop);
     if (normalizedShop !== session.storeUrl) {
+      console.log('Shopify callback: shop mismatch', { got: normalizedShop, expected: session.storeUrl });
       oauthSessions.delete(state);
-      return res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage({
-                type: 'shopify_oauth_error',
-                error: 'La tienda no coincide con la solicitada'
-              }, '*');
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'La tienda no coincide con la solicitada' });
     }
 
     const clientId = session.clientId;
@@ -221,21 +211,11 @@ router.get('/callback', async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json();
+    console.log('Shopify token exchange response:', { hasToken: !!tokenData.access_token, scope: tokenData.scope });
 
     if (!tokenData.access_token) {
-      return res.send(`
-        <html>
-          <body>
-            <script>
-              window.opener.postMessage({
-                type: 'shopify_oauth_error',
-                error: 'Error al obtener token de acceso'
-              }, '*');
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
+      console.log('Shopify callback: no access_token in response', tokenData);
+      return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Error al obtener token de acceso' });
     }
 
     // Store token temporarily with session ID
@@ -248,37 +228,18 @@ router.get('/callback', async (req, res) => {
       createdAt: Date.now()
     });
 
+    console.log('Shopify OAuth success for shop:', normalizedShop, 'sessionId:', sessionId);
+
     // Send success message to parent window
-    res.send(`
-      <html>
-        <body>
-          <script>
-            window.opener.postMessage({
-              type: 'shopify_oauth_success',
-              sessionId: '${sessionId}',
-              clientId: '${clientId}',
-              shop: '${normalizedShop}'
-            }, '*');
-            window.close();
-          </script>
-        </body>
-      </html>
-    `);
+    sendCallbackPage(res, {
+      type: 'shopify_oauth_success',
+      sessionId: sessionId,
+      clientId: clientId,
+      shop: normalizedShop
+    });
   } catch (error) {
     console.error('Shopify OAuth callback error:', error);
-    res.send(`
-      <html>
-        <body>
-          <script>
-            window.opener.postMessage({
-              type: 'shopify_oauth_error',
-              error: 'Error interno del servidor'
-            }, '*');
-            window.close();
-          </script>
-        </body>
-      </html>
-    `);
+    sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Error interno del servidor: ' + error.message });
   }
 });
 
