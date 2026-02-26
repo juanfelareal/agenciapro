@@ -320,23 +320,62 @@ router.post('/sync/:clientId', async (req, res) => {
 
 /**
  * POST /api/client-metrics/sync-all
- * Smart sync: last 365 days for all clients, skipping dates that already have data
+ * Smart sync: last 365 days for all clients, skipping dates that already have data.
+ * Runs in background — returns immediately so the HTTP request doesn't timeout.
  */
 router.post('/sync-all', async (req, res) => {
   try {
     const { start_date, end_date } = req.body;
 
-    const result = await syncAllClientsSmart(start_date, end_date);
-
+    // Return immediately — sync runs in background
     res.json({
-      message: `Sincronización completada: ${result.clientsSynced} clientes, ${result.daysProcessed} días sincronizados, ${result.daysSkipped} días omitidos (ya existían)`,
-      clientsSynced: result.clientsSynced,
-      daysProcessed: result.daysProcessed,
-      daysSkipped: result.daysSkipped,
-      errors: result.errors
+      message: 'Sincronización iniciada en segundo plano. Los datos se irán actualizando progresivamente.',
+      status: 'running'
     });
+
+    // Run sync in background (not awaited)
+    syncAllClientsSmart(start_date, end_date)
+      .then(result => {
+        console.log(`✅ Background sync done: ${result.daysProcessed} days synced, ${result.daysSkipped} skipped, ${result.errors.length} errors`);
+      })
+      .catch(err => {
+        console.error('❌ Background sync failed:', err.message);
+      });
   } catch (error) {
-    console.error('Error syncing all clients:', error);
+    console.error('Error starting sync:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/client-metrics/sync-status
+ * Check how many days have been synced for a client (to track progress)
+ */
+router.get('/sync-status', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    }
+
+    const result = await db.prepare(`
+      SELECT
+        c.id as client_id,
+        c.name,
+        c.company,
+        COUNT(m.id) as days_synced
+      FROM clients c
+      LEFT JOIN client_daily_metrics m ON c.id = m.client_id
+        AND m.metric_date BETWEEN ? AND ?
+      WHERE c.organization_id = ? AND c.status = 'active'
+      GROUP BY c.id
+    `).all(start_date, end_date, orgId);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error checking sync status:', error);
     res.status(500).json({ error: error.message });
   }
 });

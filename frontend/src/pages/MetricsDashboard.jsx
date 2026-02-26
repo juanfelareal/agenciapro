@@ -51,17 +51,27 @@ function MetricsDashboard() {
   };
 
   const handleSync = async () => {
-    if (!confirm('¿Sincronizar métricas de todos los clientes (últimos 365 días)?\n\nSolo se descargarán los días que falten.')) return;
+    if (!confirm('¿Sincronizar métricas de todos los clientes (últimos 365 días)?\n\nSolo se descargarán los días que falten. El proceso corre en segundo plano.')) return;
 
     try {
       setSyncing(true);
-      const res = await clientMetricsAPI.syncAll();
-      const { daysProcessed, daysSkipped } = res.data;
-      alert(`Sincronización completada:\n• ${daysProcessed} días nuevos sincronizados\n• ${daysSkipped} días omitidos (ya existían)`);
-      loadData();
+      await clientMetricsAPI.syncAll();
+
+      // Poll for updates every 10 seconds while sync runs in background
+      const refreshInterval = setInterval(() => {
+        loadData();
+      }, 10000);
+
+      // Stop polling after 10 minutes max
+      setTimeout(() => {
+        clearInterval(refreshInterval);
+        setSyncing(false);
+      }, 10 * 60 * 1000);
+
+      // Also store interval so user can see it's syncing
+      window._syncInterval = refreshInterval;
     } catch (error) {
       alert('Error al sincronizar: ' + (error.response?.data?.error || error.message));
-    } finally {
       setSyncing(false);
     }
   };
@@ -124,11 +134,16 @@ function MetricsDashboard() {
           className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
         >
           {syncing ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Sincronizando... (los datos se actualizan automáticamente)
+            </>
           ) : (
-            <RefreshCw className="w-4 h-4" />
+            <>
+              <RefreshCw className="w-4 h-4" />
+              Sincronizar Todo
+            </>
           )}
-          Sincronizar Todo
         </button>
       </div>
 
