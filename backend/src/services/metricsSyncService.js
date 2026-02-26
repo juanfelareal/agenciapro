@@ -247,6 +247,7 @@ export function calculateDerivedMetrics(shopifyMetrics, fbMetrics) {
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export async function syncClientForDate(clientId, date) {
+  // Don't filter by status — we need credentials even if a previous day set status to 'error'
   const client = await db.prepare(`
     SELECT
       c.id, c.name,
@@ -255,8 +256,8 @@ export async function syncClientForDate(clientId, date) {
       sh.store_url as shopify_store_url,
       sh.access_token as shopify_access_token
     FROM clients c
-    LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id AND fb.status = 'active'
-    LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id AND sh.status = 'active'
+    LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id
+    LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id
     WHERE c.id = ?
   `).get(clientId);
 
@@ -266,32 +267,40 @@ export async function syncClientForDate(clientId, date) {
 
   let shopifyMetrics = { revenue: 0, orders: 0, aov: 0, refunds: 0, netRevenue: 0, totalTax: 0, totalDiscounts: 0, sessions: 0, conversionRate: 0 };
   let fbMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerPurchase: 0, costPerLandingPageView: 0, landingPageViews: 0, video3SecViews: 0, videoThruplayViews: 0, hookRate: 0, holdRate: 0 };
+  let shopifyOk = false;
+  let fbOk = false;
+  const hasShopify = !!(client.shopify_store_url && client.shopify_access_token);
+  const hasFacebook = !!(client.fb_access_token && client.fb_ad_account_id);
 
   // Fetch Shopify metrics
-  if (client.shopify_store_url && client.shopify_access_token) {
+  if (hasShopify) {
     try {
       const shopify = new ShopifyIntegration(client.shopify_store_url, client.shopify_access_token);
       shopifyMetrics = await shopify.getMetrics(date, date);
-      await updateCredentialStatus('client_shopify_credentials', clientId, 'active');
+      shopifyOk = true;
     } catch (error) {
-      console.error(`Error syncing Shopify for client ${clientId}:`, error.message);
-      await updateCredentialStatus('client_shopify_credentials', clientId, 'error', error.message);
+      console.error(`Error syncing Shopify for client ${clientId} on ${date}:`, error.message);
     }
   }
 
   // Fetch Facebook Ads metrics
-  if (client.fb_access_token && client.fb_ad_account_id) {
+  if (hasFacebook) {
     try {
       const facebook = new FacebookAdsIntegration(client.fb_access_token, client.fb_ad_account_id);
       const fbDailyMetrics = await facebook.getMetrics(date, date);
       if (fbDailyMetrics.length > 0) {
         fbMetrics = fbDailyMetrics[0];
       }
-      await updateCredentialStatus('client_facebook_credentials', clientId, 'active');
+      fbOk = true;
     } catch (error) {
-      console.error(`Error syncing Facebook for client ${clientId}:`, error.message);
-      await updateCredentialStatus('client_facebook_credentials', clientId, 'error', error.message);
+      console.error(`Error syncing Facebook for client ${clientId} on ${date}:`, error.message);
     }
+  }
+
+  // Only save if at least one API call succeeded (avoid storing empty records from failures)
+  const anyApiSucceeded = (hasShopify && shopifyOk) || (hasFacebook && fbOk) || (!hasShopify && !hasFacebook);
+  if (!anyApiSucceeded) {
+    return { success: false, error: `API calls failed for ${date}` };
   }
 
   // Calculate derived metrics
@@ -328,6 +337,14 @@ export async function syncClientForDate(clientId, date) {
   };
 
   await upsertDailyMetrics(clientId, date, metricsToSave);
+
+  // Update credential status only after successful save
+  if (hasShopify && shopifyOk) {
+    await updateCredentialStatus('client_shopify_credentials', clientId, 'active');
+  }
+  if (hasFacebook && fbOk) {
+    await updateCredentialStatus('client_facebook_credentials', clientId, 'active');
+  }
 
   return { success: true };
 }
@@ -439,20 +456,21 @@ function sleep(ms) {
 }
 
 /**
- * Get dates that already have metrics for a client in a given range
+ * Get dates that already have REAL metrics for a client in a given range.
+ * Ignores records where all metrics are zero (likely from failed API calls).
  * @param {number} clientId
  * @param {string} startDate - YYYY-MM-DD
  * @param {string} endDate - YYYY-MM-DD
- * @returns {Set<string>} Set of YYYY-MM-DD dates that already exist
+ * @returns {Set<string>} Set of YYYY-MM-DD dates that have real data
  */
 async function getExistingDates(clientId, startDate, endDate) {
   const rows = await db.prepare(`
     SELECT metric_date FROM client_daily_metrics
     WHERE client_id = ? AND metric_date BETWEEN ? AND ?
+      AND (shopify_revenue > 0 OR shopify_orders > 0 OR fb_spend > 0 OR fb_impressions > 0)
   `).all(clientId, startDate, endDate);
 
   return new Set(rows.map(r => {
-    // Normalize to YYYY-MM-DD string (in case DB returns Date object)
     const d = r.metric_date;
     if (typeof d === 'string') return d.split('T')[0];
     return new Date(d).toISOString().split('T')[0];
