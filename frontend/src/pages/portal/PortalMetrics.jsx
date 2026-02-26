@@ -725,6 +725,38 @@ export default function PortalMetrics() {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  {(() => {
+                    const totSpend = ads.reduce((s, a) => s + a.spend, 0);
+                    const totImpressions = ads.reduce((s, a) => s + a.impressions, 0);
+                    const totClicks = ads.reduce((s, a) => s + a.clicks, 0);
+                    const totConversions = ads.reduce((s, a) => s + a.conversions, 0);
+                    const totRevenue = ads.reduce((s, a) => s + (a.revenue || 0), 0);
+                    const avgCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
+                    const avgRoas = totSpend > 0 ? totRevenue / totSpend : 0;
+                    const avgCostPerPurchase = totConversions > 0 ? totSpend / totConversions : 0;
+                    const adsWithHook = ads.filter(a => a.hook_rate > 0);
+                    const avgHookRate = adsWithHook.length > 0 ? adsWithHook.reduce((s, a) => s + a.hook_rate, 0) / adsWithHook.length : 0;
+                    const adsWithHold = ads.filter(a => a.hold_rate > 0);
+                    const avgHoldRate = adsWithHold.length > 0 ? adsWithHold.reduce((s, a) => s + a.hold_rate, 0) / adsWithHold.length : 0;
+                    return (
+                      <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#1A1A2E]">
+                        <td className="py-3 px-3">Total</td>
+                        <td className="py-3 px-3"></td>
+                        <td className="py-3 px-3 text-right">{formatCurrency(totSpend)}</td>
+                        <td className="py-3 px-3 text-right">{formatNumber(totImpressions)}</td>
+                        <td className="py-3 px-3 text-right">{formatNumber(totClicks)}</td>
+                        <td className="py-3 px-3 text-right">{formatPercent(avgCtr)}</td>
+                        <td className="py-3 px-3 text-right">{formatNumber(totConversions)}</td>
+                        <td className="py-3 px-3 text-right">{avgRoas.toFixed(2)}x</td>
+                        <td className="py-3 px-3 text-right">{formatCurrency(avgCostPerPurchase)}</td>
+                        <td className="py-3 px-3 text-right">{formatPercent(avgHookRate)}</td>
+                        <td className="py-3 px-3 text-right">{formatPercent(avgHoldRate)}</td>
+                        <td className="py-3 px-1"></td>
+                      </tr>
+                    );
+                  })()}
+                </tfoot>
               </table>
             </div>
           )}
