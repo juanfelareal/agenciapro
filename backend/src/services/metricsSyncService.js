@@ -497,9 +497,10 @@ export async function syncAllClientsSmart(startDate = null, endDate = null) {
   let totalDaysProcessed = 0;
   let totalDaysSkipped = 0;
   const errors = [];
-  const allDates = generateDateRange(startDate, endDate);
+  // Process newest dates first so users see recent data update quickly
+  const allDates = generateDateRange(startDate, endDate).reverse();
 
-  console.log(`\n🔄 Smart sync: ${startDate} → ${endDate} (${allDates.length} days) - ${clients.length} clients`);
+  console.log(`\n🔄 Smart sync: ${startDate} → ${endDate} (${allDates.length} days, newest first) - ${clients.length} clients`);
 
   for (const client of clients) {
     try {
