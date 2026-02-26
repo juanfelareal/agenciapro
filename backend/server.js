@@ -158,7 +158,12 @@ app.use('/api/note-folders', teamAuthMiddleware, noteFolderRoutes);
 // Platform integrations (Facebook Ads & Shopify metrics)
 app.use('/api/platform-credentials', teamAuthMiddleware, platformCredentialsRoutes);
 app.use('/api/client-metrics', teamAuthMiddleware, clientMetricsRoutes);
-app.use('/api/oauth/facebook', teamAuthMiddleware, facebookOAuthRoutes);
+// Facebook OAuth: callback must be public (redirect from Facebook has no auth token)
+// The callback route uses state parameter for verification instead
+app.use('/api/oauth/facebook', (req, res, next) => {
+  if (req.path === '/callback') return next();
+  teamAuthMiddleware(req, res, next);
+}, facebookOAuthRoutes);
 // PDF Analysis (RUT extraction with Claude AI)
 app.use('/api/pdf', teamAuthMiddleware, pdfAnalysisRoutes);
 // SOPs (Standard Operating Procedures)
