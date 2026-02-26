@@ -15,7 +15,7 @@ const REDIRECT_URI = `${BACKEND_URL}/api/oauth/facebook/callback`;
 // For development mode, we start with no special scopes
 // The user's existing ad account access should be inherited
 // Once app is verified, add: ads_read, ads_management, business_management
-const SCOPES = '';
+const SCOPES = 'ads_read';
 
 /**
  * GET /api/oauth/facebook/url
