@@ -64,6 +64,7 @@ const Layout = ({ children }) => {
 
   // Items después de Finanzas
   const bottomNavigation = [
+    { name: 'Métricas', path: '/app/metricas', icon: BarChart3, permission: 'metricas' },
     { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes' },
     { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
