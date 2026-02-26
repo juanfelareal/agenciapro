@@ -21,7 +21,8 @@ import {
   Video,
   Target,
   Receipt,
-  Percent
+  Percent,
+  ExternalLink
 } from 'lucide-react';
 
 export default function PortalMetrics() {
@@ -689,6 +690,7 @@ export default function PortalMetrics() {
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Compra</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Hook Rate</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Hold Rate</th>
+                    <th className="py-3 px-3 w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -709,6 +711,17 @@ export default function PortalMetrics() {
                       <td className="py-3 px-3 text-right">{formatCurrency(ad.cost_per_purchase)}</td>
                       <td className="py-3 px-3 text-right">{formatPercent(ad.hook_rate)}</td>
                       <td className="py-3 px-3 text-right">{formatPercent(ad.hold_rate)}</td>
+                      <td className="py-3 px-1">
+                        <a
+                          href={`https://www.facebook.com/adsmanager/manage/ads?act=&selected_ad_ids=${ad.ad_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="Ver en Facebook Ads Manager"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
