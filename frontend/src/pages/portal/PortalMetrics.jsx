@@ -25,7 +25,11 @@ import {
   Percent,
   ExternalLink,
   Package,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Filter,
+  UserCircle,
+  MapPin,
+  ChevronRight
 } from 'lucide-react';
 
 export default function PortalMetrics() {
@@ -42,6 +46,8 @@ export default function PortalMetrics() {
   const [topProductsLoading, setTopProductsLoading] = useState(false);
   const [compareMode, setCompareMode] = useState('previous'); // 'previous' | 'year' | 'custom' | 'none'
   const [compareDates, setCompareDates] = useState({ start: '', end: '' });
+  const [demographics, setDemographics] = useState(null);
+  const [demographicsLoading, setDemographicsLoading] = useState(false);
 
   useEffect(() => {
     if (dateRange !== 'custom') {
@@ -112,6 +118,7 @@ export default function PortalMetrics() {
     setLoading(true);
     setAds(null);
     setTopProducts(null);
+    setDemographics(null);
     try {
       const params = getApiParams();
       const [summaryRes, dailyRes, insightRes] = await Promise.all([
@@ -152,6 +159,19 @@ export default function PortalMetrics() {
       setTopProducts([]);
     } finally {
       setTopProductsLoading(false);
+    }
+  };
+
+  const loadDemographics = async () => {
+    setDemographicsLoading(true);
+    try {
+      const res = await portalMetricsAPI.getDemographics(getApiParams());
+      setDemographics(res);
+    } catch (error) {
+      console.error('Error loading demographics:', error);
+      setDemographics({ facebook: null, shopify: null, avatar: null });
+    } finally {
+      setDemographicsLoading(false);
     }
   };
 
@@ -203,6 +223,21 @@ export default function PortalMetrics() {
         {value > 0 ? '+' : ''}{value?.toFixed(1)}%
       </span>
     );
+  };
+
+  // --- Funnel thresholds & semaphore ---
+  const FUNNEL_THRESHOLDS = {
+    ctr:           { green: 1.5, yellow: 0.8 },
+    landing_rate:  { green: 60,  yellow: 40 },
+    atc_rate:      { green: 8,   yellow: 4 },
+    purchase_rate: { green: 25,  yellow: 15 },
+  };
+  const getSemaphore = (value, key) => {
+    const t = FUNNEL_THRESHOLDS[key];
+    if (!t) return { color: 'gray', icon: '' };
+    if (value >= t.green) return { color: 'text-green-500', bg: 'bg-green-100', icon: '🟢' };
+    if (value >= t.yellow) return { color: 'text-yellow-500', bg: 'bg-yellow-100', icon: '🟡' };
+    return { color: 'text-red-500', bg: 'bg-red-100', icon: '🔴' };
   };
 
   // --- Daily table columns (filtered by connected platforms) ---
@@ -334,6 +369,49 @@ export default function PortalMetrics() {
         : col
     );
   }, [dailyColumns]);
+
+  // --- Top 5 ads by revenue ---
+  const topAds = useMemo(() => {
+    if (!ads || ads.length === 0) return [];
+    return [...ads]
+      .filter(a => a.revenue > 0 || a.spend > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [ads]);
+
+  // --- Funnel data (computed from metrics.facebook) ---
+  const funnelData = useMemo(() => {
+    const fb = metrics?.facebook;
+    if (!fb) return null;
+
+    const impressions = fb.impressions || 0;
+    const linkClicks = fb.link_clicks || 0;
+    const landingPageViews = fb.landing_page_views || 0;
+    const addToCart = fb.add_to_cart || 0;
+    const purchases = fb.conversions || 0;
+
+    const ctr = impressions > 0 ? (linkClicks / impressions) * 100 : 0;
+    const landingRate = linkClicks > 0 ? (landingPageViews / linkClicks) * 100 : 0;
+    const atcRate = landingPageViews > 0 ? (addToCart / landingPageViews) * 100 : 0;
+    const purchaseRate = addToCart > 0 ? (purchases / addToCart) * 100 : 0;
+
+    return {
+      steps: [
+        { label: 'Impresiones', value: impressions, icon: '👁', color: '#3B82F6' },
+        { label: 'Clics en enlace', value: linkClicks, icon: '🔗', color: '#6366F1' },
+        { label: 'Visitas página', value: landingPageViews, icon: '📄', color: '#8B5CF6' },
+        { label: 'Agregados al carrito', value: addToCart, icon: '🛒', color: '#F59E0B' },
+        { label: 'Ventas', value: purchases, icon: '💰', color: '#22C55E' },
+      ],
+      rates: [
+        { label: 'CTR', value: ctr, key: 'ctr' },
+        { label: 'Landing Rate', value: landingRate, key: 'landing_rate' },
+        { label: 'ATC Rate', value: atcRate, key: 'atc_rate' },
+        { label: 'Conv Rate', value: purchaseRate, key: 'purchase_rate' },
+      ],
+      maxValue: impressions,
+    };
+  }, [metrics]);
 
   if (loading) {
     return (
@@ -952,6 +1030,306 @@ export default function PortalMetrics() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Conversion Funnel */}
+          {funnelData && funnelData.maxValue > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+              <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2 mb-6">
+                <Filter className="w-4 h-4 text-indigo-500" />
+                Embudo de Conversión
+              </h3>
+              <div className="space-y-1">
+                {funnelData.steps.map((step, idx) => {
+                  const widthPct = funnelData.maxValue > 0
+                    ? Math.max(25, (step.value / funnelData.maxValue) * 100)
+                    : 25;
+                  const rate = funnelData.rates[idx];
+
+                  return (
+                    <div key={step.label}>
+                      {/* Step bar */}
+                      <div className="flex justify-center">
+                        <div
+                          className="relative rounded-xl px-5 py-3.5 flex items-center justify-between text-white font-medium transition-all"
+                          style={{
+                            width: `${widthPct}%`,
+                            backgroundColor: step.color,
+                            minWidth: '200px',
+                          }}
+                        >
+                          <span className="flex items-center gap-2 text-sm">
+                            <span>{step.icon}</span> {step.label}
+                          </span>
+                          <span className="text-sm font-bold">{formatNumber(step.value)}</span>
+                        </div>
+                      </div>
+                      {/* Rate badge between steps */}
+                      {rate && (
+                        <div className="flex justify-center py-1.5">
+                          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${getSemaphore(rate.value, rate.key).bg}`}>
+                            <span>{getSemaphore(rate.value, rate.key).icon}</span>
+                            <span className={getSemaphore(rate.value, rate.key).color}>
+                              {rate.label}: {rate.value.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Threshold legend */}
+              <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                <span className="font-medium">Umbrales:</span>
+                <span>🟢 CTR ≥ 1.5%</span>
+                <span>🟢 Landing ≥ 60%</span>
+                <span>🟢 ATC ≥ 8%</span>
+                <span>🟢 Conv ≥ 25%</span>
+                <span className="text-gray-400">| 🟡 Medio | 🔴 Bajo</span>
+              </div>
+            </div>
+          )}
+
+          {/* Top 5 Anuncios */}
+          {metrics?.facebook && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
+                  <Target className="w-4 h-4 text-amber-500" />
+                  Top 5 Anuncios
+                </h3>
+                {ads === null && (
+                  <button
+                    onClick={loadAds}
+                    disabled={adsLoading}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+                  >
+                    {adsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <BarChart3 className="w-4 h-4" />
+                    )}
+                    Cargar Top 5
+                  </button>
+                )}
+              </div>
+
+              {adsLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+              )}
+
+              {ads !== null && !adsLoading && topAds.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-8">
+                  No hay anuncios con ventas en este periodo
+                </p>
+              )}
+
+              {topAds.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left py-3 px-3 font-medium text-gray-500 w-10">#</th>
+                        <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
+                        <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
+                        <th className="text-right py-3 px-3 font-medium text-gray-500">Ventas</th>
+                        <th className="text-right py-3 px-3 font-medium text-gray-500">ROAS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topAds.map((ad, idx) => {
+                        const roasColor = ad.roas >= 3 ? 'text-green-600' : ad.roas >= 1.5 ? 'text-yellow-600' : 'text-red-500';
+                        return (
+                          <tr key={ad.ad_id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                            <td className="py-3 px-3 text-gray-400 font-medium">{idx + 1}</td>
+                            <td className="py-3 px-3 font-medium text-[#1A1A2E] max-w-[300px] truncate" title={ad.ad_name}>
+                              {ad.ad_name}
+                              {ad.preview_url && (
+                                <a href={ad.preview_url} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex text-gray-400 hover:text-blue-600">
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 text-right">{formatCurrency(ad.spend)}</td>
+                            <td className="py-3 px-3 text-right font-medium">{formatCurrency(ad.revenue)}</td>
+                            <td className={`py-3 px-3 text-right font-bold ${roasColor}`}>
+                              {ad.roas.toFixed(2)}x
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#1A1A2E]">
+                        <td className="py-3 px-3" colSpan={2}>Total Top 5</td>
+                        <td className="py-3 px-3 text-right">{formatCurrency(topAds.reduce((s, a) => s + a.spend, 0))}</td>
+                        <td className="py-3 px-3 text-right">{formatCurrency(topAds.reduce((s, a) => s + a.revenue, 0))}</td>
+                        <td className="py-3 px-3 text-right font-bold">
+                          {(() => {
+                            const totSpend = topAds.reduce((s, a) => s + a.spend, 0);
+                            const totRevenue = topAds.reduce((s, a) => s + a.revenue, 0);
+                            return totSpend > 0 ? `${(totRevenue / totSpend).toFixed(2)}x` : '—';
+                          })()}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Demographics Section */}
+          {(metrics?.facebook || metrics?.shopify) && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-500" />
+                  Demográficos y Avatar de Marca
+                </h3>
+                {demographics === null && (
+                  <button
+                    onClick={loadDemographics}
+                    disabled={demographicsLoading}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+                  >
+                    {demographicsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <UserCircle className="w-4 h-4" />
+                    )}
+                    Ver demográficos
+                  </button>
+                )}
+              </div>
+
+              {demographicsLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+              )}
+
+              {demographics !== null && !demographicsLoading && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Avatar de Marca */}
+                  {demographics.avatar && demographics.avatar.summary && (
+                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6 flex flex-col items-center text-center">
+                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                        <UserCircle className="w-12 h-12 text-indigo-500" />
+                      </div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-2">Tu comprador típico</p>
+                      <p className="text-lg font-bold text-[#1A1A2E] mb-1">{demographics.avatar.summary}</p>
+                      {demographics.avatar.confidence > 0 && (
+                        <p className="text-sm text-gray-500">
+                          Representa el <span className="font-semibold text-indigo-600">{demographics.avatar.confidence.toFixed(0)}%</span> de tus compras
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Edad y Género (Meta) */}
+                  {demographics.facebook && demographics.facebook.length > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5" />
+                        Edad y Género (Meta)
+                      </p>
+                      <div className="space-y-2">
+                        {(() => {
+                          // Group by age range
+                          const ageGroups = {};
+                          demographics.facebook.forEach(row => {
+                            if (!ageGroups[row.age]) ageGroups[row.age] = { male: 0, female: 0, unknown: 0, total: 0 };
+                            const g = row.gender === 'male' ? 'male' : row.gender === 'female' ? 'female' : 'unknown';
+                            ageGroups[row.age][g] += row.spend || 0;
+                            ageGroups[row.age].total += row.spend || 0;
+                          });
+                          const grandTotal = Object.values(ageGroups).reduce((s, g) => s + g.total, 0);
+                          const sorted = Object.entries(ageGroups).sort((a, b) => {
+                            const order = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+                            return order.indexOf(a[0]) - order.indexOf(b[0]);
+                          });
+
+                          return sorted.map(([age, data]) => {
+                            const pct = grandTotal > 0 ? (data.total / grandTotal) * 100 : 0;
+                            const malePct = data.total > 0 ? (data.male / data.total) * 100 : 0;
+                            const femalePct = data.total > 0 ? (data.female / data.total) * 100 : 0;
+                            return (
+                              <div key={age}>
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                  <span className="font-medium text-gray-700 w-12">{age}</span>
+                                  <span className="text-gray-400">{pct.toFixed(0)}%</span>
+                                </div>
+                                <div className="h-5 bg-gray-100 rounded-full overflow-hidden flex">
+                                  <div
+                                    className="h-full bg-blue-400 transition-all"
+                                    style={{ width: `${malePct * pct / 100}%` }}
+                                    title={`Hombres: ${malePct.toFixed(0)}%`}
+                                  />
+                                  <div
+                                    className="h-full bg-pink-400 transition-all"
+                                    style={{ width: `${femalePct * pct / 100}%` }}
+                                    title={`Mujeres: ${femalePct.toFixed(0)}%`}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                      <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-400 inline-block" /> Hombres</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-pink-400 inline-block" /> Mujeres</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Ciudades (Shopify) */}
+                  {demographics.shopify && demographics.shopify.length > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5" />
+                        Top Ciudades (Compras)
+                      </p>
+                      <div className="space-y-2.5">
+                        {demographics.shopify.slice(0, 10).map((region, idx) => {
+                          const maxOrders = demographics.shopify[0]?.orders || 1;
+                          const barPct = (region.orders / maxOrders) * 100;
+                          return (
+                            <div key={idx}>
+                              <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-medium text-gray-700 truncate max-w-[60%]">
+                                  {region.city}{region.province ? `, ${region.province}` : ''}
+                                </span>
+                                <span className="text-gray-500 flex-shrink-0">
+                                  {region.orders} pedidos · {formatCurrency(region.revenue)}
+                                </span>
+                              </div>
+                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-green-400 rounded-full transition-all"
+                                  style={{ width: `${barPct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty state */}
+                  {!demographics.avatar?.summary && (!demographics.facebook || demographics.facebook.length === 0) && (!demographics.shopify || demographics.shopify.length === 0) && (
+                    <div className="col-span-full text-center py-8">
+                      <p className="text-sm text-gray-500">No hay datos demográficos disponibles para este periodo</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -78,7 +78,9 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(shopify_total_tax), 0) as total_tax,
         COALESCE(SUM(shopify_total_discounts), 0) as total_discounts,
         COALESCE(SUM(shopify_sessions), 0) as total_sessions,
-        COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders
+        COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders,
+        COALESCE(SUM(fb_link_clicks), 0) as total_link_clicks,
+        COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -102,7 +104,9 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(shopify_total_tax), 0) as total_tax,
         COALESCE(SUM(shopify_total_discounts), 0) as total_discounts,
         COALESCE(SUM(shopify_sessions), 0) as total_sessions,
-        COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders
+        COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders,
+        COALESCE(SUM(fb_link_clicks), 0) as total_link_clicks,
+        COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -122,6 +126,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const aov = orders > 0 ? revenue / orders : 0;
     const customers = current?.total_customers || 0;
     const landingPageViews = current?.total_landing_page_views || 0;
+    const linkClicks = current?.total_link_clicks || 0;
+    const addToCart = current?.total_add_to_cart || 0;
     const video3sec = current?.total_video_3sec_views || 0;
     const thruplay = current?.total_video_thruplay_views || 0;
     const totalTax = current?.total_tax || 0;
@@ -199,6 +205,9 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         cpm: cpm,
         cost_per_purchase: costPerPurchase,
         cost_per_landing_page_view: costPerLPV,
+        landing_page_views: landingPageViews,
+        link_clicks: linkClicks,
+        add_to_cart: addToCart,
         hook_rate: hookRate,
         hold_rate: holdRate,
         ...(hasComparison && {
@@ -388,6 +397,87 @@ router.get('/top-products', clientAuthMiddleware, requirePortalPermission('can_v
   } catch (error) {
     console.error('Error fetching top products:', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al cargar productos' });
+  }
+});
+
+/**
+ * GET /api/portal/metrics/demographics
+ * Get demographic breakdown: Meta age/gender + Shopify regions + brand avatar
+ */
+router.get('/demographics', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { startDate, endDate } = resolveRange(req.query);
+
+    const response = { facebook: null, shopify: null, avatar: null };
+
+    // Facebook demographics (age × gender)
+    const fbCred = await db.get(
+      'SELECT access_token, ad_account_id FROM client_facebook_credentials WHERE client_id = ?',
+      [clientId]
+    );
+    if (fbCred?.ad_account_id) {
+      const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+      if (accessToken) {
+        const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
+        const ageGender = await fb.getDemographicInsights(startDate, endDate);
+        response.facebook = { age_gender: ageGender };
+      }
+    }
+
+    // Shopify regions (orders by city)
+    const shopifyCred = await db.get(
+      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = ? AND status = ?',
+      [clientId, 'active']
+    );
+    if (shopifyCred?.store_url && shopifyCred?.access_token) {
+      const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
+      const regions = await shopify.getOrdersByRegion(startDate, endDate);
+      response.shopify = { regions };
+    }
+
+    // Build brand avatar
+    const avatar = {};
+    if (response.facebook?.age_gender?.length) {
+      // Aggregate by gender
+      const genderTotals = {};
+      const ageTotals = {};
+      let totalConversions = 0;
+      for (const row of response.facebook.age_gender) {
+        const g = row.gender === 'female' ? 'Mujer' : row.gender === 'male' ? 'Hombre' : row.gender;
+        genderTotals[g] = (genderTotals[g] || 0) + row.conversions;
+        ageTotals[row.age] = (ageTotals[row.age] || 0) + row.conversions;
+        totalConversions += row.conversions;
+      }
+      const topGender = Object.entries(genderTotals).sort((a, b) => b[1] - a[1])[0];
+      const topAge = Object.entries(ageTotals).sort((a, b) => b[1] - a[1])[0];
+      if (topGender) avatar.top_gender = topGender[0];
+      if (topAge) avatar.top_age_range = topAge[0];
+      avatar.total_conversions = totalConversions;
+      if (topGender && topAge && totalConversions > 0) {
+        avatar.gender_confidence = ((topGender[1] / totalConversions) * 100).toFixed(1);
+        avatar.age_confidence = ((topAge[1] / totalConversions) * 100).toFixed(1);
+      }
+    }
+    if (response.shopify?.regions?.length) {
+      const top = response.shopify.regions[0];
+      avatar.top_city = top.city;
+      avatar.top_province = top.province;
+      const totalOrders = response.shopify.regions.reduce((s, r) => s + r.orders, 0);
+      avatar.city_confidence = totalOrders > 0 ? ((top.orders / totalOrders) * 100).toFixed(1) : 0;
+    }
+    // Build summary string
+    const parts = [];
+    if (avatar.top_gender) parts.push(avatar.top_gender);
+    if (avatar.top_age_range) parts.push(`${avatar.top_age_range} años`);
+    if (avatar.top_city) parts.push(avatar.top_city);
+    avatar.summary = parts.join(', ') || 'Sin datos suficientes';
+
+    response.avatar = avatar;
+    res.json(response);
+  } catch (error) {
+    console.error('Error getting demographics:', error);
+    res.status(500).json({ error: 'Error al cargar datos demográficos' });
   }
 });
 

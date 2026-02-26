@@ -272,9 +272,41 @@ class ShopifyIntegration {
   }
 
   /**
+   * Get orders aggregated by region (city/province) for demographic analysis
+   * @param {string} startDate
+   * @param {string} endDate
+   * @returns {Promise<Array<{city, province, country, orders, revenue}>>}
+   */
+  async getOrdersByRegion(startDate, endDate) {
+    const allOrders = await this.getOrders(startDate, endDate);
+    const regionMap = {};
+
+    allOrders.forEach(order => {
+      if (order.cancelled_at) return;
+      if (order.financial_status !== 'paid' && order.financial_status !== 'partially_refunded') return;
+
+      const addr = order.billing_address || order.shipping_address;
+      if (!addr) return;
+
+      const city = addr.city || 'Desconocida';
+      const province = addr.province || '';
+      const country = addr.country || '';
+      const key = `${city}|${province}|${country}`;
+
+      if (!regionMap[key]) {
+        regionMap[key] = { city, province, country, orders: 0, revenue: 0 };
+      }
+      regionMap[key].orders++;
+      regionMap[key].revenue += parseFloat(order.total_price) || 0;
+    });
+
+    return Object.values(regionMap).sort((a, b) => b.revenue - a.revenue);
+  }
+
+  /**
    * Get daily metrics breakdown for a date range
-   * @param {string} startDate - Start date in YYYY-MM-DD format
-   * @param {string} endDate - End date in YYYY-MM-DD format
+   * @param {string} startDate
+   * @param {string} endDate
    * @returns {Promise<Array<{date, revenue, orders, aov, refunds, netRevenue}>>}
    */
   async getDailyMetrics(startDate, endDate) {

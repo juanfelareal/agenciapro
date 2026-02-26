@@ -160,6 +160,11 @@ export const portalMetricsAPI = {
     const response = await portalApi.get('/metrics/top-products', { params });
     return response.data;
   },
+
+  getDemographics: async (params = {}) => {
+    const response = await portalApi.get('/metrics/demographics', { params });
+    return response.data;
+  },
 };
 
 // ============================================

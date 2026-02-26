@@ -71,7 +71,8 @@ class FacebookAdsIntegration {
             'action_values',
             'cost_per_action_type',
             'video_play_actions',
-            'video_thruplay_watched_actions'
+            'video_thruplay_watched_actions',
+            'inline_link_clicks'
           ].join(','),
           level: 'account'
         }
@@ -140,6 +141,17 @@ class FacebookAdsIntegration {
   }
 
   /**
+   * Parse add-to-cart actions from actions array
+   * @param {Array} actions - Facebook actions array
+   * @returns {number}
+   */
+  parseAddToCart(actions) {
+    if (!actions || !Array.isArray(actions)) return 0;
+    const entry = actions.find(a => a.action_type === 'add_to_cart' || a.action_type === 'omni_add_to_cart');
+    return entry ? parseInt(entry.value) || 0 : 0;
+  }
+
+  /**
    * Parse 3-second video views from video_play_actions or actions array
    * (video_3_sec_watched_actions was deprecated in API v20+)
    * @param {Array} videoPlayActions - Facebook video_play_actions array
@@ -203,6 +215,8 @@ class FacebookAdsIntegration {
       const costPerPurchase = this.parseCostPerAction(day.cost_per_action_type, 'purchase');
       const costPerLandingPageView = this.parseCostPerAction(day.cost_per_action_type, 'landing_page_view');
       const landingPageViews = this.parseLandingPageViews(day.actions);
+      const linkClicks = parseInt(day.inline_link_clicks) || 0;
+      const addToCart = this.parseAddToCart(day.actions);
       const video3SecViews = this.parseVideo3SecViews(day.video_play_actions, day.actions);
       const videoThruplayViews = this.parseThruplayViews(day.video_thruplay_watched_actions, day.actions);
       const hookRate = impressions > 0 ? (video3SecViews / impressions) * 100 : 0;
@@ -222,12 +236,49 @@ class FacebookAdsIntegration {
         costPerPurchase,
         costPerLandingPageView,
         landingPageViews,
+        linkClicks,
+        addToCart,
         video3SecViews,
         videoThruplayViews,
         hookRate,
         holdRate
       };
     });
+  }
+
+  /**
+   * Get demographic breakdown insights (age × gender) for a date range
+   * @param {string} startDate
+   * @param {string} endDate
+   * @returns {Promise<Array<{age, gender, spend, impressions, clicks, conversions, revenue}>>}
+   */
+  async getDemographicInsights(startDate, endDate) {
+    try {
+      const response = await axios.get(`${FB_GRAPH_API_URL}/${this.adAccountId}/insights`, {
+        params: {
+          access_token: this.accessToken,
+          time_range: JSON.stringify({ since: startDate, until: endDate }),
+          fields: ['spend', 'impressions', 'clicks', 'actions', 'action_values'].join(','),
+          breakdowns: 'age,gender',
+          level: 'account',
+          limit: 200
+        }
+      });
+
+      const data = response.data.data || [];
+      return data.map(row => ({
+        age: row.age,
+        gender: row.gender,
+        spend: parseFloat(row.spend) || 0,
+        impressions: parseInt(row.impressions) || 0,
+        clicks: parseInt(row.clicks) || 0,
+        conversions: this.parseConversions(row.actions),
+        revenue: this.parseRevenue(row.action_values),
+      }));
+    } catch (error) {
+      console.error('Error fetching demographic insights:', error.response?.data || error.message);
+      return [];
+    }
   }
 
   /**

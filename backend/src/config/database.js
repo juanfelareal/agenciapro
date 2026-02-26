@@ -1214,6 +1214,8 @@ export const initializeDatabase = async () => {
       { name: 'shopify_sessions', type: 'INTEGER DEFAULT 0' },
       { name: 'shopify_conversion_rate', type: 'REAL DEFAULT 0' },
       { name: 'shopify_pending_orders', type: 'INTEGER DEFAULT 0' },
+      { name: 'fb_link_clicks', type: 'INTEGER DEFAULT 0' },
+      { name: 'fb_add_to_cart', type: 'INTEGER DEFAULT 0' },
     ];
 
     for (const col of newMetricColumns) {
