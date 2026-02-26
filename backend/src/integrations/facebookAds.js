@@ -70,7 +70,8 @@ class FacebookAdsIntegration {
             'actions',
             'action_values',
             'cost_per_action_type',
-            'video_play_actions'
+            'video_play_actions',
+            'video_thruplay_watched_actions'
           ].join(','),
           level: 'account'
         }
@@ -160,18 +161,24 @@ class FacebookAdsIntegration {
   }
 
   /**
-   * Parse thruplay video views from actions array
-   * (video_thruplay_watched_actions was deprecated in API v20+)
-   * @param {Array} actions - Facebook actions array
+   * Parse thruplay video views from video_thruplay_watched_actions field
+   * @param {Array} videoThruplayActions - Facebook video_thruplay_watched_actions array
+   * @param {Array} actions - Facebook actions array (fallback)
    * @returns {number}
    */
-  parseThruplayViews(actions) {
-    if (!actions || !Array.isArray(actions)) return 0;
-    const entry = actions.find(a => a.action_type === 'video_view' && a.action_video_type === 'thruplay');
-    if (entry) return parseInt(entry.value) || 0;
-    // Fallback: look for onsite_web_view_content as proxy
-    const thruplay = actions.find(a => a.action_type === 'video_completed');
-    return thruplay ? parseInt(thruplay.value) || 0 : 0;
+  parseThruplayViews(videoThruplayActions, actions) {
+    // Primary: use dedicated video_thruplay_watched_actions field
+    if (videoThruplayActions && Array.isArray(videoThruplayActions)) {
+      const entry = videoThruplayActions.find(a => a.action_type === 'video_view');
+      if (entry) return parseInt(entry.value) || 0;
+    }
+    // Fallback: check actions array for video_view (less reliable)
+    if (actions && Array.isArray(actions)) {
+      const entry = actions.find(a => a.action_type === 'video_view');
+      // Only use this if we didn't find it in video_play_actions
+      // to avoid double-counting with 3-sec views
+    }
+    return 0;
   }
 
   /**
@@ -197,7 +204,7 @@ class FacebookAdsIntegration {
       const costPerLandingPageView = this.parseCostPerAction(day.cost_per_action_type, 'landing_page_view');
       const landingPageViews = this.parseLandingPageViews(day.actions);
       const video3SecViews = this.parseVideo3SecViews(day.video_play_actions, day.actions);
-      const videoThruplayViews = this.parseThruplayViews(day.actions);
+      const videoThruplayViews = this.parseThruplayViews(day.video_thruplay_watched_actions, day.actions);
       const hookRate = impressions > 0 ? (video3SecViews / impressions) * 100 : 0;
       const holdRate = video3SecViews > 0 ? (videoThruplayViews / video3SecViews) * 100 : 0;
 
@@ -252,7 +259,8 @@ class FacebookAdsIntegration {
         'actions',
         'action_values',
         'cost_per_action_type',
-        'video_play_actions'
+        'video_play_actions',
+        'video_thruplay_watched_actions'
       ].join(','),
       level: 'ad',
       limit: 500
@@ -290,7 +298,7 @@ class FacebookAdsIntegration {
       const roas = spend > 0 ? revenue / spend : 0;
       const costPerPurchase = this.parseCostPerAction(ad.cost_per_action_type, 'purchase');
       const video3SecViews = this.parseVideo3SecViews(ad.video_play_actions, ad.actions);
-      const videoThruplayViews = this.parseThruplayViews(ad.actions);
+      const videoThruplayViews = this.parseThruplayViews(ad.video_thruplay_watched_actions, ad.actions);
       const hookRate = impressions > 0 ? (video3SecViews / impressions) * 100 : 0;
       const holdRate = video3SecViews > 0 ? (videoThruplayViews / video3SecViews) * 100 : 0;
 
