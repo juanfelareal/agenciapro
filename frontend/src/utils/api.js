@@ -291,6 +291,8 @@ export const facebookOAuthAPI = {
 export const shopifyOAuthAPI = {
   getAuthUrl: (clientId, storeUrl) =>
     api.get(`/oauth/shopify/url?client_id=${clientId}&store_url=${encodeURIComponent(storeUrl)}`),
+  pollCallbackStatus: (state) =>
+    api.get(`/oauth/shopify/callback-status?state=${state}`),
   getStoreInfo: (sessionId) =>
     api.get(`/oauth/shopify/store-info?session_id=${sessionId}`),
   linkStore: (data) => api.post('/oauth/shopify/link-store', data),

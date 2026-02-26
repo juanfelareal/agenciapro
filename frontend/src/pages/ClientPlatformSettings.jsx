@@ -211,6 +211,7 @@ function ClientPlatformSettings() {
     try {
       setConnectingShopify(true);
       const res = await shopifyOAuthAPI.getAuthUrl(clientId, storeUrl);
+      const oauthState = res.data.state;
 
       // Open popup
       const width = 600;
@@ -218,11 +219,48 @@ function ClientPlatformSettings() {
       const left = window.screenX + (window.innerWidth - width) / 2;
       const top = window.screenY + (window.innerHeight - height) / 2;
 
-      window.open(
+      const popup = window.open(
         res.data.authUrl,
         'shopify_oauth',
         `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
       );
+
+      // Poll for callback result (fallback since window.opener is lost in cross-origin redirects)
+      const pollInterval = setInterval(async () => {
+        try {
+          // Stop polling if popup was closed manually without completing
+          if (popup && popup.closed) {
+            const pollRes = await shopifyOAuthAPI.pollCallbackStatus(oauthState);
+            if (pollRes.data.pending) {
+              // Popup closed without completing OAuth
+              clearInterval(pollInterval);
+              setConnectingShopify(false);
+              return;
+            }
+          }
+
+          const pollRes = await shopifyOAuthAPI.pollCallbackStatus(oauthState);
+          if (!pollRes.data.pending) {
+            clearInterval(pollInterval);
+            if (pollRes.data.type === 'shopify_oauth_success') {
+              setConnectingShopify(false);
+              setShopifyOauthSessionId(pollRes.data.sessionId);
+              await loadStoreInfo(pollRes.data.sessionId);
+            } else {
+              setConnectingShopify(false);
+              alert('Error al conectar con Shopify: ' + (pollRes.data.error || 'Error desconocido'));
+            }
+          }
+        } catch {
+          // Ignore polling errors, will retry
+        }
+      }, 2000);
+
+      // Stop polling after 5 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setConnectingShopify(false);
+      }, 5 * 60 * 1000);
     } catch (error) {
       setConnectingShopify(false);
       alert('Error al iniciar conexión: ' + (error.response?.data?.error || error.message));

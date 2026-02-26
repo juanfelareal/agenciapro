@@ -6,6 +6,8 @@ const router = Router();
 
 // In-memory storage for OAuth state (production should use Redis)
 const oauthSessions = new Map();
+// Store callback results for frontend polling (since window.opener is lost in cross-origin redirects)
+const callbackResults = new Map();
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
@@ -230,6 +232,15 @@ router.get('/callback', async (req, res) => {
 
     console.log('Shopify OAuth success for shop:', normalizedShop, 'sessionId:', sessionId);
 
+    // Store result for frontend polling (keyed by original state)
+    callbackResults.set(state, {
+      type: 'shopify_oauth_success',
+      sessionId: sessionId,
+      clientId: clientId,
+      shop: normalizedShop,
+      createdAt: Date.now()
+    });
+
     // Send success message to parent window
     sendCallbackPage(res, {
       type: 'shopify_oauth_success',
@@ -241,6 +252,35 @@ router.get('/callback', async (req, res) => {
     console.error('Shopify OAuth callback error:', error);
     sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Error interno del servidor: ' + error.message });
   }
+});
+
+/**
+ * GET /api/oauth/shopify/callback-status
+ * Poll for callback result (since window.opener is lost in cross-origin redirects)
+ */
+router.get('/callback-status', async (req, res) => {
+  const { state } = req.query;
+  if (!state) {
+    return res.status(400).json({ error: 'state es requerido' });
+  }
+
+  const result = callbackResults.get(state);
+  if (!result) {
+    return res.json({ pending: true });
+  }
+
+  // Clean up after reading
+  callbackResults.delete(state);
+
+  // Clean up old results (older than 5 minutes)
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+  for (const [key, value] of callbackResults.entries()) {
+    if (value.createdAt < fiveMinutesAgo) {
+      callbackResults.delete(key);
+    }
+  }
+
+  res.json({ pending: false, ...result });
 });
 
 /**

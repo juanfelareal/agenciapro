@@ -165,9 +165,10 @@ app.use('/api/oauth/facebook', (req, res, next) => {
   if (req.path === '/callback') return next();
   teamAuthMiddleware(req, res, next);
 }, facebookOAuthRoutes);
-// Shopify OAuth: callback must be public (redirect from Shopify has no auth token)
+// Shopify OAuth: callback + callback-status must be public
+// (callback: redirect from Shopify; callback-status: polling from frontend during OAuth)
 app.use('/api/oauth/shopify', (req, res, next) => {
-  if (req.path === '/callback') return next();
+  if (req.path === '/callback' || req.path === '/callback-status') return next();
   teamAuthMiddleware(req, res, next);
 }, shopifyOAuthRoutes);
 // PDF Analysis (RUT extraction with Claude AI)
