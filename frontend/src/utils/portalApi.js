@@ -155,6 +155,11 @@ export const portalMetricsAPI = {
     const response = await portalApi.get('/metrics/ads', { params });
     return response.data;
   },
+
+  getTopProducts: async (params = {}) => {
+    const response = await portalApi.get('/metrics/top-products', { params });
+    return response.data;
+  },
 };
 
 // ============================================

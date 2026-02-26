@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
 import FacebookAdsIntegration from '../../integrations/facebookAds.js';
+import ShopifyIntegration from '../../integrations/shopify.js';
 
 const router = express.Router();
 
@@ -226,6 +227,34 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       };
     }
 
+    // Blended metrics (when both platforms have data)
+    if (response.facebook && response.shopify && revenue > 0 && fbSpend > 0) {
+      const overallRoas = revenue / fbSpend;
+      const costPerOrder = orders > 0 ? fbSpend / orders : 0;
+      const adSpendPercentage = revenue > 0 ? (fbSpend / revenue) * 100 : 0;
+      const marginAfterAds = revenue - fbSpend;
+
+      const prevOverallRoas = prevRevenue > 0 && prevSpend > 0 ? prevRevenue / prevSpend : 0;
+      const prevCostPerOrder = prevOrders > 0 ? prevSpend / prevOrders : 0;
+      const prevAdSpendPercentage = prevRevenue > 0 ? (prevSpend / prevRevenue) * 100 : 0;
+      const prevMarginAfterAds = prevRevenue - prevSpend;
+
+      response.blended = {
+        total_revenue: revenue,
+        total_revenue_change: calcChange(revenue, prevRevenue),
+        total_ad_spend: fbSpend,
+        total_ad_spend_change: calcChange(fbSpend, prevSpend),
+        overall_roas: overallRoas,
+        overall_roas_change: calcChange(overallRoas, prevOverallRoas),
+        cost_per_order: costPerOrder,
+        cost_per_order_change: calcChange(costPerOrder, prevCostPerOrder),
+        ad_spend_percentage: adSpendPercentage,
+        ad_spend_percentage_change: calcChange(adSpendPercentage, prevAdSpendPercentage),
+        margin_after_ads: marginAfterAds,
+        margin_after_ads_change: calcChange(marginAfterAds, prevMarginAfterAds),
+      };
+    }
+
     res.json(response);
   } catch (error) {
     console.error('Error getting portal metrics:', error);
@@ -311,6 +340,35 @@ router.get('/insight', clientAuthMiddleware, requirePortalPermission('can_view_m
   } catch (error) {
     console.error('Error getting insight:', error);
     res.status(500).json({ error: 'Error al cargar insight' });
+  }
+});
+
+/**
+ * GET /api/portal/metrics/top-products
+ * Get top selling products from Shopify (on-demand)
+ */
+router.get('/top-products', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { startDate, endDate } = resolveRange(req.query);
+
+    // Get Shopify credentials
+    const shopifyCred = await db.get(
+      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = ? AND status = ?',
+      [clientId, 'active']
+    );
+
+    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
+      return res.json({ products: [], message: 'Sin conexión Shopify' });
+    }
+
+    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
+    const products = await shopify.getTopProducts(startDate, endDate, 10);
+
+    res.json({ products });
+  } catch (error) {
+    console.error('Error fetching top products:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar productos' });
   }
 });
 

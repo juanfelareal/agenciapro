@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { usePortal } from '../../context/PortalContext';
 import { portalMetricsAPI } from '../../utils/portalApi';
 import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend
+  LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
   BarChart3,
@@ -22,7 +22,8 @@ import {
   Target,
   Receipt,
   Percent,
-  ExternalLink
+  ExternalLink,
+  Package
 } from 'lucide-react';
 
 export default function PortalMetrics() {
@@ -32,20 +33,40 @@ export default function PortalMetrics() {
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30d');
+  const [customDates, setCustomDates] = useState({ start: '', end: '' });
   const [ads, setAds] = useState(null);
   const [adsLoading, setAdsLoading] = useState(false);
+  const [topProducts, setTopProducts] = useState(null);
+  const [topProductsLoading, setTopProductsLoading] = useState(false);
 
   useEffect(() => {
-    loadMetrics();
+    if (dateRange !== 'custom') {
+      loadMetrics();
+    }
   }, [dateRange]);
+
+  useEffect(() => {
+    if (dateRange === 'custom' && customDates.start && customDates.end) {
+      loadMetrics();
+    }
+  }, [customDates.start, customDates.end]);
+
+  const getApiParams = () => {
+    if (dateRange === 'custom' && customDates.start && customDates.end) {
+      return { start_date: customDates.start, end_date: customDates.end };
+    }
+    return { range: dateRange };
+  };
 
   const loadMetrics = async () => {
     setLoading(true);
     setAds(null);
+    setTopProducts(null);
     try {
+      const params = getApiParams();
       const [summaryRes, dailyRes, insightRes] = await Promise.all([
-        portalMetricsAPI.getSummary({ range: dateRange }),
-        portalMetricsAPI.getDaily({ range: dateRange }),
+        portalMetricsAPI.getSummary(params),
+        portalMetricsAPI.getDaily(params),
         portalMetricsAPI.getInsight().catch(() => null),
       ]);
       setMetrics(summaryRes);
@@ -61,13 +82,26 @@ export default function PortalMetrics() {
   const loadAds = async () => {
     setAdsLoading(true);
     try {
-      const res = await portalMetricsAPI.getAds({ range: dateRange });
+      const res = await portalMetricsAPI.getAds(getApiParams());
       setAds(res.ads || []);
     } catch (error) {
       console.error('Error loading ads:', error);
       setAds([]);
     } finally {
       setAdsLoading(false);
+    }
+  };
+
+  const loadTopProducts = async () => {
+    setTopProductsLoading(true);
+    try {
+      const res = await portalMetricsAPI.getTopProducts(getApiParams());
+      setTopProducts(res.products || []);
+    } catch (error) {
+      console.error('Error loading top products:', error);
+      setTopProducts([]);
+    } finally {
+      setTopProductsLoading(false);
     }
   };
 
@@ -92,6 +126,16 @@ export default function PortalMetrics() {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
     return `$${value}`;
+  };
+
+  const fmtDate = (v) => {
+    const d = new Date(v + 'T00:00:00');
+    return `${d.getDate()}/${d.getMonth() + 1}`;
+  };
+
+  const fmtDateLabel = (v) => {
+    const d = new Date(v + 'T00:00:00');
+    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
   };
 
   const TrendIndicator = ({ value, inverted = false }) => {
@@ -128,9 +172,14 @@ export default function PortalMetrics() {
     roas: d.overall_roas || d.fb_roas || 0,
     hookRate: d.fb_hook_rate || 0,
     holdRate: d.fb_hold_rate || 0,
+    costoCompra: d.fb_cost_per_purchase || 0,
+    cpm: d.fb_cpm || 0,
+    sessions: d.shopify_sessions || 0,
+    orders: d.shopify_orders || 0,
+    conversionRate: d.shopify_conversion_rate || 0,
   }));
 
-  const hasVideoData = chartData.some(d => d.hookRate > 0 || d.holdRate > 0);
+  const tooltipStyle = { borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' };
 
   return (
     <div className="space-y-6">
@@ -140,24 +189,45 @@ export default function PortalMetrics() {
           <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Rendimiento de tus campañas y ventas</p>
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1">
-          {[
-            { value: '7d', label: '7 días' },
-            { value: '30d', label: '30 días' },
-            { value: '90d', label: '90 días' }
-          ].map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setDateRange(option.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                dateRange === option.value
-                  ? 'bg-[#1A1A2E] text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
+            {[
+              { value: '7d', label: '7 días' },
+              { value: '30d', label: '30 días' },
+              { value: '90d', label: '90 días' },
+              { value: 'custom', label: 'Personalizado' }
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setDateRange(option.value)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  dateRange === option.value
+                    ? 'bg-[#1A1A2E] text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {dateRange === 'custom' && (
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <input
+                type="date"
+                value={customDates.start}
+                onChange={(e) => setCustomDates(prev => ({ ...prev, start: e.target.value }))}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              />
+              <span className="text-gray-400">-</span>
+              <input
+                type="date"
+                value={customDates.end}
+                onChange={(e) => setCustomDates(prev => ({ ...prev, end: e.target.value }))}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -188,6 +258,98 @@ export default function PortalMetrics() {
         </div>
       ) : (
         <>
+          {/* Blended Metrics */}
+          {metrics?.blended && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-green-600" />
+                </div>
+                Métricas Combinadas
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Total Revenue */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Venta Total</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatCurrency(metrics.blended.total_revenue)}
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.blended.total_revenue_change} />
+                  </div>
+                </div>
+
+                {/* Total Ad Spend */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Inversión Total</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatCurrency(metrics.blended.total_ad_spend)}
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.blended.total_ad_spend_change} inverted />
+                  </div>
+                </div>
+
+                {/* Overall ROAS */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">ROAS Real</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {(metrics.blended.overall_roas || 0).toFixed(2)}x
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.blended.overall_roas_change} />
+                  </div>
+                </div>
+
+                {/* Cost per Order */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Costo por Pedido</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatCurrency(metrics.blended.cost_per_order)}
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.blended.cost_per_order_change} inverted />
+                  </div>
+                </div>
+
+                {/* Ad Spend Percentage */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">% Inversión</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatPercent(metrics.blended.ad_spend_percentage)}
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.blended.ad_spend_percentage_change} inverted />
+                  </div>
+                </div>
+
+                {/* Margin After Ads */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Margen después de Ads</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatCurrency(metrics.blended.margin_after_ads)}
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.blended.margin_after_ads_change} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Facebook Ads Metrics */}
           {metrics?.facebook && (
             <div className="space-y-4">
@@ -475,161 +637,286 @@ export default function PortalMetrics() {
                   </div>
                 </div>
 
-                {/* Sessions (conditional) */}
-                {metrics.shopify.sessions > 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Sesiones</p>
-                        <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                          {formatNumber(metrics.shopify.sessions)}
-                        </p>
-                      </div>
-                      <TrendIndicator value={metrics.shopify.sessions_change} />
+                {/* Sessions (always visible) */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Sesiones</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatNumber(metrics.shopify.sessions)}
+                      </p>
                     </div>
+                    <TrendIndicator value={metrics.shopify.sessions_change} />
                   </div>
-                )}
+                </div>
 
-                {/* Conversion Rate (conditional) */}
-                {metrics.shopify.conversion_rate > 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Tasa de Conversión</p>
-                        <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                          {formatPercent(metrics.shopify.conversion_rate)}
-                        </p>
-                      </div>
-                      <TrendIndicator value={metrics.shopify.conversion_rate_change} />
+                {/* Conversion Rate (always visible) */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Tasa de Conversión</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatPercent(metrics.shopify.conversion_rate)}
+                      </p>
                     </div>
+                    <TrendIndicator value={metrics.shopify.conversion_rate_change} />
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Top Products */}
+          {metrics?.shopify && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
+                  <Package className="w-4 h-4 text-green-500" />
+                  Productos Más Vendidos
+                </h3>
+                {topProducts === null && (
+                  <button
+                    onClick={loadTopProducts}
+                    disabled={topProductsLoading}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+                  >
+                    {topProductsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Package className="w-4 h-4" />
+                    )}
+                    Ver productos
+                  </button>
                 )}
               </div>
+
+              {topProductsLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+              )}
+
+              {topProducts !== null && !topProductsLoading && topProducts.length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-8">
+                  No hay productos vendidos en este periodo
+                </p>
+              )}
+
+              {topProducts !== null && !topProductsLoading && topProducts.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left py-3 px-3 font-medium text-gray-500 w-10">#</th>
+                        <th className="text-left py-3 px-3 font-medium text-gray-500">Producto</th>
+                        <th className="text-right py-3 px-3 font-medium text-gray-500">Unidades</th>
+                        <th className="text-right py-3 px-3 font-medium text-gray-500">Ingresos</th>
+                        <th className="text-right py-3 px-3 font-medium text-gray-500">Pedidos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topProducts.map((product, idx) => (
+                        <tr key={product.product_id || idx} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <td className="py-3 px-3 text-gray-400 font-medium">{idx + 1}</td>
+                          <td className="py-3 px-3 font-medium text-[#1A1A2E]">{product.title}</td>
+                          <td className="py-3 px-3 text-right">{formatNumber(product.quantity)}</td>
+                          <td className="py-3 px-3 text-right font-medium">{formatCurrency(product.revenue)}</td>
+                          <td className="py-3 px-3 text-right">{formatNumber(product.orders)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
           {/* Charts */}
           {chartData.length > 1 && (
-            <div className="space-y-6">
-              {/* Revenue vs Ad Spend */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* 1. Revenue vs Ad Spend (ComposedChart) */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-                <h3 className="text-base font-semibold text-[#1A1A2E] mb-4">Ingresos vs Inversión Publicitaria</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={chartData}>
+                <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Venta vs Inversión</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <ComposedChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => {
-                        const d = new Date(v + 'T00:00:00');
-                        return `${d.getDate()}/${d.getMonth() + 1}`;
-                      }}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={formatCompactCurrency}
-                    />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                    <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={formatCompactCurrency} />
                     <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                      contentStyle={tooltipStyle}
                       formatter={(value, name) => [formatCurrency(value), name === 'revenue' ? 'Ingresos' : 'Inversión Ads']}
-                      labelFormatter={(v) => {
-                        const d = new Date(v + 'T00:00:00');
-                        return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-                      }}
+                      labelFormatter={fmtDateLabel}
                     />
                     <Legend formatter={(v) => v === 'revenue' ? 'Ingresos' : 'Inversión Ads'} />
+                    <Bar dataKey="adSpend" fill="#3B82F6" opacity={0.3} radius={[3, 3, 0, 0]} />
                     <Line type="monotone" dataKey="revenue" stroke="#22C55E" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="adSpend" stroke="#3B82F6" strokeWidth={2} dot={false} />
-                  </LineChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* ROAS Trend */}
+              {/* 2. ROAS Trend */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-                <h3 className="text-base font-semibold text-[#1A1A2E] mb-4">Tendencia ROAS</h3>
-                <ResponsiveContainer width="100%" height={250}>
+                <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">ROAS</h3>
+                <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={chartData}>
                     <defs>
-                      <linearGradient id="roasGradient" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="portalRoasGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
                         <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => {
-                        const d = new Date(v + 'T00:00:00');
-                        return `${d.getDate()}/${d.getMonth() + 1}`;
-                      }}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `${v.toFixed(1)}x`}
-                    />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                    <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(1)}x`} />
                     <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                      contentStyle={tooltipStyle}
                       formatter={(value) => [`${Number(value).toFixed(2)}x`, 'ROAS']}
-                      labelFormatter={(v) => {
-                        const d = new Date(v + 'T00:00:00');
-                        return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-                      }}
+                      labelFormatter={fmtDateLabel}
                     />
-                    <Area type="monotone" dataKey="roas" stroke="#8B5CF6" strokeWidth={2} fill="url(#roasGradient)" />
+                    <Area type="monotone" dataKey="roas" stroke="#8B5CF6" strokeWidth={2} fill="url(#portalRoasGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* Video Performance Chart (Hook Rate + Hold Rate) */}
+              {/* 3. Costo por Compra */}
               {metrics?.facebook && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-                  <h3 className="text-base font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
-                    <Video className="w-4 h-4 text-amber-500" />
-                    Rendimiento de Video
-                  </h3>
-                  <ResponsiveContainer width="100%" height={250}>
+                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Costo por Compra</h3>
+                  <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis
-                        dataKey="date"
-                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) => {
-                          const d = new Date(v + 'T00:00:00');
-                          return `${d.getDate()}/${d.getMonth() + 1}`;
-                        }}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) => `${v.toFixed(0)}%`}
-                      />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={formatCompactCurrency} />
                       <Tooltip
-                        contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                        contentStyle={tooltipStyle}
+                        formatter={(value) => [formatCurrency(value), 'Costo/Compra']}
+                        labelFormatter={fmtDateLabel}
+                      />
+                      <Line type="monotone" dataKey="costoCompra" stroke="#EF4444" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 4. CPM */}
+              {metrics?.facebook && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">CPM</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="portalCpmGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={formatCompactCurrency} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value) => [formatCurrency(value), 'CPM']}
+                        labelFormatter={fmtDateLabel}
+                      />
+                      <Area type="monotone" dataKey="cpm" stroke="#F59E0B" strokeWidth={2} fill="url(#portalCpmGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 5. Sesiones vs Pedidos */}
+              {metrics?.shopify && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Sesiones vs Pedidos</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <ComposedChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value, name) => [formatNumber(value), name === 'sessions' ? 'Sesiones' : 'Pedidos']}
+                        labelFormatter={fmtDateLabel}
+                      />
+                      <Legend formatter={(v) => v === 'sessions' ? 'Sesiones' : 'Pedidos'} />
+                      <Bar yAxisId="left" dataKey="sessions" fill="#6366F1" opacity={0.3} radius={[3, 3, 0, 0]} />
+                      <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#22C55E" strokeWidth={2} dot={false} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 6. Tasa de Conversión */}
+              {metrics?.shopify && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Tasa de Conversión</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="portalConvGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(1)}%`} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Conversión']}
+                        labelFormatter={fmtDateLabel}
+                      />
+                      <Area type="monotone" dataKey="conversionRate" stroke="#10B981" strokeWidth={2} fill="url(#portalConvGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 7. Hook Rate vs Hold Rate */}
+              {metrics?.facebook && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
+                    <Video className="w-4 h-4 text-amber-500" />
+                    Hook Rate vs Hold Rate
+                  </h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(0)}%`} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
                         formatter={(value, name) => [
                           `${Number(value).toFixed(2)}%`,
                           name === 'hookRate' ? 'Hook Rate' : 'Hold Rate'
                         ]}
-                        labelFormatter={(v) => {
-                          const d = new Date(v + 'T00:00:00');
-                          return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-                        }}
+                        labelFormatter={fmtDateLabel}
                       />
                       <Legend formatter={(v) => v === 'hookRate' ? 'Hook Rate (3s)' : 'Hold Rate (ThruPlay)'} />
                       <Line type="monotone" dataKey="hookRate" stroke="#F59E0B" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="holdRate" stroke="#8B5CF6" strokeWidth={2} dot={false} />
                     </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 8. Pedidos por Día */}
+              {metrics?.shopify && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Pedidos por Día</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value) => [value, 'Pedidos']}
+                        labelFormatter={fmtDateLabel}
+                      />
+                      <Bar dataKey="orders" fill="#22C55E" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               )}

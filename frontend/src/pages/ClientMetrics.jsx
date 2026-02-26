@@ -17,7 +17,8 @@ import {
   Video,
   Target,
   Tag,
-  ExternalLink
+  ExternalLink,
+  Package
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
@@ -50,6 +51,8 @@ function ClientMetrics() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [ads, setAds] = useState(null);
   const [adsLoading, setAdsLoading] = useState(false);
+  const [topProducts, setTopProducts] = useState(null);
+  const [topProductsLoading, setTopProductsLoading] = useState(false);
 
   const [dateRange, setDateRange] = useState({
     start: getColombiaDate(-7),
@@ -88,10 +91,24 @@ function ClientMetrics() {
     }
   };
 
+  const loadTopProducts = async () => {
+    setTopProductsLoading(true);
+    try {
+      const res = await clientMetricsAPI.getTopProducts(clientId, dateRange.start, dateRange.end);
+      setTopProducts(res.data.products || []);
+    } catch (error) {
+      console.error('Error loading top products:', error);
+      setTopProducts([]);
+    } finally {
+      setTopProductsLoading(false);
+    }
+  };
+
   const loadMetrics = async () => {
     try {
       setLoading(true);
       setAds(null);
+      setTopProducts(null);
       const [metricsRes, dailyRes] = await Promise.all([
         clientMetricsAPI.getMetrics(clientId, dateRange.start, dateRange.end),
         clientMetricsAPI.getDailyMetrics(clientId, dateRange.start, dateRange.end)
@@ -425,6 +442,73 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
         />
+      </div>
+
+      {/* Top Products */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+            <Package className="w-5 h-5 text-green-500" />
+            Productos Más Vendidos
+          </h3>
+          {topProducts === null && (
+            <button
+              onClick={loadTopProducts}
+              disabled={topProductsLoading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+            >
+              {topProductsLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Package className="w-4 h-4" />
+              )}
+              Ver productos
+            </button>
+          )}
+        </div>
+
+        {topProductsLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          </div>
+        )}
+
+        {topProducts !== null && !topProductsLoading && topProducts.length === 0 && (
+          <p className="text-sm text-gray-500 text-center py-8">
+            No hay productos vendidos en este periodo
+          </p>
+        )}
+
+        {topProducts !== null && !topProductsLoading && topProducts.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-3 font-medium text-gray-500 w-10">#</th>
+                  <th className="text-left py-3 px-3 font-medium text-gray-500">Producto</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Unidades</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Ingresos</th>
+                  <th className="text-right py-3 px-3 font-medium text-gray-500">Pedidos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topProducts.map((product, idx) => {
+                  const fmtCurrency = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
+                  const fmtNumber = (v) => new Intl.NumberFormat('es-CO').format(v || 0);
+                  return (
+                    <tr key={product.product_id || idx} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <td className="py-3 px-3 text-gray-400 font-medium">{idx + 1}</td>
+                      <td className="py-3 px-3 font-medium text-[#1A1A2E]">{product.title}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(product.quantity)}</td>
+                      <td className="py-3 px-3 text-right font-medium">{fmtCurrency(product.revenue)}</td>
+                      <td className="py-3 px-3 text-right">{fmtNumber(product.orders)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Charts Section */}

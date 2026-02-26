@@ -2,6 +2,7 @@ import { Router } from 'express';
 import db from '../config/database.js';
 import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllClientsSmart } from '../services/metricsSyncService.js';
 import FacebookAdsIntegration from '../integrations/facebookAds.js';
+import ShopifyIntegration from '../integrations/shopify.js';
 
 const router = Router();
 
@@ -319,6 +320,45 @@ router.get('/:clientId/ads', async (req, res) => {
   } catch (error) {
     console.error('Error fetching ad-level insights:', error.response?.data || error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/client-metrics/:clientId/top-products
+ * Get top selling products from Shopify (on-demand)
+ */
+router.get('/:clientId/top-products', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { clientId } = req.params;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    }
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    // Get Shopify credentials
+    const shopifyCred = await db.prepare(
+      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = ? AND status = ?'
+    ).get(clientId, 'active');
+
+    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
+      return res.json({ products: [], message: 'Sin conexión Shopify' });
+    }
+
+    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
+    const products = await shopify.getTopProducts(start_date, end_date, 10);
+
+    res.json({ products });
+  } catch (error) {
+    console.error('Error fetching top products:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar productos' });
   }
 });
 

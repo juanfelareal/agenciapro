@@ -281,6 +281,8 @@ export const clientMetricsAPI = {
     api.get('/client-metrics/sync-status', { params: { start_date: startDate, end_date: endDate } }),
   getAds: (clientId, startDate, endDate) =>
     api.get(`/client-metrics/${clientId}/ads`, { params: { start_date: startDate, end_date: endDate } }),
+  getTopProducts: (clientId, startDate, endDate) =>
+    api.get(`/client-metrics/${clientId}/top-products`, { params: { start_date: startDate, end_date: endDate } }),
 };
 
 // Facebook OAuth API

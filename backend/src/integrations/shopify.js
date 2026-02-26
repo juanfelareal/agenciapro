@@ -230,6 +230,48 @@ class ShopifyIntegration {
   }
 
   /**
+   * Get top selling products from orders in a date range
+   * @param {string} startDate - Start date in YYYY-MM-DD format
+   * @param {string} endDate - End date in YYYY-MM-DD format
+   * @param {number} limit - Max products to return (default 10)
+   * @returns {Promise<Array<{product_id, title, quantity, revenue, orders}>>}
+   */
+  async getTopProducts(startDate, endDate, limit = 10) {
+    const allOrders = await this.getOrders(startDate, endDate);
+    const productMap = {};
+
+    allOrders.forEach(order => {
+      // Same filters as calculateMetricsFromOrders
+      if (order.cancelled_at) return;
+      if (order.financial_status !== 'paid' && order.financial_status !== 'partially_refunded') return;
+
+      const orderCounted = new Set();
+      (order.line_items || []).forEach(item => {
+        const key = item.product_id || item.title;
+        if (!productMap[key]) {
+          productMap[key] = {
+            product_id: item.product_id,
+            title: item.title,
+            quantity: 0,
+            revenue: 0,
+            orders: 0,
+          };
+        }
+        productMap[key].quantity += item.quantity || 0;
+        productMap[key].revenue += (parseFloat(item.price) || 0) * (item.quantity || 0);
+        if (!orderCounted.has(key)) {
+          productMap[key].orders += 1;
+          orderCounted.add(key);
+        }
+      });
+    });
+
+    return Object.values(productMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, limit);
+  }
+
+  /**
    * Get daily metrics breakdown for a date range
    * @param {string} startDate - Start date in YYYY-MM-DD format
    * @param {string} endDate - End date in YYYY-MM-DD format
