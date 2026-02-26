@@ -14,14 +14,24 @@ import {
 import { clientMetricsAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 
+// Get current date in Colombia timezone (YYYY-MM-DD)
+const getColombiaDate = (offsetDays = 0) => {
+  const now = new Date();
+  const colombiaStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  if (offsetDays === 0) return colombiaStr;
+  const d = new Date(colombiaStr + 'T12:00:00');
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+};
+
 function MetricsDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [data, setData] = useState({ clients: [], totals: {} });
   const [dateRange, setDateRange] = useState({
-    start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
+    start: getColombiaDate(-7),
+    end: getColombiaDate()
   });
 
   useEffect(() => {
@@ -55,32 +65,32 @@ function MetricsDashboard() {
     }
   };
 
-  // Quick date range presets
+  // Quick date range presets (Colombia timezone)
   const setPreset = (preset) => {
-    const today = new Date();
+    const today = getColombiaDate();
     let start, end;
 
     switch (preset) {
       case 'today':
-        start = end = today.toISOString().split('T')[0];
+        start = end = today;
         break;
       case 'yesterday':
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        start = end = yesterday.toISOString().split('T')[0];
+        start = end = getColombiaDate(-1);
         break;
       case 'last7':
-        end = today.toISOString().split('T')[0];
-        start = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        end = today;
+        start = getColombiaDate(-6);
         break;
       case 'last30':
-        end = today.toISOString().split('T')[0];
-        start = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        end = today;
+        start = getColombiaDate(-29);
         break;
-      case 'thisMonth':
-        start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        end = today.toISOString().split('T')[0];
+      case 'thisMonth': {
+        const [year, month] = today.split('-');
+        start = `${year}-${month}-01`;
+        end = today;
         break;
+      }
       default:
         return;
     }

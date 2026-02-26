@@ -362,15 +362,27 @@ export async function syncClientDateRange(clientId, startDate, endDate) {
 }
 
 /**
+ * Get current date string in Colombia timezone (America/Bogota, UTC-5)
+ * @param {number} offsetDays - Days to offset (e.g., -1 for yesterday)
+ * @returns {string} YYYY-MM-DD
+ */
+function getColombiaDate(offsetDays = 0) {
+  const now = new Date();
+  const colombiaStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  if (offsetDays === 0) return colombiaStr;
+  const d = new Date(colombiaStr + 'T12:00:00');
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+}
+
+/**
  * Sync all clients for a specific date (usually yesterday)
- * @param {string} date - YYYY-MM-DD (defaults to yesterday)
+ * @param {string} date - YYYY-MM-DD (defaults to yesterday in Colombia timezone)
  * @returns {Promise<{success: boolean, clientsSynced: number, errors: Array}>}
  */
 export async function syncAllClientsForDate(date = null) {
   if (!date) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    date = yesterday.toISOString().split('T')[0];
+    date = getColombiaDate(-1);
   }
 
   const clients = await getClientsWithCredentials();

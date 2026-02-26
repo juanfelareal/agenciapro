@@ -4,6 +4,18 @@ import { syncClientForDate, syncClientDateRange, syncAllClientsForDate } from '.
 
 const router = Router();
 
+/**
+ * Get current date string in Colombia timezone (America/Bogota, UTC-5)
+ */
+function getColombiaDate(offsetDays = 0) {
+  const now = new Date();
+  const colombiaStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  if (offsetDays === 0) return colombiaStr;
+  const d = new Date(colombiaStr + 'T12:00:00');
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+}
+
 // ============================================
 // GET METRICS
 // ============================================
@@ -281,14 +293,12 @@ router.post('/sync/:clientId', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    // Default to yesterday if no dates provided
+    // Default to yesterday (Colombia timezone) if no dates provided
     let startDate = start_date;
     let endDate = end_date;
 
     if (!startDate || !endDate) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      startDate = yesterday.toISOString().split('T')[0];
+      startDate = getColombiaDate(-1);
       endDate = startDate;
     }
 
