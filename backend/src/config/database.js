@@ -15,16 +15,15 @@ if (!process.env.DATABASE_URL) {
 // Use DATABASE_URL from Railway (PostgreSQL)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 // Test connection on pool creation
 pool.on('error', (err) => {
   console.error('❌ Unexpected database pool error:', err);
-});
-
-pool.on('connect', () => {
-  console.log('✅ PostgreSQL pool: New client connected');
 });
 
 // Helper to convert SQLite-style ? placeholders to PostgreSQL $1, $2, etc.
