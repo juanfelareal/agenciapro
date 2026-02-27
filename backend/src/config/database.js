@@ -1045,8 +1045,7 @@ export const initializeDatabase = async () => {
       'client_facebook_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
       // Siigo (accounting integration)
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
-      // Forms
-      'forms', 'form_assignments'
+      // Note: 'forms' and 'form_assignments' already have organization_id in their CREATE TABLE
     ];
 
     for (const table of rootTablesForOrgId) {
