@@ -69,6 +69,7 @@ import dashboardShareRoutes from './src/routes/dashboard-share.js';
 // CRM
 import crmRoutes from './src/routes/crm.js';
 import screenstudioRoutes from './src/routes/screenstudio.js';
+import formRoutes from './src/routes/forms.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -194,6 +195,8 @@ app.use('/api/dashboard-share', dashboardShareRoutes);
 app.use('/api/crm', crmRoutes);
 // Screen Studio video proxy (no auth needed — public share links)
 app.use('/api/screenstudio', screenstudioRoutes);
+// Forms (Formularios)
+app.use('/api/forms', teamAuthMiddleware, formRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

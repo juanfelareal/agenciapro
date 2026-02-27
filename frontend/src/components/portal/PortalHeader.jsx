@@ -9,6 +9,7 @@ import {
   CheckSquare,
   FileText,
   BarChart3,
+  ClipboardList,
   Bell,
   LogOut,
   Menu,
@@ -52,6 +53,7 @@ export default function PortalHeader() {
     { path: '/portal/tasks', icon: CheckSquare, label: 'Tareas', permission: 'can_view_tasks' },
     { path: '/portal/invoices', icon: FileText, label: 'Facturas', permission: 'can_view_invoices' },
     { path: '/portal/metrics', icon: BarChart3, label: 'Métricas', permission: 'can_view_metrics' },
+    { path: '/portal/forms', icon: ClipboardList, label: 'Formularios', permission: 'can_view_forms' },
   ];
 
   const filteredNavItems = navItems.filter(

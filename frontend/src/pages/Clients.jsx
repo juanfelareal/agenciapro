@@ -42,6 +42,7 @@ const Clients = () => {
     can_comment_tasks: true,
     can_view_team: false,
     can_download_files: true,
+    can_view_forms: true,
     welcome_message: ''
   });
   const [portalTokens, setPortalTokens] = useState([]);
@@ -413,6 +414,7 @@ const Clients = () => {
         can_comment_tasks: true,
         can_view_team: false,
         can_download_files: true,
+        can_view_forms: true,
         welcome_message: ''
       });
       // tokensRes is an array directly, not { tokens: [] }
@@ -1090,6 +1092,15 @@ const Clients = () => {
                         onChange={(e) => setPortalSettings({ ...portalSettings, can_download_files: e.target.checked })}
                       />
                       <span className="text-sm">Descargar Archivos</span>
+                    </label>
+                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-[#1A1A2E]"
+                        checked={portalSettings.can_view_forms}
+                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_forms: e.target.checked })}
+                      />
+                      <span className="text-sm">Ver Formularios</span>
                     </label>
                   </div>
                 </div>

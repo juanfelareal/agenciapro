@@ -22,6 +22,7 @@ import {
   Wallet,
   Settings,
   Target,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -67,6 +68,7 @@ const Layout = ({ children }) => {
     { name: 'Métricas', path: '/app/metricas', icon: BarChart3, permission: 'metricas' },
     { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes' },
     { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
+    { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
     { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
   ];

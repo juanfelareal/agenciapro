@@ -197,4 +197,24 @@ export const portalNotificationsAPI = {
   },
 };
 
+// Forms API
+export const portalFormsAPI = {
+  getAll: async () => {
+    const response = await portalApi.get('/forms');
+    return response.data;
+  },
+  getById: async (assignmentId) => {
+    const response = await portalApi.get(`/forms/${assignmentId}`);
+    return response.data;
+  },
+  saveDraft: async (assignmentId, data) => {
+    const response = await portalApi.put(`/forms/${assignmentId}`, { data });
+    return response.data;
+  },
+  submit: async (assignmentId, data) => {
+    const response = await portalApi.post(`/forms/${assignmentId}/submit`, { data });
+    return response.data;
+  },
+};
+
 export default portalApi;

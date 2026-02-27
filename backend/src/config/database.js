@@ -1045,7 +1045,9 @@ export const initializeDatabase = async () => {
       'client_access_tokens', 'client_portal_settings', 'client_comments', 'client_notifications',
       'client_facebook_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
       // Siigo (accounting integration)
-      'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes'
+      'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
+      // Forms
+      'forms', 'form_assignments'
     ];
 
     for (const table of rootTablesForOrgId) {
@@ -1333,6 +1335,90 @@ export const initializeDatabase = async () => {
         organization_id INTEGER REFERENCES organizations(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // ==========================================
+    // FORMS (Formularios)
+    // ==========================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS forms (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT CHECK(status IN ('draft', 'published', 'archived')) DEFAULT 'draft',
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_forms_org_id ON forms(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_forms_status ON forms(status)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS form_sections (
+        id SERIAL PRIMARY KEY,
+        form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        description TEXT,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_sections_form_id ON form_sections(form_id)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS form_fields (
+        id SERIAL PRIMARY KEY,
+        section_id INTEGER NOT NULL REFERENCES form_sections(id) ON DELETE CASCADE,
+        label TEXT NOT NULL,
+        field_type TEXT CHECK(field_type IN ('short_text', 'number', 'multiple_choice', 'yes_no')) NOT NULL,
+        help_text TEXT,
+        options JSONB,
+        is_required INTEGER DEFAULT 0,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_fields_section_id ON form_fields(section_id)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS form_assignments (
+        id SERIAL PRIMARY KEY,
+        form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        status TEXT CHECK(status IN ('pending', 'draft', 'submitted')) DEFAULT 'pending',
+        due_date TEXT,
+        assigned_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_assignments_org_id ON form_assignments(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_assignments_form_id ON form_assignments(form_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_assignments_client_id ON form_assignments(client_id)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS form_responses (
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER NOT NULL UNIQUE REFERENCES form_assignments(id) ON DELETE CASCADE,
+        data JSONB NOT NULL DEFAULT '{}',
+        submitted_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_responses_assignment_id ON form_responses(assignment_id)`);
+
+    // Add can_view_forms to client_portal_settings
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_forms') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN can_view_forms INTEGER DEFAULT 1;
+        END IF;
+      END $$
     `);
 
     // Seed default pipeline stages (only if empty)

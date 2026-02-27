@@ -28,6 +28,7 @@ import MetricsDashboard from './pages/MetricsDashboard';
 import ClientMetrics from './pages/ClientMetrics';
 import ClientPlatformSettings from './pages/ClientPlatformSettings';
 import SOPs from './pages/SOPs';
+import Forms from './pages/Forms';
 import ProjectTemplates from './pages/ProjectTemplates';
 import Timesheet from './pages/Timesheet';
 import TimeReports from './pages/TimeReports';
@@ -48,6 +49,8 @@ import PortalTasks from './pages/portal/PortalTasks';
 import PortalTaskDetail from './pages/portal/PortalTaskDetail';
 import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalMetrics from './pages/portal/PortalMetrics';
+import PortalForms from './pages/portal/PortalForms';
+import PortalFormFill from './pages/portal/PortalFormFill';
 
 function App() {
   return (
@@ -132,6 +135,22 @@ function App() {
             element={
               <PortalProtectedRoute permission="can_view_metrics">
                 <PortalMetrics />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="forms"
+            element={
+              <PortalProtectedRoute permission="can_view_forms">
+                <PortalForms />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="forms/:assignmentId"
+            element={
+              <PortalProtectedRoute permission="can_view_forms">
+                <PortalFormFill />
               </PortalProtectedRoute>
             }
           />
@@ -245,6 +264,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="notas">
                       <Notes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="formularios"
+                  element={
+                    <ProtectedRoute permission="formularios">
+                      <Forms />
                     </ProtectedRoute>
                   }
                 />

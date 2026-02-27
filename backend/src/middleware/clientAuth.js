@@ -54,6 +54,7 @@ export const clientAuthMiddleware = async (req, res, next) => {
         can_comment_tasks: true,
         can_view_team: false,
         can_download_files: true,
+        can_view_forms: true,
       }
     };
 

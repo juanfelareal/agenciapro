@@ -401,4 +401,19 @@ export const crmAPI = {
   deployProposal: (data) => api.post('/crm/proposals/deploy', data, { timeout: 60000 }),
 };
 
+// Forms API (Formularios)
+export const formsAPI = {
+  getAll: (filters) => api.get('/forms', { params: filters }),
+  getById: (id) => api.get(`/forms/${id}`),
+  create: (data) => api.post('/forms', data),
+  update: (id, data) => api.put(`/forms/${id}`, data),
+  delete: (id) => api.delete(`/forms/${id}`),
+  duplicate: (id) => api.post(`/forms/${id}/duplicate`),
+  assign: (id, data) => api.post(`/forms/${id}/assign`, data),
+  getAssignments: (id) => api.get(`/forms/${id}/assignments`),
+  removeAssignment: (assignmentId) => api.delete(`/forms/assignments/${assignmentId}`),
+  getResponse: (assignmentId) => api.get(`/forms/assignments/${assignmentId}/response`),
+  getByClient: (clientId) => api.get(`/forms/client/${clientId}`),
+};
+
 export default api;
