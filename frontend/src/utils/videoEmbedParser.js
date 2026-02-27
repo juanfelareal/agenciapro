@@ -9,6 +9,9 @@ const VIDEO_PATTERNS = {
     /vimeo\.com\/(\d+)/,
     /player\.vimeo\.com\/video\/(\d+)/,
   ],
+  screenstudio: [
+    /screen\.studio\/share\/([\w-]+)/,
+  ],
   tiktok: [
     /tiktok\.com\/@[\w.]+\/video\/(\d+)/,
     /vm\.tiktok\.com\/([\w-]+)/,
@@ -68,6 +71,16 @@ export const generateEmbedHTML = (platform, videoId) => {
       style="max-width: 100%; border-radius: 8px;"
     ></iframe>`,
 
+    screenstudio: `<iframe
+      src="https://screen.studio/share/${videoId}"
+      width="560"
+      height="315"
+      frameborder="0"
+      allow="autoplay; fullscreen"
+      allowfullscreen
+      style="max-width: 100%; border-radius: 8px;"
+    ></iframe>`,
+
     tiktok: `<blockquote
       class="tiktok-embed"
       cite="https://www.tiktok.com/video/${videoId}"
@@ -101,6 +114,7 @@ export const getPlatformName = (platform) => {
   const names = {
     youtube: 'YouTube',
     vimeo: 'Vimeo',
+    screenstudio: 'Screen Studio',
     tiktok: 'TikTok',
     instagram: 'Instagram',
     twitter: 'Twitter/X',
@@ -117,6 +131,7 @@ export const getPlatformIcon = (platform) => {
   const icons = {
     youtube: '▶️',
     vimeo: '🎬',
+    screenstudio: '🖥️',
     tiktok: '🎵',
     instagram: '📷',
     twitter: '🐦',

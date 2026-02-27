@@ -16,7 +16,7 @@ const VideoEmbedModal = ({ isOpen, onClose, onInsert }) => {
       } else {
         setParsedVideo(null);
         if (url.length > 10) {
-          setError('URL no reconocida. Soportamos: YouTube, Vimeo, TikTok, Instagram, Twitter/X');
+          setError('URL no reconocida. Soportamos: YouTube, Vimeo, Screen Studio, TikTok, Instagram, Twitter/X');
         }
       }
     } else {
@@ -86,7 +86,7 @@ const VideoEmbedModal = ({ isOpen, onClose, onInsert }) => {
 
           {/* Supported platforms */}
           <div className="flex flex-wrap gap-2">
-            {['youtube', 'vimeo', 'tiktok', 'instagram', 'twitter'].map((platform) => (
+            {['youtube', 'vimeo', 'screenstudio', 'tiktok', 'instagram', 'twitter'].map((platform) => (
               <span
                 key={platform}
                 className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
