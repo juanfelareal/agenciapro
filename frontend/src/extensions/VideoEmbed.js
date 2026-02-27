@@ -55,6 +55,19 @@ export const VideoEmbed = Node.create({
         embedContainer.innerHTML = generateEmbedHTML(platform, videoId);
         dom.appendChild(embedContainer);
 
+        // Screen Studio: add fallback link below video
+        if (platform === 'screenstudio') {
+          const link = document.createElement('a');
+          link.href = `https://screen.studio/share/${videoId}`;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'Ver video en otra pestaña \u2197';
+          link.style.cssText = 'display:block;text-align:right;margin-top:4px;font-size:11px;color:#94a3b8;text-decoration:none;';
+          link.onmouseenter = () => { link.style.color = '#64748b'; };
+          link.onmouseleave = () => { link.style.color = '#94a3b8'; };
+          dom.appendChild(link);
+        }
+
         // Load platform scripts if needed
         if (platform === 'tiktok') {
           loadScript('https://www.tiktok.com/embed.js');

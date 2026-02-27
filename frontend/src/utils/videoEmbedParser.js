@@ -73,19 +73,13 @@ export const generateEmbedHTML = (platform, videoId) => {
 
     screenstudio: (() => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-      return `<div style="position: relative;">
-        <video
-          src="${apiUrl}/screenstudio/${videoId}/video"
-          controls
-          playsinline
-          preload="metadata"
-          style="width: 100%; display: block; border-radius: 8px; background: #000;"
-        ></video>
-        <a href="https://screen.studio/share/${videoId}" target="_blank" rel="noopener noreferrer"
-          style="display: inline-block; margin-top: 6px; float: right; font-size: 11px; color: #94a3b8; text-decoration: none;"
-          onmouseover="this.style.color='#64748b'" onmouseout="this.style.color='#94a3b8'"
-        >Ver video en otra pestaña &nearr;</a>
-      </div>`;
+      return `<video
+        src="${apiUrl}/screenstudio/${videoId}/video"
+        controls
+        playsinline
+        preload="metadata"
+        style="width: 100%; display: block; border-radius: 8px; background: #000;"
+      ></video>`;
     })(),
 
     tiktok: `<blockquote
