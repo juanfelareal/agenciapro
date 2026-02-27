@@ -78,8 +78,7 @@ export const generateEmbedHTML = (platform, videoId) => {
         controls
         playsinline
         preload="metadata"
-        width="560"
-        style="max-width: 100%; border-radius: 8px; background: #000;"
+        style="width: 100%; display: block; border-radius: 8px; background: #000;"
       ></video>`;
     })(),
 
