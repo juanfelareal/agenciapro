@@ -28,6 +28,7 @@ const ALL_PERMISSIONS = [
   { key: 'team', label: 'Equipo', icon: '👨‍💼', category: 'Admin' },
   { key: 'automatizaciones', label: 'Automatizaciones', icon: '⚡', category: 'Admin' },
   { key: 'notas', label: 'Bloc de Notas', icon: '📝', category: 'Admin' },
+  { key: 'formularios', label: 'Formularios', icon: '📋', category: 'Admin' },
   { key: 'sops', label: 'SOPs', icon: '📚', category: 'Admin' },
 ];
 
@@ -47,7 +48,7 @@ const PERMISSION_TEMPLATES = [
       dashboard: true, metricas: true, clients: true, projects: true, plantillas: true,
       tasks: true, calendario: true, timesheet: true, time_reports: true,
       invoices: false, expenses: false, comisiones: false, siigo: false,
-      team: false, automatizaciones: false, notas: true, sops: true, reportes: true,
+      team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true,
     },
   },
   {
@@ -58,7 +59,7 @@ const PERMISSION_TEMPLATES = [
       dashboard: true, metricas: true, clients: true, projects: true, plantillas: false,
       tasks: true, calendario: true, timesheet: false, time_reports: false,
       invoices: true, expenses: false, comisiones: true, siigo: false,
-      team: false, automatizaciones: false, notas: true, sops: true, reportes: true,
+      team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true,
     },
   },
   {
@@ -69,7 +70,7 @@ const PERMISSION_TEMPLATES = [
       dashboard: true, metricas: false, clients: true, projects: false, plantillas: false,
       tasks: false, calendario: false, timesheet: false, time_reports: false,
       invoices: true, expenses: true, comisiones: true, siigo: true,
-      team: false, automatizaciones: false, notas: false, sops: false, reportes: true,
+      team: false, automatizaciones: false, notas: false, formularios: false, sops: false, reportes: true,
     },
   },
   {
@@ -80,7 +81,7 @@ const PERMISSION_TEMPLATES = [
       dashboard: false, metricas: false, clients: false, projects: false, plantillas: false,
       tasks: true, calendario: true, timesheet: true, time_reports: false,
       invoices: false, expenses: false, comisiones: false, siigo: false,
-      team: false, automatizaciones: false, notas: true, sops: true, reportes: false,
+      team: false, automatizaciones: false, notas: true, formularios: false, sops: true, reportes: false,
     },
   },
 ];
@@ -90,7 +91,7 @@ const DEFAULT_PERMISSIONS = {
   dashboard: true, metricas: false, clients: true, projects: true, plantillas: false,
   tasks: true, calendario: true, timesheet: false, time_reports: false,
   invoices: false, expenses: false, comisiones: false, siigo: false,
-  team: false, automatizaciones: false, notas: true, sops: true, reportes: false,
+  team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: false,
 };
 
 const Team = () => {
