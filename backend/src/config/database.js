@@ -1409,6 +1409,30 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_responses_assignment_id ON form_responses(assignment_id)`);
 
+    // Add share_token to forms table
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='forms' AND column_name='share_token') THEN
+          ALTER TABLE forms ADD COLUMN share_token TEXT UNIQUE;
+        END IF;
+      END $$
+    `);
+
+    // Public form responses (from shareable links)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS form_public_responses (
+        id SERIAL PRIMARY KEY,
+        form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+        respondent_name TEXT NOT NULL,
+        data JSONB NOT NULL DEFAULT '{}',
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        organization_id INTEGER REFERENCES organizations(id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_public_responses_form_id ON form_public_responses(form_id)`);
+
     // Add can_view_forms to client_portal_settings
     await pool.query(`
       DO $$

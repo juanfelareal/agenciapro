@@ -1,7 +1,19 @@
 import express from 'express';
+import crypto from 'crypto';
 import db from '../config/database.js';
 
 const router = express.Router();
+
+// Generate a readable share code (like ABC1-XY23)
+function generateShareCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    if (i === 4) code += '-';
+    code += chars.charAt(crypto.randomInt(chars.length));
+  }
+  return code;
+}
 
 // GET / — List all forms
 router.get('/', async (req, res) => {
@@ -11,7 +23,8 @@ router.get('/', async (req, res) => {
       SELECT f.*,
         tm.name as creator_name,
         (SELECT COUNT(*) FROM form_assignments fa WHERE fa.form_id = f.id) as assignment_count,
-        (SELECT COUNT(*) FROM form_assignments fa WHERE fa.form_id = f.id AND fa.status = 'submitted') as submitted_count
+        (SELECT COUNT(*) FROM form_assignments fa WHERE fa.form_id = f.id AND fa.status = 'submitted') as submitted_count,
+        (SELECT COUNT(*) FROM form_public_responses fpr WHERE fpr.form_id = f.id) as public_response_count
       FROM forms f
       LEFT JOIN team_members tm ON f.created_by = tm.id
       WHERE f.organization_id = ?
@@ -387,6 +400,115 @@ router.get('/:id/assignments', async (req, res) => {
   } catch (error) {
     console.error('Error listing assignments:', error);
     res.status(500).json({ error: 'Error al obtener asignaciones' });
+  }
+});
+
+// POST /:id/share — Generate share token
+router.post('/:id/share', async (req, res) => {
+  try {
+    const form = await db.prepare(
+      'SELECT id, share_token FROM forms WHERE id = ? AND organization_id = ?'
+    ).get(req.params.id, req.orgId);
+    if (!form) {
+      return res.status(404).json({ error: 'Formulario no encontrado' });
+    }
+
+    // Already has a token
+    if (form.share_token) {
+      return res.json({ share_token: form.share_token });
+    }
+
+    // Generate unique token with retry
+    let token = null;
+    for (let i = 0; i < 10; i++) {
+      const candidate = generateShareCode();
+      const existing = await db.prepare('SELECT id FROM forms WHERE share_token = ?').get(candidate);
+      if (!existing) {
+        token = candidate;
+        break;
+      }
+    }
+    if (!token) {
+      return res.status(500).json({ error: 'No se pudo generar un código único' });
+    }
+
+    await db.prepare('UPDATE forms SET share_token = ? WHERE id = ?').run(token, form.id);
+    res.json({ share_token: token });
+  } catch (error) {
+    console.error('Error generating share token:', error);
+    res.status(500).json({ error: 'Error al generar enlace' });
+  }
+});
+
+// DELETE /:id/share — Revoke share token
+router.delete('/:id/share', async (req, res) => {
+  try {
+    const result = await db.prepare(
+      'UPDATE forms SET share_token = NULL WHERE id = ? AND organization_id = ?'
+    ).run(req.params.id, req.orgId);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Formulario no encontrado' });
+    }
+    res.json({ message: 'Enlace público desactivado' });
+  } catch (error) {
+    console.error('Error revoking share token:', error);
+    res.status(500).json({ error: 'Error al desactivar enlace' });
+  }
+});
+
+// GET /:id/public-responses — List public responses for a form
+router.get('/:id/public-responses', async (req, res) => {
+  try {
+    const form = await db.prepare(
+      'SELECT id FROM forms WHERE id = ? AND organization_id = ?'
+    ).get(req.params.id, req.orgId);
+    if (!form) {
+      return res.status(404).json({ error: 'Formulario no encontrado' });
+    }
+
+    const responses = await db.prepare(`
+      SELECT id, respondent_name, submitted_at, created_at
+      FROM form_public_responses
+      WHERE form_id = ?
+      ORDER BY submitted_at DESC
+    `).all(form.id);
+
+    res.json(responses);
+  } catch (error) {
+    console.error('Error listing public responses:', error);
+    res.status(500).json({ error: 'Error al obtener respuestas' });
+  }
+});
+
+// GET /public-responses/:responseId — View single public response
+router.get('/public-responses/:responseId', async (req, res) => {
+  try {
+    const response = await db.prepare(`
+      SELECT fpr.*, f.title as form_title, f.description as form_description
+      FROM form_public_responses fpr
+      JOIN forms f ON fpr.form_id = f.id
+      WHERE fpr.id = ? AND fpr.organization_id = ?
+    `).get(req.params.responseId, req.orgId);
+
+    if (!response) {
+      return res.status(404).json({ error: 'Respuesta no encontrada' });
+    }
+
+    // Get form structure
+    const sections = await db.prepare(`
+      SELECT * FROM form_sections WHERE form_id = ? ORDER BY position
+    `).all(response.form_id);
+
+    for (const section of sections) {
+      section.fields = await db.prepare(`
+        SELECT * FROM form_fields WHERE section_id = ? ORDER BY position
+      `).all(section.id);
+    }
+
+    res.json({ response, sections });
+  } catch (error) {
+    console.error('Error getting public response:', error);
+    res.status(500).json({ error: 'Error al obtener respuesta' });
   }
 });
 

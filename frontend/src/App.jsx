@@ -22,6 +22,7 @@ import Reports from './pages/Reports';
 import Notes from './pages/Notes';
 import SharedNoteView from './pages/SharedNoteView';
 import SharedDashboard from './pages/SharedDashboard';
+import PublicFormFill from './pages/PublicFormFill';
 import CRM from './pages/CRM';
 import CRMDealDetail from './pages/CRMDealDetail';
 import MetricsDashboard from './pages/MetricsDashboard';
@@ -76,6 +77,9 @@ function App() {
 
         {/* Shared dashboard - public, no auth required */}
         <Route path="/d/:token" element={<SharedDashboard />} />
+
+        {/* Public form fill - no auth required */}
+        <Route path="/f/:token" element={<PublicFormFill />} />
 
         {/* Portal Login - no layout but needs PortalProvider */}
         <Route path="/portal/login" element={<PortalProvider><PortalLogin /></PortalProvider>} />

@@ -70,6 +70,7 @@ import dashboardShareRoutes from './src/routes/dashboard-share.js';
 import crmRoutes from './src/routes/crm.js';
 import screenstudioRoutes from './src/routes/screenstudio.js';
 import formRoutes from './src/routes/forms.js';
+import formShareRoutes from './src/routes/form-share.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -197,6 +198,8 @@ app.use('/api/crm', crmRoutes);
 app.use('/api/screenstudio', screenstudioRoutes);
 // Forms (Formularios)
 app.use('/api/forms', teamAuthMiddleware, formRoutes);
+// Form sharing (public — no auth needed)
+app.use('/api/form-share', formShareRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

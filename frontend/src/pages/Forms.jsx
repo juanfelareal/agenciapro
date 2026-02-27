@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   ClipboardList, Plus, Search, ChevronLeft, Trash2, Copy, Send,
   GripVertical, ChevronDown, ChevronUp, AlertTriangle, Eye,
-  FileText, X, Calendar, Check, User
+  FileText, X, Calendar, Check, User, Link2, Link2Off, Globe, Loader2
 } from 'lucide-react';
 import { formsAPI, clientsAPI } from '../utils/api';
 
@@ -48,6 +48,15 @@ export default function Forms() {
   const [selectedClient, setSelectedClient] = useState('');
   const [dueDate, setDueDate] = useState('');
 
+  // Share state
+  const [shareToken, setShareToken] = useState(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+
+  // Public responses
+  const [publicResponses, setPublicResponses] = useState([]);
+
   // Response viewer
   const [responseData, setResponseData] = useState(null);
 
@@ -77,6 +86,7 @@ export default function Forms() {
         setFormStatus(data.status);
         setSections(data.sections || []);
         setActiveAssignments(data.active_assignments || 0);
+        setShareToken(data.share_token || null);
       } catch (err) {
         console.error(err);
         return;
@@ -88,9 +98,12 @@ export default function Forms() {
       setFormStatus('draft');
       setSections([{ title: 'Sección 1', description: '', fields: [] }]);
       setActiveAssignments(0);
+      setShareToken(null);
     }
     setShowAssignPanel(false);
+    setShowShareMenu(false);
     setAssignments([]);
+    setPublicResponses([]);
     setView('builder');
   };
 
@@ -181,12 +194,14 @@ export default function Forms() {
   const loadAssignments = async () => {
     if (!editingForm) return;
     try {
-      const [assignRes, clientRes] = await Promise.all([
+      const [assignRes, clientRes, publicRes] = await Promise.all([
         formsAPI.getAssignments(editingForm.id),
-        clientsAPI.getAll()
+        clientsAPI.getAll(),
+        formsAPI.getPublicResponses(editingForm.id),
       ]);
       setAssignments(assignRes.data);
       setClients(clientRes.data);
+      setPublicResponses(publicRes.data);
       setShowAssignPanel(true);
     } catch (err) {
       console.error(err);
@@ -228,6 +243,64 @@ export default function Forms() {
     }
   };
 
+  // Share helpers
+  const handleShare = async () => {
+    if (shareToken) {
+      const url = `${window.location.origin}/f/${shareToken}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+      return;
+    }
+    setShareLoading(true);
+    try {
+      const { data } = await formsAPI.generateShareLink(editingForm.id);
+      setShareToken(data.share_token);
+      const url = `${window.location.origin}/f/${data.share_token}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const revokeShare = async () => {
+    if (!confirm('¿Desactivar el enlace público? Las personas con el link ya no podrán acceder.')) return;
+    try {
+      await formsAPI.revokeShareLink(editingForm.id);
+      setShareToken(null);
+      setShowShareMenu(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const viewPublicResponse = async (responseId) => {
+    try {
+      const { data } = await formsAPI.getPublicResponse(responseId);
+      setResponseData({
+        assignment: {
+          form_title: editingForm?.title || 'Formulario',
+          status: 'submitted',
+          client_name: data.response.respondent_name,
+          company: 'Respuesta pública',
+        },
+        sections: data.sections,
+        response: {
+          data: data.response.data,
+          submitted_at: data.response.submitted_at,
+        }
+      });
+      setShowAssignPanel(false);
+      setView('response');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // ============ RENDER ============
 
   if (view === 'response' && responseData) {
@@ -243,6 +316,34 @@ export default function Forms() {
             <ChevronLeft size={20} /> Volver
           </button>
           <div className="flex items-center gap-3">
+            {editingForm && (
+              <div className="relative">
+                <button onClick={() => shareToken ? setShowShareMenu(!showShareMenu) : handleShare()} disabled={shareLoading}
+                  className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm transition-colors ${
+                    shareToken ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100' : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                  } disabled:opacity-50`}>
+                  {shareLoading ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
+                  {shareCopied ? 'Copiado!' : shareToken ? 'Link público' : 'Compartir'}
+                </button>
+                {showShareMenu && shareToken && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-slate-200 p-4 z-50">
+                    <p className="text-xs text-slate-500 mb-2">Enlace público del formulario:</p>
+                    <div className="flex gap-2 mb-3">
+                      <input type="text" readOnly value={`${window.location.origin}/f/${shareToken}`}
+                        className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-600" />
+                      <button onClick={handleShare}
+                        className="px-3 py-2 bg-[#1A1A2E] text-white rounded-lg text-xs hover:bg-[#2a2a3e]">
+                        {shareCopied ? 'Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                    <button onClick={revokeShare}
+                      className="flex items-center gap-2 text-xs text-red-500 hover:text-red-700">
+                      <Link2Off size={14} /> Desactivar enlace público
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {editingForm && (
               <button onClick={loadAssignments} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm">
                 <Send size={16} /> Asignar
@@ -411,6 +512,29 @@ export default function Forms() {
                     ))}
                   </div>
                 )}
+
+                {/* Public responses */}
+                {publicResponses.length > 0 && (
+                  <div className="space-y-2 pt-4 border-t border-slate-200">
+                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                      <Globe size={12} /> Respuestas públicas ({publicResponses.length})
+                    </p>
+                    {publicResponses.map(r => (
+                      <div key={r.id} className="flex items-center justify-between p-3 bg-green-50/50 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">{r.respondent_name}</p>
+                          <span className="text-xs text-slate-400">
+                            {new Date(r.submitted_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <button onClick={() => { setShowAssignPanel(false); viewPublicResponse(r.id); }}
+                          className="p-1.5 hover:bg-blue-50 rounded text-slate-400 hover:text-blue-600" title="Ver respuesta">
+                          <Eye size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -476,6 +600,12 @@ export default function Forms() {
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1"><Send size={12} /> {form.assignment_count || 0} asignados</span>
                   <span className="flex items-center gap-1"><Check size={12} /> {form.submitted_count || 0} enviados</span>
+                  {(form.public_response_count > 0) && (
+                    <span className="flex items-center gap-1"><Globe size={12} /> {form.public_response_count} públicas</span>
+                  )}
+                  {form.share_token && (
+                    <span className="flex items-center gap-1 text-green-500"><Link2 size={12} /></span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={e => e.stopPropagation()}>

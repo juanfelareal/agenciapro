@@ -414,6 +414,10 @@ export const formsAPI = {
   removeAssignment: (assignmentId) => api.delete(`/forms/assignments/${assignmentId}`),
   getResponse: (assignmentId) => api.get(`/forms/assignments/${assignmentId}/response`),
   getByClient: (clientId) => api.get(`/forms/client/${clientId}`),
+  generateShareLink: (id) => api.post(`/forms/${id}/share`),
+  revokeShareLink: (id) => api.delete(`/forms/${id}/share`),
+  getPublicResponses: (id) => api.get(`/forms/${id}/public-responses`),
+  getPublicResponse: (responseId) => api.get(`/forms/public-responses/${responseId}`),
 };
 
 export default api;
