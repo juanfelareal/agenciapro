@@ -71,15 +71,17 @@ export const generateEmbedHTML = (platform, videoId) => {
       style="max-width: 100%; border-radius: 8px;"
     ></iframe>`,
 
-    screenstudio: `<iframe
-      src="https://screen.studio/share/${videoId}"
-      width="560"
-      height="315"
-      frameborder="0"
-      allow="autoplay; fullscreen"
-      allowfullscreen
-      style="max-width: 100%; border-radius: 8px;"
-    ></iframe>`,
+    screenstudio: (() => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      return `<video
+        src="${apiUrl}/screenstudio/${videoId}/video"
+        controls
+        playsinline
+        preload="metadata"
+        width="560"
+        style="max-width: 100%; border-radius: 8px; background: #000;"
+      ></video>`;
+    })(),
 
     tiktok: `<blockquote
       class="tiktok-embed"

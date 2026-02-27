@@ -68,6 +68,7 @@ import { generateAllWeeklyInsights } from './src/services/insightService.js';
 import dashboardShareRoutes from './src/routes/dashboard-share.js';
 // CRM
 import crmRoutes from './src/routes/crm.js';
+import screenstudioRoutes from './src/routes/screenstudio.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -191,6 +192,8 @@ app.use('/api/note-share', noteShareRoutes);
 app.use('/api/dashboard-share', dashboardShareRoutes);
 // CRM (has both authenticated and webhook routes internally)
 app.use('/api/crm', crmRoutes);
+// Screen Studio video proxy (no auth needed — public share links)
+app.use('/api/screenstudio', screenstudioRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
