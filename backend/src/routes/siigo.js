@@ -183,6 +183,41 @@ router.get('/invoices', async (req, res) => {
   }
 });
 
+// Get invoice detail with Siigo data
+router.get('/invoices/:invoiceId/detail', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const invoice = await db.prepare(`
+      SELECT i.*,
+        CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name,
+        c.email as client_email, c.phone as client_phone, c.nit as client_nit,
+        p.name as project_name
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      LEFT JOIN projects p ON i.project_id = p.id
+      WHERE i.id = ? AND i.organization_id = ?
+    `).get(req.params.invoiceId, orgId);
+
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    let siigoData = null;
+    if (invoice.siigo_id) {
+      try {
+        siigoData = await siigoService.getInvoice(orgId, invoice.siigo_id);
+      } catch (err) {
+        console.error('Error fetching Siigo invoice:', err.message);
+        siigoData = { error: err.message };
+      }
+    }
+
+    res.json({ local: invoice, siigo: siigoData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Send invoice to Siigo
 router.post('/invoices/sync/:invoiceId', async (req, res) => {
   try {

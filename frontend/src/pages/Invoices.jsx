@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { invoicesAPI, clientsAPI, projectsAPI } from '../utils/api';
 import { Plus, Edit, Trash2, X, Send, Upload, History, Clock, Filter, RotateCcw, Repeat, CheckSquare, Square, MinusSquare, Link2, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Copy, Mail } from 'lucide-react';
 
@@ -13,6 +14,7 @@ const authHeaders = () => {
 };
 
 const Invoices = () => {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [clients, setClients] = useState([]);
@@ -962,7 +964,10 @@ const Invoices = () => {
                     )}
                   </button>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap font-medium">
+                <td
+                  className="px-4 py-4 whitespace-nowrap font-medium cursor-pointer hover:text-blue-600"
+                  onClick={() => navigate(`/app/invoices/${invoice.id}`)}
+                >
                   <div className="flex items-center gap-2">
                     {invoice.client_name}
                     {invoice.is_recurring === 1 && (

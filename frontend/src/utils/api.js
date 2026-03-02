@@ -88,6 +88,7 @@ export const invoicesAPI = {
   send: (id) => api.post(`/invoices/${id}/send`),
   getHistory: (id) => api.get(`/invoices/${id}/history`),
   duplicate: (id) => api.post(`/invoices/${id}/duplicate`),
+  getSiigoDetail: (id) => api.get(`/siigo/invoices/${id}/detail`),
   sendSiigoEmail: (id, email) => api.post(`/siigo/invoices/${id}/send-email`, { email }),
 };
 

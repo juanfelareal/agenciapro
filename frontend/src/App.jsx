@@ -13,6 +13,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import Tasks from './pages/Tasks';
 import Team from './pages/Team';
 import Invoices from './pages/Invoices';
+import InvoiceDetail from './pages/InvoiceDetail';
 import Expenses from './pages/Expenses';
 import Comisiones from './pages/Comisiones';
 import Inbox from './pages/Inbox';
@@ -219,6 +220,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="invoices">
                       <Invoices />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="invoices/:id"
+                  element={
+                    <ProtectedRoute permission="invoices">
+                      <InvoiceDetail />
                     </ProtectedRoute>
                   }
                 />
