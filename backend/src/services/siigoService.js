@@ -153,7 +153,7 @@ class SiigoService {
 
   // ========== PAYMENT TYPES ==========
   async getPaymentTypes(orgId) {
-    const data = await this.apiRequest(orgId, 'GET', '/payment-types');
+    const data = await this.apiRequest(orgId, 'GET', '/payment-types?document_type=FV');
 
     for (const payment of data) {
       await db.prepare(`
