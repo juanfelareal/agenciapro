@@ -248,22 +248,38 @@ class SiigoService {
   }
 
   async syncCustomer(orgId, client) {
-    const identification = client.nit || client.company || client.name;
+    // Extract numeric identification from NIT or fallback
+    const rawNit = client.nit || '';
+    const numericNit = rawNit.replace(/[^0-9]/g, '');
+    const hasNit = numericNit.length > 0;
+
+    // Determine if company or person
+    const isCompany = hasNit || (client.company && client.company !== client.name);
+
+    // Build identification: prefer numeric NIT, otherwise generate from company/name
+    const identification = hasNit ? numericNit : (client.company || client.name || '').replace(/[^0-9a-zA-Z]/g, '').substring(0, 20);
 
     const existingCustomer = await this.getCustomerByIdentification(orgId, identification);
 
+    // Build name array - Siigo expects array format
+    const displayName = client.name || client.company || '';
+    const nameParts = displayName.trim().split(' ').filter(Boolean);
+    const nameArray = isCompany
+      ? [client.company || displayName]
+      : nameParts.length > 0 ? nameParts : [displayName || 'Cliente'];
+
     const customerData = {
       type: 'Customer',
-      person_type: client.nit ? 'Company' : 'Person',
+      person_type: isCompany ? 'Company' : 'Person',
       id_type: {
-        code: client.nit ? '31' : '13'
+        code: isCompany ? '31' : '13'
       },
-      identification: identification.replace(/[^0-9]/g, ''),
-      name: client.nit ? [client.company || client.name] : client.name.split(' '),
-      commercial_name: client.company || client.name,
+      identification,
+      name: nameArray,
+      commercial_name: client.company || displayName,
       contacts: [{
-        first_name: client.name.split(' ')[0] || client.name,
-        last_name: client.name.split(' ').slice(1).join(' ') || '',
+        first_name: nameParts[0] || displayName || 'Cliente',
+        last_name: nameParts.slice(1).join(' ') || '',
         email: client.email || '',
         phone: {
           number: client.phone || ''
