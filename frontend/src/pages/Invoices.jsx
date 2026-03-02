@@ -740,23 +740,58 @@ const Invoices = () => {
               <option value="sin_iva">Sin IVA</option>
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Fecha desde</label>
-            <input
-              type="date"
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-              value={filters.date_from}
-              onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Fecha hasta</label>
-            <input
-              type="date"
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-              value={filters.date_to}
-              onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
-            />
+          <div className="col-span-2">
+            <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Período</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Hoy', getRange: () => { const d = new Date().toISOString().split('T')[0]; return { date_from: d, date_to: d }; } },
+                { label: 'Ayer', getRange: () => { const d = new Date(); d.setDate(d.getDate() - 1); const s = d.toISOString().split('T')[0]; return { date_from: s, date_to: s }; } },
+                { label: 'Esta semana', getRange: () => { const now = new Date(); const day = now.getDay(); const diff = now.getDate() - day + (day === 0 ? -6 : 1); const start = new Date(now); start.setDate(diff); return { date_from: start.toISOString().split('T')[0], date_to: now.toISOString().split('T')[0] }; } },
+                { label: 'Este mes', getRange: () => { const now = new Date(); const start = new Date(now.getFullYear(), now.getMonth(), 1); return { date_from: start.toISOString().split('T')[0], date_to: now.toISOString().split('T')[0] }; } },
+                { label: 'Mes pasado', getRange: () => { const now = new Date(); const start = new Date(now.getFullYear(), now.getMonth() - 1, 1); const end = new Date(now.getFullYear(), now.getMonth(), 0); return { date_from: start.toISOString().split('T')[0], date_to: end.toISOString().split('T')[0] }; } },
+                { label: 'Últimos 3 meses', getRange: () => { const now = new Date(); const start = new Date(now.getFullYear(), now.getMonth() - 3, 1); return { date_from: start.toISOString().split('T')[0], date_to: now.toISOString().split('T')[0] }; } },
+                { label: 'Este año', getRange: () => { const now = new Date(); return { date_from: `${now.getFullYear()}-01-01`, date_to: now.toISOString().split('T')[0] }; } },
+              ].map((preset) => {
+                const range = preset.getRange();
+                const isActive = filters.date_from === range.date_from && filters.date_to === range.date_to;
+                return (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      if (isActive) {
+                        setFilters({ ...filters, date_from: '', date_to: '' });
+                      } else {
+                        setFilters({ ...filters, ...range });
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[#1A1A2E] text-white'
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+            {(filters.date_from || filters.date_to) && (
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="date"
+                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  value={filters.date_from}
+                  onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+                />
+                <span className="text-gray-400 text-xs">a</span>
+                <input
+                  type="date"
+                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  value={filters.date_to}
+                  onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
+                />
+              </div>
+            )}
           </div>
         </div>
         {hasActiveFilters && (
