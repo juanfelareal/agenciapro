@@ -381,6 +381,13 @@ class SiigoService {
       siigoCustomerId = siigoCustomer.id;
     }
 
+    // Build the same identification used in syncCustomer
+    const rawNit = client.nit || '';
+    const numericNit = rawNit.replace(/[^0-9]/g, '');
+    const customerIdentification = numericNit.length > 0
+      ? numericNit
+      : (client.company || client.name || '').replace(/[^0-9a-zA-Z]/g, '').substring(0, 20);
+
     // Calculate tax (round to 2 decimal places for Siigo)
     const isWithIva = invoice.invoice_type !== 'sin_iva';
     const baseAmount = isWithIva
@@ -393,7 +400,7 @@ class SiigoService {
       },
       date: invoice.issue_date,
       customer: {
-        identification: (client.nit || client.company || client.name).replace(/[^0-9]/g, ''),
+        identification: customerIdentification,
         branch_office: 0
       },
       seller: options.sellerId || seller?.id,
