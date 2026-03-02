@@ -17,6 +17,14 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+const authHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
 const SiigoSettings = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useState(null);
@@ -41,7 +49,7 @@ const SiigoSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch(`${API_URL}/siigo/settings`);
+      const res = await fetch(`${API_URL}/siigo/settings`, { headers: authHeaders() });
       const data = await res.json();
       setSettings(data);
       if (data?.username) {
@@ -60,9 +68,9 @@ const SiigoSettings = () => {
   const fetchReferenceData = async () => {
     try {
       const [docTypes, payTypes, taxes] = await Promise.all([
-        fetch(`${API_URL}/siigo/document-types`).then(r => r.json()),
-        fetch(`${API_URL}/siigo/payment-types`).then(r => r.json()),
-        fetch(`${API_URL}/siigo/taxes`).then(r => r.json())
+        fetch(`${API_URL}/siigo/document-types`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`${API_URL}/siigo/payment-types`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`${API_URL}/siigo/taxes`, { headers: authHeaders() }).then(r => r.json())
       ]);
       setReferenceData({
         documentTypes: docTypes || [],
@@ -82,7 +90,7 @@ const SiigoSettings = () => {
     try {
       const res = await fetch(`${API_URL}/siigo/settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ username, access_key: accessKey, partner_id: partnerId })
       });
 
@@ -109,7 +117,8 @@ const SiigoSettings = () => {
 
     try {
       const res = await fetch(`${API_URL}/siigo/test-connection`, {
-        method: 'POST'
+        method: 'POST',
+        headers: authHeaders()
       });
       const data = await res.json();
 
@@ -131,7 +140,8 @@ const SiigoSettings = () => {
 
     try {
       const res = await fetch(`${API_URL}/siigo/sync-reference-data`, {
-        method: 'POST'
+        method: 'POST',
+        headers: authHeaders()
       });
       const data = await res.json();
 

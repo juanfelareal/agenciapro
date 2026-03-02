@@ -21,6 +21,14 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+const authHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
 const SiigoInvoices = () => {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState([]);
@@ -48,7 +56,7 @@ const SiigoInvoices = () => {
   const fetchInvoices = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/siigo/invoices?page=1&page_size=50`);
+      const res = await fetch(`${API_URL}/siigo/invoices?page=1&page_size=50`, { headers: authHeaders() });
       const data = await res.json();
 
       if (data.results) {
@@ -71,7 +79,7 @@ const SiigoInvoices = () => {
       let hasMore = true;
 
       while (hasMore) {
-        const res = await fetch(`${API_URL}/siigo/customers?page=${page}&page_size=100`);
+        const res = await fetch(`${API_URL}/siigo/customers?page=${page}&page_size=100`, { headers: authHeaders() });
         const data = await res.json();
 
         if (data.results && data.results.length > 0) {
@@ -186,7 +194,7 @@ const SiigoInvoices = () => {
           let clientId = null;
 
           // Search for existing client by NIT
-          const clientsRes = await fetch(`${API_URL}/clients`);
+          const clientsRes = await fetch(`${API_URL}/clients`, { headers: authHeaders() });
           const clients = await clientsRes.json();
           const existingClient = clients.find(c =>
             c.nit === invoice.customer?.identification ||
@@ -199,7 +207,7 @@ const SiigoInvoices = () => {
             // Create new client
             const newClientRes = await fetch(`${API_URL}/clients`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: authHeaders(),
               body: JSON.stringify({
                 name: customerInfo.name || 'Cliente Siigo',
                 company: customerInfo.name || 'Cliente Siigo',
@@ -240,7 +248,7 @@ const SiigoInvoices = () => {
 
           const res = await fetch(`${API_URL}/invoices`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders(),
             body: JSON.stringify(invoiceData),
           });
 
@@ -249,7 +257,7 @@ const SiigoInvoices = () => {
             const newInvoice = await res.json();
             await fetch(`${API_URL}/invoices/${newInvoice.id}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: authHeaders(),
               body: JSON.stringify({ siigo_status: 'sent', siigo_id: invoice.id }),
             });
             imported++;

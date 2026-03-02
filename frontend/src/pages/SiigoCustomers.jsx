@@ -21,6 +21,14 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+const authHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
+
 const SiigoCustomers = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
@@ -49,7 +57,7 @@ const SiigoCustomers = () => {
       let hasMore = true;
 
       while (hasMore) {
-        const res = await fetch(`${API_URL}/siigo/customers?page=${page}&page_size=100`);
+        const res = await fetch(`${API_URL}/siigo/customers?page=${page}&page_size=100`, { headers: authHeaders() });
         const data = await res.json();
 
         if (data.results && data.results.length > 0) {
@@ -165,7 +173,7 @@ const SiigoCustomers = () => {
 
           const res = await fetch(`${API_URL}/clients`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders(),
             body: JSON.stringify(clientData),
           });
 
