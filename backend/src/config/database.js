@@ -1112,6 +1112,38 @@ export const initializeDatabase = async () => {
     }
 
     // ========================================
+    // FIX: Siigo tables UNIQUE constraints for multi-tenancy
+    // Change from UNIQUE(siigo_id) to UNIQUE(siigo_id, organization_id)
+    // ========================================
+    const siigoTables = ['siigo_document_types', 'siigo_payment_types', 'siigo_taxes'];
+    for (const table of siigoTables) {
+      try {
+        // Drop old single-column unique constraint and add composite one
+        await pool.query(`
+          DO $$
+          BEGIN
+            -- Drop the old unique constraint on siigo_id alone (name varies)
+            IF EXISTS (
+              SELECT 1 FROM pg_constraint
+              WHERE conname = '${table}_siigo_id_key' AND conrelid = '${table}'::regclass
+            ) THEN
+              ALTER TABLE ${table} DROP CONSTRAINT ${table}_siigo_id_key;
+            END IF;
+            -- Create composite unique constraint if not exists
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_constraint
+              WHERE conname = '${table}_siigo_id_org_key' AND conrelid = '${table}'::regclass
+            ) THEN
+              ALTER TABLE ${table} ADD CONSTRAINT ${table}_siigo_id_org_key UNIQUE (siigo_id, organization_id);
+            END IF;
+          END $$;
+        `);
+      } catch (constraintError) {
+        console.log(`  ⏭️  Siigo constraint migration skipped for ${table}:`, constraintError.message);
+      }
+    }
+
+    // ========================================
     // PERFORMANCE INDEXES
     // ========================================
     console.log('🔄 Creating performance indexes...');

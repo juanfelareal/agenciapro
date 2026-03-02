@@ -36,10 +36,10 @@ router.post('/settings', async (req, res) => {
     }
 
     // Save credentials with org context
-    const settingsId = siigoService.saveCredentials(username, access_key, partner_id, orgId);
+    const settingsId = await siigoService.saveCredentials(username, access_key, partner_id, orgId);
 
     // Test connection
-    const testResult = await siigoService.testConnection();
+    const testResult = await siigoService.testConnection(orgId);
 
     if (!testResult.success) {
       return res.status(400).json({ error: `Invalid credentials: ${testResult.message}` });
@@ -48,7 +48,7 @@ router.post('/settings', async (req, res) => {
     // Sync reference data on successful connection (only if partner_id is provided)
     if (partner_id) {
       try {
-        await siigoService.syncReferenceData();
+        await siigoService.syncReferenceData(orgId);
       } catch (syncError) {
         console.error('Error syncing reference data:', syncError.message);
       }
@@ -67,7 +67,7 @@ router.post('/settings', async (req, res) => {
 // Test Siigo connection
 router.post('/test-connection', async (req, res) => {
   try {
-    const result = await siigoService.testConnection();
+    const result = await siigoService.testConnection(req.orgId);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -79,7 +79,7 @@ router.post('/test-connection', async (req, res) => {
 // Sync all reference data from Siigo
 router.post('/sync-reference-data', async (req, res) => {
   try {
-    const data = await siigoService.syncReferenceData();
+    const data = await siigoService.syncReferenceData(req.orgId);
     res.json({
       success: true,
       documentTypes: data.documentTypes?.length || 0,
@@ -136,7 +136,7 @@ router.post('/customers/sync/:clientId', async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
 
-    const siigoCustomer = await siigoService.syncCustomer(client);
+    const siigoCustomer = await siigoService.syncCustomer(orgId, client);
     res.json({
       success: true,
       siigoCustomer,
@@ -151,7 +151,7 @@ router.post('/customers/sync/:clientId', async (req, res) => {
 router.get('/customers', async (req, res) => {
   try {
     const { page = 1, page_size = 25 } = req.query;
-    const customers = await siigoService.getCustomers(page, page_size);
+    const customers = await siigoService.getCustomers(req.orgId, page, page_size);
     res.json(customers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -164,7 +164,7 @@ router.get('/customers', async (req, res) => {
 router.get('/invoices', async (req, res) => {
   try {
     const { page = 1, page_size = 25 } = req.query;
-    const invoices = await siigoService.getInvoices(page, page_size);
+    const invoices = await siigoService.getInvoices(req.orgId, page, page_size);
     res.json(invoices);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -184,7 +184,7 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
              c.siigo_id as client_siigo_id
       FROM invoices i
       JOIN clients c ON i.client_id = c.id
-      WHERE i.id = ? AND c.organization_id = ?
+      WHERE i.id = ? AND i.organization_id = ?
     `).get(req.params.invoiceId, orgId);
 
     if (!invoice) {
@@ -211,7 +211,7 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
     };
 
     // Send to Siigo
-    const siigoInvoice = await siigoService.syncInvoice(invoice, client, { sendElectronic });
+    const siigoInvoice = await siigoService.syncInvoice(orgId, invoice, client, { sendElectronic });
 
     res.json({
       success: true,
@@ -222,8 +222,8 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
     // Update invoice status to error
     await db.prepare(`
       UPDATE invoices SET siigo_status = 'error', updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(req.params.invoiceId);
+      WHERE id = ? AND organization_id = ?
+    `).run(req.params.invoiceId, req.orgId);
 
     res.status(500).json({ error: error.message });
   }
@@ -236,15 +236,14 @@ router.get('/invoices/:invoiceId/pdf', async (req, res) => {
     const invoice = await db.prepare(`
       SELECT i.siigo_id
       FROM invoices i
-      JOIN clients c ON i.client_id = c.id
-      WHERE i.id = ? AND c.organization_id = ?
+      WHERE i.id = ? AND i.organization_id = ?
     `).get(req.params.invoiceId, orgId);
 
     if (!invoice?.siigo_id) {
       return res.status(404).json({ error: 'Invoice not found in Siigo' });
     }
 
-    const pdfData = await siigoService.getInvoicePdf(invoice.siigo_id);
+    const pdfData = await siigoService.getInvoicePdf(orgId, invoice.siigo_id);
     res.json(pdfData);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -260,7 +259,7 @@ router.post('/invoices/:invoiceId/send-email', async (req, res) => {
       SELECT i.siigo_id, c.email as client_email
       FROM invoices i
       JOIN clients c ON i.client_id = c.id
-      WHERE i.id = ? AND c.organization_id = ?
+      WHERE i.id = ? AND i.organization_id = ?
     `).get(req.params.invoiceId, orgId);
 
     if (!invoice?.siigo_id) {
@@ -272,7 +271,7 @@ router.post('/invoices/:invoiceId/send-email', async (req, res) => {
       return res.status(400).json({ error: 'No email address provided' });
     }
 
-    await siigoService.sendInvoiceByEmail(invoice.siigo_id, targetEmail);
+    await siigoService.sendInvoiceByEmail(orgId, invoice.siigo_id, targetEmail);
     res.json({ success: true, message: `Invoice sent to ${targetEmail}` });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -304,7 +303,7 @@ router.post('/invoices/sync-bulk', async (req, res) => {
                  c.siigo_id as client_siigo_id
           FROM invoices i
           JOIN clients c ON i.client_id = c.id
-          WHERE i.id = ? AND c.organization_id = ?
+          WHERE i.id = ? AND i.organization_id = ?
         `).get(invoiceId, orgId);
 
         if (!invoice) {
@@ -327,7 +326,7 @@ router.post('/invoices/sync-bulk', async (req, res) => {
           siigo_id: invoice.client_siigo_id
         };
 
-        const siigoInvoice = await siigoService.syncInvoice(invoice, client, { sendElectronic });
+        const siigoInvoice = await siigoService.syncInvoice(orgId, invoice, client, { sendElectronic });
         results.success.push({ invoiceId, siigoId: siigoInvoice.id });
       } catch (error) {
         results.errors.push({ invoiceId, error: error.message });

@@ -6,18 +6,20 @@ const SIIGO_AUTH_URL = 'https://api.siigo.com/auth';
 
 class SiigoService {
   constructor() {
-    this.accessToken = null;
-    this.tokenExpiresAt = null;
+    // Per-org token cache: { orgId: { accessToken, tokenExpiresAt } }
+    this.tokenCache = {};
   }
 
-  // Get stored credentials
-  async getCredentials() {
-    return await db.prepare('SELECT * FROM siigo_settings WHERE is_active = 1 ORDER BY id DESC LIMIT 1').get();
+  // Get stored credentials for an organization
+  async getCredentials(orgId) {
+    return await db.prepare(
+      'SELECT * FROM siigo_settings WHERE is_active = 1 AND organization_id = ? ORDER BY id DESC LIMIT 1'
+    ).get(orgId);
   }
 
   // Save credentials
-  async saveCredentials(username, accessKey, partnerId = null) {
-    const existing = await this.getCredentials();
+  async saveCredentials(username, accessKey, partnerId = null, orgId) {
+    const existing = await this.getCredentials(orgId);
     if (existing) {
       await db.prepare(`
         UPDATE siigo_settings
@@ -27,37 +29,40 @@ class SiigoService {
       return existing.id;
     } else {
       const result = await db.prepare(`
-        INSERT INTO siigo_settings (username, access_key, partner_id)
-        VALUES (?, ?, ?)
-      `).run(username, accessKey, partnerId);
+        INSERT INTO siigo_settings (username, access_key, partner_id, organization_id)
+        VALUES (?, ?, ?, ?)
+      `).run(username, accessKey, partnerId, orgId);
       return result.lastInsertRowid;
     }
   }
 
   // Authenticate and get access token
-  async authenticate() {
-    const credentials = await this.getCredentials();
+  async authenticate(orgId) {
+    const credentials = await this.getCredentials(orgId);
     if (!credentials) {
       throw new Error('Siigo credentials not configured');
     }
 
-    // Check if we have a valid token
-    if (this.accessToken && this.tokenExpiresAt) {
+    // Check in-memory cache for this org
+    const cached = this.tokenCache[orgId];
+    if (cached?.accessToken && cached?.tokenExpiresAt) {
       const now = new Date();
-      const expiresAt = new Date(this.tokenExpiresAt);
+      const expiresAt = new Date(cached.tokenExpiresAt);
       if (now < expiresAt) {
-        return this.accessToken;
+        return cached.accessToken;
       }
     }
 
-    // Also check database for cached token
+    // Check database for cached token
     if (credentials.access_token && credentials.token_expires_at) {
       const now = new Date();
       const expiresAt = new Date(credentials.token_expires_at);
       if (now < expiresAt) {
-        this.accessToken = credentials.access_token;
-        this.tokenExpiresAt = credentials.token_expires_at;
-        return this.accessToken;
+        this.tokenCache[orgId] = {
+          accessToken: credentials.access_token,
+          tokenExpiresAt: credentials.token_expires_at
+        };
+        return credentials.access_token;
       }
     }
 
@@ -69,20 +74,23 @@ class SiigoService {
         headers: { 'Content-Type': 'application/json' }
       });
 
-      this.accessToken = response.data.access_token;
+      const accessToken = response.data.access_token;
       // Token is valid for 24 hours, set expiry to 23 hours to be safe
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 23);
-      this.tokenExpiresAt = expiresAt.toISOString();
+      const tokenExpiresAt = expiresAt.toISOString();
+
+      // Cache in memory
+      this.tokenCache[orgId] = { accessToken, tokenExpiresAt };
 
       // Save token to database
       await db.prepare(`
         UPDATE siigo_settings
         SET access_token = ?, token_expires_at = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(this.accessToken, this.tokenExpiresAt, credentials.id);
+      `).run(accessToken, tokenExpiresAt, credentials.id);
 
-      return this.accessToken;
+      return accessToken;
     } catch (error) {
       console.error('Siigo authentication error:', error.response?.data || error.message);
       throw new Error(`Siigo authentication failed: ${error.response?.data?.message || error.message}`);
@@ -90,9 +98,9 @@ class SiigoService {
   }
 
   // Make authenticated API request
-  async apiRequest(method, endpoint, data = null) {
-    const token = await this.authenticate();
-    const credentials = await this.getCredentials();
+  async apiRequest(orgId, method, endpoint, data = null) {
+    const token = await this.authenticate(orgId);
+    const credentials = await this.getCredentials(orgId);
 
     try {
       const headers = {
@@ -124,86 +132,72 @@ class SiigoService {
   }
 
   // ========== DOCUMENT TYPES ==========
-  async getDocumentTypes() {
-    const data = await this.apiRequest('GET', '/document-types?type=FV');
-
-    // Cache in database
-    const stmt = db.prepare(`
-      INSERT INTO siigo_document_types (siigo_id, code, name, type, active)
-      VALUES (?, ?, ?, ?, 1)
-      ON CONFLICT (siigo_id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name, type = EXCLUDED.type, active = 1
-    `);
+  async getDocumentTypes(orgId) {
+    const data = await this.apiRequest(orgId, 'GET', '/document-types?type=FV');
 
     for (const doc of data) {
-      await stmt.run(doc.id, doc.code, doc.name, 'FV');
+      await db.prepare(`
+        INSERT INTO siigo_document_types (siigo_id, code, name, type, active, organization_id)
+        VALUES (?, ?, ?, ?, 1, ?)
+        ON CONFLICT (siigo_id, organization_id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name, type = EXCLUDED.type, active = 1
+      `).run(doc.id, doc.code, doc.name, 'FV', orgId);
     }
 
     return data;
   }
 
   // ========== PAYMENT TYPES ==========
-  async getPaymentTypes() {
-    // Fetch all payment types (Siigo returns paginated results)
-    const data = await this.apiRequest('GET', '/payment-types');
-
-    // Cache in database
-    const stmt = db.prepare(`
-      INSERT INTO siigo_payment_types (siigo_id, name, type, active)
-      VALUES (?, ?, ?, 1)
-      ON CONFLICT (siigo_id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, active = 1
-    `);
+  async getPaymentTypes(orgId) {
+    const data = await this.apiRequest(orgId, 'GET', '/payment-types');
 
     for (const payment of data) {
-      await stmt.run(payment.id, payment.name, payment.type);
+      await db.prepare(`
+        INSERT INTO siigo_payment_types (siigo_id, name, type, active, organization_id)
+        VALUES (?, ?, ?, 1, ?)
+        ON CONFLICT (siigo_id, organization_id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, active = 1
+      `).run(payment.id, payment.name, payment.type, orgId);
     }
 
     return data;
   }
 
   // ========== TAXES ==========
-  async getTaxes() {
-    const data = await this.apiRequest('GET', '/taxes');
-
-    // Cache in database
-    const stmt = db.prepare(`
-      INSERT INTO siigo_taxes (siigo_id, name, percentage, active)
-      VALUES (?, ?, ?, 1)
-      ON CONFLICT (siigo_id) DO UPDATE SET name = EXCLUDED.name, percentage = EXCLUDED.percentage, active = 1
-    `);
+  async getTaxes(orgId) {
+    const data = await this.apiRequest(orgId, 'GET', '/taxes');
 
     for (const tax of data) {
-      await stmt.run(tax.id, tax.name, tax.percentage);
+      await db.prepare(`
+        INSERT INTO siigo_taxes (siigo_id, name, percentage, active, organization_id)
+        VALUES (?, ?, ?, 1, ?)
+        ON CONFLICT (siigo_id, organization_id) DO UPDATE SET name = EXCLUDED.name, percentage = EXCLUDED.percentage, active = 1
+      `).run(tax.id, tax.name, tax.percentage, orgId);
     }
 
     return data;
   }
 
   // ========== SELLERS ==========
-  async getSellers() {
-    return await this.apiRequest('GET', '/users?page_size=100');
+  async getSellers(orgId) {
+    return await this.apiRequest(orgId, 'GET', '/users?page_size=100');
   }
 
-  async getDefaultSeller() {
-    const users = await this.getSellers();
-    // Return the first active user/seller
+  async getDefaultSeller(orgId) {
+    const users = await this.getSellers(orgId);
     return users?.results?.[0] || null;
   }
 
   // ========== PRODUCTS ==========
-  async getProducts(page = 1, pageSize = 25) {
-    return await this.apiRequest('GET', `/products?page=${page}&page_size=${pageSize}`);
+  async getProducts(orgId, page = 1, pageSize = 25) {
+    return await this.apiRequest(orgId, 'GET', `/products?page=${page}&page_size=${pageSize}`);
   }
 
-  async createProduct(productData) {
-    return await this.apiRequest('POST', '/products', productData);
+  async createProduct(orgId, productData) {
+    return await this.apiRequest(orgId, 'POST', '/products', productData);
   }
 
-  // Get or create a default service product for invoices
-  async getOrCreateDefaultProduct() {
-    // Try to find existing product
-    const products = await this.getProducts(1, 100);
+  async getOrCreateDefaultProduct(orgId) {
+    const products = await this.getProducts(orgId, 1, 100);
 
-    // Look for a service product (type = 'Service' or account_group.id for services)
     let serviceProduct = products?.results?.find(p =>
       p.code === 'SERVICIOS' || p.code === 'SRV001' || p.name?.toLowerCase().includes('servicio')
     );
@@ -212,58 +206,54 @@ class SiigoService {
       return serviceProduct;
     }
 
-    // If no products exist, return the first one available
     if (products?.results?.length > 0) {
       return products.results[0];
     }
 
-    // Create default service product
-    const newProduct = await this.createProduct({
+    const newProduct = await this.createProduct(orgId, {
       code: 'SERVICIOS',
       name: 'Servicios Profesionales',
-      account_group: 1380, // Default income account group
+      account_group: 1380,
       type: 'Service',
       stock_control: false,
       active: true,
       tax_classification: 'Taxed',
-      taxes: [{ id: 12715 }] // IVA 19%
+      taxes: [{ id: 12715 }]
     });
 
     return newProduct;
   }
 
   // ========== CUSTOMERS ==========
-  async getCustomers(page = 1, pageSize = 25) {
-    return await this.apiRequest('GET', `/customers?page=${page}&page_size=${pageSize}`);
+  async getCustomers(orgId, page = 1, pageSize = 25) {
+    return await this.apiRequest(orgId, 'GET', `/customers?page=${page}&page_size=${pageSize}`);
   }
 
-  async getCustomerByIdentification(identification) {
-    const data = await this.apiRequest('GET', `/customers?identification=${identification}`);
+  async getCustomerByIdentification(orgId, identification) {
+    const data = await this.apiRequest(orgId, 'GET', `/customers?identification=${identification}`);
     return data.results?.[0] || null;
   }
 
-  async createCustomer(customerData) {
-    return await this.apiRequest('POST', '/customers', customerData);
+  async createCustomer(orgId, customerData) {
+    return await this.apiRequest(orgId, 'POST', '/customers', customerData);
   }
 
-  async updateCustomer(customerId, customerData) {
-    return await this.apiRequest('PUT', `/customers/${customerId}`, customerData);
+  async updateCustomer(orgId, customerId, customerData) {
+    return await this.apiRequest(orgId, 'PUT', `/customers/${customerId}`, customerData);
   }
 
-  // Create or update customer from AgencyPRO client
-  async syncCustomer(client) {
+  async syncCustomer(orgId, client) {
     const identification = client.nit || client.company || client.name;
 
-    // Check if customer exists in Siigo
-    const existingCustomer = await this.getCustomerByIdentification(identification);
+    const existingCustomer = await this.getCustomerByIdentification(orgId, identification);
 
     const customerData = {
       type: 'Customer',
       person_type: client.nit ? 'Company' : 'Person',
       id_type: {
-        code: client.nit ? '31' : '13' // 31 = NIT, 13 = Cedula
+        code: client.nit ? '31' : '13'
       },
-      identification: identification.replace(/[^0-9]/g, ''), // Only numbers
+      identification: identification.replace(/[^0-9]/g, ''),
       name: client.nit ? [client.company || client.name] : client.name.split(' '),
       commercial_name: client.company || client.name,
       contacts: {
@@ -277,7 +267,7 @@ class SiigoService {
       address: {
         city: {
           country_code: 'Co',
-          state_code: '11', // Bogota by default
+          state_code: '11',
           city_code: '11001'
         }
       }
@@ -285,79 +275,81 @@ class SiigoService {
 
     let siigoCustomer;
     if (existingCustomer) {
-      siigoCustomer = await this.updateCustomer(existingCustomer.id, customerData);
+      siigoCustomer = await this.updateCustomer(orgId, existingCustomer.id, customerData);
     } else {
-      siigoCustomer = await this.createCustomer(customerData);
+      siigoCustomer = await this.createCustomer(orgId, customerData);
     }
 
-    // Update client with Siigo ID
-    await db.prepare('UPDATE clients SET siigo_id = ? WHERE id = ?').run(siigoCustomer.id, client.id);
+    await db.prepare('UPDATE clients SET siigo_id = ? WHERE id = ? AND organization_id = ?').run(siigoCustomer.id, client.id, orgId);
 
     return siigoCustomer;
   }
 
   // ========== INVOICES ==========
-  async getInvoices(page = 1, pageSize = 25) {
-    return await this.apiRequest('GET', `/invoices?page=${page}&page_size=${pageSize}`);
+  async getInvoices(orgId, page = 1, pageSize = 25) {
+    return await this.apiRequest(orgId, 'GET', `/invoices?page=${page}&page_size=${pageSize}`);
   }
 
-  async getInvoice(invoiceId) {
-    return await this.apiRequest('GET', `/invoices/${invoiceId}`);
+  async getInvoice(orgId, invoiceId) {
+    return await this.apiRequest(orgId, 'GET', `/invoices/${invoiceId}`);
   }
 
-  async getInvoicePdf(invoiceId) {
-    return await this.apiRequest('GET', `/invoices/${invoiceId}/pdf`);
+  async getInvoicePdf(orgId, invoiceId) {
+    return await this.apiRequest(orgId, 'GET', `/invoices/${invoiceId}/pdf`);
   }
 
-  async createInvoice(invoiceData) {
-    return await this.apiRequest('POST', '/invoices', invoiceData);
+  async createInvoice(orgId, invoiceData) {
+    return await this.apiRequest(orgId, 'POST', '/invoices', invoiceData);
   }
 
-  async sendElectronicInvoice(invoiceId) {
-    return await this.apiRequest('POST', `/invoices/${invoiceId}/stamp`);
+  async sendElectronicInvoice(orgId, invoiceId) {
+    return await this.apiRequest(orgId, 'POST', `/invoices/${invoiceId}/stamp`);
   }
 
-  async sendInvoiceByEmail(invoiceId, email) {
-    return await this.apiRequest('POST', `/invoices/${invoiceId}/mail`, {
+  async sendInvoiceByEmail(orgId, invoiceId, email) {
+    return await this.apiRequest(orgId, 'POST', `/invoices/${invoiceId}/mail`, {
       mail_to: email
     });
   }
 
-  // Create invoice from AgencyPRO invoice
-  async syncInvoice(invoice, client, options = {}) {
-    console.log('syncInvoice called with options:', options);
+  async syncInvoice(orgId, invoice, client, options = {}) {
     // Get document type (use cached or fetch)
-    let documentTypes = await db.prepare('SELECT * FROM siigo_document_types WHERE type = ? LIMIT 1').get('FV');
+    let documentTypes = await db.prepare(
+      'SELECT * FROM siigo_document_types WHERE type = ? AND organization_id = ? LIMIT 1'
+    ).get('FV', orgId);
     if (!documentTypes) {
-      await this.getDocumentTypes();
-      documentTypes = await db.prepare('SELECT * FROM siigo_document_types WHERE type = ? LIMIT 1').get('FV');
+      await this.getDocumentTypes(orgId);
+      documentTypes = await db.prepare(
+        'SELECT * FROM siigo_document_types WHERE type = ? AND organization_id = ? LIMIT 1'
+      ).get('FV', orgId);
     }
 
     // Get payment type (use cached or use default)
-    // Note: Siigo API /payment-types requires document_type param which varies
-    // Using default payment type ID 5636 (Contado) if not cached
-    let paymentTypes = await db.prepare('SELECT * FROM siigo_payment_types LIMIT 1').get();
-    // Skip fetching if not cached - use default in invoice creation
+    let paymentTypes = await db.prepare(
+      'SELECT * FROM siigo_payment_types WHERE organization_id = ? LIMIT 1'
+    ).get(orgId);
 
     // Get or create a product to use for the invoice
-    const product = await this.getOrCreateDefaultProduct();
-    console.log('Using product:', product?.code, product?.name);
+    const product = await this.getOrCreateDefaultProduct(orgId);
 
     // Get default seller
-    const seller = await this.getDefaultSeller();
-    console.log('Using seller:', seller?.id, seller?.username);
+    const seller = await this.getDefaultSeller(orgId);
 
     // Get taxes (use cached or fetch)
-    let taxes = await db.prepare('SELECT * FROM siigo_taxes WHERE percentage = 19 LIMIT 1').get();
+    let taxes = await db.prepare(
+      'SELECT * FROM siigo_taxes WHERE percentage = 19 AND organization_id = ? LIMIT 1'
+    ).get(orgId);
     if (!taxes) {
-      await this.getTaxes();
-      taxes = await db.prepare('SELECT * FROM siigo_taxes WHERE percentage = 19 LIMIT 1').get();
+      await this.getTaxes(orgId);
+      taxes = await db.prepare(
+        'SELECT * FROM siigo_taxes WHERE percentage = 19 AND organization_id = ? LIMIT 1'
+      ).get(orgId);
     }
 
     // Ensure customer exists in Siigo
     let siigoCustomerId = client.siigo_id;
     if (!siigoCustomerId) {
-      const siigoCustomer = await this.syncCustomer(client);
+      const siigoCustomer = await this.syncCustomer(orgId, client);
       siigoCustomerId = siigoCustomer.id;
     }
 
@@ -366,11 +358,10 @@ class SiigoService {
     const baseAmount = isWithIva
       ? Math.round((invoice.amount / 1.19) * 100) / 100
       : invoice.amount;
-    const taxAmount = isWithIva ? Math.round((invoice.amount - baseAmount) * 100) / 100 : 0;
 
     const invoiceData = {
       document: {
-        id: documentTypes?.siigo_id || 24315 // Default FV document type
+        id: documentTypes?.siigo_id || 24315
       },
       date: invoice.issue_date,
       customer: {
@@ -386,51 +377,41 @@ class SiigoService {
           quantity: 1,
           price: baseAmount,
           discount: 0,
-          taxes: isWithIva && taxes ? [
-            {
-              id: taxes.siigo_id
-            }
-          ] : []
+          taxes: isWithIva && taxes ? [{ id: taxes.siigo_id }] : []
         }
       ],
       payments: [
         {
-          id: paymentTypes?.siigo_id || 5636, // Default payment type
+          id: paymentTypes?.siigo_id || 5636,
           value: invoice.amount,
           due_date: invoice.due_date || invoice.issue_date
         }
       ],
       stamp: {
-        send: options.sendElectronic !== false // Send to DIAN by default
+        send: options.sendElectronic !== false
       }
     };
 
-    // Log invoice data for debugging
-    console.log('Sending to Siigo:', JSON.stringify(invoiceData, null, 2));
+    const siigoInvoice = await this.createInvoice(orgId, invoiceData);
 
-    // Create invoice in Siigo
-    const siigoInvoice = await this.createInvoice(invoiceData);
-
-    // Update local invoice with Siigo ID
     await db.prepare(`
       UPDATE invoices
       SET siigo_id = ?, siigo_status = 'sent', updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(siigoInvoice.id, invoice.id);
+      WHERE id = ? AND organization_id = ?
+    `).run(siigoInvoice.id, invoice.id, orgId);
 
     return siigoInvoice;
   }
 
   // ========== SYNC ALL REFERENCE DATA ==========
-  async syncReferenceData() {
+  async syncReferenceData(orgId) {
     const results = {
-      documentTypes: await this.getDocumentTypes(),
-      paymentTypes: await this.getPaymentTypes(),
-      taxes: await this.getTaxes()
+      documentTypes: await this.getDocumentTypes(orgId),
+      paymentTypes: await this.getPaymentTypes(orgId),
+      taxes: await this.getTaxes(orgId)
     };
 
-    // Update last sync time
-    const credentials = await this.getCredentials();
+    const credentials = await this.getCredentials(orgId);
     if (credentials) {
       await db.prepare(`
         UPDATE siigo_settings
@@ -443,9 +424,9 @@ class SiigoService {
   }
 
   // Test connection
-  async testConnection() {
+  async testConnection(orgId) {
     try {
-      await this.authenticate();
+      await this.authenticate(orgId);
       return { success: true, message: 'Connection successful' };
     } catch (error) {
       return { success: false, message: error.message };
