@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI } from '../utils/api';
+import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI, noteShareAPI } from '../utils/api';
 import NoteEditor from '../components/NoteEditor';
 import NoteShareModal from '../components/NoteShareModal';
 // import { useCollaboration } from '../hooks/useCollaboration'; // Disabled temporarily
@@ -37,7 +37,12 @@ import {
   Eye,
   EyeOff,
   Share2,
-  MessageSquare
+  MessageSquare,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Clock,
+  UserCheck
 } from 'lucide-react';
 
 const NOTE_COLORS = [
@@ -109,6 +114,12 @@ const Notes = () => {
 
   // Share modal
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // Client edits
+  const [clientEdits, setClientEdits] = useState([]);
+  const [loadingEdits, setLoadingEdits] = useState(false);
+  const [expandedEditId, setExpandedEditId] = useState(null);
+  const [reviewingEditId, setReviewingEditId] = useState(null);
 
   useEffect(() => {
     loadInitialData();
@@ -190,8 +201,55 @@ const Notes = () => {
         links: fullNote.links || []
       });
       setIsEditing(false);
+      setClientEdits([]);
+      setExpandedEditId(null);
+      loadClientEdits(note.id);
     } catch (error) {
       console.error('Error loading note:', error);
+    }
+  };
+
+  // Load client edits for a note
+  const loadClientEdits = async (noteId) => {
+    setLoadingEdits(true);
+    try {
+      const res = await noteShareAPI.getEdits(noteId);
+      setClientEdits(res.data || []);
+    } catch (error) {
+      // Note may not have shares - that's fine
+      setClientEdits([]);
+    } finally {
+      setLoadingEdits(false);
+    }
+  };
+
+  // Accept or reject a client edit
+  const handleReviewEdit = async (editId, action) => {
+    setReviewingEditId(editId);
+    try {
+      await noteShareAPI.reviewEdit(activeNote.id, editId, action);
+
+      if (action === 'accepted') {
+        // Apply the edit content to the note
+        const edit = clientEdits.find(e => e.id === editId);
+        if (edit) {
+          const editContent = typeof edit.content_json === 'string' ? JSON.parse(edit.content_json) : edit.content_json;
+          setFormData(prev => ({ ...prev, content: editContent }));
+          // Save the note with the accepted content
+          await notesAPI.update(activeNote.id, {
+            ...formData,
+            content: JSON.stringify(editContent),
+          });
+        }
+      }
+
+      // Refresh edits list
+      loadClientEdits(activeNote.id);
+    } catch (error) {
+      console.error('Error reviewing edit:', error);
+      alert('Error al procesar la edición');
+    } finally {
+      setReviewingEditId(null);
     }
   };
 
@@ -963,6 +1021,108 @@ const Notes = () => {
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Client edits section */}
+          {!isEditing && activeNote?.id !== 'new' && clientEdits.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-slate-200/50">
+              <div className="flex items-center gap-2 mb-4">
+                <UserCheck size={16} className="text-amber-500" />
+                <span className="text-sm font-medium text-slate-700">
+                  Ediciones de clientes ({clientEdits.filter(e => e.status === 'pending').length} pendientes)
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {clientEdits.map(edit => (
+                  <div key={edit.id} className={`border rounded-xl overflow-hidden ${
+                    edit.status === 'pending' ? 'border-amber-200 bg-amber-50/50' :
+                    edit.status === 'accepted' ? 'border-green-200 bg-green-50/30' :
+                    'border-slate-200 bg-slate-50/50'
+                  }`}>
+                    <div className="px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-medium text-slate-600">
+                          {edit.author_name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">{edit.author_name}</p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(edit.created_at).toLocaleDateString('es-CO', {
+                              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        {edit.status === 'pending' && (
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full flex items-center gap-1">
+                            <Clock size={10} /> Pendiente
+                          </span>
+                        )}
+                        {edit.status === 'accepted' && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
+                            <CheckCircle2 size={10} /> Aceptada
+                          </span>
+                        )}
+                        {edit.status === 'rejected' && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1">
+                            <XCircle size={10} /> Rechazada
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setExpandedEditId(expandedEditId === edit.id ? null : edit.id)}
+                          className="px-3 py-1.5 text-xs text-slate-600 hover:bg-white rounded-lg transition-colors"
+                        >
+                          {expandedEditId === edit.id ? 'Ocultar' : 'Ver contenido'}
+                        </button>
+                        {edit.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleReviewEdit(edit.id, 'accepted')}
+                              disabled={reviewingEditId === edit.id}
+                              className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                            >
+                              {reviewingEditId === edit.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                              Aceptar
+                            </button>
+                            <button
+                              onClick={() => handleReviewEdit(edit.id, 'rejected')}
+                              disabled={reviewingEditId === edit.id}
+                              className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center gap-1"
+                            >
+                              <XCircle size={12} /> Rechazar
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expanded content preview */}
+                    {expandedEditId === edit.id && (
+                      <div className="px-4 pb-4 border-t border-slate-200/50">
+                        <div className="mt-3 prose prose-slate prose-sm max-w-none bg-white rounded-lg p-4 border border-slate-100">
+                          <NoteEditor
+                            content={typeof edit.content_json === 'string' ? JSON.parse(edit.content_json) : edit.content_json}
+                            onChange={() => {}}
+                            placeholder=""
+                            minHeight="100px"
+                            readOnly
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Loading edits indicator */}
+          {!isEditing && activeNote?.id !== 'new' && loadingEdits && (
+            <div className="mt-8 pt-6 border-t border-slate-200/50 flex items-center gap-2 text-sm text-slate-400">
+              <Loader2 size={14} className="animate-spin" /> Cargando ediciones...
             </div>
           )}
         </div>

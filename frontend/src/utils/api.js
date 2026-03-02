@@ -368,6 +368,12 @@ export const portalAdminAPI = {
   },
 };
 
+// Note Share API
+export const noteShareAPI = {
+  getEdits: (noteId) => api.get(`/note-share/${noteId}/edits`),
+  reviewEdit: (noteId, editId, action) => api.put(`/note-share/${noteId}/edits/${editId}`, { action }),
+};
+
 // Dashboard Share API
 export const dashboardShareAPI = {
   createShare: (clientId, data) => api.post(`/dashboard-share/clients/${clientId}/share`, data),
