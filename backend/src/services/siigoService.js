@@ -261,14 +261,14 @@ class SiigoService {
       identification: identification.replace(/[^0-9]/g, ''),
       name: client.nit ? [client.company || client.name] : client.name.split(' '),
       commercial_name: client.company || client.name,
-      contacts: {
+      contacts: [{
         first_name: client.name.split(' ')[0] || client.name,
         last_name: client.name.split(' ').slice(1).join(' ') || '',
         email: client.email || '',
         phone: {
           number: client.phone || ''
         }
-      },
+      }],
       address: {
         city: {
           country_code: 'Co',
