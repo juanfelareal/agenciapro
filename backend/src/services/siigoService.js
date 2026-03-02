@@ -2,7 +2,7 @@ import axios from 'axios';
 import db from '../config/database.js';
 
 const SIIGO_API_URL = 'https://api.siigo.com/v1';
-const SIIGO_AUTH_URL = 'https://api.siigo.com/v1/auth';
+const SIIGO_AUTH_URL = 'https://api.siigo.com/auth';
 
 class SiigoService {
   constructor() {
