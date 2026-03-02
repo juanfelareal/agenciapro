@@ -384,7 +384,9 @@ class SiigoService {
     // Build the same identification used in syncCustomer
     const rawNit = client.nit || '';
     const numericNit = rawNit.replace(/[^0-9]/g, '');
-    const customerIdentification = numericNit.length > 0
+    const hasNit = numericNit.length > 0;
+    const isCompany = hasNit || (client.company && client.company !== client.name);
+    const customerIdentification = hasNit
       ? numericNit
       : (client.company || client.name || '').replace(/[^0-9a-zA-Z]/g, '').substring(0, 20);
 
@@ -400,6 +402,10 @@ class SiigoService {
       },
       date: invoice.issue_date,
       customer: {
+        person_type: isCompany ? 'Company' : 'Person',
+        id_type: {
+          code: isCompany ? '31' : '13'
+        },
         identification: customerIdentification,
         branch_office: 0
       },
