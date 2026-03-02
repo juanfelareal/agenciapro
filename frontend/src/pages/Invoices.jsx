@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 import { invoicesAPI, clientsAPI, projectsAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, Send, Upload, History, Clock, Filter, RotateCcw, Repeat, CheckSquare, Square, MinusSquare, Link2, ExternalLink, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Send, Upload, History, Clock, Filter, RotateCcw, Repeat, CheckSquare, Square, MinusSquare, Link2, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Copy, Mail } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+const authHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -27,6 +35,12 @@ const Invoices = () => {
   const [bulkDateValue, setBulkDateValue] = useState('');
   const [amountEditOpen, setAmountEditOpen] = useState(null);
   const [bulkAmountValue, setBulkAmountValue] = useState('');
+  const [siigoProducts, setSiigoProducts] = useState([]);
+  const [siigoConfirmInvoice, setSiigoConfirmInvoice] = useState(null);
+  const [siigoMessage, setSiigoMessage] = useState(null);
+  const [emailModalInvoice, setEmailModalInvoice] = useState(null);
+  const [emailValue, setEmailValue] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [filters, setFilters] = useState({
     client_id: '',
     status: '',
@@ -43,6 +57,7 @@ const Invoices = () => {
     issue_date: '',
     notes: '',
     payment_proof: '',
+    siigo_product_code: '',
     is_recurring: false,
     recurrence_frequency: 'monthly',
     recurrence_status: 'draft',
@@ -56,12 +71,26 @@ const Invoices = () => {
 
   const checkSiigoConnection = async () => {
     try {
-      const res = await fetch(`${API_URL}/siigo/settings`);
+      const res = await fetch(`${API_URL}/siigo/settings`, { headers: authHeaders() });
       const data = await res.json();
-      setSiigoConnected(data?.has_token === 1);
+      const connected = data?.has_token === 1;
+      setSiigoConnected(connected);
+      if (connected) {
+        loadSiigoProducts();
+      }
     } catch (error) {
       console.error('Error checking Siigo connection:', error);
       setSiigoConnected(false);
+    }
+  };
+
+  const loadSiigoProducts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/siigo/products`, { headers: authHeaders() });
+      const data = await res.json();
+      setSiigoProducts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading Siigo products:', error);
     }
   };
 
@@ -156,6 +185,7 @@ const Invoices = () => {
       issue_date: invoice.issue_date,
       notes: invoice.notes || '',
       payment_proof: invoice.payment_proof || '',
+      siigo_product_code: invoice.siigo_product_code || '',
       is_recurring: invoice.is_recurring === 1,
       recurrence_frequency: invoice.recurrence_frequency || 'monthly',
       recurrence_status: invoice.recurrence_status || 'draft',
@@ -191,6 +221,35 @@ const Invoices = () => {
     } catch (error) {
       console.error('Error sending invoice:', error);
       alert(error.response?.data?.error || 'Error al enviar factura');
+    }
+  };
+
+  const handleDuplicate = async (invoice) => {
+    try {
+      const res = await invoicesAPI.duplicate(invoice.id);
+      const newInvoice = res.data;
+      // Reload data first so the new invoice appears in the list
+      await loadData();
+      // Then open edit modal with the new invoice
+      handleEdit(newInvoice);
+    } catch (error) {
+      console.error('Error duplicating invoice:', error);
+      alert(error.response?.data?.error || 'Error al duplicar factura');
+    }
+  };
+
+  const handleSendSiigoEmail = async () => {
+    if (!emailModalInvoice || !emailValue) return;
+    setSendingEmail(true);
+    try {
+      await invoicesAPI.sendSiigoEmail(emailModalInvoice.id, emailValue);
+      setSiigoMessage({ type: 'success', text: `Factura electrónica enviada a ${emailValue}` });
+      setEmailModalInvoice(null);
+      setEmailValue('');
+    } catch (error) {
+      setSiigoMessage({ type: 'error', text: error.response?.data?.error || 'Error al enviar email' });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -230,6 +289,7 @@ const Invoices = () => {
       issue_date: new Date().toISOString().split('T')[0],
       notes: '',
       payment_proof: '',
+      siigo_product_code: '',
       is_recurring: false,
       recurrence_frequency: 'monthly',
       recurrence_status: 'draft',
@@ -398,18 +458,25 @@ const Invoices = () => {
   };
 
   // Siigo integration handlers
-  const handleSendToSiigo = async (invoice) => {
+  const handleSendToSiigo = (invoice) => {
     if (!siigoConnected) {
-      alert('Siigo no está conectado. Ve a Configuración → Siigo para configurar las credenciales.');
+      setSiigoMessage({ type: 'error', text: 'Siigo no está conectado. Ve a Configuración → Siigo para configurar las credenciales.' });
       return;
     }
+    setSiigoConfirmInvoice(invoice);
+  };
 
-    if (!confirm(`¿Enviar factura de ${invoice.client_name} a Siigo para facturación electrónica?`)) return;
-
+  const confirmSendToSiigo = async () => {
+    if (!siigoConfirmInvoice) return;
+    const invoice = siigoConfirmInvoice;
+    setSiigoConfirmInvoice(null);
     setSendingToSiigo(invoice.id);
+    setSiigoMessage(null);
+
     try {
       const res = await fetch(`${API_URL}/siigo/invoices/sync/${invoice.id}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: authHeaders()
       });
       const data = await res.json();
 
@@ -417,11 +484,16 @@ const Invoices = () => {
         throw new Error(data.error || 'Error al enviar a Siigo');
       }
 
-      alert(`Factura enviada exitosamente a Siigo. ID: ${data.siigo_id}`);
+      setSiigoMessage({
+        type: 'success',
+        text: `Factura ${invoice.invoice_number} enviada a Siigo y DIAN exitosamente`,
+        invoiceId: invoice.id,
+        clientEmail: invoice.client_email
+      });
       loadData();
     } catch (error) {
       console.error('Error sending to Siigo:', error);
-      alert(error.message || 'Error al enviar factura a Siigo');
+      setSiigoMessage({ type: 'error', text: error.message || 'Error al enviar factura a Siigo' });
     } finally {
       setSendingToSiigo(null);
     }
@@ -440,16 +512,14 @@ const Invoices = () => {
     try {
       const res = await fetch(`${API_URL}/siigo/invoices/sync-bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoice_ids: Array.from(selectedIds) })
+        headers: authHeaders(),
+        body: JSON.stringify({ invoiceIds: Array.from(selectedIds) })
       });
       const data = await res.json();
 
-      if (data.results) {
-        const successful = data.results.filter(r => r.success).length;
-        const failed = data.results.filter(r => !r.success).length;
-        alert(`Resultado: ${successful} factura(s) enviada(s) exitosamente, ${failed} error(es)`);
-      }
+      const successful = data.success?.length || 0;
+      const failed = data.errors?.length || 0;
+      alert(`Resultado: ${successful} factura(s) enviada(s) exitosamente${failed > 0 ? `, ${failed} error(es)` : ''}`);
 
       clearSelection();
       loadData();
@@ -1061,15 +1131,39 @@ const Invoices = () => {
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-center">
                   {invoice.siigo_status === 'sent' ? (
-                    <span className="flex items-center justify-center gap-1 text-emerald-600" title={`ID: ${invoice.siigo_id}`}>
-                      <CheckCircle size={16} />
-                      <span className="text-xs">Enviada</span>
-                    </span>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="flex items-center gap-1 text-emerald-600" title={`Siigo ID: ${invoice.siigo_id}`}>
+                        <CheckCircle size={16} />
+                        <span className="text-xs">DIAN</span>
+                      </span>
+                      <button
+                        onClick={() => {
+                          setEmailModalInvoice(invoice);
+                          setEmailValue(invoice.client_email || '');
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg"
+                        title="Enviar factura electrónica por email"
+                      >
+                        <Mail size={14} />
+                      </button>
+                    </div>
                   ) : invoice.siigo_status === 'error' ? (
-                    <span className="flex items-center justify-center gap-1 text-red-600" title="Error al enviar">
-                      <AlertCircle size={16} />
-                      <span className="text-xs">Error</span>
-                    </span>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="flex items-center gap-1 text-red-600" title="Error al enviar">
+                        <AlertCircle size={16} />
+                        <span className="text-xs">Error</span>
+                      </span>
+                      {siigoConnected && (
+                        <button
+                          onClick={() => handleSendToSiigo(invoice)}
+                          disabled={sendingToSiigo === invoice.id}
+                          className="flex items-center gap-1 px-2 py-1 text-xs bg-red-50 text-red-600 hover:bg-red-100 rounded-lg disabled:opacity-50"
+                          title="Reintentar"
+                        >
+                          <RefreshCw size={14} className={sendingToSiigo === invoice.id ? 'animate-spin' : ''} />
+                        </button>
+                      )}
+                    </div>
                   ) : siigoConnected ? (
                     <button
                       onClick={() => handleSendToSiigo(invoice)}
@@ -1089,27 +1183,36 @@ const Invoices = () => {
                   )}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-center">
-                  {invoice.status === 'draft' && (
+                  <div className="flex items-center justify-center gap-1">
                     <button
-                      onClick={() => handleSendEmail(invoice)}
-                      className="text-green-600 hover:text-green-800 mr-3"
-                      title="Enviar por email"
+                      onClick={() => handleDuplicate(invoice)}
+                      className="text-gray-400 hover:text-gray-700 p-1"
+                      title="Duplicar factura"
                     >
-                      <Send size={18} />
+                      <Copy size={16} />
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleEdit(invoice)}
-                    className="text-blue-600 hover:text-blue-800 mr-3"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(invoice.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                    {invoice.status === 'draft' && (
+                      <button
+                        onClick={() => handleSendEmail(invoice)}
+                        className="text-green-600 hover:text-green-800 p-1"
+                        title="Enviar por email"
+                      >
+                        <Send size={16} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEdit(invoice)}
+                      className="text-blue-600 hover:text-blue-800 p-1"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(invoice.id)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
               ))
@@ -1249,6 +1352,23 @@ const Invoices = () => {
                     }
                   />
                 </div>
+                {siigoConnected && siigoProducts.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Producto Siigo</label>
+                    <select
+                      className="w-full border rounded-lg px-3 py-2"
+                      value={formData.siigo_product_code}
+                      onChange={(e) => setFormData({ ...formData, siigo_product_code: e.target.value })}
+                    >
+                      <option value="">Producto por defecto</option>
+                      {siigoProducts.map((product) => (
+                        <option key={product.id} value={product.code}>
+                          {product.code} - {product.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-1">Estado</label>
                   <select
@@ -1454,6 +1574,129 @@ const Invoices = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Siigo Confirmation Modal */}
+      {siigoConfirmInvoice && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-4">Enviar a Siigo</h3>
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Factura</span>
+                <span className="font-medium">{siigoConfirmInvoice.invoice_number}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Cliente</span>
+                <span className="font-medium">{siigoConfirmInvoice.client_name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Monto</span>
+                <span className="font-medium">${siigoConfirmInvoice.amount?.toLocaleString('es-CO')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Tipo</span>
+                <span className="font-medium">{siigoConfirmInvoice.invoice_type === 'con_iva' ? '+IVA' : 'Sin IVA'}</span>
+              </div>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-3 mb-6">
+              <div className="flex items-center gap-2 text-sm text-blue-700">
+                <CheckCircle size={16} />
+                <span>Se enviara como factura electrónica a la DIAN</span>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setSiigoConfirmInvoice(null)}
+                className="px-4 py-2 border rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmSendToSiigo}
+                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+              >
+                Enviar a Siigo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Siigo Toast Message */}
+      {siigoMessage && (
+        <div className={`fixed bottom-6 right-6 z-50 max-w-md rounded-xl shadow-lg p-4 flex items-start gap-3 animate-fadeIn ${
+          siigoMessage.type === 'success' ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'
+        }`}>
+          {siigoMessage.type === 'success' ? (
+            <CheckCircle size={20} className="text-emerald-600 mt-0.5 shrink-0" />
+          ) : (
+            <AlertCircle size={20} className="text-red-600 mt-0.5 shrink-0" />
+          )}
+          <div className="flex-1">
+            <p className={`text-sm font-medium ${siigoMessage.type === 'success' ? 'text-emerald-800' : 'text-red-800'}`}>
+              {siigoMessage.text}
+            </p>
+            {siigoMessage.type === 'success' && siigoMessage.clientEmail && (
+              <button
+                onClick={() => {
+                  setEmailModalInvoice({ id: siigoMessage.invoiceId, client_email: siigoMessage.clientEmail });
+                  setEmailValue(siigoMessage.clientEmail);
+                  setSiigoMessage(null);
+                }}
+                className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1"
+              >
+                <Mail size={12} />
+                Enviar por email al cliente
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setSiigoMessage(null)}
+            className={`shrink-0 ${siigoMessage.type === 'success' ? 'text-emerald-400 hover:text-emerald-600' : 'text-red-400 hover:text-red-600'}`}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Email Modal */}
+      {emailModalInvoice && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
+              <Mail size={20} />
+              Enviar factura electrónica
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Email del destinatario</label>
+              <input
+                type="email"
+                className="w-full border rounded-lg px-3 py-2"
+                value={emailValue}
+                onChange={(e) => setEmailValue(e.target.value)}
+                placeholder="email@ejemplo.com"
+              />
+              <p className="text-xs text-gray-400 mt-1">Se enviara la factura electrónica generada por Siigo</p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setEmailModalInvoice(null); setEmailValue(''); }}
+                className="px-4 py-2 border rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSendSiigoEmail}
+                disabled={sendingEmail || !emailValue}
+                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {sendingEmail ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                {sendingEmail ? 'Enviando...' : 'Enviar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

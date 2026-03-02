@@ -334,8 +334,15 @@ class SiigoService {
       'SELECT * FROM siigo_payment_types WHERE organization_id = ? LIMIT 1'
     ).get(orgId);
 
-    // Get or create a product to use for the invoice
-    const product = await this.getOrCreateDefaultProduct(orgId);
+    // Get product: use specific code if provided, otherwise default
+    let product;
+    if (invoice.siigo_product_code) {
+      const products = await this.getProducts(orgId, 1, 100);
+      product = products?.results?.find(p => p.code === invoice.siigo_product_code);
+    }
+    if (!product) {
+      product = await this.getOrCreateDefaultProduct(orgId);
+    }
 
     // Get default seller
     const seller = await this.getDefaultSeller(orgId);

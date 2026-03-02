@@ -1528,6 +1528,16 @@ export const initializeDatabase = async () => {
       );
     }
 
+    // Add siigo_product_code to invoices
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='siigo_product_code') THEN
+          ALTER TABLE invoices ADD COLUMN siigo_product_code TEXT;
+        END IF;
+      END $$
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

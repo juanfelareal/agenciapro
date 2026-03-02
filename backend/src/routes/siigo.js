@@ -124,6 +124,18 @@ router.get('/taxes', async (req, res) => {
   }
 });
 
+// ========== PRODUCTS ==========
+
+// Get Siigo products
+router.get('/products', async (req, res) => {
+  try {
+    const data = await siigoService.getProducts(req.orgId, 1, 100);
+    res.json(data.results || []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========== CUSTOMERS ==========
 
 // Sync a client to Siigo

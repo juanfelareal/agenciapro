@@ -92,7 +92,7 @@ const calculateNextRecurrenceDate = (fromDate, frequency) => {
 // Create new invoice
 router.post('/', async (req, res) => {
   try {
-    const { client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date: providedNextDate } = req.body;
+    const { client_id, project_id, amount, invoice_type, status, issue_date, notes, siigo_product_code, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date: providedNextDate } = req.body;
 
     if (!client_id || !amount || !issue_date) {
       return res.status(400).json({ error: 'Client, amount, and issue date are required' });
@@ -117,9 +117,9 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date, organization_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(invoice_number, client_id, project_id, amount, invoice_type || 'con_iva', status || 'draft', issue_date, notes, is_recurring ? 1 : 0, recurrence_frequency || null, recurrence_status || 'draft', next_recurrence_date, req.orgId);
+      INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, siigo_product_code, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(invoice_number, client_id, project_id, amount, invoice_type || 'con_iva', status || 'draft', issue_date, notes, siigo_product_code || null, is_recurring ? 1 : 0, recurrence_frequency || null, recurrence_status || 'draft', next_recurrence_date, req.orgId);
 
     const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(invoice);
@@ -131,7 +131,7 @@ router.post('/', async (req, res) => {
 // Update invoice (supports partial updates for bulk operations)
 router.put('/:id', async (req, res) => {
   try {
-    const { client_id, project_id, amount, invoice_type, status, issue_date, paid_date, notes, payment_proof, changed_by, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date: providedNextDate } = req.body;
+    const { client_id, project_id, amount, invoice_type, status, issue_date, paid_date, notes, payment_proof, changed_by, siigo_product_code, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date: providedNextDate } = req.body;
 
     // Get current invoice to check status change and preserve existing values
     const currentInvoice = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
@@ -153,6 +153,7 @@ router.put('/:id', async (req, res) => {
     const updatedIsRecurring = is_recurring !== undefined ? (is_recurring ? 1 : 0) : currentInvoice.is_recurring;
     const updatedRecurrenceFrequency = recurrence_frequency !== undefined ? recurrence_frequency : currentInvoice.recurrence_frequency;
     const updatedRecurrenceStatus = recurrence_status !== undefined ? recurrence_status : currentInvoice.recurrence_status;
+    const updatedSiigoProductCode = siigo_product_code !== undefined ? siigo_product_code : currentInvoice.siigo_product_code;
 
     // Calculate next_recurrence_date if recurring
     let updatedNextRecurrenceDate = currentInvoice.next_recurrence_date;
@@ -166,13 +167,13 @@ router.put('/:id', async (req, res) => {
       UPDATE invoices
       SET client_id = ?, project_id = ?, amount = ?, invoice_type = ?,
           status = ?, issue_date = ?, paid_date = ?, payment_proof = ?,
-          notes = ?, is_recurring = ?, recurrence_frequency = ?, recurrence_status = ?, next_recurrence_date = ?,
+          notes = ?, siigo_product_code = ?, is_recurring = ?, recurrence_frequency = ?, recurrence_status = ?, next_recurrence_date = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `).run(
       updatedClientId, updatedProjectId, updatedAmount, updatedInvoiceType || 'con_iva',
       updatedStatus, updatedIssueDate, updatedPaidDate, updatedPaymentProof,
-      updatedNotes, updatedIsRecurring, updatedRecurrenceFrequency || null,
+      updatedNotes, updatedSiigoProductCode || null, updatedIsRecurring, updatedRecurrenceFrequency || null,
       updatedRecurrenceStatus || 'draft', updatedNextRecurrenceDate, req.params.id, req.orgId
     );
 
@@ -317,6 +318,55 @@ router.post('/:id/send', async (req, res) => {
   } catch (error) {
     console.error('Email error:', error);
     res.status(500).json({ error: 'Failed to send email: ' + error.message });
+  }
+});
+
+// Duplicate invoice
+router.post('/:id/duplicate', async (req, res) => {
+  try {
+    const original = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!original) {
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
+
+    // Auto-generate new invoice number
+    const allInvoices = await db.prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%' AND organization_id = ?").all(req.orgId);
+    let maxNumber = 0;
+    allInvoices.forEach(inv => {
+      const match = inv.invoice_number.match(/FAC-(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNumber) maxNumber = num;
+      }
+    });
+    const invoice_number = `FAC-${String(maxNumber + 1).padStart(4, '0')}`;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const result = await db.prepare(`
+      INSERT INTO invoices (invoice_number, client_id, project_id, amount, invoice_type, status, issue_date, notes, siigo_product_code, is_recurring, recurrence_frequency, recurrence_status, next_recurrence_date, organization_id)
+      VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      invoice_number, original.client_id, original.project_id, original.amount,
+      original.invoice_type || 'con_iva', today, original.notes, original.siigo_product_code,
+      original.is_recurring || 0, original.recurrence_frequency || null,
+      original.recurrence_status || 'draft', null, req.orgId
+    );
+
+    const invoice = await db.prepare(`
+      SELECT i.*,
+        CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name,
+        c.email as client_email,
+        p.name as project_name
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      LEFT JOIN projects p ON i.project_id = p.id
+      WHERE i.id = ? AND i.organization_id = ?
+    `).get(result.lastInsertRowid, req.orgId);
+
+    res.status(201).json(invoice);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
