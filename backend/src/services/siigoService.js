@@ -2,7 +2,7 @@ import axios from 'axios';
 import db from '../config/database.js';
 
 const SIIGO_API_URL = 'https://api.siigo.com/v1';
-const SIIGO_AUTH_URL = 'https://api.siigo.com/auth';
+const SIIGO_AUTH_URL = 'https://api.siigo.com/v1/auth';
 
 class SiigoService {
   constructor() {
@@ -67,11 +67,16 @@ class SiigoService {
     }
 
     try {
+      const authHeaders = { 'Content-Type': 'application/json' };
+      if (credentials.partner_id) {
+        authHeaders['Partner-Id'] = credentials.partner_id;
+      }
+
       const response = await axios.post(SIIGO_AUTH_URL, {
         username: credentials.username,
         access_key: credentials.access_key
       }, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: authHeaders
       });
 
       const accessToken = response.data.access_token;
