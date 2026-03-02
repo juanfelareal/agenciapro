@@ -313,7 +313,7 @@ class SiigoService {
 
   async sendInvoiceByEmail(orgId, invoiceId, email) {
     return await this.apiRequest(orgId, 'POST', `/invoices/${invoiceId}/mail`, {
-      mail_to: email
+      mail_to: Array.isArray(email) ? email : [email]
     });
   }
 
