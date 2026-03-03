@@ -403,9 +403,7 @@ class SiigoService {
       date: invoice.issue_date,
       customer: {
         person_type: isCompany ? 'Company' : 'Person',
-        id_type: {
-          code: isCompany ? '31' : '13'
-        },
+        id_type: isCompany ? '31' : '13',
         identification: customerIdentification,
         branch_office: 0
       },
