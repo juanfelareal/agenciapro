@@ -294,7 +294,8 @@ class SiigoService {
 
     let siigoCustomer;
     if (existingCustomer) {
-      siigoCustomer = await this.updateCustomer(orgId, existingCustomer.id, customerData);
+      // Customer already exists in Siigo — just use it, don't update
+      siigoCustomer = existingCustomer;
     } else {
       siigoCustomer = await this.createCustomer(orgId, customerData);
     }
