@@ -404,6 +404,12 @@ class SiigoService {
         person_type: isCompany ? 'Company' : 'Person',
         id_type: isCompany ? '31' : '13',
         identification: customerIdentification,
+        name: isCompany
+          ? [client.company || client.name || 'Cliente']
+          : [
+              (client.name || 'Cliente').split(' ')[0],
+              (client.name || '').split(' ').slice(1).join(' ') || 'Cliente'
+            ],
         branch_office: 0
       },
       seller: options.sellerId || seller?.id,
