@@ -327,8 +327,10 @@ class SiigoService {
   }
 
   async sendInvoiceByEmail(orgId, invoiceId, email) {
+    const emailStr = Array.isArray(email) ? email[0] : email;
     return await this.apiRequest(orgId, 'POST', `/invoices/${invoiceId}/mail`, {
-      mail_to: Array.isArray(email) ? email : [email]
+      guid: invoiceId,
+      mail_to: emailStr
     });
   }
 
