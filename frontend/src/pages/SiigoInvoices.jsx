@@ -56,13 +56,29 @@ const SiigoInvoices = () => {
   const fetchInvoices = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/siigo/invoices?page=1&page_size=50`, { headers: authHeaders() });
-      const data = await res.json();
+      let allInvoices = [];
+      let page = 1;
+      let hasMore = true;
 
-      if (data.results) {
-        setInvoices(data.results);
-        setPagination({ page: 1, total: data.pagination?.total_results || 0 });
+      while (hasMore) {
+        const res = await fetch(`${API_URL}/siigo/invoices?page=${page}&page_size=100`, { headers: authHeaders() });
+        const data = await res.json();
+
+        if (data.results && data.results.length > 0) {
+          allInvoices = [...allInvoices, ...data.results];
+          const totalResults = data.pagination?.total_results || 0;
+          if (allInvoices.length >= totalResults) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
       }
+
+      setInvoices(allInvoices);
+      setPagination({ page: 1, total: allInvoices.length });
     } catch (error) {
       console.error('Error fetching invoices:', error);
       setMessage({ type: 'error', text: 'Error al cargar facturas de Siigo' });
@@ -325,7 +341,7 @@ const SiigoInvoices = () => {
           <div>
             <h1 className="text-2xl font-semibold text-[#1A1A2E]">Facturas en Siigo</h1>
             <p className="text-gray-500 text-sm mt-1">
-              {pagination.total} facturas encontradas - Mostrando últimas 50
+              {invoices.length} facturas cargadas de Siigo
             </p>
           </div>
         </div>
