@@ -9,13 +9,15 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [showWidgetPicker, setShowWidgetPicker] = useState(false);
 
   const { isEditMode, toggleEditMode, setIsEditMode, resetToDefault, isLoading: widgetsLoading } = useDashboard();
 
   useEffect(() => {
     loadDashboardData();
-  }, [period]);
+  }, [period, customStart, customEnd]);
 
   const getDateRange = () => {
     const now = new Date();
@@ -23,24 +25,48 @@ const Dashboard = () => {
 
     switch (period) {
       case 'today':
-        start = new Date(now.setHours(0, 0, 0, 0));
-        end = new Date(now.setHours(23, 59, 59, 999));
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
-      case 'week':
+      case 'yesterday': {
+        const y = new Date(now);
+        y.setDate(y.getDate() - 1);
+        start = new Date(y.getFullYear(), y.getMonth(), y.getDate());
+        end = new Date(y.getFullYear(), y.getMonth(), y.getDate());
+        break;
+      }
+      case 'week': {
         const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay());
-        weekStart.setHours(0, 0, 0, 0);
-        start = weekStart;
-        end = new Date();
+        weekStart.setDate(now.getDate() - now.getDay() + 1);
+        start = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
+      }
       case 'month':
         start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date();
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'last_month':
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case 'last_3_months':
+        start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
       case 'year':
         start = new Date(now.getFullYear(), 0, 1);
-        end = new Date();
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
+      case 'last_year':
+        start = new Date(now.getFullYear() - 1, 0, 1);
+        end = new Date(now.getFullYear() - 1, 11, 31);
+        break;
+      case 'custom':
+        if (customStart && customEnd) {
+          return { start: customStart, end: customEnd };
+        }
+        return null;
       case 'all':
       default:
         return null;
@@ -97,19 +123,48 @@ const Dashboard = () => {
         <div className="flex items-center gap-3">
           {!isEditMode ? (
             <>
-              <div className="card px-4 py-2.5 flex items-center gap-2">
-                <Calendar className="text-ink-400" size={18} />
-                <select
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  className="bg-transparent text-sm font-medium text-ink-700 focus:outline-none cursor-pointer"
-                >
-                  <option value="today">Hoy</option>
-                  <option value="week">Esta Semana</option>
-                  <option value="month">Este Mes</option>
-                  <option value="year">Este Año</option>
-                  <option value="all">Todo el Tiempo</option>
-                </select>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { key: 'today', label: 'Hoy' },
+                  { key: 'yesterday', label: 'Ayer' },
+                  { key: 'week', label: 'Esta semana' },
+                  { key: 'month', label: 'Este mes' },
+                  { key: 'last_month', label: 'Mes pasado' },
+                  { key: 'last_3_months', label: 'Últimos 3 meses' },
+                  { key: 'year', label: 'Este año' },
+                  { key: 'last_year', label: 'Año pasado' },
+                  { key: 'all', label: 'Todo' },
+                  { key: 'custom', label: 'Personalizado' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setPeriod(key)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                      period === key
+                        ? 'bg-[#1A1A2E] text-white'
+                        : 'bg-white text-ink-600 hover:bg-ink-100 border border-ink-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+                {period === 'custom' && (
+                  <div className="flex items-center gap-2 ml-1">
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      className="px-2 py-1.5 text-xs border border-ink-200 rounded-lg"
+                    />
+                    <span className="text-xs text-ink-400">a</span>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      className="px-2 py-1.5 text-xs border border-ink-200 rounded-lg"
+                    />
+                  </div>
+                )}
               </div>
               <button
                 onClick={toggleEditMode}
