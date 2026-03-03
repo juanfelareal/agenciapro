@@ -271,9 +271,7 @@ class SiigoService {
     const customerData = {
       type: 'Customer',
       person_type: isCompany ? 'Company' : 'Person',
-      id_type: {
-        code: isCompany ? '31' : '13'
-      },
+      id_type: isCompany ? '31' : '13',
       identification,
       name: nameArray,
       commercial_name: client.company || displayName,
