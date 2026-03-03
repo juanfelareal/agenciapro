@@ -328,10 +328,12 @@ class SiigoService {
 
   async sendInvoiceByEmail(orgId, invoiceId, email) {
     const emailStr = Array.isArray(email) ? email[0] : email;
-    return await this.apiRequest(orgId, 'POST', `/invoices/${invoiceId}/mail`, {
-      guid: invoiceId,
+    // Try with mail_to in body; log response for debugging
+    const result = await this.apiRequest(orgId, 'POST', `/invoices/${invoiceId}/mail`, {
       mail_to: emailStr
     });
+    console.log('Siigo mail response:', JSON.stringify(result));
+    return result;
   }
 
   async syncInvoice(orgId, invoice, client, options = {}) {
