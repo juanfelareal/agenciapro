@@ -286,8 +286,8 @@ class SiigoService {
       address: {
         city: {
           country_code: 'Co',
-          state_code: '11',
-          city_code: '11001'
+          state_code: '05',
+          city_code: '05001'
         }
       }
     };
