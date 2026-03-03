@@ -45,15 +45,15 @@ const SiigoInvoices = () => {
   const [pagination, setPagination] = useState({ page: 1, total: 0 });
 
   useEffect(() => {
-    fetchInvoices();
+    fetchInvoices(startDate || null, endDate || null);
     fetchCustomers();
   }, []);
 
   useEffect(() => {
     filterInvoices();
-  }, [invoices, searchTerm, statusFilter, startDate, endDate]);
+  }, [invoices, searchTerm, statusFilter]);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (dateFrom = null, dateTo = null) => {
     setIsLoading(true);
     try {
       let allInvoices = [];
@@ -61,7 +61,11 @@ const SiigoInvoices = () => {
       let hasMore = true;
 
       while (hasMore) {
-        const res = await fetch(`${API_URL}/siigo/invoices?page=${page}&page_size=100`, { headers: authHeaders() });
+        let url = `${API_URL}/siigo/invoices?page=${page}&page_size=100`;
+        if (dateFrom) url += `&date_start=${dateFrom}`;
+        if (dateTo) url += `&date_end=${dateTo}`;
+
+        const res = await fetch(url, { headers: authHeaders() });
         const data = await res.json();
 
         if (data.results && data.results.length > 0) {
@@ -125,35 +129,12 @@ const SiigoInvoices = () => {
   const filterInvoices = () => {
     let filtered = [...invoices];
 
-    // Filter by status (paid vs pending)
     if (statusFilter === 'paid') {
       filtered = filtered.filter(inv => inv.balance === 0);
     } else if (statusFilter === 'pending') {
       filtered = filtered.filter(inv => inv.balance > 0);
     }
 
-    // Filter by date range
-    if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(inv => {
-        if (!inv.date) return false;
-        const invDate = new Date(inv.date);
-        return invDate >= start;
-      });
-    }
-
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(inv => {
-        if (!inv.date) return false;
-        const invDate = new Date(inv.date);
-        return invDate <= end;
-      });
-    }
-
-    // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(inv => {
@@ -168,6 +149,10 @@ const SiigoInvoices = () => {
     }
 
     setFilteredInvoices(filtered);
+  };
+
+  const handleDateSearch = () => {
+    fetchInvoices(startDate || null, endDate || null);
   };
 
   const toggleSelectAll = () => {
@@ -346,7 +331,7 @@ const SiigoInvoices = () => {
           </div>
         </div>
         <button
-          onClick={fetchInvoices}
+          onClick={() => fetchInvoices(startDate || null, endDate || null)}
           className="btn-secondary flex items-center gap-2"
         >
           <RefreshCw size={16} />
@@ -396,9 +381,15 @@ const SiigoInvoices = () => {
               className="input w-40"
               title="Fecha hasta"
             />
+            <button
+              onClick={handleDateSearch}
+              className="px-3 py-2 bg-[#1A1A2E] text-white text-sm rounded-lg hover:bg-[#252542] transition-colors"
+            >
+              Buscar
+            </button>
             {(startDate || endDate) && (
               <button
-                onClick={() => { setStartDate(''); setEndDate(''); }}
+                onClick={() => { setStartDate(''); setEndDate(''); fetchInvoices(); }}
                 className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
                 title="Limpiar fechas"
               >

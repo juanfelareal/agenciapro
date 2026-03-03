@@ -306,8 +306,11 @@ class SiigoService {
   }
 
   // ========== INVOICES ==========
-  async getInvoices(orgId, page = 1, pageSize = 25) {
-    return await this.apiRequest(orgId, 'GET', `/invoices?page=${page}&page_size=${pageSize}`);
+  async getInvoices(orgId, page = 1, pageSize = 25, dateStart = null, dateEnd = null) {
+    let url = `/invoices?page=${page}&page_size=${pageSize}`;
+    if (dateStart) url += `&created_start=${dateStart}`;
+    if (dateEnd) url += `&created_end=${dateEnd}`;
+    return await this.apiRequest(orgId, 'GET', url);
   }
 
   async getInvoice(orgId, invoiceId) {

@@ -175,8 +175,8 @@ router.get('/customers', async (req, res) => {
 // Get Siigo invoices
 router.get('/invoices', async (req, res) => {
   try {
-    const { page = 1, page_size = 25 } = req.query;
-    const invoices = await siigoService.getInvoices(req.orgId, page, page_size);
+    const { page = 1, page_size = 25, date_start, date_end } = req.query;
+    const invoices = await siigoService.getInvoices(req.orgId, page, page_size, date_start, date_end);
     res.json(invoices);
   } catch (error) {
     res.status(500).json({ error: error.message });
