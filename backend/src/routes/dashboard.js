@@ -73,9 +73,9 @@ router.get('/stats', async (req, res) => {
       invoiceQuery = `
         SELECT
           COUNT(*) as total_invoices,
-          SUM(amount) as total_invoiced,
+          SUM(CASE WHEN status IN ('invoiced', 'paid') THEN amount ELSE 0 END) as total_invoiced,
           SUM(CASE WHEN status = 'paid' AND paid_date >= ? AND paid_date <= ? THEN amount ELSE 0 END) as total_paid,
-          SUM(CASE WHEN (status = 'sent' OR status = 'overdue') AND issue_date >= ? AND issue_date <= ? THEN amount ELSE 0 END) as total_pending
+          SUM(CASE WHEN status = 'invoiced' AND issue_date >= ? AND issue_date <= ? THEN amount ELSE 0 END) as total_pending
         FROM invoices
         WHERE organization_id = ? AND issue_date >= ? AND issue_date <= ?
       `;
@@ -93,15 +93,15 @@ router.get('/stats', async (req, res) => {
       stats.finances = {
         ...invoiceStats,
         ...expenseStats,
-        net_income: (invoiceStats.total_paid || 0) - (expenseStats.total_expenses_amount || 0),
+        net_income: (invoiceStats.total_invoiced || 0) - (expenseStats.total_expenses_amount || 0),
       };
     } else {
       invoiceQuery = `
         SELECT
           COUNT(*) as total_invoices,
-          SUM(amount) as total_invoiced,
+          SUM(CASE WHEN status IN ('invoiced', 'paid') THEN amount ELSE 0 END) as total_invoiced,
           SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as total_paid,
-          SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN amount ELSE 0 END) as total_pending
+          SUM(CASE WHEN status = 'invoiced' THEN amount ELSE 0 END) as total_pending
         FROM invoices
         WHERE organization_id = ?
       `;
@@ -119,7 +119,7 @@ router.get('/stats', async (req, res) => {
       stats.finances = {
         ...invoiceStats,
         ...expenseStats,
-        net_income: (invoiceStats.total_paid || 0) - (expenseStats.total_expenses_amount || 0),
+        net_income: (invoiceStats.total_invoiced || 0) - (expenseStats.total_expenses_amount || 0),
       };
     }
 

@@ -310,9 +310,9 @@ router.post('/:id/send', async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    // Update invoice status to 'sent'
+    // Update invoice status to 'invoiced'
     await db.prepare('UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?')
-      .run('sent', req.params.id, req.orgId);
+      .run('invoiced', req.params.id, req.orgId);
 
     res.json({ message: 'Invoice sent successfully' });
   } catch (error) {

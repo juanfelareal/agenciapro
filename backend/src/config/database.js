@@ -1538,6 +1538,11 @@ export const initializeDatabase = async () => {
       END $$
     `);
 
+    // Fix invoices with siigo_id that still have status 'draft' or 'sent' — they should be 'invoiced'
+    await pool.query(`
+      UPDATE invoices SET status = 'invoiced' WHERE siigo_id IS NOT NULL AND status IN ('draft', 'sent', 'approved')
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

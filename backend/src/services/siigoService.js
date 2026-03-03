@@ -444,7 +444,7 @@ class SiigoService {
 
     await db.prepare(`
       UPDATE invoices
-      SET siigo_id = ?, siigo_status = 'sent', updated_at = CURRENT_TIMESTAMP
+      SET siigo_id = ?, siigo_status = 'sent', status = 'invoiced', updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `).run(siigoInvoice.id, invoice.id, orgId);
 
