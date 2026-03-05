@@ -105,6 +105,7 @@ export const collectionsAPI = {
   scheduleReminder: (data) => api.post('/collections/schedule-reminder', data),
   getScheduled: (filters) => api.get('/collections/scheduled', { params: filters }),
   cancelScheduled: (id) => api.delete(`/collections/scheduled/${id}`),
+  processScheduled: () => api.post('/collections/process-scheduled'),
 };
 
 // Expenses API

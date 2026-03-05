@@ -433,8 +433,7 @@ router.post('/mark-paid', async (req, res) => {
 // Retry failed scheduled reminders and process pending ones now
 router.post('/process-scheduled', async (req, res) => {
   try {
-    // Reset failed to pending
-    await db.run(`UPDATE scheduled_reminders SET status = 'pending' WHERE status = 'failed'`);
+    await db.run(`UPDATE scheduled_reminders SET status = 'pending' WHERE status = 'failed' AND organization_id = ?`, [req.orgId]);
 
     const { processScheduledReminders } = await import('../services/scheduledReminders.js');
     await processScheduledReminders();

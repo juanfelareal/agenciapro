@@ -37,6 +37,11 @@ const Collections = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [reminderHistory, setReminderHistory] = useState([]);
 
+  // Scheduled reminders
+  const [showScheduled, setShowScheduled] = useState(false);
+  const [scheduledList, setScheduledList] = useState([]);
+  const [processingScheduled, setProcessingScheduled] = useState(false);
+
   // View mode
   const [view, setView] = useState('overview'); // overview | detail
 
@@ -206,6 +211,37 @@ const Collections = () => {
       setShowHistory(true);
     } catch (error) {
       console.error('Error loading history:', error);
+    }
+  };
+
+  const loadScheduledList = async () => {
+    try {
+      const res = await collectionsAPI.getScheduled();
+      setScheduledList(res.data);
+      setShowScheduled(true);
+    } catch (error) {
+      console.error('Error loading scheduled:', error);
+    }
+  };
+
+  const retryScheduled = async () => {
+    try {
+      setProcessingScheduled(true);
+      const res = await collectionsAPI.processScheduled();
+      setScheduledList(res.data.results || []);
+    } catch (error) {
+      console.error('Error processing scheduled:', error);
+    } finally {
+      setProcessingScheduled(false);
+    }
+  };
+
+  const cancelScheduledReminder = async (id) => {
+    try {
+      await collectionsAPI.cancelScheduled(id);
+      setScheduledList(scheduledList.filter(s => s.id !== id));
+    } catch (error) {
+      console.error('Error canceling:', error);
     }
   };
 
@@ -713,6 +749,13 @@ const Collections = () => {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={loadScheduledList}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Calendar size={16} />
+            Programados
+          </button>
+          <button
             onClick={() => loadReminderHistory()}
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
@@ -907,6 +950,63 @@ const Collections = () => {
                         <div className="text-right">
                           <p className="text-sm font-bold text-[#1A1A2E]">{formatCurrency(r.total_amount)}</p>
                           <p className="text-xs text-gray-400 mt-1">{formatDateTime(r.sent_at)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {showScheduled && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowScheduled(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-[#1A1A2E]">Correos Programados</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={retryScheduled}
+                  disabled={processingScheduled}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1A2E] text-[#BFFF00] text-xs font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+                >
+                  <RefreshCw size={14} className={processingScheduled ? 'animate-spin' : ''} />
+                  {processingScheduled ? 'Procesando...' : 'Reintentar fallidos'}
+                </button>
+                <button onClick={() => setShowScheduled(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {scheduledList.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-8">No hay correos programados</p>
+              ) : (
+                <div className="space-y-3">
+                  {scheduledList.map((s) => (
+                    <div key={s.id} className="bg-gray-50 rounded-xl p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-[#1A1A2E]">{s.client_name}</p>
+                          <p className="text-xs text-gray-500 mt-1">Para: {s.email_to}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">Programado: {formatDateTime(s.scheduled_for)}</p>
+                          {s.error_message && <p className="text-xs text-red-500 mt-1">Error: {s.error_message}</p>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            s.status === 'sent' ? 'bg-green-100 text-green-700' :
+                            s.status === 'failed' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {s.status === 'sent' ? 'Enviado' : s.status === 'failed' ? 'Fallido' : 'Pendiente'}
+                          </span>
+                          {s.status === 'pending' && (
+                            <button
+                              onClick={() => cancelScheduledReminder(s.id)}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Cancelar
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
