@@ -15,7 +15,11 @@ const Collections = () => {
 
   // Send reminder modal
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderStep, setReminderStep] = useState('edit'); // edit | preview
   const [reminderData, setReminderData] = useState({ email_to: '', subject: '', custom_message: '' });
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewSubject, setPreviewSubject] = useState('');
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [reminderResult, setReminderResult] = useState(null);
 
@@ -74,8 +78,27 @@ const Collections = () => {
       subject: '',
       custom_message: '',
     });
+    setReminderStep('edit');
+    setPreviewHtml('');
     setReminderResult(null);
     setShowReminderModal(true);
+  };
+
+  const loadPreview = async () => {
+    try {
+      setLoadingPreview(true);
+      const res = await collectionsAPI.previewReminder({
+        client_id: selectedClient.client_id,
+        custom_message: reminderData.custom_message || undefined,
+      });
+      setPreviewHtml(res.data.html);
+      setPreviewSubject(reminderData.subject || res.data.subject);
+      setReminderStep('preview');
+    } catch (error) {
+      setReminderResult({ success: false, message: error.response?.data?.error || 'Error generando preview' });
+    } finally {
+      setLoadingPreview(false);
+    }
   };
 
   const sendReminder = async () => {
@@ -84,7 +107,7 @@ const Collections = () => {
       const res = await collectionsAPI.sendReminder({
         client_id: selectedClient.client_id,
         email_to: reminderData.email_to,
-        subject: reminderData.subject || undefined,
+        subject: previewSubject || reminderData.subject || undefined,
         custom_message: reminderData.custom_message || undefined,
       });
       setReminderResult({ success: true, message: res.data.message });
@@ -186,79 +209,152 @@ const Collections = () => {
 
   const renderReminderModal = () => (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReminderModal(false)}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#1A1A2E]">Enviar Estado de Cuenta</h3>
+      <div className={`bg-white rounded-2xl w-full flex flex-col ${reminderStep === 'preview' ? 'max-w-3xl max-h-[90vh]' : 'max-w-lg'}`} onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            {reminderStep === 'preview' && !reminderResult && (
+              <button onClick={() => setReminderStep('edit')} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
+                <ChevronLeft size={20} />
+              </button>
+            )}
+            <h3 className="text-lg font-bold text-[#1A1A2E]">
+              {reminderResult ? (reminderResult.success ? 'Enviado' : 'Error') : reminderStep === 'edit' ? 'Enviar Estado de Cuenta' : 'Preview del Correo'}
+            </h3>
+          </div>
           <button onClick={() => setShowReminderModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
-        {reminderResult ? (
-          <div className={`p-4 rounded-xl mb-4 ${reminderResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-            <p className="text-sm font-medium">{reminderResult.message}</p>
+        {/* Result message */}
+        {reminderResult && (
+          <div className="px-6 pt-4">
+            <div className={`p-4 rounded-xl ${reminderResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+              <p className="text-sm font-medium">{reminderResult.message}</p>
+            </div>
+            {reminderResult.success && (
+              <div className="flex justify-end mt-4 pb-4">
+                <button onClick={() => setShowReminderModal(false)} className="px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium">Cerrar</button>
+              </div>
+            )}
           </div>
-        ) : null}
+        )}
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-500 mb-1">Cliente</p>
-            <p className="font-medium text-[#1A1A2E]">{selectedClient?.client_name}</p>
+        {/* STEP 1: Edit */}
+        {reminderStep === 'edit' && !reminderResult && (
+          <div className="p-6">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Cliente</p>
+                <p className="font-medium text-[#1A1A2E]">{selectedClient?.client_name}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email destino *</label>
+                <input
+                  type="email"
+                  value={reminderData.email_to}
+                  onChange={(e) => setReminderData({ ...reminderData, email_to: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
+                  placeholder="email@cliente.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Asunto (opcional)</label>
+                <input
+                  type="text"
+                  value={reminderData.subject}
+                  onChange={(e) => setReminderData({ ...reminderData, subject: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
+                  placeholder="Estado de Cuenta - [Cliente]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje personalizado (opcional)</label>
+                <textarea
+                  value={reminderData.custom_message}
+                  onChange={(e) => setReminderData({ ...reminderData, custom_message: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
+                  rows={3}
+                  placeholder="Se usara un mensaje por defecto si lo dejas vacio..."
+                />
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
+                <p className="text-sm font-medium text-[#1A1A2E] mt-1">Estefania Hernandez - Administracion y Cartera</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end mt-6">
+              <button
+                onClick={() => setShowReminderModal(false)}
+                className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={loadPreview}
+                disabled={loadingPreview || !reminderData.email_to}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+              >
+                <Eye size={16} />
+                {loadingPreview ? 'Cargando...' : 'Ver Preview'}
+              </button>
+            </div>
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email destino *</label>
-            <input
-              type="email"
-              value={reminderData.email_to}
-              onChange={(e) => setReminderData({ ...reminderData, email_to: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
-              placeholder="email@cliente.com"
-            />
-          </div>
+        {/* STEP 2: Preview */}
+        {reminderStep === 'preview' && !reminderResult && (
+          <>
+            {/* Subject bar */}
+            <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Para:</span>
+                <span className="font-medium text-[#1A1A2E]">{reminderData.email_to}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <span className="text-gray-500">Asunto:</span>
+                <span className="font-medium text-[#1A1A2E]">{previewSubject}</span>
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Asunto (opcional)</label>
-            <input
-              type="text"
-              value={reminderData.subject}
-              onChange={(e) => setReminderData({ ...reminderData, subject: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
-              placeholder="Estado de Cuenta - [Cliente]"
-            />
-          </div>
+            {/* Email preview iframe */}
+            <div className="flex-1 overflow-auto px-6 py-4" style={{ minHeight: '400px' }}>
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <iframe
+                  srcDoc={previewHtml}
+                  title="Email Preview"
+                  className="w-full border-0"
+                  style={{ height: '500px' }}
+                  sandbox=""
+                />
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje personalizado (opcional)</label>
-            <textarea
-              value={reminderData.custom_message}
-              onChange={(e) => setReminderData({ ...reminderData, custom_message: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
-              rows={3}
-              placeholder="Se usara un mensaje por defecto si lo dejas vacio..."
-            />
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
-            <p className="text-sm font-medium text-[#1A1A2E] mt-1">Estefania Hernandez - Administracion y Cartera</p>
-          </div>
-        </div>
-
-        <div className="flex gap-2 justify-end mt-6">
-          <button
-            onClick={() => setShowReminderModal(false)}
-            className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={sendReminder}
-            disabled={sendingReminder || !reminderData.email_to}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
-          >
-            <Send size={16} />
-            {sendingReminder ? 'Enviando...' : 'Enviar Recordatorio'}
-          </button>
-        </div>
+            {/* Actions */}
+            <div className="flex gap-2 justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0">
+              <button
+                onClick={() => setReminderStep('edit')}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100"
+              >
+                <ChevronLeft size={16} />
+                Editar
+              </button>
+              <button
+                onClick={sendReminder}
+                disabled={sendingReminder}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+              >
+                <Send size={16} />
+                {sendingReminder ? 'Enviando...' : 'Confirmar y Enviar'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

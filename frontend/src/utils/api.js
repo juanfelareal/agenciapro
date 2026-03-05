@@ -96,6 +96,7 @@ export const invoicesAPI = {
 export const collectionsAPI = {
   getSummary: () => api.get('/collections/summary'),
   getClientDetail: (clientId) => api.get(`/collections/client/${clientId}`),
+  previewReminder: (data) => api.post('/collections/preview-reminder', data),
   sendReminder: (data) => api.post('/collections/send-reminder', data),
   getReminders: (filters) => api.get('/collections/reminders', { params: filters }),
   addNote: (data) => api.post('/collections/notes', data),
