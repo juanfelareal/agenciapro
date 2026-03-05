@@ -22,6 +22,8 @@ const Collections = () => {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [reminderResult, setReminderResult] = useState(null);
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
 
   // Note modal
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -108,6 +110,8 @@ const Collections = () => {
     setReminderStep('edit');
     setPreviewHtml('');
     setReminderResult(null);
+    setScheduleMode(false);
+    setScheduleDate('');
     setShowReminderModal(true);
   };
 
@@ -132,14 +136,27 @@ const Collections = () => {
   const sendReminder = async () => {
     try {
       setSendingReminder(true);
-      const res = await collectionsAPI.sendReminder({
-        client_id: selectedClient.client_id,
-        email_to: reminderData.email_to,
-        subject: previewSubject || reminderData.subject || undefined,
-        custom_message: reminderData.custom_message || undefined,
-        closing_message: reminderData.closing_message || undefined,
-      });
-      setReminderResult({ success: true, message: res.data.message });
+
+      if (scheduleMode && scheduleDate) {
+        const res = await collectionsAPI.scheduleReminder({
+          client_id: selectedClient.client_id,
+          email_to: reminderData.email_to,
+          subject: previewSubject || reminderData.subject || undefined,
+          custom_message: reminderData.custom_message || undefined,
+          closing_message: reminderData.closing_message || undefined,
+          scheduled_for: scheduleDate,
+        });
+        setReminderResult({ success: true, message: `Correo programado para ${new Date(scheduleDate).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}` });
+      } else {
+        const res = await collectionsAPI.sendReminder({
+          client_id: selectedClient.client_id,
+          email_to: reminderData.email_to,
+          subject: previewSubject || reminderData.subject || undefined,
+          custom_message: reminderData.custom_message || undefined,
+          closing_message: reminderData.closing_message || undefined,
+        });
+        setReminderResult({ success: true, message: res.data.message });
+      }
       loadSummary();
     } catch (error) {
       setReminderResult({ success: false, message: error.response?.data?.error || 'Error enviando recordatorio' });
@@ -401,23 +418,49 @@ const Collections = () => {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-2 justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0">
-              <button
-                onClick={() => setReminderStep('edit')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100"
-              >
-                <ChevronLeft size={16} />
-                Editar
-              </button>
-              <button
-                onClick={sendReminder}
-                disabled={sendingReminder}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
-              >
-                <Send size={16} />
-                {sendingReminder ? 'Enviando...' : 'Confirmar y Enviar'}
-              </button>
+            {/* Schedule toggle + Actions */}
+            <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0 space-y-3">
+              {/* Schedule option */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { setScheduleMode(!scheduleMode); if (scheduleMode) setScheduleDate(''); }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                    scheduleMode
+                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Clock size={15} />
+                  Programar envio
+                </button>
+                {scheduleMode && (
+                  <input
+                    type="datetime-local"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                    min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm"
+                  />
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-between">
+                <button
+                  onClick={() => setReminderStep('edit')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100"
+                >
+                  <ChevronLeft size={16} />
+                  Editar
+                </button>
+                <button
+                  onClick={sendReminder}
+                  disabled={sendingReminder || (scheduleMode && !scheduleDate)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+                >
+                  {scheduleMode ? <Clock size={16} /> : <Send size={16} />}
+                  {sendingReminder ? 'Procesando...' : scheduleMode ? 'Programar Envio' : 'Confirmar y Enviar'}
+                </button>
+              </div>
             </div>
           </>
         )}

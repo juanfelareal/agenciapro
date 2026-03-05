@@ -430,4 +430,81 @@ router.post('/mark-paid', async (req, res) => {
   }
 });
 
+// Schedule a reminder for later
+router.post('/schedule-reminder', async (req, res) => {
+  try {
+    const { client_id, email_to, subject, custom_message, closing_message, invoice_ids, scheduled_for } = req.body;
+
+    if (!client_id || !email_to || !scheduled_for) {
+      return res.status(400).json({ error: 'client_id, email_to y scheduled_for son requeridos' });
+    }
+
+    const scheduledDate = new Date(scheduled_for);
+    if (scheduledDate <= new Date()) {
+      return res.status(400).json({ error: 'La fecha programada debe ser en el futuro' });
+    }
+
+    const result = await db.run(`
+      INSERT INTO scheduled_reminders (client_id, email_to, subject, custom_message, closing_message, invoice_ids, scheduled_for, created_by, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      client_id,
+      email_to,
+      subject || null,
+      custom_message || null,
+      closing_message || null,
+      invoice_ids ? JSON.stringify(invoice_ids) : null,
+      scheduled_for,
+      req.teamMember?.id || null,
+      req.orgId,
+    ]);
+
+    res.status(201).json({ message: 'Recordatorio programado exitosamente', id: result.lastInsertRowid, scheduled_for });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List scheduled reminders
+router.get('/scheduled', async (req, res) => {
+  try {
+    const { client_id } = req.query;
+    let query = `
+      SELECT sr.*,
+        CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name
+      FROM scheduled_reminders sr
+      JOIN clients c ON sr.client_id = c.id
+      WHERE sr.organization_id = ?
+    `;
+    const params = [req.orgId];
+
+    if (client_id) {
+      query += ' AND sr.client_id = ?';
+      params.push(client_id);
+    }
+
+    query += ' ORDER BY sr.scheduled_for DESC LIMIT 50';
+    const scheduled = await db.all(query, params);
+    res.json(scheduled);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cancel a scheduled reminder
+router.delete('/scheduled/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reminder = await db.get('SELECT * FROM scheduled_reminders WHERE id = ? AND organization_id = ?', [id, req.orgId]);
+
+    if (!reminder) return res.status(404).json({ error: 'Recordatorio no encontrado' });
+    if (reminder.status !== 'pending') return res.status(400).json({ error: 'Solo se pueden cancelar recordatorios pendientes' });
+
+    await db.run('DELETE FROM scheduled_reminders WHERE id = ?', [id]);
+    res.json({ message: 'Recordatorio cancelado' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

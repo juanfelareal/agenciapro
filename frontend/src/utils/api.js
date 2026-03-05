@@ -102,6 +102,9 @@ export const collectionsAPI = {
   addNote: (data) => api.post('/collections/notes', data),
   getNotes: (clientId) => api.get(`/collections/notes/${clientId}`),
   markPaid: (data) => api.post('/collections/mark-paid', data),
+  scheduleReminder: (data) => api.post('/collections/schedule-reminder', data),
+  getScheduled: (filters) => api.get('/collections/scheduled', { params: filters }),
+  cancelScheduled: (id) => api.delete(`/collections/scheduled/${id}`),
 };
 
 // Expenses API

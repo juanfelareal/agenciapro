@@ -1254,11 +1254,32 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Scheduled reminders
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS scheduled_reminders (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL,
+        email_to TEXT NOT NULL,
+        subject TEXT,
+        custom_message TEXT,
+        closing_message TEXT,
+        invoice_ids TEXT,
+        scheduled_for TIMESTAMPTZ NOT NULL,
+        status TEXT DEFAULT 'pending',
+        sent_at TIMESTAMPTZ,
+        error_message TEXT,
+        created_by INTEGER,
+        organization_id INTEGER NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
     // Indexes for collections
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_reminders_client ON collection_reminders(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_reminders_org ON collection_reminders(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_notes_client ON collection_notes(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_notes_org ON collection_notes(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_reminders_status ON scheduled_reminders(status, scheduled_for)`);
 
     // Add shopify_customers column if not exists
     await pool.query(`

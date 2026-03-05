@@ -64,6 +64,8 @@ import noteShareRoutes from './src/routes/note-share.js';
 import { setupCollaboration } from './src/services/collaborationService.js';
 // AI Insights
 import { generateAllWeeklyInsights } from './src/services/insightService.js';
+// Scheduled collection reminders
+import { processScheduledReminders } from './src/services/scheduledReminders.js';
 // Dashboard Share (public links for dashboards)
 import dashboardShareRoutes from './src/routes/dashboard-share.js';
 // CRM
@@ -268,3 +270,19 @@ cron.schedule('0 7 * * 1', async () => {
 });
 
 console.log('✅ Weekly AI insights cron job scheduled (Monday 7:00 AM Colombia time)');
+
+// Setup cron job for scheduled collection reminders
+// Runs every 2 hours
+cron.schedule('0 */2 * * *', async () => {
+  console.log('⏰ Checking for scheduled collection reminders...');
+  try {
+    await processScheduledReminders();
+  } catch (error) {
+    console.error('❌ Error processing scheduled reminders:', error.message);
+  }
+}, {
+  scheduled: true,
+  timezone: "America/Bogota"
+});
+
+console.log('✅ Scheduled reminders cron job running (every 2 hours Colombia time)');
