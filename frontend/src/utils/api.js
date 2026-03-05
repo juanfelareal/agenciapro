@@ -92,6 +92,17 @@ export const invoicesAPI = {
   sendSiigoEmail: (id, email) => api.post(`/siigo/invoices/${id}/send-email`, { email }),
 };
 
+// Collections / Cartera API
+export const collectionsAPI = {
+  getSummary: () => api.get('/collections/summary'),
+  getClientDetail: (clientId) => api.get(`/collections/client/${clientId}`),
+  sendReminder: (data) => api.post('/collections/send-reminder', data),
+  getReminders: (filters) => api.get('/collections/reminders', { params: filters }),
+  addNote: (data) => api.post('/collections/notes', data),
+  getNotes: (clientId) => api.get(`/collections/notes/${clientId}`),
+  markPaid: (data) => api.post('/collections/mark-paid', data),
+};
+
 // Expenses API
 export const expensesAPI = {
   getAll: (filters) => api.get('/expenses', { params: filters }),

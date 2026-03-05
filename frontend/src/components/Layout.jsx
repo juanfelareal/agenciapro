@@ -23,6 +23,7 @@ import {
   Settings,
   Target,
   ClipboardList,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -58,6 +59,7 @@ const Layout = ({ children }) => {
   // Submenú de Finanzas
   const finanzasSubItems = [
     { name: 'Facturas', path: '/app/invoices', icon: FileText, permission: 'invoices' },
+    { name: 'Cartera', path: '/app/cartera', icon: Receipt, permission: 'invoices' },
     { name: 'Gastos', path: '/app/expenses', icon: CreditCard, permission: 'expenses' },
     { name: 'Comisiones', path: '/app/comisiones', icon: Percent, permission: 'comisiones' },
     { name: 'Siigo', path: '/app/siigo', icon: Link2, permission: 'siigo' },

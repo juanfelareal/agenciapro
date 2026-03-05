@@ -1221,6 +1221,45 @@ export const initializeDatabase = async () => {
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_${table}_org_id ON ${table}(organization_id)`);
     }
 
+    // ========================================
+    // COLLECTIONS / CARTERA TABLES
+    // ========================================
+
+    // Collection reminders (sent emails log)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS collection_reminders (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        sent_to TEXT NOT NULL,
+        subject TEXT,
+        message TEXT,
+        total_amount REAL,
+        invoice_count INTEGER,
+        sent_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Collection notes (manual follow-up notes)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS collection_notes (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        note TEXT NOT NULL,
+        follow_up_date TEXT,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Indexes for collections
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_reminders_client ON collection_reminders(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_reminders_org ON collection_reminders(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_notes_client ON collection_notes(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_notes_org ON collection_notes(organization_id)`);
+
     // Add shopify_customers column if not exists
     await pool.query(`
       DO $$

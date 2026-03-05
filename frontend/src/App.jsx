@@ -34,6 +34,7 @@ import Forms from './pages/Forms';
 import ProjectTemplates from './pages/ProjectTemplates';
 import Timesheet from './pages/Timesheet';
 import TimeReports from './pages/TimeReports';
+import Collections from './pages/Collections';
 import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
@@ -228,6 +229,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="invoices">
                       <InvoiceDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="cartera"
+                  element={
+                    <ProtectedRoute permission="invoices">
+                      <Collections />
                     </ProtectedRoute>
                   }
                 />

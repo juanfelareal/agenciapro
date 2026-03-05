@@ -71,6 +71,8 @@ import crmRoutes from './src/routes/crm.js';
 import screenstudioRoutes from './src/routes/screenstudio.js';
 import formRoutes from './src/routes/forms.js';
 import formShareRoutes from './src/routes/form-share.js';
+// Collections / Cartera
+import collectionsRoutes from './src/routes/collections.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -200,6 +202,8 @@ app.use('/api/screenstudio', screenstudioRoutes);
 app.use('/api/forms', teamAuthMiddleware, formRoutes);
 // Form sharing (public — no auth needed)
 app.use('/api/form-share', formShareRoutes);
+// Collections / Cartera
+app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
