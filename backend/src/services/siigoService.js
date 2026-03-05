@@ -280,7 +280,8 @@ class SiigoService {
         last_name: nameParts.slice(1).join(' ') || '',
         email: client.email || '',
         phone: {
-          number: client.phone || ''
+          indicative: '57',
+          number: (client.phone || '').replace(/[^0-9]/g, '') || '0000000000'
         }
       }],
       address: {
