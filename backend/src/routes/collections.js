@@ -301,7 +301,7 @@ router.post('/send-reminder', async (req, res) => {
     await db.run(`
       INSERT INTO collection_reminders (client_id, sent_to, subject, message, total_amount, invoice_count, sent_by, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [client_id, email_to, emailSubject, messageBody, totalOwed, invoices.length, req.userId || null, req.orgId]);
+    `, [client_id, email_to, emailSubject, messageBody, totalOwed, invoices.length, req.teamMember?.id || null, req.orgId]);
 
     res.json({ message: 'Recordatorio enviado exitosamente', totalOwed, invoiceCount: invoices.length });
   } catch (error) {
@@ -347,7 +347,7 @@ router.post('/notes', async (req, res) => {
     const result = await db.run(`
       INSERT INTO collection_notes (client_id, note, follow_up_date, created_by, organization_id)
       VALUES (?, ?, ?, ?, ?)
-    `, [client_id, note, follow_up_date || null, req.userId || null, req.orgId]);
+    `, [client_id, note, follow_up_date || null, req.teamMember?.id || null, req.orgId]);
 
     const created = await db.get('SELECT * FROM collection_notes WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(created);
@@ -391,7 +391,7 @@ router.post('/mark-paid', async (req, res) => {
     await db.run(`
       INSERT INTO invoice_status_history (invoice_id, from_status, to_status, changed_by)
       VALUES (?, 'invoiced', 'paid', ?)
-    `, [invoice_id, req.userId || null]);
+    `, [invoice_id, req.teamMember?.id || null]);
 
     res.json({ message: 'Factura marcada como pagada' });
   } catch (error) {

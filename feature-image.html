@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>LA REAL REPORTS — Feature Image</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1600px;
+    height: 900px;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0B1120;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scene {
+    width: 1600px;
+    height: 900px;
+    position: relative;
+    background: linear-gradient(135deg, #0B1120 0%, #131C31 40%, #0F1829 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Subtle grid pattern */
+  .scene::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Glow orbs */
+  .glow-1 {
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(74,222,128,0.08) 0%, transparent 70%);
+    top: -100px;
+    right: 100px;
+  }
+  .glow-2 {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+    bottom: -50px;
+    left: 50px;
+  }
+
+  /* Left side — branding */
+  .left-panel {
+    position: absolute;
+    left: 80px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 400px;
+    z-index: 10;
+  }
+
+  .app-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4ADE80;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .app-title {
+    font-size: 48px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    margin-bottom: 16px;
+  }
+  .app-title span {
+    color: #4ADE80;
+  }
+
+  .app-subtitle {
+    font-size: 17px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  .platforms {
+    display: flex;
+    gap: 12px;
+  }
+  .platform-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: rgba(255,255,255,0.8);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .platform-pill svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Right side — dashboard mockup */
+  .dashboard {
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%) perspective(1200px) rotateY(-6deg);
+    width: 980px;
+    background: #FFFFFF;
+    border-radius: 16px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.1),
+      0 30px 80px rgba(0,0,0,0.5),
+      0 0 120px rgba(74,222,128,0.05);
+    overflow: hidden;
+  }
+
+  /* Dashboard top bar */
+  .dash-topbar {
+    background: #FAFBFC;
+    border-bottom: 1px solid #E8ECF0;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dash-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .dash-logo {
+    width: 28px;
+    height: 28px;
+    background: #0B1120;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    color: #4ADE80;
+  }
+  .dash-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1A1F36;
+  }
+  .dash-period {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #F0F2F5;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6B7280;
+  }
+
+  /* Metric cards row */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 16px 20px 12px;
+  }
+
+  .metric-card {
+    background: #FAFBFC;
+    border: 1px solid #EEF0F3;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .metric-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .metric-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1A1F36;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .metric-change {
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .metric-change.up { color: #16A34A; }
+  .metric-change.down { color: #DC2626; }
+
+  /* Chart area */
+  .chart-section {
+    padding: 8px 20px 0;
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 12px;
+  }
+
+  .chart-box {
+    background: #FAFBFC;
+    border: 1px solid #EEF0F3;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .chart-box-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1A1F36;
+    margin-bottom: 12px;
+  }
+
+  /* SVG chart — Revenue vs Spend */
+  .main-chart svg {
+    width: 100%;
+    height: 180px;
+  }
+
+  /* ROAS chart */
+  .roas-chart svg {
+    width: 100%;
+    height: 180px;
+  }
+
+  /* Ad table */
+  .table-section {
+    padding: 8px 20px 16px;
+  }
+  .table-box {
+    background: #FAFBFC;
+    border: 1px solid #EEF0F3;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 8px;
+  }
+  .table-header-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1A1F36;
+  }
+  .table-header-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: #4ADE80;
+    background: rgba(74,222,128,0.1);
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table th {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid #EEF0F3;
+    background: #F5F7F9;
+  }
+  table td {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #374151;
+    padding: 8px 10px;
+    border-bottom: 1px solid #F3F4F6;
+  }
+  table tr:last-child td { border-bottom: none; }
+  .td-name {
+    font-weight: 700;
+    color: #1A1F36;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .td-green { color: #16A34A; font-weight: 700; }
+  .td-muted { color: #9CA3AF; }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="glow-1"></div>
+  <div class="glow-2"></div>
+
+  <!-- Left Panel — Branding -->
+  <div class="left-panel">
+    <div class="app-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      Shopify App
+    </div>
+    <div class="app-title">
+      LA REAL<br><span>REPORTS</span>
+    </div>
+    <div class="app-subtitle">
+      Métricas de ventas y publicidad<br>
+      unificadas con insights de IA
+    </div>
+    <div class="platforms">
+      <div class="platform-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        Shopify
+      </div>
+      <div class="platform-pill">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        Meta Ads
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel — Dashboard Mockup -->
+  <div class="dashboard">
+    <!-- Top bar -->
+    <div class="dash-topbar">
+      <div class="dash-topbar-left">
+        <div class="dash-logo">R</div>
+        <div class="dash-title">Portal de Métricas</div>
+      </div>
+      <div class="dash-period">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Últimos 30 días
+      </div>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">Ingresos</div>
+        <div class="metric-value">$48.2M</div>
+        <div class="metric-change up">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17l5-5 5 5"/></svg>
+          +23.4%
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Pedidos</div>
+        <div class="metric-value">1,284</div>
+        <div class="metric-change up">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17l5-5 5 5"/></svg>
+          +18.1%
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">ROAS</div>
+        <div class="metric-value">4.72x</div>
+        <div class="metric-change up">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 17l5-5 5 5"/></svg>
+          +12.8%
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Inversión</div>
+        <div class="metric-value">$10.2M</div>
+        <div class="metric-change down">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M7 7l5 5 5-5"/></svg>
+          -3.2%
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-section">
+      <!-- Revenue vs Spend chart -->
+      <div class="chart-box main-chart">
+        <div class="chart-box-title">Venta vs Inversión</div>
+        <svg viewBox="0 0 560 180" preserveAspectRatio="none">
+          <!-- Grid lines -->
+          <line x1="0" y1="45" x2="560" y2="45" stroke="#F0F0F0" stroke-width="1"/>
+          <line x1="0" y1="90" x2="560" y2="90" stroke="#F0F0F0" stroke-width="1"/>
+          <line x1="0" y1="135" x2="560" y2="135" stroke="#F0F0F0" stroke-width="1"/>
+
+          <!-- Revenue bars (green) -->
+          <rect x="10" y="60" width="14" height="110" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="30" y="45" width="14" height="125" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="50" y="70" width="14" height="100" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="70" y="35" width="14" height="135" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="90" y="50" width="14" height="120" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="110" y="65" width="14" height="105" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="130" y="40" width="14" height="130" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="150" y="55" width="14" height="115" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="170" y="30" width="14" height="140" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="190" y="45" width="14" height="125" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="210" y="50" width="14" height="120" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="230" y="38" width="14" height="132" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="250" y="55" width="14" height="115" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="270" y="42" width="14" height="128" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="290" y="60" width="14" height="110" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="310" y="35" width="14" height="135" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="330" y="28" width="14" height="142" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="350" y="40" width="14" height="130" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="370" y="48" width="14" height="122" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="390" y="32" width="14" height="138" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="410" y="42" width="14" height="128" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="430" y="25" width="14" height="145" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="450" y="38" width="14" height="132" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="470" y="30" width="14" height="140" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="490" y="22" width="14" height="148" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="510" y="35" width="14" height="135" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="530" y="20" width="14" height="150" rx="3" fill="#4ADE80" opacity="0.8"/>
+          <rect x="540" y="18" width="14" height="152" rx="3" fill="#4ADE80" opacity="0.8"/>
+
+          <!-- Spend line (blue) -->
+          <polyline
+            points="17,130 37,128 57,132 77,125 97,127 117,130 137,124 157,126 177,120 197,122 217,124 237,118 257,122 277,116 297,120 317,114 337,110 357,115 377,118 397,108 417,112 437,105 457,110 477,106 497,100 517,104 537,96 547,92"
+            fill="none"
+            stroke="#3B82F6"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+
+          <!-- Legend -->
+          <rect x="400" y="2" width="10" height="10" rx="2" fill="#4ADE80"/>
+          <text x="414" y="11" font-size="10" fill="#6B7280" font-family="Inter">Venta</text>
+          <rect x="460" y="2" width="10" height="10" rx="2" fill="#3B82F6"/>
+          <text x="474" y="11" font-size="10" fill="#6B7280" font-family="Inter">Inversión</text>
+        </svg>
+      </div>
+
+      <!-- ROAS chart -->
+      <div class="chart-box roas-chart">
+        <div class="chart-box-title">ROAS</div>
+        <svg viewBox="0 0 300 180" preserveAspectRatio="none">
+          <!-- Grid -->
+          <line x1="0" y1="45" x2="300" y2="45" stroke="#F0F0F0" stroke-width="1"/>
+          <line x1="0" y1="90" x2="300" y2="90" stroke="#F0F0F0" stroke-width="1"/>
+          <line x1="0" y1="135" x2="300" y2="135" stroke="#F0F0F0" stroke-width="1"/>
+
+          <!-- Gradient fill -->
+          <defs>
+            <linearGradient id="roasGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#4ADE80" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#4ADE80" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Area -->
+          <path d="M0,100 Q20,95 40,92 T80,85 T120,78 T160,82 T200,70 T240,60 T280,45 L300,40 L300,170 L0,170 Z"
+                fill="url(#roasGrad)"/>
+
+          <!-- Line -->
+          <path d="M0,100 Q20,95 40,92 T80,85 T120,78 T160,82 T200,70 T240,60 T280,45 L300,40"
+                fill="none" stroke="#4ADE80" stroke-width="2.5" stroke-linecap="round"/>
+
+          <!-- Current value dot -->
+          <circle cx="300" cy="40" r="5" fill="#4ADE80"/>
+          <circle cx="300" cy="40" r="8" fill="none" stroke="#4ADE80" stroke-width="1.5" opacity="0.4"/>
+
+          <!-- Value label -->
+          <rect x="248" y="20" width="46" height="20" rx="6" fill="#0B1120"/>
+          <text x="271" y="34" font-size="11" fill="#4ADE80" font-family="Inter" font-weight="700" text-anchor="middle">4.72x</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Ad-level table -->
+    <div class="table-section">
+      <div class="table-box">
+        <div class="table-header">
+          <div class="table-header-title">Rendimiento por Anuncio</div>
+          <div class="table-header-badge">12 anuncios activos</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Anuncio</th>
+              <th>Campaña</th>
+              <th>Inversión</th>
+              <th>ROAS</th>
+              <th>CPM</th>
+              <th>CTR</th>
+              <th>Hook Rate</th>
+              <th>Hold Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-name">Video UGC — Testimonio cliente</td>
+              <td class="td-muted">Conversiones Q1</td>
+              <td>$2,840,000</td>
+              <td class="td-green">6.14x</td>
+              <td>$18,420</td>
+              <td>3.21%</td>
+              <td>38.4%</td>
+              <td>24.1%</td>
+            </tr>
+            <tr>
+              <td class="td-name">Carrusel — Antes y Después</td>
+              <td class="td-muted">Conversiones Q1</td>
+              <td>$1,920,000</td>
+              <td class="td-green">5.28x</td>
+              <td>$22,150</td>
+              <td>2.87%</td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td class="td-name">Video Producto — Unboxing</td>
+              <td class="td-muted">Prospección Feb</td>
+              <td>$1,540,000</td>
+              <td class="td-green">4.91x</td>
+              <td>$15,800</td>
+              <td>2.45%</td>
+              <td>42.7%</td>
+              <td>18.3%</td>
+            </tr>
+            <tr>
+              <td class="td-name">Imagen — Oferta Flash</td>
+              <td class="td-muted">Retargeting</td>
+              <td>$980,000</td>
+              <td class="td-green">3.67x</td>
+              <td>$28,900</td>
+              <td>1.92%</td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
