@@ -71,12 +71,39 @@ const Collections = () => {
     }
   };
 
+  const messageTemplates = [
+    {
+      id: 'cordial',
+      label: 'Cordial',
+      description: 'Tono amable y profesional',
+      message: 'Esperamos que se encuentren bien. Les enviamos el estado de cuenta actualizado. Les agradecemos nos envíen el comprobante de pago de las facturas relacionadas a continuación para poderlo registrar en nuestra contabilidad.',
+      closing: 'Si ya realizaron el pago, por favor envíennos el comprobante para actualizar su estado de cuenta. Quedamos atentos a cualquier inquietud.',
+    },
+    {
+      id: 'firme',
+      label: 'Firme',
+      description: 'Directo y claro sobre el cobro',
+      message: 'Les escribimos para hacer seguimiento al pago de las facturas pendientes que se detallan a continuación. Les pedimos el favor nos envíen el comprobante de pago de cada una de estas facturas a la mayor brevedad posible para poderlo relacionar en nuestra contabilidad y poder seguir prestando un excelente servicio.',
+      closing: 'Agradecemos su pronta gestión con el pago. En caso de tener algún inconveniente, por favor comuníquense con nosotros para buscar una solución.',
+    },
+    {
+      id: 'urgente',
+      label: 'Urgente',
+      description: 'Para facturas muy vencidas',
+      message: 'Nos permitimos informarles que a la fecha registramos facturas pendientes de pago que se encuentran vencidas. Es indispensable que se realice el pago y nos envíen el respectivo comprobante de forma inmediata. El incumplimiento en los tiempos de pago afecta la continuidad de los servicios prestados.',
+      closing: 'Les solicitamos gestionar el pago de manera urgente y enviarnos el comprobante a este mismo correo. De no recibir respuesta, nos veremos en la necesidad de tomar las medidas correspondientes.',
+    },
+  ];
+
   const openReminderModal = (client) => {
     setSelectedClient(client);
+    const defaultTemplate = messageTemplates[0];
     setReminderData({
       email_to: client.client_email || '',
       subject: '',
-      custom_message: '',
+      custom_message: defaultTemplate.message,
+      closing_message: defaultTemplate.closing,
+      selectedTemplate: 'cordial',
     });
     setReminderStep('edit');
     setPreviewHtml('');
@@ -90,6 +117,7 @@ const Collections = () => {
       const res = await collectionsAPI.previewReminder({
         client_id: selectedClient.client_id,
         custom_message: reminderData.custom_message || undefined,
+        closing_message: reminderData.closing_message || undefined,
       });
       setPreviewHtml(res.data.html);
       setPreviewSubject(reminderData.subject || res.data.subject);
@@ -109,6 +137,7 @@ const Collections = () => {
         email_to: reminderData.email_to,
         subject: previewSubject || reminderData.subject || undefined,
         custom_message: reminderData.custom_message || undefined,
+        closing_message: reminderData.closing_message || undefined,
       });
       setReminderResult({ success: true, message: res.data.message });
       loadSummary();
@@ -209,7 +238,7 @@ const Collections = () => {
 
   const renderReminderModal = () => (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReminderModal(false)}>
-      <div className={`bg-white rounded-2xl w-full flex flex-col ${reminderStep === 'preview' ? 'max-w-3xl max-h-[90vh]' : 'max-w-lg'}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`bg-white rounded-2xl w-full flex flex-col ${reminderStep === 'preview' ? 'max-w-3xl max-h-[90vh]' : 'max-w-xl max-h-[90vh]'}`} onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -242,7 +271,7 @@ const Collections = () => {
 
         {/* STEP 1: Edit */}
         {reminderStep === 'edit' && !reminderResult && (
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Cliente</p>
@@ -271,14 +300,51 @@ const Collections = () => {
                 />
               </div>
 
+              {/* Template selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje personalizado (opcional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tono del mensaje</label>
+                <div className="flex gap-2">
+                  {messageTemplates.map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => setReminderData({
+                        ...reminderData,
+                        custom_message: tpl.message,
+                        closing_message: tpl.closing,
+                        selectedTemplate: tpl.id,
+                      })}
+                      className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
+                        reminderData.selectedTemplate === tpl.id
+                          ? 'bg-[#1A1A2E] text-[#BFFF00] border-[#1A1A2E]'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="block">{tpl.label}</span>
+                      <span className={`block text-xs mt-0.5 ${
+                        reminderData.selectedTemplate === tpl.id ? 'text-[#BFFF00]/70' : 'text-gray-400'
+                      }`}>{tpl.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje principal</label>
                 <textarea
                   value={reminderData.custom_message}
                   onChange={(e) => setReminderData({ ...reminderData, custom_message: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
+                  rows={4}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje de cierre</label>
+                <textarea
+                  value={reminderData.closing_message}
+                  onChange={(e) => setReminderData({ ...reminderData, closing_message: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
                   rows={3}
-                  placeholder="Se usara un mensaje por defecto si lo dejas vacio..."
                 />
               </div>
 

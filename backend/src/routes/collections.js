@@ -9,7 +9,7 @@ const router = express.Router();
 // ========================================
 
 // Helper: build email HTML for a collection reminder
-async function buildReminderEmail({ client_id, custom_message, invoice_ids, orgId }) {
+async function buildReminderEmail({ client_id, custom_message, closing_message, invoice_ids, orgId }) {
   const client = await db.get(`
     SELECT id, name, company, email, nit
     FROM clients WHERE id = ? AND organization_id = ?
@@ -65,8 +65,11 @@ async function buildReminderEmail({ client_id, custom_message, invoice_ids, orgI
 
   const today = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  const defaultMessage = `Esperamos que se encuentren bien. Les enviamos el estado de cuenta actualizado de ${clientDisplayName} con ${orgName}.`;
+  const defaultMessage = `Esperamos que se encuentren bien. Les enviamos el estado de cuenta actualizado de ${clientDisplayName} con ${orgName}. Les pedimos el favor nos envíen el comprobante de pago de cada una de estas facturas para poderlo relacionar en nuestra contabilidad.`;
   const messageBody = custom_message || defaultMessage;
+
+  const defaultClosing = `Si ya realizaron el pago, por favor envíennos el comprobante para actualizar su estado de cuenta. Quedamos atentos a cualquier inquietud.`;
+  const closingBody = closing_message || defaultClosing;
 
   const html = `
     <!DOCTYPE html>
@@ -156,7 +159,7 @@ async function buildReminderEmail({ client_id, custom_message, invoice_ids, orgI
               <tr>
                 <td style="padding: 0 40px 32px;">
                   <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0;">
-                    Si ya realizaron el pago, por favor envienos el comprobante para actualizar su estado de cuenta. Si tienen alguna duda, no duden en contactarnos.
+                    ${closingBody}
                   </p>
                 </td>
               </tr>
@@ -270,7 +273,7 @@ router.get('/client/:clientId', async (req, res) => {
 // Preview reminder email (returns HTML without sending)
 router.post('/preview-reminder', async (req, res) => {
   try {
-    const { client_id, custom_message, invoice_ids } = req.body;
+    const { client_id, custom_message, closing_message, invoice_ids } = req.body;
     if (!client_id) {
       return res.status(400).json({ error: 'client_id es requerido' });
     }
@@ -278,6 +281,7 @@ router.post('/preview-reminder', async (req, res) => {
     const result = await buildReminderEmail({
       client_id,
       custom_message,
+      closing_message,
       invoice_ids,
       orgId: req.orgId,
     });
@@ -296,7 +300,7 @@ router.post('/preview-reminder', async (req, res) => {
 // Send collection reminder email (estado de cuenta)
 router.post('/send-reminder', async (req, res) => {
   try {
-    const { client_id, email_to, subject, custom_message, invoice_ids } = req.body;
+    const { client_id, email_to, subject, custom_message, closing_message, invoice_ids } = req.body;
 
     if (!client_id || !email_to) {
       return res.status(400).json({ error: 'client_id y email_to son requeridos' });
@@ -309,6 +313,7 @@ router.post('/send-reminder', async (req, res) => {
     const result = await buildReminderEmail({
       client_id,
       custom_message,
+      closing_message,
       invoice_ids,
       orgId: req.orgId,
     });
