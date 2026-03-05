@@ -297,6 +297,7 @@ class SiigoService {
       // Customer already exists in Siigo — just use it, don't update
       siigoCustomer = existingCustomer;
     } else {
+      console.log('Siigo createCustomer payload:', JSON.stringify(customerData, null, 2));
       siigoCustomer = await this.createCustomer(orgId, customerData);
     }
 
