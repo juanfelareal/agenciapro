@@ -397,14 +397,15 @@ class SiigoService {
       : (client.company || client.name || '').replace(/[^0-9a-zA-Z]/g, '').substring(0, 20);
 
     // Calculate tax (round to 2 decimal places for Siigo)
+    const totalAmount = Number(invoice.amount);
     const isWithIva = invoice.invoice_type !== 'sin_iva';
     const baseAmount = isWithIva
-      ? Math.round((invoice.amount / 1.19) * 100) / 100
-      : invoice.amount;
+      ? Math.round((totalAmount / 1.19) * 100) / 100
+      : totalAmount;
 
     const invoiceData = {
       document: {
-        id: documentTypes?.siigo_id || 24315
+        id: Number(documentTypes?.siigo_id) || 24315
       },
       date: invoice.issue_date,
       customer: {
@@ -419,7 +420,7 @@ class SiigoService {
             ],
         branch_office: 0
       },
-      seller: options.sellerId || seller?.id,
+      seller: Number(options.sellerId || seller?.id),
       observations: invoice.notes || `Factura ${invoice.invoice_number} - ${client.company || client.name}`,
       items: [
         {
@@ -428,13 +429,13 @@ class SiigoService {
           quantity: 1,
           price: baseAmount,
           discount: 0,
-          taxes: isWithIva && taxes ? [{ id: taxes.siigo_id }] : []
+          taxes: isWithIva && taxes ? [{ id: Number(taxes.siigo_id) }] : []
         }
       ],
       payments: [
         {
-          id: paymentTypes?.siigo_id || 5636,
-          value: invoice.amount,
+          id: Number(paymentTypes?.siigo_id) || 5636,
+          value: totalAmount,
           due_date: invoice.due_date || invoice.issue_date
         }
       ],
