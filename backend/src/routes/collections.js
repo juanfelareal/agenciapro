@@ -430,6 +430,22 @@ router.post('/mark-paid', async (req, res) => {
   }
 });
 
+// Retry failed scheduled reminders and process pending ones now
+router.post('/process-scheduled', async (req, res) => {
+  try {
+    // Reset failed to pending
+    await db.run(`UPDATE scheduled_reminders SET status = 'pending' WHERE status = 'failed'`);
+
+    const { processScheduledReminders } = await import('../services/scheduledReminders.js');
+    await processScheduledReminders();
+
+    const results = await db.all(`SELECT id, email_to, status, error_message, sent_at, scheduled_for FROM scheduled_reminders WHERE organization_id = ? ORDER BY scheduled_for DESC`, [req.orgId]);
+    res.json({ message: 'Procesamiento completado', results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Schedule a reminder for later
 router.post('/schedule-reminder', async (req, res) => {
   try {
