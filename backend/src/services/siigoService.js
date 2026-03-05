@@ -398,13 +398,12 @@ class SiigoService {
       ? numericNit
       : (client.company || client.name || '').replace(/[^0-9a-zA-Z]/g, '').substring(0, 20);
 
-    // Calculate tax (round to 2 decimal places for Siigo)
+    // Calculate tax
+    // con_iva (+IVA): amount is the base/subtotal, IVA 19% is added on top
+    // sin_iva: amount is the total, no tax
     const totalAmount = Number(invoice.amount);
     const isWithIva = invoice.invoice_type !== 'sin_iva';
-    const baseAmount = isWithIva
-      ? Math.round((totalAmount / 1.19) * 100) / 100
-      : totalAmount;
-    // Recalculate total from base to match Siigo's internal rounding
+    const baseAmount = totalAmount; // amount is always the base (subtotal)
     const taxAmount = isWithIva ? Math.round(baseAmount * 0.19 * 100) / 100 : 0;
     const siigoTotal = Math.round((baseAmount + taxAmount) * 100) / 100;
 
