@@ -181,6 +181,130 @@ const Collections = () => {
     );
   }
 
+  // ==================== SHARED MODALS ====================
+  const { clients: debtors, stats, recentlyPaid } = summary;
+
+  const renderReminderModal = () => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReminderModal(false)}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[#1A1A2E]">Enviar Estado de Cuenta</h3>
+          <button onClick={() => setShowReminderModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+
+        {reminderResult ? (
+          <div className={`p-4 rounded-xl mb-4 ${reminderResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            <p className="text-sm font-medium">{reminderResult.message}</p>
+          </div>
+        ) : null}
+
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Cliente</p>
+            <p className="font-medium text-[#1A1A2E]">{selectedClient?.client_name}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email destino *</label>
+            <input
+              type="email"
+              value={reminderData.email_to}
+              onChange={(e) => setReminderData({ ...reminderData, email_to: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
+              placeholder="email@cliente.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Asunto (opcional)</label>
+            <input
+              type="text"
+              value={reminderData.subject}
+              onChange={(e) => setReminderData({ ...reminderData, subject: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
+              placeholder="Estado de Cuenta - [Cliente]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje personalizado (opcional)</label>
+            <textarea
+              value={reminderData.custom_message}
+              onChange={(e) => setReminderData({ ...reminderData, custom_message: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
+              rows={3}
+              placeholder="Se usara un mensaje por defecto si lo dejas vacio..."
+            />
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
+            <p className="text-sm font-medium text-[#1A1A2E] mt-1">Estefania Hernandez - Administracion y Cartera</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end mt-6">
+          <button
+            onClick={() => setShowReminderModal(false)}
+            className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={sendReminder}
+            disabled={sendingReminder || !reminderData.email_to}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+          >
+            <Send size={16} />
+            {sendingReminder ? 'Enviando...' : 'Enviar Recordatorio'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderNoteModal = () => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNoteModal(false)}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[#1A1A2E]">Agregar Nota de Seguimiento</h3>
+          <button onClick={() => setShowNoteModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nota *</label>
+            <textarea
+              value={noteData.note}
+              onChange={(e) => setNoteData({ ...noteData, note: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
+              rows={4}
+              placeholder="Ej: Hable con contabilidad, prometen pagar el viernes..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de seguimiento (opcional)</label>
+            <input
+              type="date"
+              value={noteData.follow_up_date}
+              onChange={(e) => setNoteData({ ...noteData, follow_up_date: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end mt-6">
+          <button onClick={() => setShowNoteModal(false)} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100">Cancelar</button>
+          <button
+            onClick={addNote}
+            disabled={!noteData.note.trim()}
+            className="px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50"
+          >
+            Guardar Nota
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ==================== DETAIL VIEW ====================
   if (view === 'detail' && clientDetail) {
     const { client, invoices, reminders } = clientDetail;
@@ -374,129 +498,6 @@ const Collections = () => {
   }
 
   // ==================== OVERVIEW ====================
-  const { clients: debtors, stats, recentlyPaid } = summary;
-
-  const renderReminderModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReminderModal(false)}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#1A1A2E]">Enviar Estado de Cuenta</h3>
-          <button onClick={() => setShowReminderModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-        </div>
-
-        {reminderResult ? (
-          <div className={`p-4 rounded-xl mb-4 ${reminderResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-            <p className="text-sm font-medium">{reminderResult.message}</p>
-          </div>
-        ) : null}
-
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-500 mb-1">Cliente</p>
-            <p className="font-medium text-[#1A1A2E]">{selectedClient?.client_name}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email destino *</label>
-            <input
-              type="email"
-              value={reminderData.email_to}
-              onChange={(e) => setReminderData({ ...reminderData, email_to: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
-              placeholder="email@cliente.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Asunto (opcional)</label>
-            <input
-              type="text"
-              value={reminderData.subject}
-              onChange={(e) => setReminderData({ ...reminderData, subject: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
-              placeholder="Estado de Cuenta - [Cliente]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje personalizado (opcional)</label>
-            <textarea
-              value={reminderData.custom_message}
-              onChange={(e) => setReminderData({ ...reminderData, custom_message: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
-              rows={3}
-              placeholder="Se usara un mensaje por defecto si lo dejas vacio..."
-            />
-          </div>
-
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
-            <p className="text-sm font-medium text-[#1A1A2E] mt-1">Estefania Hernandez - Administracion y Cartera</p>
-          </div>
-        </div>
-
-        <div className="flex gap-2 justify-end mt-6">
-          <button
-            onClick={() => setShowReminderModal(false)}
-            className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={sendReminder}
-            disabled={sendingReminder || !reminderData.email_to}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
-          >
-            <Send size={16} />
-            {sendingReminder ? 'Enviando...' : 'Enviar Recordatorio'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderNoteModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNoteModal(false)}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#1A1A2E]">Agregar Nota de Seguimiento</h3>
-          <button onClick={() => setShowNoteModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nota *</label>
-            <textarea
-              value={noteData.note}
-              onChange={(e) => setNoteData({ ...noteData, note: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none"
-              rows={4}
-              placeholder="Ej: Hable con contabilidad, prometen pagar el viernes..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de seguimiento (opcional)</label>
-            <input
-              type="date"
-              value={noteData.follow_up_date}
-              onChange={(e) => setNoteData({ ...noteData, follow_up_date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
-            />
-          </div>
-        </div>
-        <div className="flex gap-2 justify-end mt-6">
-          <button onClick={() => setShowNoteModal(false)} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100">Cancelar</button>
-          <button
-            onClick={addNote}
-            disabled={!noteData.note.trim()}
-            className="px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50"
-          >
-            Guardar Nota
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
