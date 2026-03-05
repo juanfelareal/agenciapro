@@ -404,6 +404,9 @@ class SiigoService {
     const baseAmount = isWithIva
       ? Math.round((totalAmount / 1.19) * 100) / 100
       : totalAmount;
+    // Recalculate total from base to match Siigo's internal rounding
+    const taxAmount = isWithIva ? Math.round(baseAmount * 0.19 * 100) / 100 : 0;
+    const siigoTotal = Math.round((baseAmount + taxAmount) * 100) / 100;
 
     const invoiceData = {
       document: {
@@ -437,7 +440,7 @@ class SiigoService {
       payments: [
         {
           id: Number(paymentTypes?.siigo_id) || 5636,
-          value: totalAmount,
+          value: siigoTotal,
           due_date: invoice.due_date || invoice.issue_date
         }
       ],
