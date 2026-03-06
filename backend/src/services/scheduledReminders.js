@@ -175,8 +175,8 @@ export async function processScheduledReminders() {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `, [reminder.client_id, reminder.email_to, emailSubject, result.messageBody, result.totalOwed, result.invoiceCount, reminder.created_by, reminder.organization_id]);
 
-        // Mark as sent
-        await db.run(`UPDATE scheduled_reminders SET status = 'sent', sent_at = NOW() WHERE id = ?`, [reminder.id]);
+        // Mark as sent and clear old error
+        await db.run(`UPDATE scheduled_reminders SET status = 'sent', sent_at = NOW(), error_message = NULL WHERE id = ?`, [reminder.id]);
 
         console.log(`  ✅ Sent scheduled reminder #${reminder.id} to ${reminder.email_to}`);
       } catch (err) {
