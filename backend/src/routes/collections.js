@@ -321,7 +321,7 @@ router.post('/send-reminder', async (req, res) => {
     const emailSubject = subject || `Estado de Cuenta - ${result.clientDisplayName} | ${result.orgName}`;
 
     await sendEmail({
-      from: `Estefania Hernandez - ${result.orgName} <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: `Estefania Hernandez <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: email_to,
       subject: emailSubject,
       html: result.html,

@@ -160,11 +160,14 @@ export async function processScheduledReminders() {
         const emailSubject = reminder.subject || `Estado de Cuenta - ${result.clientDisplayName} | ${result.orgName}`;
 
         await sendEmail({
-          from: `Estefania Hernandez - ${result.orgName} <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+          from: `Estefania Hernandez <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
           to: reminder.email_to,
           subject: emailSubject,
           html: result.html,
         });
+
+        // Rate limit: wait 1 second between emails
+        await new Promise(r => setTimeout(r, 1000));
 
         // Record in collection_reminders
         await db.run(`
