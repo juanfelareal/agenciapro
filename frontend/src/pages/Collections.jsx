@@ -403,7 +403,7 @@ const Collections = () => {
 
               <div className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
-                <p className="text-sm font-medium text-[#1A1A2E] mt-1">Estefania Hernandez - Administracion y Cartera</p>
+                <p className="text-sm font-medium text-[#1A1A2E] mt-1">Estefania Hernandez - Administración y Cartera</p>
               </div>
             </div>
 
@@ -610,7 +610,7 @@ const Collections = () => {
               <tr className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
                 <th className="px-6 py-3 text-left">Factura</th>
                 <th className="px-6 py-3 text-left">Proyecto</th>
-                <th className="px-6 py-3 text-left">Emision</th>
+                <th className="px-6 py-3 text-left">Emisión</th>
                 <th className="px-6 py-3 text-left">Vencimiento</th>
                 <th className="px-6 py-3 text-right">Monto</th>
                 <th className="px-6 py-3 text-center">Estado</th>
@@ -745,7 +745,7 @@ const Collections = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[#1A1A2E]">Cartera</h1>
-          <p className="text-sm text-gray-500 mt-1">Gestion de cobros y estados de cuenta</p>
+          <p className="text-sm text-gray-500 mt-1">Gestión de cobros y estados de cuenta</p>
         </div>
         <div className="flex gap-2">
           <button

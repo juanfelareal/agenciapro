@@ -39,9 +39,9 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
   const orgName = org?.name || 'La Agencia';
   const backendUrl = process.env.BACKEND_URL || 'https://agenciapro-production.up.railway.app';
 
-  const defaultMessage = `Esperamos que se encuentren bien. Les enviamos el estado de cuenta actualizado de ${clientDisplayName} con ${orgName}. Les pedimos el favor nos envien el comprobante de pago de cada una de estas facturas para poderlo relacionar en nuestra contabilidad.`;
+  const defaultMessage = `Esperamos que se encuentren bien. Les enviamos el estado de cuenta actualizado de ${clientDisplayName} con ${orgName}. Les pedimos el favor nos envíen el comprobante de pago de cada una de estas facturas para poderlo relacionar en nuestra contabilidad.`;
   const messageBody = custom_message || defaultMessage;
-  const defaultClosing = `Si ya realizaron el pago, por favor enviennos el comprobante para actualizar su estado de cuenta. Quedamos atentos a cualquier inquietud.`;
+  const defaultClosing = `Si ya realizaron el pago, por favor envíennos el comprobante para actualizar su estado de cuenta. Quedamos atentos a cualquier inquietud.`;
   const closingBody = closing_message || defaultClosing;
 
   const today = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -103,7 +103,7 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
                 <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden;">
                   <tr style="background-color: #F9FAFB;">
                     <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase;">Factura</th>
-                    <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase;">Emision</th>
+                    <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase;">Emisión</th>
                     <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase;">Emitida hace</th>
                     <th style="padding: 12px 16px; text-align: right; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase;">Monto</th>
                     <th style="padding: 12px 16px; text-align: center; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase;">Estado</th>
@@ -128,13 +128,13 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
                       <tr><td style="padding: 3px 0; color: #6B7280; font-size: 13px;">Titular:</td><td style="padding: 3px 0; color: #111827; font-size: 13px; font-weight: 600;">LA REAL MARKETING SAS</td></tr>
                       <tr><td style="padding: 3px 0; color: #6B7280; font-size: 13px;">NIT:</td><td style="padding: 3px 0; color: #111827; font-size: 13px; font-weight: 600;">901.846.009</td></tr>
                     </table>
-                    <p style="color: #DC2626; font-size: 12px; margin: 14px 0 0; line-height: 1.5;"><strong>Importante:</strong> Los pagos se reciben unicamente en las cuentas oficiales de la empresa. No realice transferencias a cuentas diferentes a la indicada.</p>
+                    <p style="color: #DC2626; font-size: 12px; margin: 14px 0 0; line-height: 1.5;"><strong>Importante:</strong> Los pagos se reciben únicamente en las cuentas oficiales de la empresa. No realice transferencias a cuentas diferentes a la indicada.</p>
                   </td></tr>
                 </table>
               </td></tr>
               <tr><td style="padding: 24px 40px; border-top: 1px solid #E5E7EB; background-color: #F9FAFB;">
                 <p style="color: #374151; font-size: 14px; font-weight: 600; margin: 0;">Estefania Hernandez</p>
-                <p style="color: #6B7280; font-size: 13px; margin: 4px 0 0;">Administracion y Cartera</p>
+                <p style="color: #6B7280; font-size: 13px; margin: 4px 0 0;">Administración y Cartera</p>
                 <p style="color: #6B7280; font-size: 13px; margin: 2px 0 0;">${orgName}</p>
               </td></tr>
             </table>

@@ -145,7 +145,7 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
                   <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden;">
                     <tr style="background-color: #F9FAFB;">
                       <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Factura</th>
-                      <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Emision</th>
+                      <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Emisión</th>
                       <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Emitida hace</th>
                       <th style="padding: 12px 16px; text-align: right; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Monto</th>
                       <th style="padding: 12px 16px; text-align: center; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Estado</th>
@@ -199,7 +199,7 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
                           </tr>
                         </table>
                         <p style="color: #DC2626; font-size: 12px; margin: 14px 0 0; line-height: 1.5;">
-                          <strong>Importante:</strong> Los pagos se reciben unicamente en las cuentas oficiales de la empresa. No realice transferencias a cuentas diferentes a la indicada.
+                          <strong>Importante:</strong> Los pagos se reciben únicamente en las cuentas oficiales de la empresa. No realice transferencias a cuentas diferentes a la indicada.
                         </p>
                       </td>
                     </tr>
@@ -211,7 +211,7 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
               <tr>
                 <td style="padding: 24px 40px; border-top: 1px solid #E5E7EB; background-color: #F9FAFB;">
                   <p style="color: #374151; font-size: 14px; font-weight: 600; margin: 0;">Estefania Hernandez</p>
-                  <p style="color: #6B7280; font-size: 13px; margin: 4px 0 0;">Administracion y Cartera</p>
+                  <p style="color: #6B7280; font-size: 13px; margin: 4px 0 0;">Administración y Cartera</p>
                   <p style="color: #6B7280; font-size: 13px; margin: 2px 0 0;">${orgName}</p>
                 </td>
               </tr>
@@ -350,7 +350,7 @@ router.post('/send-reminder', async (req, res) => {
     }
 
     if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
-      return res.status(500).json({ error: 'Configuracion de email no encontrada. Configura RESEND_API_KEY o EMAIL_USER/EMAIL_PASS.' });
+      return res.status(500).json({ error: 'Configuración de email no encontrada. Configura RESEND_API_KEY o EMAIL_USER/EMAIL_PASS.' });
     }
 
     const result = await buildReminderEmail({
