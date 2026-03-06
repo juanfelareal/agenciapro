@@ -355,10 +355,15 @@ class SiigoService {
       ).get('FV', orgId);
     }
 
-    // Get payment type (use cached or use default)
-    let paymentTypes = await db.prepare(
-      'SELECT * FROM siigo_payment_types WHERE organization_id = ? LIMIT 1'
+    // Get payment type: prefer "Crédito" / credit type, fallback to first available
+    let paymentType = await db.prepare(
+      "SELECT * FROM siigo_payment_types WHERE organization_id = ? AND (LOWER(name) LIKE '%cr_dito%' OR LOWER(name) LIKE '%credito%' OR LOWER(name) LIKE '%credit%' OR LOWER(type) = 'credit') LIMIT 1"
     ).get(orgId);
+    if (!paymentType) {
+      paymentType = await db.prepare(
+        'SELECT * FROM siigo_payment_types WHERE organization_id = ? LIMIT 1'
+      ).get(orgId);
+    }
 
     // Get product: use specific code if provided, otherwise default
     let product;
@@ -442,9 +447,9 @@ class SiigoService {
       ],
       payments: [
         {
-          id: Number(paymentTypes?.siigo_id) || 5636,
+          id: Number(paymentType?.siigo_id) || 5636,
           value: siigoTotal,
-          due_date: invoice.due_date || invoice.issue_date
+          due_date: invoice.issue_date
         }
       ],
       stamp: {
