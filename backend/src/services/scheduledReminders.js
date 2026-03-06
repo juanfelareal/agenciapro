@@ -38,6 +38,7 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
   const org = await db.get(`SELECT name, logo_url FROM organizations WHERE id = ?`, [orgId]);
   const orgName = org?.name || 'La Agencia';
   const backendUrl = process.env.BACKEND_URL || 'https://agenciapro-production.up.railway.app';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://orbit.larealmarketing.com';
 
   const defaultMessage = `Esperamos que se encuentren bien. Les enviamos el estado de cuenta actualizado de ${clientDisplayName} con ${orgName}. Les pedimos el favor nos envíen el comprobante de pago de cada una de estas facturas para poderlo relacionar en nuestra contabilidad.`;
   const messageBody = custom_message || defaultMessage;
@@ -54,10 +55,12 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
       ? Math.floor((new Date() - new Date(inv.issue_date + 'T00:00:00')) / (1000 * 60 * 60 * 24))
       : 0;
     const daysText = daysAgo === 0 ? 'Hoy' : daysAgo === 1 ? '1 día' : `${daysAgo} días`;
-    const pdfLink = inv.siigo_id ? `${backendUrl}/api/invoice-pdf/${generatePdfToken(inv.id, orgId)}` : null;
+    const invoiceLink = inv.siigo_id
+      ? `${backendUrl}/api/invoice-pdf/${generatePdfToken(inv.id, orgId)}`
+      : `${frontendUrl}/app/invoices`;
     return `
       <tr style="border-bottom: 1px solid #E5E7EB;">
-        <td style="padding: 14px 16px; font-size: 14px; color: #374151;">${pdfLink ? `<a href="${pdfLink}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">${inv.invoice_number}</a>` : inv.invoice_number}</td>
+        <td style="padding: 14px 16px; font-size: 14px;"><a href="${invoiceLink}" style="color: #2563EB; text-decoration: underline; font-weight: 600;">${inv.invoice_number}</a></td>
         <td style="padding: 14px 16px; font-size: 14px; color: #374151;">${inv.issue_date}</td>
         <td style="padding: 14px 16px; font-size: 14px; color: ${daysAgo > 30 ? '#DC2626' : daysAgo > 15 ? '#F59E0B' : '#374151'}; font-weight: ${daysAgo > 15 ? '600' : '400'};">${daysText}</td>
         <td style="padding: 14px 16px; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">$${Number(inv.amount).toLocaleString('es-CO')}</td>
