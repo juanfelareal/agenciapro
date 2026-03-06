@@ -204,6 +204,9 @@ app.use('/api/screenstudio', screenstudioRoutes);
 app.use('/api/forms', teamAuthMiddleware, formRoutes);
 // Form sharing (public — no auth needed)
 app.use('/api/form-share', formShareRoutes);
+// Invoice PDF public viewer (token-verified, no auth needed)
+import invoicePdfRoutes from './src/routes/invoice-pdf.js';
+app.use('/api/invoice-pdf', invoicePdfRoutes);
 // Collections / Cartera
 app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
 
