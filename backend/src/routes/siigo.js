@@ -227,8 +227,8 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
     // Get invoice with client info, verify org ownership
     const invoice = await db.prepare(`
       SELECT i.*, c.id as client_id, c.name as client_name, c.email as client_email,
-             c.company as client_company, c.nit as client_nit, c.phone as client_phone,
-             c.siigo_id as client_siigo_id
+             c.company as client_company, c.nit as client_nit, c.check_digit as client_check_digit,
+             c.phone as client_phone, c.siigo_id as client_siigo_id
       FROM invoices i
       JOIN clients c ON i.client_id = c.id
       WHERE i.id = ? AND i.organization_id = ?
@@ -253,6 +253,7 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
       email: invoice.client_email,
       company: invoice.client_company,
       nit: invoice.client_nit,
+      check_digit: invoice.client_check_digit,
       phone: invoice.client_phone,
       siigo_id: invoice.client_siigo_id
     };
@@ -346,8 +347,8 @@ router.post('/invoices/sync-bulk', async (req, res) => {
       try {
         const invoice = await db.prepare(`
           SELECT i.*, c.id as client_id, c.name as client_name, c.email as client_email,
-                 c.company as client_company, c.nit as client_nit, c.phone as client_phone,
-                 c.siigo_id as client_siigo_id
+                 c.company as client_company, c.nit as client_nit, c.check_digit as client_check_digit,
+                 c.phone as client_phone, c.siigo_id as client_siigo_id
           FROM invoices i
           JOIN clients c ON i.client_id = c.id
           WHERE i.id = ? AND i.organization_id = ?
@@ -369,6 +370,7 @@ router.post('/invoices/sync-bulk', async (req, res) => {
           email: invoice.client_email,
           company: invoice.client_company,
           nit: invoice.client_nit,
+          check_digit: invoice.client_check_digit,
           phone: invoice.client_phone,
           siigo_id: invoice.client_siigo_id
         };

@@ -468,7 +468,7 @@ const Invoices = () => {
     setSiigoConfirmInvoice(invoice);
   };
 
-  const confirmSendToSiigo = async () => {
+  const confirmSendToSiigo = async (sendElectronic = true) => {
     if (!siigoConfirmInvoice) return;
     const invoice = siigoConfirmInvoice;
     setSiigoConfirmInvoice(null);
@@ -478,7 +478,8 @@ const Invoices = () => {
     try {
       const res = await fetch(`${API_URL}/siigo/invoices/sync/${invoice.id}`, {
         method: 'POST',
-        headers: authHeaders()
+        headers: authHeaders(),
+        body: JSON.stringify({ sendElectronic }),
       });
       const data = await res.json();
 
@@ -486,11 +487,14 @@ const Invoices = () => {
         throw new Error(data.error || 'Error al enviar a Siigo');
       }
 
+      const modeText = sendElectronic
+        ? 'enviada a Siigo y DIAN exitosamente'
+        : 'creada como borrador en Siigo (pendiente de envío a DIAN)';
       setSiigoMessage({
         type: 'success',
-        text: `Factura ${invoice.invoice_number} enviada a Siigo y DIAN exitosamente`,
+        text: `Factura ${invoice.invoice_number} ${modeText}`,
         invoiceId: invoice.id,
-        clientEmail: invoice.client_email
+        clientEmail: sendElectronic ? invoice.client_email : null
       });
       loadData();
     } catch (error) {
@@ -1450,6 +1454,72 @@ const Invoices = () => {
                   />
                 </div>
 
+                {/* Siigo Preview */}
+                {siigoConnected && formData.client_id && (
+                  (() => {
+                    const selectedClient = clients.find(c => String(c.id) === String(formData.client_id));
+                    const selectedProject = projects.find(p => String(p.id) === String(formData.project_id));
+                    const selectedProduct = siigoProducts.find(p => p.code === formData.siigo_product_code);
+                    const isWithIva = formData.invoice_type !== 'sin_iva';
+                    const baseAmount = Number(formData.amount) || 0;
+                    const taxAmount = isWithIva ? Math.round(baseAmount * 0.19 * 100) / 100 : 0;
+                    const total = baseAmount + taxAmount;
+                    const nitDisplay = selectedClient?.nit
+                      ? `${selectedClient.nit}${selectedClient.check_digit ? `-${selectedClient.check_digit}` : ''}`
+                      : 'Sin NIT';
+                    return (
+                      <div className="col-span-2 border-t pt-4">
+                        <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                          <ExternalLink size={16} />
+                          Vista previa Siigo
+                        </label>
+                        <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <div>
+                              <span className="text-gray-500">Cliente:</span>
+                              <span className="ml-2 font-medium text-[#1A1A2E]">{selectedClient?.company || selectedClient?.name || '-'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">NIT / Cédula:</span>
+                              <span className="ml-2 font-medium text-[#1A1A2E]">{nitDisplay}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Tipo persona:</span>
+                              <span className="ml-2 font-medium">{selectedClient?.nit ? 'Jurídica (NIT)' : 'Natural (CC)'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Producto:</span>
+                              <span className="ml-2 font-medium">{selectedProduct ? `${selectedProduct.code} - ${selectedProduct.name}` : 'Producto por defecto'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Descripción:</span>
+                              <span className="ml-2 font-medium">{formData.notes || '(sin descripción)'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Fecha emisión:</span>
+                              <span className="ml-2 font-medium">{formData.issue_date || '-'}</span>
+                            </div>
+                          </div>
+                          <div className="border-t border-gray-200 pt-3 grid grid-cols-3 gap-4 text-center">
+                            <div>
+                              <p className="text-gray-500 text-xs uppercase">Subtotal</p>
+                              <p className="font-bold text-[#1A1A2E]">${baseAmount.toLocaleString('es-CO')}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs uppercase">IVA (19%)</p>
+                              <p className="font-bold text-[#1A1A2E]">{isWithIva ? `$${taxAmount.toLocaleString('es-CO')}` : '$0'}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs uppercase">Total</p>
+                              <p className="font-bold text-lg text-[#1A1A2E]">${total.toLocaleString('es-CO')}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+
                 {/* Recurring Invoice Section */}
                 <div className="col-span-2 border-t pt-4">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -1623,7 +1693,7 @@ const Invoices = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
             <h3 className="text-lg font-semibold text-[#1A1A2E] mb-4">Enviar a Siigo</h3>
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Factura</span>
                 <span className="font-medium">{siigoConfirmInvoice.invoice_number}</span>
@@ -1633,6 +1703,15 @@ const Invoices = () => {
                 <span className="font-medium">{siigoConfirmInvoice.client_name}</span>
               </div>
               <div className="flex justify-between text-sm">
+                <span className="text-gray-500">NIT / Cédula</span>
+                <span className="font-medium">
+                  {(() => {
+                    const cl = clients.find(c => String(c.id) === String(siigoConfirmInvoice.client_id));
+                    return cl?.nit ? `${cl.nit}${cl.check_digit ? `-${cl.check_digit}` : ''}` : 'Sin NIT';
+                  })()}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Monto</span>
                 <span className="font-medium">${siigoConfirmInvoice.amount?.toLocaleString('es-CO')}</span>
               </div>
@@ -1640,12 +1719,18 @@ const Invoices = () => {
                 <span className="text-gray-500">Tipo</span>
                 <span className="font-medium">{siigoConfirmInvoice.invoice_type === 'con_iva' ? '+IVA' : 'Sin IVA'}</span>
               </div>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-3 mb-6">
-              <div className="flex items-center gap-2 text-sm text-blue-700">
-                <CheckCircle size={16} />
-                <span>Se enviara como factura electrónica a la DIAN</span>
-              </div>
+              {siigoConfirmInvoice.invoice_type === 'con_iva' && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">IVA (19%)</span>
+                    <span className="font-medium">${Math.round(siigoConfirmInvoice.amount * 0.19).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold border-t pt-2">
+                    <span className="text-gray-700">Total con IVA</span>
+                    <span>${Math.round(siigoConfirmInvoice.amount * 1.19).toLocaleString('es-CO')}</span>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex gap-3 justify-end">
               <button
@@ -1655,10 +1740,17 @@ const Invoices = () => {
                 Cancelar
               </button>
               <button
-                onClick={confirmSendToSiigo}
+                onClick={() => confirmSendToSiigo(false)}
+                className="px-4 py-2 border-2 border-[#1A1A2E] text-[#1A1A2E] rounded-xl hover:bg-gray-50 transition-colors"
+                title="Se crea en Siigo como borrador para revisar antes de enviar a la DIAN"
+              >
+                Borrador
+              </button>
+              <button
+                onClick={() => confirmSendToSiigo(true)}
                 className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
               >
-                Enviar a Siigo
+                Enviar a DIAN
               </button>
             </div>
           </div>
