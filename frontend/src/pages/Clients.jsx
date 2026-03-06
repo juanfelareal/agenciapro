@@ -19,6 +19,7 @@ const Clients = () => {
     phone: '',
     company: '',
     nit: '',
+    check_digit: '',
     status: 'active',
     contract_value: 0,
     contract_start_date: '',
@@ -192,6 +193,7 @@ const Clients = () => {
       phone: '',
       company: '',
       nit: '',
+      check_digit: '',
       status: 'active',
       contract_value: 0,
       contract_start_date: '',
@@ -252,9 +254,18 @@ const Clients = () => {
 
       if (response.data.success) {
         const data = response.data.data;
+        // Split NIT and check digit if format is "123456789-1"
+        let nitValue = data.nit || formData.nit;
+        let checkDigitValue = formData.check_digit;
+        if (nitValue && nitValue.includes('-')) {
+          const parts = nitValue.split('-');
+          nitValue = parts[0].replace(/[^0-9]/g, '');
+          checkDigitValue = parts[1]?.replace(/[^0-9]/g, '').slice(0, 1) || '';
+        }
         setFormData({
           ...formData,
-          nit: data.nit || formData.nit,
+          nit: nitValue,
+          check_digit: checkDigitValue,
           company: data.company || formData.company,
           name: data.name || formData.name,
           email: data.email || formData.email,
@@ -622,7 +633,7 @@ const Clients = () => {
                   </button>
                 </td>
                 <td className="px-4 py-4 font-medium text-[#1A1A2E] truncate" title={client.company || client.name}>{client.company || client.name}</td>
-                <td className="px-4 py-4 text-sm text-gray-500 truncate">{client.nit || '-'}</td>
+                <td className="px-4 py-4 text-sm text-gray-500 truncate">{client.nit ? `${client.nit}${client.check_digit ? `-${client.check_digit}` : ''}` : '-'}</td>
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.email}>{client.email || '-'}</td>
                 <td className="px-4 py-4 whitespace-nowrap">
@@ -755,6 +766,17 @@ const Clients = () => {
                       onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
                       placeholder="Ingrese NIT o Cédula"
                     />
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400 text-lg font-bold">-</span>
+                      <input
+                        type="text"
+                        className="w-14 border border-gray-200 rounded-lg px-2 py-2 text-center"
+                        value={formData.check_digit}
+                        onChange={(e) => setFormData({ ...formData, check_digit: e.target.value.replace(/[^0-9]/g, '').slice(0, 1) })}
+                        placeholder="DV"
+                        maxLength={1}
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={handleSearchNit}
@@ -765,7 +787,7 @@ const Clients = () => {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Ingrese el NIT y presione Buscar para autocompletar los datos
+                    Ingrese el NIT y presione Buscar para autocompletar. DV = dígito de verificación (opcional para cédulas)
                   </p>
                 </div>
                 <div>

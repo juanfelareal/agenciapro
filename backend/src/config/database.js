@@ -163,6 +163,7 @@ export const initializeDatabase = async () => {
         phone TEXT,
         company TEXT,
         nit TEXT,
+        check_digit TEXT,
         status TEXT CHECK(status IN ('active', 'inactive')) DEFAULT 'active',
         contract_value REAL DEFAULT 0,
         contract_start_date TEXT,
@@ -1594,6 +1595,16 @@ export const initializeDatabase = async () => {
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='siigo_product_code') THEN
           ALTER TABLE invoices ADD COLUMN siigo_product_code TEXT;
+        END IF;
+      END $$
+    `);
+
+    // Add check_digit column to clients for Siigo NIT verification digit
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='check_digit') THEN
+          ALTER TABLE clients ADD COLUMN check_digit TEXT;
         END IF;
       END $$
     `);

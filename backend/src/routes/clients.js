@@ -175,7 +175,7 @@ router.get('/search-nit/:nit', async (req, res) => {
 // Create new client
 router.post('/', async (req, res) => {
   try {
-    const { name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id } = req.body;
+    const { name, email, phone, company, nit, check_digit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id } = req.body;
 
     if (!company) {
       return res.status(400).json({ error: 'Company name is required' });
@@ -192,9 +192,9 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO clients (name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id, organization_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, email, phone, company, nit, status || 'active', contract_value || 0, contract_start_date, contract_end_date, notes, is_recurring ? 1 : 0, billing_day, recurring_amount || 0, siigo_id || null, req.orgId);
+      INSERT INTO clients (name, email, phone, company, nit, check_digit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, email, phone, company, nit, check_digit || null, status || 'active', contract_value || 0, contract_start_date, contract_end_date, notes, is_recurring ? 1 : 0, billing_day, recurring_amount || 0, siigo_id || null, req.orgId);
 
     const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(result.lastInsertRowid);
 
@@ -215,7 +215,7 @@ router.post('/', async (req, res) => {
 // Update client (supports partial updates for bulk operations)
 router.put('/:id', async (req, res) => {
   try {
-    const { name, email, phone, company, nit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount } = req.body;
+    const { name, email, phone, company, nit, check_digit, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount } = req.body;
 
     // Get current client to preserve existing values for partial updates (org-scoped)
     const currentClient = await db.prepare('SELECT * FROM clients WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
@@ -229,6 +229,7 @@ router.put('/:id', async (req, res) => {
     const updatedPhone = phone !== undefined ? phone : currentClient.phone;
     const updatedCompany = company !== undefined ? company : currentClient.company;
     const updatedNit = nit !== undefined ? nit : currentClient.nit;
+    const updatedCheckDigit = check_digit !== undefined ? check_digit : currentClient.check_digit;
     const updatedStatus = status !== undefined ? status : currentClient.status;
     const updatedContractValue = contract_value !== undefined ? contract_value : currentClient.contract_value;
     const updatedContractStartDate = contract_start_date !== undefined ? contract_start_date : currentClient.contract_start_date;
@@ -250,11 +251,11 @@ router.put('/:id', async (req, res) => {
 
     await db.prepare(`
       UPDATE clients
-      SET name = ?, email = ?, phone = ?, company = ?, nit = ?, status = ?,
+      SET name = ?, email = ?, phone = ?, company = ?, nit = ?, check_digit = ?, status = ?,
           contract_value = ?, contract_start_date = ?, contract_end_date = ?,
           notes = ?, is_recurring = ?, billing_day = ?, recurring_amount = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `).run(updatedName, updatedEmail, updatedPhone, updatedCompany, updatedNit, updatedStatus,
+    `).run(updatedName, updatedEmail, updatedPhone, updatedCompany, updatedNit, updatedCheckDigit, updatedStatus,
            updatedContractValue, updatedContractStartDate, updatedContractEndDate,
            updatedNotes, updatedIsRecurring, updatedBillingDay, updatedRecurringAmount || 0, req.params.id, req.orgId);
 

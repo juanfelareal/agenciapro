@@ -256,8 +256,9 @@ class SiigoService {
     // Determine if company or person
     const isCompany = hasNit || (client.company && client.company !== client.name);
 
-    // Build identification: prefer numeric NIT, otherwise generate from company/name
+    // Build identification: NIT without check digit (stored separately in client.check_digit)
     const identification = hasNit ? numericNit : (client.company || client.name || '').replace(/[^0-9a-zA-Z]/g, '').substring(0, 20);
+    const checkDigit = client.check_digit || undefined;
 
     const existingCustomer = await this.getCustomerByIdentification(orgId, identification);
 
@@ -273,6 +274,7 @@ class SiigoService {
       person_type: isCompany ? 'Company' : 'Person',
       id_type: isCompany ? '31' : '13',
       identification,
+      ...(checkDigit !== undefined && { check_digit: checkDigit }),
       name: nameArray,
       commercial_name: client.company || displayName,
       contacts: [{
@@ -396,6 +398,7 @@ class SiigoService {
     const customerIdentification = hasNit
       ? numericNit
       : (client.company || client.name || '').replace(/[^0-9a-zA-Z]/g, '').substring(0, 20);
+    const customerCheckDigit = client.check_digit || undefined;
 
     // Calculate tax
     // con_iva (+IVA): amount is the base/subtotal, IVA 19% is added on top
@@ -415,6 +418,7 @@ class SiigoService {
         person_type: isCompany ? 'Company' : 'Person',
         id_type: isCompany ? '31' : '13',
         identification: customerIdentification,
+        ...(customerCheckDigit !== undefined && { check_digit: customerCheckDigit }),
         name: isCompany
           ? [client.company || client.name || 'Cliente']
           : [
