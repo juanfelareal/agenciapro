@@ -49,12 +49,15 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
     const isOverdue = inv.due_date && inv.due_date < new Date().toISOString().split('T')[0];
     const statusColor = isOverdue ? '#DC2626' : '#F59E0B';
     const statusText = isOverdue ? 'Vencida' : 'Pendiente';
+    const daysAgo = inv.issue_date
+      ? Math.floor((new Date() - new Date(inv.issue_date + 'T00:00:00')) / (1000 * 60 * 60 * 24))
+      : 0;
+    const daysText = daysAgo === 0 ? 'Hoy' : daysAgo === 1 ? '1 día' : `${daysAgo} días`;
     return `
       <tr style="border-bottom: 1px solid #E5E7EB;">
         <td style="padding: 14px 16px; font-size: 14px; color: #374151;">${inv.invoice_number}</td>
         <td style="padding: 14px 16px; font-size: 14px; color: #374151;">${inv.issue_date}</td>
-        <td style="padding: 14px 16px; font-size: 14px; color: #374151;">${inv.due_date || '-'}</td>
-        <td style="padding: 14px 16px; font-size: 14px; color: #374151;">${inv.project_name || '-'}</td>
+        <td style="padding: 14px 16px; font-size: 14px; color: ${daysAgo > 30 ? '#DC2626' : daysAgo > 15 ? '#F59E0B' : '#374151'}; font-weight: ${daysAgo > 15 ? '600' : '400'};">${daysText}</td>
         <td style="padding: 14px 16px; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">$${Number(inv.amount).toLocaleString('es-CO')}</td>
         <td style="padding: 14px 16px; text-align: center;">
           <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; color: white; background-color: ${statusColor};">${statusText}</span>
@@ -140,14 +143,13 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
                     <tr style="background-color: #F9FAFB;">
                       <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Factura</th>
                       <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Emision</th>
-                      <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Vence</th>
-                      <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Proyecto</th>
+                      <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Emitida hace</th>
                       <th style="padding: 12px 16px; text-align: right; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Monto</th>
                       <th style="padding: 12px 16px; text-align: center; font-size: 12px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Estado</th>
                     </tr>
                     ${invoiceRows}
                     <tr style="background-color: #F9FAFB;">
-                      <td colspan="4" style="padding: 14px 16px; font-size: 14px; font-weight: 700; color: #111827;">TOTAL</td>
+                      <td colspan="3" style="padding: 14px 16px; font-size: 14px; font-weight: 700; color: #111827;">TOTAL</td>
                       <td style="padding: 14px 16px; font-size: 16px; font-weight: 800; color: #111827; text-align: right;">$${totalOwed.toLocaleString('es-CO')}</td>
                       <td></td>
                     </tr>
