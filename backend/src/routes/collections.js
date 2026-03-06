@@ -162,10 +162,48 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
 
               <!-- CTA -->
               <tr>
-                <td style="padding: 0 40px 32px;">
+                <td style="padding: 0 40px 24px;">
                   <p style="color: #374151; font-size: 14px; line-height: 1.6; margin: 0;">
                     ${closingBody}
                   </p>
+                </td>
+              </tr>
+
+              <!-- Bank Info -->
+              <tr>
+                <td style="padding: 0 40px 32px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 12px;">
+                    <tr>
+                      <td style="padding: 20px 24px;">
+                        <p style="color: #111827; font-size: 14px; font-weight: 700; margin: 0 0 12px;">Datos para pago</p>
+                        <table cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="padding: 3px 0; color: #6B7280; font-size: 13px; width: 120px;">Banco:</td>
+                            <td style="padding: 3px 0; color: #111827; font-size: 13px; font-weight: 600;">Bancolombia</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 3px 0; color: #6B7280; font-size: 13px;">Tipo de cuenta:</td>
+                            <td style="padding: 3px 0; color: #111827; font-size: 13px; font-weight: 600;">Ahorros</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 3px 0; color: #6B7280; font-size: 13px;">No. de cuenta:</td>
+                            <td style="padding: 3px 0; color: #111827; font-size: 13px; font-weight: 600;">862-000036-61</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 3px 0; color: #6B7280; font-size: 13px;">Titular:</td>
+                            <td style="padding: 3px 0; color: #111827; font-size: 13px; font-weight: 600;">LA REAL MARKETING SAS</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 3px 0; color: #6B7280; font-size: 13px;">NIT:</td>
+                            <td style="padding: 3px 0; color: #111827; font-size: 13px; font-weight: 600;">901.846.009</td>
+                          </tr>
+                        </table>
+                        <p style="color: #DC2626; font-size: 12px; margin: 14px 0 0; line-height: 1.5;">
+                          <strong>Importante:</strong> Los pagos se reciben unicamente en las cuentas oficiales de la empresa. No realice transferencias a cuentas diferentes a la indicada.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
 
