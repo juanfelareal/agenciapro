@@ -20,6 +20,8 @@ const Clients = () => {
     company: '',
     nit: '',
     check_digit: '',
+    address: '',
+    city: '',
     status: 'active',
     contract_value: 0,
     contract_start_date: '',
@@ -194,6 +196,8 @@ const Clients = () => {
       company: '',
       nit: '',
       check_digit: '',
+      address: '',
+      city: '',
       status: 'active',
       contract_value: 0,
       contract_start_date: '',
@@ -827,6 +831,26 @@ const Clients = () => {
                     className="w-full border rounded-lg px-3 py-2"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Dirección</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="Ej: CL 45 A 79 61 AP 301"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Ciudad</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="Ej: Medellín"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   />
                 </div>
                 <div>
