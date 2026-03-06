@@ -1,7 +1,7 @@
 import express from 'express';
 import db from '../config/database.js';
 import dotenv from 'dotenv';
-import { getEmailTransporter } from '../utils/emailHelper.js';
+import { sendEmail } from '../utils/emailHelper.js';
 
 dotenv.config();
 
@@ -261,14 +261,12 @@ router.post('/:id/send', async (req, res) => {
       return res.status(400).json({ error: 'Client does not have an email address' });
     }
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      return res.status(500).json({ error: 'Email configuration not set. Please configure EMAIL_USER and EMAIL_PASS in .env file' });
+    if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
+      return res.status(500).json({ error: 'Email configuration not set. Please configure RESEND_API_KEY or EMAIL_USER/EMAIL_PASS' });
     }
 
-    const transporter = getEmailTransporter();
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
+    await sendEmail({
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: invoice.client_email,
       subject: `Factura #${invoice.invoice_number} - AgenciaPro`,
       html: `
@@ -299,16 +297,14 @@ router.post('/:id/send', async (req, res) => {
           ` : ''}
           <tr>
             <td style="padding: 8px; border: 1px solid #ddd;"><strong>Monto Total:</strong></td>
-            <td style="padding: 8px; border: 1px solid #ddd; font-size: 18px; font-weight: bold;">$${invoice.amount.toLocaleString('es-CO')}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; font-size: 18px; font-weight: bold;">$${Number(invoice.amount).toLocaleString('es-CO')}</td>
           </tr>
         </table>
         ${invoice.notes ? `<br><p><strong>Notas:</strong> ${invoice.notes}</p>` : ''}
         <br>
         <p>Saludos cordiales,<br>El equipo de AgenciaPro</p>
       `,
-    };
-
-    await transporter.sendMail(mailOptions);
+    });
 
     // Update invoice status to 'invoiced'
     await db.prepare('UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?')

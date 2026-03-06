@@ -1,5 +1,5 @@
 import db from '../config/database.js';
-import { getEmailTransporter } from '../utils/emailHelper.js';
+import { sendEmail } from '../utils/emailHelper.js';
 
 // Reuse the same email builder from collections route
 async function buildReminderEmail({ client_id, custom_message, closing_message, invoice_ids, orgId }) {
@@ -140,12 +140,10 @@ export async function processScheduledReminders() {
 
     console.log(`📧 Processing ${pending.length} scheduled reminder(s)...`);
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
       console.error('❌ Email not configured, skipping scheduled reminders');
       return;
     }
-
-    const transporter = getEmailTransporter();
 
     for (const reminder of pending) {
       try {
@@ -161,8 +159,8 @@ export async function processScheduledReminders() {
 
         const emailSubject = reminder.subject || `Estado de Cuenta - ${result.clientDisplayName} | ${result.orgName}`;
 
-        await transporter.sendMail({
-          from: `"Estefania Hernandez - ${result.orgName}" <${process.env.EMAIL_USER}>`,
+        await sendEmail({
+          from: `Estefania Hernandez - ${result.orgName} <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
           to: reminder.email_to,
           subject: emailSubject,
           html: result.html,

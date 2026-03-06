@@ -1,4 +1,24 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+
+// Unified email sender: uses Resend (HTTP) if configured, falls back to SMTP
+export const sendEmail = async ({ from, to, subject, html }) => {
+  if (process.env.RESEND_API_KEY) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { data, error } = await resend.emails.send({
+      from: from || process.env.EMAIL_FROM || 'noreply@larealmarketing.com',
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+    });
+    if (error) throw new Error(`Resend error: ${error.message}`);
+    return data;
+  }
+
+  // Fallback: SMTP via nodemailer
+  const transporter = getEmailTransporter();
+  return await transporter.sendMail({ from, to, subject, html });
+};
 
 export const getEmailTransporter = () => {
   const port = parseInt(process.env.EMAIL_PORT || '465', 10);
@@ -14,12 +34,6 @@ export const getEmailTransporter = () => {
 };
 
 export const sendWelcomeEmail = async ({ to, memberName, email, pin, orgName, loginUrl }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('Email configuration not set. Please configure EMAIL_USER and EMAIL_PASS in .env file');
-  }
-
-  const transporter = getEmailTransporter();
-
   const html = `
     <!DOCTYPE html>
     <html>
@@ -100,8 +114,8 @@ export const sendWelcomeEmail = async ({ to, memberName, email, pin, orgName, lo
     </html>
   `;
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await sendEmail({
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
     to,
     subject: `Bienvenido/a al equipo de ${orgName}`,
     html,

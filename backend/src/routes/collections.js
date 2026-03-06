@@ -1,6 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
-import { getEmailTransporter } from '../utils/emailHelper.js';
+import { sendEmail } from '../utils/emailHelper.js';
 
 const router = express.Router();
 
@@ -306,8 +306,8 @@ router.post('/send-reminder', async (req, res) => {
       return res.status(400).json({ error: 'client_id y email_to son requeridos' });
     }
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      return res.status(500).json({ error: 'Configuracion de email no encontrada. Configura EMAIL_USER y EMAIL_PASS.' });
+    if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
+      return res.status(500).json({ error: 'Configuracion de email no encontrada. Configura RESEND_API_KEY o EMAIL_USER/EMAIL_PASS.' });
     }
 
     const result = await buildReminderEmail({
@@ -320,10 +320,8 @@ router.post('/send-reminder', async (req, res) => {
 
     const emailSubject = subject || `Estado de Cuenta - ${result.clientDisplayName} | ${result.orgName}`;
 
-    const transporter = getEmailTransporter();
-
-    await transporter.sendMail({
-      from: `"Estefania Hernandez - ${result.orgName}" <${process.env.EMAIL_USER}>`,
+    await sendEmail({
+      from: `Estefania Hernandez - ${result.orgName} <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: email_to,
       subject: emailSubject,
       html: result.html,
