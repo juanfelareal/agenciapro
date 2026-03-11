@@ -460,6 +460,13 @@ export const adTagsAPI = {
   bulkAssign: (data) => api.post('/ad-tags/assignments/bulk', data),
 };
 
+export const agentsAPI = {
+  list: () => api.get('/agents'),
+  getBySlug: (slug) => api.get(`/agents/${slug}`),
+  query: (slug, data) => api.post(`/agents/${slug}/query`, data),
+  stream: (slug, data) => api.post(`/agents/${slug}/stream`, data, { responseType: 'text' }),
+};
+
 export const chatAPI = {
   getConversations: () => api.get('/chat/conversations'),
   createConversation: (data) => api.post('/chat/conversations', data),
