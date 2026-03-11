@@ -104,8 +104,10 @@ const NotificationBell = () => {
     }
 
     // Navigate based on notification type
-    if (notification.entity_type === 'task') {
-      navigate(`/app/projects`); // Could navigate to specific task
+    if (notification.entity_type === 'chat') {
+      navigate(`/app/chat/${notification.entity_id}`);
+    } else if (notification.entity_type === 'task') {
+      navigate(`/app/projects`);
     } else if (notification.entity_type === 'comment') {
       navigate(`/app/projects`);
     }
@@ -122,7 +124,8 @@ const NotificationBell = () => {
       task_updated: '🔄',
       task_due: '⏰',
       task_completed: '✅',
-      commission_approved: '💰'
+      commission_approved: '💰',
+      chat_message: '💬'
     };
     return icons[type] || '🔔';
   };

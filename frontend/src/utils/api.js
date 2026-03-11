@@ -460,4 +460,16 @@ export const adTagsAPI = {
   bulkAssign: (data) => api.post('/ad-tags/assignments/bulk', data),
 };
 
+export const chatAPI = {
+  getConversations: () => api.get('/chat/conversations'),
+  createConversation: (data) => api.post('/chat/conversations', data),
+  getConversation: (id) => api.get(`/chat/conversations/${id}`),
+  updateConversation: (id, data) => api.put(`/chat/conversations/${id}`, data),
+  getMessages: (id, params) => api.get(`/chat/conversations/${id}/messages`, { params }),
+  sendMessage: (id, data) => api.post(`/chat/conversations/${id}/messages`, data),
+  markRead: (id) => api.put(`/chat/conversations/${id}/read`),
+  getUnreadCount: () => api.get('/chat/unread-count'),
+  searchEntities: (q, type) => api.get('/chat/search/entities', { params: { q, type } }),
+};
+
 export default api;

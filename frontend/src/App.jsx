@@ -40,6 +40,7 @@ import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
 import ClientCalls from './pages/ClientCalls';
+import Chat from './pages/Chat';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -420,6 +421,8 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route path="chat" element={<Chat />} />
+                <Route path="chat/:conversationId" element={<Chat />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>

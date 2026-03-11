@@ -78,6 +78,9 @@ import collectionsRoutes from './src/routes/collections.js';
 import clientCallsRoutes from './src/routes/client-calls.js';
 // Ad Creative Tagging
 import adTagRoutes from './src/routes/ad-tags.js';
+// Chat
+import chatRoutes from './src/routes/chat.js';
+import { setupChat } from './src/services/chatService.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -109,6 +112,8 @@ const io = new Server(httpServer, {
 
 // Setup collaboration service with Socket.io
 setupCollaboration(io);
+// Setup chat service with Socket.io
+setupChat(io);
 
 // Start server FIRST, then initialize database
 // Listen on 0.0.0.0 so Railway's proxy can reach the app
@@ -215,6 +220,8 @@ app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
 app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
 // Ad Creative Tagging
 app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
+// Chat
+app.use('/api/chat', teamAuthMiddleware, chatRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

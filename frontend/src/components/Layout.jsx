@@ -24,10 +24,12 @@ import {
   Target,
   ClipboardList,
   Receipt,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
+import { chatAPI } from '../utils/api';
 import TimeTracker from './TimeTracker';
 import OrgSwitcher from './OrgSwitcher';
 import OrbitLogo from './OrbitLogo';
@@ -39,6 +41,20 @@ const Layout = ({ children }) => {
   const { user, currentOrg, hasPermission, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [finanzasExpanded, setFinanzasExpanded] = useState(false);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+
+  // Poll chat unread count
+  useEffect(() => {
+    const loadChatUnread = async () => {
+      try {
+        const res = await chatAPI.getUnreadCount();
+        setChatUnreadCount(res.data.unread_count || 0);
+      } catch {}
+    };
+    loadChatUnread();
+    const interval = setInterval(loadChatUnread, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const handleLogout = async () => {
     await logout();
@@ -71,12 +87,13 @@ const Layout = ({ children }) => {
     { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes' },
     { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
     { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
+    { name: 'Chat', path: '/app/chat', icon: MessageCircle, permission: null },
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
     { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
   ];
 
   // Filtrar por permisos
-  const filteredMain = mainNavigation.filter((item) => hasPermission(item.permission));
+  const filteredMain = mainNavigation.filter((item) => !item.permission || hasPermission(item.permission));
   const filteredFinanzas = finanzasSubItems.filter((item) => hasPermission(item.permission));
   const filteredBottom = bottomNavigation.filter((item) => hasPermission(item.permission));
 
@@ -123,7 +140,15 @@ const Layout = ({ children }) => {
         title={sidebarCollapsed ? item.name : ''}
       >
         <Icon size={20} className="flex-shrink-0" />
-        {!sidebarCollapsed && <span className="truncate">{item.name}</span>}
+        {!sidebarCollapsed && <span className="truncate flex-1">{item.name}</span>}
+        {!sidebarCollapsed && item.name === 'Chat' && chatUnreadCount > 0 && (
+          <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+            {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+          </span>
+        )}
+        {sidebarCollapsed && item.name === 'Chat' && chatUnreadCount > 0 && (
+          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+        )}
 
         {/* Tooltip for collapsed state */}
         {sidebarCollapsed && (
