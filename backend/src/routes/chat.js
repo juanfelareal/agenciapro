@@ -24,23 +24,34 @@ async function verifyMembership(conversationId, teamMemberId) {
 // GET /conversations — list conversations with last message preview + unread count
 router.get('/conversations', async (req, res) => {
   try {
-    console.log('[Chat DEBUG] GET /conversations - teamMemberId:', req.teamMember.id, 'orgId:', req.orgId, 'types:', typeof req.teamMember.id, typeof req.orgId);
-    // Quick check: how many conversations exist for this member?
-    const memberCheck = await db.prepare('SELECT conversation_id FROM chat_members WHERE team_member_id = ?').all(req.teamMember.id);
-    console.log('[Chat DEBUG] Member conversations:', memberCheck);
-    const convCheck = await db.prepare('SELECT id, organization_id FROM chat_conversations').all();
-    console.log('[Chat DEBUG] All conversations:', convCheck);
     const conversations = await db.prepare(`
       SELECT cc.id, cc.type, cc.name, cc.created_by, cc.created_at, cc.updated_at,
-        (SELECT content FROM chat_messages WHERE conversation_id = cc.id ORDER BY created_at DESC LIMIT 1) as last_message,
-        (SELECT sender_id FROM chat_messages WHERE conversation_id = cc.id ORDER BY created_at DESC LIMIT 1) as last_message_sender_id,
-        (SELECT created_at FROM chat_messages WHERE conversation_id = cc.id ORDER BY created_at DESC LIMIT 1) as last_message_at,
-        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.conversation_id = cc.id AND cm.created_at > cmb.last_read_at AND cm.sender_id != ?) as unread_count
+        cmb.last_read_at
       FROM chat_conversations cc
       JOIN chat_members cmb ON cc.id = cmb.conversation_id AND cmb.team_member_id = ?
       WHERE cc.organization_id = ?
-      ORDER BY last_message_at DESC NULLS LAST
-    `).all(req.teamMember.id, req.teamMember.id, req.orgId);
+      ORDER BY cc.updated_at DESC
+    `).all(req.teamMember.id, req.orgId);
+
+    // Enrich each conversation with last message + unread count
+    for (const conv of conversations) {
+      const lastMsg = await db.prepare(`
+        SELECT content, sender_id, created_at
+        FROM chat_messages WHERE conversation_id = ?
+        ORDER BY created_at DESC LIMIT 1
+      `).get(conv.id);
+
+      conv.last_message = lastMsg?.content || null;
+      conv.last_message_sender_id = lastMsg?.sender_id || null;
+      conv.last_message_at = lastMsg?.created_at || null;
+
+      const unread = await db.prepare(`
+        SELECT COUNT(*) as count FROM chat_messages
+        WHERE conversation_id = ? AND created_at > ? AND sender_id != ?
+      `).get(conv.id, conv.last_read_at, req.teamMember.id);
+      conv.unread_count = unread?.count || 0;
+      delete conv.last_read_at;
+    }
 
     // Fetch members for each conversation
     for (const conv of conversations) {
@@ -355,24 +366,6 @@ router.get('/search/entities', async (req, res) => {
     res.json(results);
   } catch (error) {
     console.error('Error searching entities:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// DEBUG: temporary endpoint to diagnose conversation issue
-router.get('/debug-conversations', async (req, res) => {
-  try {
-    const convs = await db.prepare('SELECT * FROM chat_conversations').all();
-    const members = await db.prepare('SELECT cm.*, tm.name FROM chat_members cm JOIN team_members tm ON cm.team_member_id = tm.id').all();
-    const msgs = await db.prepare('SELECT id, conversation_id, sender_id, content, message_type FROM chat_messages').all();
-    res.json({
-      reqOrgId: req.orgId,
-      reqTeamMemberId: req.teamMember.id,
-      conversations: convs,
-      members,
-      messages: msgs,
-    });
-  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
