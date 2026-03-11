@@ -83,11 +83,6 @@ export default function PortalDashboard() {
     done: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500', label: 'Completada' }
   };
 
-  const healthScore = data?.health_score || 0;
-  const healthColor = healthScore >= 75 ? '#22c55e' : healthScore >= 50 ? '#eab308' : '#ef4444';
-  const circumference = 2 * Math.PI * 45;
-  const strokeDashoffset = circumference - (healthScore / 100) * circumference;
-
   const taskTotal = data?.tasks?.total || 0;
   const taskCompleted = data?.tasks?.completed || 0;
   const taskProgress = taskTotal > 0 ? Math.round((taskCompleted / taskTotal) * 100) : 0;
@@ -296,50 +291,6 @@ export default function PortalDashboard() {
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
-          {/* Health Score */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-            <h3 className="font-semibold text-[#1A1A2E] mb-4">Salud del Proyecto</h3>
-            <div className="flex justify-center mb-4">
-              <div className="relative w-32 h-32">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="#f3f4f6" strokeWidth="8" />
-                  <circle
-                    cx="50" cy="50" r="45" fill="none"
-                    stroke={healthColor}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    className="transition-all duration-1000"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold text-[#1A1A2E]">{healthScore}</span>
-                  <span className="text-xs text-gray-500">de 100</span>
-                </div>
-              </div>
-            </div>
-            {/* Status breakdown */}
-            {data?.tasks_by_status?.length > 0 && (
-              <div className="space-y-2">
-                {data.tasks_by_status.map((s) => {
-                  const sc = statusColors[s.status] || statusColors.todo;
-                  const pct = taskTotal > 0 ? Math.round((s.count / taskTotal) * 100) : 0;
-                  return (
-                    <div key={s.status} className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${sc.dot}`} />
-                      <span className="text-xs text-gray-600 flex-1">{sc.label}</span>
-                      <span className="text-xs font-medium text-gray-800">{s.count}</span>
-                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${sc.dot}`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {/* Upcoming Deadlines */}
           {data?.upcoming_deadlines?.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
