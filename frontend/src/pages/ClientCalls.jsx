@@ -260,26 +260,14 @@ export default function ClientCalls() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha y hora</label>
-                  <input
-                    type="datetime-local"
-                    value={form.call_date}
-                    onChange={(e) => setForm({ ...form, call_date: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duración (min)</label>
-                  <input
-                    type="number"
-                    value={form.duration_minutes}
-                    onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
-                    placeholder="30"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha y hora</label>
+                <input
+                  type="datetime-local"
+                  value={form.call_date}
+                  onChange={(e) => setForm({ ...form, call_date: e.target.value })}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
+                />
               </div>
 
               <div>
