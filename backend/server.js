@@ -51,8 +51,6 @@ import pdfAnalysisRoutes from './src/routes/pdf-analysis.js';
 import sopsRoutes from './src/routes/sops.js';
 // Project Templates
 import projectTemplatesRoutes from './src/routes/projectTemplates.js';
-// Time Tracking
-import timeEntriesRoutes from './src/routes/time-entries.js';
 // Siigo Integration
 import siigoRoutes from './src/routes/siigo.js';
 // Client Portal
@@ -193,7 +191,6 @@ app.use('/api/sops', teamAuthMiddleware, sopsRoutes);
 // Project Templates
 app.use('/api/project-templates', teamAuthMiddleware, projectTemplatesRoutes);
 // Time Tracking
-app.use('/api/time-entries', teamAuthMiddleware, timeEntriesRoutes);
 // Siigo Integration
 app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
 // Portal admin (internal — needs team auth)

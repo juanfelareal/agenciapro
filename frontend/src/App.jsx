@@ -32,8 +32,6 @@ import ClientPlatformSettings from './pages/ClientPlatformSettings';
 import SOPs from './pages/SOPs';
 import Forms from './pages/Forms';
 import ProjectTemplates from './pages/ProjectTemplates';
-import Timesheet from './pages/Timesheet';
-import TimeReports from './pages/TimeReports';
 import Collections from './pages/Collections';
 import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
@@ -378,22 +376,6 @@ function App() {
                   element={
                     <ProtectedRoute permission="plantillas">
                       <ProjectTemplates />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="timesheet"
-                  element={
-                    <ProtectedRoute permission="timesheet">
-                      <Timesheet />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="time-reports"
-                  element={
-                    <ProtectedRoute permission="time_reports">
-                      <TimeReports />
                     </ProtectedRoute>
                   }
                 />

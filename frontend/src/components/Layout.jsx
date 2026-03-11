@@ -16,7 +16,6 @@ import {
   StickyNote,
   BookOpen,
   Copy,
-  Clock,
   Link2,
   LogOut,
   Wallet,
@@ -30,7 +29,6 @@ import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import { chatAPI } from '../utils/api';
-import TimeTracker from './TimeTracker';
 import OrgSwitcher from './OrgSwitcher';
 import OrbitLogo from './OrbitLogo';
 
@@ -69,7 +67,6 @@ const Layout = ({ children }) => {
     { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
     { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
     { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks' },
-    { name: 'Timesheet', path: '/app/timesheet', icon: Clock, permission: 'timesheet' },
   ];
 
   // Submenú de Finanzas
@@ -355,7 +352,6 @@ const Layout = ({ children }) => {
         {/* Top Header Bar - Clean white */}
         <header className="sticky top-0 z-30 h-14 px-6 flex items-center justify-end bg-white border-b border-gray-100">
           <div className="flex items-center gap-4">
-            <TimeTracker />
             <GlobalSearch />
             <NotificationBell />
 

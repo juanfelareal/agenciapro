@@ -17,8 +17,6 @@ const ALL_PERMISSIONS = [
   // Tasks & Time
   { key: 'tasks', label: 'Tareas', icon: '✅', category: 'Tareas' },
   { key: 'calendario', label: 'Calendario', icon: '📅', category: 'Tareas' },
-  { key: 'timesheet', label: 'Timesheet', icon: '⏱️', category: 'Tareas' },
-  { key: 'time_reports', label: 'Rep. Tiempo', icon: '⏰', category: 'Tareas' },
   // Finance
   { key: 'invoices', label: 'Facturas', icon: '📄', category: 'Finanzas' },
   { key: 'expenses', label: 'Gastos', icon: '💳', category: 'Finanzas' },
@@ -46,8 +44,7 @@ const PERMISSION_TEMPLATES = [
     icon: '⚙️',
     permissions: {
       dashboard: true, metricas: true, clients: true, projects: true, plantillas: true,
-      tasks: true, calendario: true, timesheet: true, time_reports: true,
-      invoices: false, expenses: false, comisiones: false, siigo: false,
+      tasks: true, calendario: true,      invoices: false, expenses: false, comisiones: false, siigo: false,
       team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true,
     },
   },
@@ -57,8 +54,7 @@ const PERMISSION_TEMPLATES = [
     icon: '💼',
     permissions: {
       dashboard: true, metricas: true, clients: true, projects: true, plantillas: false,
-      tasks: true, calendario: true, timesheet: false, time_reports: false,
-      invoices: true, expenses: false, comisiones: true, siigo: false,
+      tasks: true, calendario: true,      invoices: true, expenses: false, comisiones: true, siigo: false,
       team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true,
     },
   },
@@ -68,8 +64,7 @@ const PERMISSION_TEMPLATES = [
     icon: '💵',
     permissions: {
       dashboard: true, metricas: false, clients: true, projects: false, plantillas: false,
-      tasks: false, calendario: false, timesheet: false, time_reports: false,
-      invoices: true, expenses: true, comisiones: true, siigo: true,
+      tasks: false, calendario: false,      invoices: true, expenses: true, comisiones: true, siigo: true,
       team: false, automatizaciones: false, notas: false, formularios: false, sops: false, reportes: true,
     },
   },
@@ -79,8 +74,7 @@ const PERMISSION_TEMPLATES = [
     icon: '📋',
     permissions: {
       dashboard: false, metricas: false, clients: false, projects: false, plantillas: false,
-      tasks: true, calendario: true, timesheet: true, time_reports: false,
-      invoices: false, expenses: false, comisiones: false, siigo: false,
+      tasks: true, calendario: true,      invoices: false, expenses: false, comisiones: false, siigo: false,
       team: false, automatizaciones: false, notas: true, formularios: false, sops: true, reportes: false,
     },
   },
@@ -89,8 +83,7 @@ const PERMISSION_TEMPLATES = [
 // Default permissions for new members
 const DEFAULT_PERMISSIONS = {
   dashboard: true, metricas: false, clients: true, projects: true, plantillas: false,
-  tasks: true, calendario: true, timesheet: false, time_reports: false,
-  invoices: false, expenses: false, comisiones: false, siigo: false,
+  tasks: true, calendario: true,  invoices: false, expenses: false, comisiones: false, siigo: false,
   team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: false,
 };
 
