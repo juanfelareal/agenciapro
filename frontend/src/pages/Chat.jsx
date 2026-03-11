@@ -31,8 +31,9 @@ const Chat = () => {
 
   const { connected, onlineUsers, typingUsers, sendMessage, markRead, startTyping, stopTyping, onNewMessage, onMessageSent } = useChat(user);
 
-  // Load conversations
+  // Load conversations (only after user is ready)
   const loadConversations = useCallback(async () => {
+    if (!user?.id) return;
     try {
       const res = await chatAPI.getConversations();
       setConversations(res.data);
@@ -41,7 +42,7 @@ const Chat = () => {
     } finally {
       setLoadingConvs(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     loadConversations();
