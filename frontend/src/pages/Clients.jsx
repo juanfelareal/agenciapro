@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Users, Copy, Check, Key, RefreshCw, Shield, Link2 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2 } from 'lucide-react';
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -33,26 +33,8 @@ const Clients = () => {
   });
   const [searchingNit, setSearchingNit] = useState(false);
 
-  // Portal configuration state
-  const [showPortalModal, setShowPortalModal] = useState(false);
-  const [portalClient, setPortalClient] = useState(null);
-  const [portalSettings, setPortalSettings] = useState({
-    can_view_projects: true,
-    can_view_tasks: true,
-    can_view_invoices: true,
-    can_view_metrics: false,
-    can_approve_tasks: true,
-    can_comment_tasks: true,
-    can_view_team: false,
-    can_download_files: true,
-    can_view_forms: true,
-    welcome_message: ''
-  });
-  const [portalTokens, setPortalTokens] = useState([]);
-  const [newInviteCode, setNewInviteCode] = useState(null);
-  const [loadingPortal, setLoadingPortal] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
   const [copiedPortalId, setCopiedPortalId] = useState(null);
+  const [activeTab, setActiveTab] = useState('active');
 
   // Resizable columns
   const tableRef = useRef(null);
@@ -300,14 +282,15 @@ const Clients = () => {
   };
 
   // Bulk selection helpers
-  const isAllSelected = clients.length > 0 && clients.every(c => selectedIds.has(c.id));
+  const filteredClients = activeTab === 'all' ? clients : clients.filter(c => c.status === 'active');
+  const isAllSelected = filteredClients.length > 0 && filteredClients.every(c => selectedIds.has(c.id));
   const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(clients.map(c => c.id)));
+      setSelectedIds(new Set(filteredClients.map(c => c.id)));
     }
   };
 
@@ -406,86 +389,13 @@ const Clients = () => {
     }
   };
 
-  // Portal configuration functions
-  const handleOpenPortalConfig = async (client) => {
-    setPortalClient(client);
-    setShowPortalModal(true);
-    setNewInviteCode(null);
-    setCopiedCode(false);
-    setLoadingPortal(true);
-
+  const handleToggleStatus = async (client) => {
+    const newStatus = client.status === 'active' ? 'inactive' : 'active';
     try {
-      // Load settings and tokens in parallel
-      const [settingsRes, tokensRes] = await Promise.all([
-        portalAdminAPI.getSettings(client.id),
-        portalAdminAPI.getAccess(client.id)
-      ]);
-
-      setPortalSettings(settingsRes.settings || {
-        can_view_projects: true,
-        can_view_tasks: true,
-        can_view_invoices: true,
-        can_view_metrics: false,
-        can_approve_tasks: true,
-        can_comment_tasks: true,
-        can_view_team: false,
-        can_download_files: true,
-        can_view_forms: true,
-        welcome_message: ''
-      });
-      // tokensRes is an array directly, not { tokens: [] }
-      setPortalTokens(Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []));
+      await clientsAPI.update(client.id, { status: newStatus });
+      setClients(clients.map(c => c.id === client.id ? { ...c, status: newStatus } : c));
     } catch (error) {
-      console.error('Error loading portal config:', error);
-    } finally {
-      setLoadingPortal(false);
-    }
-  };
-
-  const handleSavePortalSettings = async () => {
-    if (!portalClient) return;
-    setLoadingPortal(true);
-    try {
-      await portalAdminAPI.updateSettings(portalClient.id, portalSettings);
-      alert('Configuración guardada correctamente');
-    } catch (error) {
-      console.error('Error saving portal settings:', error);
-      alert('Error al guardar configuración');
-    } finally {
-      setLoadingPortal(false);
-    }
-  };
-
-  const handleGenerateInvite = async () => {
-    if (!portalClient) return;
-    setLoadingPortal(true);
-    try {
-      const response = await portalAdminAPI.generateInvite(portalClient.id);
-      // response is { invite_code, client_name, expires_at, portal_url }
-      setNewInviteCode(response.invite_code);
-      // Reload tokens - tokensRes is an array directly
-      const tokensRes = await portalAdminAPI.getAccess(portalClient.id);
-      setPortalTokens(Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []));
-    } catch (error) {
-      console.error('Error generating invite:', error);
-      alert('Error al generar código de invitación');
-    } finally {
-      setLoadingPortal(false);
-    }
-  };
-
-  const handleRevokeAccess = async (tokenId) => {
-    if (!confirm('¿Revocar este acceso? El cliente no podrá entrar más con este token.')) return;
-    setLoadingPortal(true);
-    try {
-      await portalAdminAPI.revokeAccess(portalClient.id, tokenId);
-      const tokensRes = await portalAdminAPI.getAccess(portalClient.id);
-      setPortalTokens(Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []));
-    } catch (error) {
-      console.error('Error revoking access:', error);
-      alert('Error al revocar acceso');
-    } finally {
-      setLoadingPortal(false);
+      console.error('Error toggling status:', error);
     }
   };
 
@@ -500,21 +410,11 @@ const Clients = () => {
         setCopiedPortalId(client.id);
         setTimeout(() => setCopiedPortalId(null), 2000);
       } else {
-        // No active invite, open portal config to generate one
-        handleOpenPortalConfig(client);
+        alert('Este cliente no tiene un código de invitación activo. Intenta guardarlo de nuevo para regenerar.');
       }
     } catch (error) {
       console.error('Error copying portal link:', error);
-      handleOpenPortalConfig(client);
     }
-  };
-
-  const copyInviteLink = () => {
-    if (!newInviteCode) return;
-    const link = `${window.location.origin}/portal/login?code=${newInviteCode}`;
-    navigator.clipboard.writeText(link);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   if (loading) {
@@ -591,6 +491,40 @@ const Clients = () => {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            activeTab === 'active'
+              ? 'bg-white text-[#1A1A2E] shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Activos
+          <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
+            activeTab === 'active' ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-gray-200 text-gray-500'
+          }`}>
+            {clients.filter(c => c.status === 'active').length}
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            activeTab === 'all'
+              ? 'bg-white text-[#1A1A2E] shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Todos
+          <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
+            activeTab === 'all' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-500'
+          }`}>
+            {clients.length}
+          </span>
+        </button>
+      </div>
+
       <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         <table ref={tableRef} className="min-w-[1100px]" style={{ tableLayout: 'fixed', width: Object.values(columnWidths).reduce((a, b) => a + b, 0) }}>
           <thead className="bg-gray-50 border-b border-gray-100">
@@ -640,7 +574,7 @@ const Clients = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {clients.map((client) => (
+            {filteredClients.map((client) => (
               <tr
                 key={client.id}
                 className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-[#BFFF00]/10' : ''}`}
@@ -662,15 +596,17 @@ const Clients = () => {
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.email}>{client.email || '-'}</td>
                 <td className="px-4 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                  <button
+                    onClick={() => handleToggleStatus(client)}
+                    className={`px-2 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
                       client.status === 'active'
-                        ? 'bg-[#10B981]/10 text-[#10B981]'
-                        : 'bg-gray-100 text-gray-600'
+                        ? 'bg-[#10B981]/10 text-[#10B981] hover:bg-[#10B981]/20'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
+                    title={client.status === 'active' ? 'Clic para desactivar' : 'Clic para activar'}
                   >
                     {client.status === 'active' ? 'Activo' : 'Inactivo'}
-                  </span>
+                  </button>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap font-bold text-[#10B981]">
                   ${client.contract_value?.toLocaleString('es-CO') || 0}
@@ -693,13 +629,6 @@ const Clients = () => {
                     title={copiedPortalId === client.id ? 'Link copiado!' : 'Copiar link del portal'}
                   >
                     {copiedPortalId === client.id ? <Check size={18} /> : <Link2 size={18} />}
-                  </button>
-                  <button
-                    onClick={() => handleOpenPortalConfig(client)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-1 transition-colors"
-                    title="Configurar Portal de Cliente"
-                  >
-                    <Users size={18} />
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/plataformas`)}
@@ -1017,227 +946,6 @@ const Clients = () => {
         </div>
       )}
 
-      {/* Portal Configuration Modal */}
-      {showPortalModal && portalClient && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#1A1A2E] rounded-xl flex items-center justify-center">
-                  <Shield size={20} className="text-[#BFFF00]" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-[#1A1A2E]">Portal de Cliente</h2>
-                  <p className="text-sm text-gray-500">{portalClient.company || portalClient.name}</p>
-                </div>
-              </div>
-              <button onClick={() => setShowPortalModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <X size={20} className="text-gray-500" />
-              </button>
-            </div>
-
-            {loadingPortal ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 size={32} className="animate-spin text-[#1A1A2E]" />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Invite Code Section */}
-                <div className="bg-[#1A1A2E]/5 border border-[#1A1A2E]/10 rounded-xl p-4">
-                  <h3 className="font-semibold text-[#1A1A2E] mb-3 flex items-center gap-2">
-                    <Key size={18} />
-                    Código de Invitación
-                  </h3>
-
-                  {newInviteCode ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 bg-white p-3 rounded-xl border border-gray-100">
-                        <code className="flex-1 text-lg font-mono font-bold text-[#1A1A2E]">
-                          {newInviteCode}
-                        </code>
-                        <button
-                          onClick={copyInviteLink}
-                          className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
-                        >
-                          {copiedCode ? (
-                            <>
-                              <Check size={16} />
-                              Copiado!
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={16} />
-                              Copiar Link
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Comparte este link con tu cliente para que acceda al portal:
-                      </p>
-                      <code className="block text-xs bg-white p-2 rounded-lg border border-gray-100 text-[#1A1A2E] break-all">
-                        {window.location.origin}/portal/login?code={newInviteCode}
-                      </code>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600">
-                        Genera un código único para que tu cliente acceda al portal.
-                      </p>
-                      <button
-                        onClick={handleGenerateInvite}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
-                      >
-                        <RefreshCw size={16} />
-                        Generar Código
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Permissions Section */}
-                <div>
-                  <h3 className="font-semibold text-[#1A1A2E] mb-3">Permisos del Portal</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_view_projects}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_projects: e.target.checked })}
-                      />
-                      <span className="text-sm">Ver Proyectos</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_view_tasks}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_tasks: e.target.checked })}
-                      />
-                      <span className="text-sm">Ver Tareas</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_view_invoices}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_invoices: e.target.checked })}
-                      />
-                      <span className="text-sm">Ver Facturas</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_view_metrics}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_metrics: e.target.checked })}
-                      />
-                      <span className="text-sm">Ver Métricas</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_approve_tasks}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_approve_tasks: e.target.checked })}
-                      />
-                      <span className="text-sm">Aprobar Tareas</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_comment_tasks}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_comment_tasks: e.target.checked })}
-                      />
-                      <span className="text-sm">Comentar en Tareas</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_view_team}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_team: e.target.checked })}
-                      />
-                      <span className="text-sm">Ver Equipo</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_download_files}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_download_files: e.target.checked })}
-                      />
-                      <span className="text-sm">Descargar Archivos</span>
-                    </label>
-                    <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-[#1A1A2E]"
-                        checked={portalSettings.can_view_forms}
-                        onChange={(e) => setPortalSettings({ ...portalSettings, can_view_forms: e.target.checked })}
-                      />
-                      <span className="text-sm">Ver Formularios</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Welcome Message */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Mensaje de Bienvenida (opcional)</label>
-                  <textarea
-                    className="w-full border rounded-lg px-3 py-2"
-                    rows="2"
-                    placeholder="Ej: ¡Bienvenido al portal! Aquí puedes ver el progreso de tu proyecto."
-                    value={portalSettings.welcome_message || ''}
-                    onChange={(e) => setPortalSettings({ ...portalSettings, welcome_message: e.target.value })}
-                  />
-                </div>
-
-                {/* Save Settings Button */}
-                <button
-                  onClick={handleSavePortalSettings}
-                  className="w-full py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] font-medium transition-colors"
-                >
-                  Guardar Configuración
-                </button>
-
-                {/* Active Tokens */}
-                {portalTokens.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-[#1A1A2E] mb-3">Accesos Activos</h3>
-                    <div className="space-y-2">
-                      {portalTokens.map((token) => (
-                        <div
-                          key={token.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
-                        >
-                          <div>
-                            <p className="font-mono text-sm text-[#1A1A2E]">
-                              {token.token_type === 'invite' ? 'Invitación' : 'Sesión'}: {token.token}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {token.status === 'active' ? 'Activo' : token.status === 'pending' ? 'Pendiente' : token.status}
-                              {token.last_used_at && ` · Último uso: ${new Date(token.last_used_at).toLocaleDateString('es-CO')}`}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleRevokeAccess(token.id)}
-                            className="text-red-500 hover:text-red-600 text-sm font-medium"
-                          >
-                            Revocar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

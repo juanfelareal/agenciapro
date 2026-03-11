@@ -203,7 +203,9 @@ router.post('/', async (req, res) => {
     let portalInfo = null;
     try {
       await db.prepare(`
-        INSERT OR IGNORE INTO client_portal_settings (client_id) VALUES (?)
+        INSERT INTO client_portal_settings (client_id, can_view_projects, can_view_tasks, can_view_invoices, can_view_metrics, can_approve_tasks, can_comment_tasks, can_view_team, can_download_files, can_view_forms)
+        VALUES (?, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+        ON CONFLICT (client_id) DO NOTHING
       `).run(client.id);
 
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
