@@ -152,19 +152,14 @@ class FacebookAdsIntegration {
   }
 
   /**
-   * Parse 3-second video views from video_play_actions or actions array
-   * (video_3_sec_watched_actions was deprecated in API v20+)
-   * @param {Array} videoPlayActions - Facebook video_play_actions array
-   * @param {Array} actions - Facebook actions array (fallback)
+   * Parse 3-second video views from actions array
+   * In the Facebook API, actions[video_view] = "3-Second Video Views"
+   * NOTE: video_play_actions contains ALL play starts (including <3s autoplay), NOT 3-sec views
+   * @param {Array} actions - Facebook actions array
    * @returns {number}
    */
   parseVideo3SecViews(videoPlayActions, actions) {
-    // Try video_play_actions first (contains video_view action type)
-    if (videoPlayActions && Array.isArray(videoPlayActions)) {
-      const entry = videoPlayActions.find(a => a.action_type === 'video_view');
-      if (entry) return parseInt(entry.value) || 0;
-    }
-    // Fallback: check actions array for video_view
+    // Use actions array: video_view here = 3-Second Video Views per Facebook docs
     if (actions && Array.isArray(actions)) {
       const entry = actions.find(a => a.action_type === 'video_view');
       if (entry) return parseInt(entry.value) || 0;
