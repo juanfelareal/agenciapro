@@ -38,6 +38,9 @@ export default function ClientCalls() {
       setCalls(Array.isArray(callsRes) ? callsRes : []);
     } catch (error) {
       console.error('Error loading data:', error);
+      if (error.response?.status === 500) {
+        console.error('Server error - table may not exist yet:', error.response?.data);
+      }
     } finally {
       setLoading(false);
     }
@@ -78,6 +81,7 @@ export default function ClientCalls() {
       loadData();
     } catch (error) {
       console.error('Error saving call:', error);
+      alert('Error al guardar la llamada: ' + (error.response?.data?.error || error.message));
     }
   };
 
