@@ -910,40 +910,6 @@ export default function PortalMetrics() {
                 </div>
               </div>
 
-              {/* Creative Performance */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Video className="w-4 h-4" />
-                  Rendimiento Creativo
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Hook Rate */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Hook Rate (3s)</p>
-                        <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                          {formatPercent(metrics.facebook.hook_rate)}
-                        </p>
-                      </div>
-                      <TrendIndicator value={metrics.facebook.hook_rate_change} />
-                    </div>
-                  </div>
-
-                  {/* Hold Rate */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Hold Rate (ThruPlay)</p>
-                        <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                          {formatPercent(metrics.facebook.hold_rate)}
-                        </p>
-                      </div>
-                      <TrendIndicator value={metrics.facebook.hold_rate_change} />
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1743,34 +1709,6 @@ export default function PortalMetrics() {
                       />
                       <Area type="monotone" dataKey="conversionRate" stroke="#10B981" strokeWidth={2} fill="url(#portalConvGrad)" />
                     </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {/* 7. Hook Rate vs Hold Rate */}
-              {metrics?.facebook && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
-                    <Video className="w-4 h-4 text-amber-500" />
-                    Hook Rate vs Hold Rate
-                  </h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                      <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(0)}%`} />
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        formatter={(value, name) => [
-                          `${Number(value).toFixed(2)}%`,
-                          name === 'hookRate' ? 'Hook Rate' : 'Hold Rate'
-                        ]}
-                        labelFormatter={fmtDateLabel}
-                      />
-                      <Legend formatter={(v) => v === 'hookRate' ? 'Hook Rate (3s)' : 'Hold Rate (ThruPlay)'} />
-                      <Line type="monotone" dataKey="hookRate" stroke="#F59E0B" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="holdRate" stroke="#8B5CF6" strokeWidth={2} dot={false} />
-                    </LineChart>
                   </ResponsiveContainer>
                 </div>
               )}

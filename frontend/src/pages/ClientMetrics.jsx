@@ -521,24 +521,6 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
         />
-        <MetricCard
-          title="Hook Rate"
-          value={metrics?.hook_rate}
-          icon={Video}
-          iconBgColor="bg-amber-100"
-          iconColor="text-amber-600"
-          format="percent"
-          loading={loading}
-        />
-        <MetricCard
-          title="Hold Rate"
-          value={metrics?.hold_rate}
-          icon={Video}
-          iconBgColor="bg-violet-100"
-          iconColor="text-violet-600"
-          format="percent"
-          loading={loading}
-        />
       </div>
 
       {/* New Metrics Row: Shopify Expanded */}
@@ -772,26 +754,6 @@ function ClientMetrics() {
                   />
                   <Area type="monotone" dataKey="cpm" stroke="#3B82F6" strokeWidth={2} fill="url(#cpmGrad)" />
                 </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* 5. Hook Rate + Hold Rate */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Hook Rate vs Hold Rate</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(0)}%`} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                    formatter={(value, name) => [`${Number(value).toFixed(2)}%`, name === 'hookRate' ? 'Hook Rate' : 'Hold Rate']}
-                    labelFormatter={fmtDate}
-                  />
-                  <Legend formatter={(v) => v === 'hookRate' ? 'Hook Rate (3s)' : 'Hold Rate (ThruPlay)'} />
-                  <Line type="monotone" dataKey="hookRate" stroke="#F59E0B" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="holdRate" stroke="#8B5CF6" strokeWidth={2} dot={false} />
-                </LineChart>
               </ResponsiveContainer>
             </div>
 
