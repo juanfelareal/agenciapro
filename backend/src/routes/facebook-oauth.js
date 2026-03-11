@@ -217,16 +217,25 @@ router.get('/ad-accounts', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    // Get user's ad accounts
-    const adAccountsUrl = `https://graph.facebook.com/v18.0/me/adaccounts?` +
+    // Get user's ad accounts (with pagination to fetch ALL)
+    let allAccounts = [];
+    let nextUrl = `https://graph.facebook.com/v18.0/me/adaccounts?` +
       `fields=id,name,account_status,currency,timezone_name,business` +
-      `&access_token=${accessToken}`;
+      `&limit=200&access_token=${accessToken}`;
 
-    const response = await fetch(adAccountsUrl);
-    const data = await response.json();
+    while (nextUrl) {
+      const response = await fetch(nextUrl);
+      const data = await response.json();
 
-    if (data.error) {
-      return res.status(400).json({ error: data.error.message });
+      if (data.error) {
+        return res.status(400).json({ error: data.error.message });
+      }
+
+      if (data.data) {
+        allAccounts = allAccounts.concat(data.data);
+      }
+
+      nextUrl = data.paging?.next || null;
     }
 
     // Get already linked accounts for this client
@@ -237,7 +246,7 @@ router.get('/ad-accounts', async (req, res) => {
     const linkedIds = new Set(linkedAccounts.map(a => a.ad_account_id));
 
     // Format accounts for frontend
-    const accounts = (data.data || []).map(account => ({
+    const accounts = allAccounts.map(account => ({
       id: account.id,
       name: account.name || 'Sin nombre',
       status: account.account_status === 1 ? 'active' : 'inactive',
