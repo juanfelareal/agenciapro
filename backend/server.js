@@ -75,6 +75,7 @@ import formRoutes from './src/routes/forms.js';
 import formShareRoutes from './src/routes/form-share.js';
 // Collections / Cartera
 import collectionsRoutes from './src/routes/collections.js';
+import clientCallsRoutes from './src/routes/client-calls.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -209,6 +210,7 @@ import invoicePdfRoutes from './src/routes/invoice-pdf.js';
 app.use('/api/invoice-pdf', invoicePdfRoutes);
 // Collections / Cartera
 app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
+app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -217,4 +217,16 @@ export const portalFormsAPI = {
   },
 };
 
+// Calls API
+export const portalCallsAPI = {
+  getAll: async () => {
+    const response = await portalApi.get('/calls');
+    return response.data;
+  },
+  getById: async (id) => {
+    const response = await portalApi.get(`/calls/${id}`);
+    return response.data;
+  },
+};
+
 export default portalApi;

@@ -39,6 +39,7 @@ import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
+import ClientCalls from './pages/ClientCalls';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -54,6 +55,8 @@ import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalMetrics from './pages/portal/PortalMetrics';
 import PortalForms from './pages/portal/PortalForms';
 import PortalFormFill from './pages/portal/PortalFormFill';
+import PortalCalls from './pages/portal/PortalCalls';
+import PortalCallDetail from './pages/portal/PortalCallDetail';
 
 function App() {
   return (
@@ -141,6 +144,22 @@ function App() {
             element={
               <PortalProtectedRoute permission="can_view_metrics">
                 <PortalMetrics />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="calls"
+            element={
+              <PortalProtectedRoute>
+                <PortalCalls />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="calls/:id"
+            element={
+              <PortalProtectedRoute>
+                <PortalCallDetail />
               </PortalProtectedRoute>
             }
           />
@@ -326,6 +345,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="metricas">
                       <ClientMetrics />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="clients/:id/calls"
+                  element={
+                    <ProtectedRoute permission="clients">
+                      <ClientCalls />
                     </ProtectedRoute>
                   }
                 />

@@ -1528,6 +1528,25 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_public_responses_form_id ON form_public_responses(form_id)`);
 
+    // Client Calls / Transcriptions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_calls (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        call_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        duration_minutes INTEGER,
+        summary TEXT,
+        transcription TEXT,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_calls_client_id ON client_calls(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_calls_org_id ON client_calls(organization_id)`);
+
     // Add can_view_forms to client_portal_settings
     await pool.query(`
       DO $$
