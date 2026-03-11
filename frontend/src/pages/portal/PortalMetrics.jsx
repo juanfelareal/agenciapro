@@ -1006,6 +1006,32 @@ export default function PortalMetrics() {
                   </div>
                 </div>
 
+                {/* Sessions */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Sesiones</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatNumber(metrics.shopify.sessions)}
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.shopify.sessions_change} />
+                  </div>
+                </div>
+
+                {/* Conversion Rate */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Tasa de Conversión</p>
+                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
+                        {formatPercent(metrics.shopify.conversion_rate)}
+                      </p>
+                    </div>
+                    <TrendIndicator value={metrics.shopify.conversion_rate_change} />
+                  </div>
+                </div>
+
               </div>
             </div>
           )}

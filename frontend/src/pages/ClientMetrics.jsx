@@ -526,6 +526,24 @@ function ClientMetrics() {
       {/* New Metrics Row: Shopify Expanded */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
+          title="Sesiones"
+          value={metrics?.total_sessions}
+          icon={MousePointerClick}
+          iconBgColor="bg-cyan-100"
+          iconColor="text-cyan-600"
+          format="integer"
+          loading={loading}
+        />
+        <MetricCard
+          title="Tasa de Conversión"
+          value={metrics?.conversion_rate}
+          icon={TrendingUp}
+          iconBgColor="bg-teal-100"
+          iconColor="text-teal-600"
+          format="percent"
+          loading={loading}
+        />
+        <MetricCard
           title="Pedidos Pendientes"
           value={metrics?.total_pending_orders}
           icon={ShoppingCart}
