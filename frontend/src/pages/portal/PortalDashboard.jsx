@@ -11,7 +11,11 @@ import {
   AlertCircle,
   ArrowRight,
   TrendingUp,
-  Loader2
+  Loader2,
+  Calendar,
+  Target,
+  DollarSign,
+  Activity
 } from 'lucide-react';
 
 export default function PortalDashboard() {
@@ -51,180 +55,396 @@ export default function PortalDashboard() {
     }).format(value || 0);
   };
 
+  const timeAgo = (date) => {
+    const now = new Date();
+    const d = new Date(date);
+    const diffMs = now - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 60) return `hace ${diffMins}m`;
+    if (diffHrs < 24) return `hace ${diffHrs}h`;
+    if (diffDays < 7) return `hace ${diffDays}d`;
+    return d.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+  };
+
+  const daysUntil = (date) => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return Math.ceil((d - now) / 86400000);
+  };
+
+  const statusColors = {
+    todo: { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400', label: 'Pendiente' },
+    in_progress: { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'En progreso' },
+    review: { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500', label: 'En revisión' },
+    done: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500', label: 'Completada' }
+  };
+
+  const healthScore = data?.health_score || 0;
+  const healthColor = healthScore >= 75 ? '#22c55e' : healthScore >= 50 ? '#eab308' : '#ef4444';
+  const circumference = 2 * Math.PI * 45;
+  const strokeDashoffset = circumference - (healthScore / 100) * circumference;
+
+  const taskTotal = data?.tasks?.total || 0;
+  const taskCompleted = data?.tasks?.completed || 0;
+  const taskProgress = taskTotal > 0 ? Math.round((taskCompleted / taskTotal) * 100) : 0;
+
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-[#1A1A2E] to-gray-800 rounded-3xl p-8 text-white">
-        <h1 className="text-2xl sm:text-3xl font-bold">
-          ¡Hola, {client?.name?.split(' ')[0]}! 👋
-        </h1>
-        {welcomeMessage ? (
-          <p className="mt-2 text-gray-200">{welcomeMessage}</p>
-        ) : (
-          <p className="mt-2 text-gray-200">
-            Bienvenido a tu portal. Aquí puedes ver el progreso de tus proyectos y más.
-          </p>
-        )}
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="bg-gradient-to-br from-[#1A1A2E] via-[#16213e] to-[#0f3460] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,222,128,0.1),transparent_60%)]" />
+        <div className="relative">
+          <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">Panel de Control</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mt-1 tracking-tight">
+            Hola, {client?.name?.split(' ')[0]}
+          </h1>
+          {welcomeMessage ? (
+            <p className="mt-2 text-gray-300 max-w-xl">{welcomeMessage}</p>
+          ) : (
+            <p className="mt-2 text-gray-300 max-w-xl">
+              Aquí tienes un resumen ejecutivo de todos tus proyectos y actividad.
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Projects */}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Active Projects */}
         {hasPermission('can_view_projects') && (
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft">
-            <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                <FolderKanban className="w-6 h-6 text-[#1A1A2E]" />
+          <Link to="/portal/projects" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-soft hover:shadow-md transition-shadow group">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                <FolderKanban className="w-5 h-5 text-indigo-600" />
               </div>
-              <span className="text-2xl font-bold text-[#1A1A2E]">{data?.projects?.total || 0}</span>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-            <h3 className="mt-4 font-medium text-[#1A1A2E]">Proyectos</h3>
-            <p className="text-sm text-gray-500">
-              {data?.projects?.in_progress || 0} en progreso
+            <p className="text-2xl font-bold text-[#1A1A2E]">{data?.projects?.total || 0}</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Proyectos <span className="text-indigo-600 font-medium">{data?.projects?.in_progress || 0} activos</span>
             </p>
-          </div>
+          </Link>
         )}
 
-        {/* Tasks */}
+        {/* Tasks Progress */}
         {hasPermission('can_view_tasks') && (
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft">
-            <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <CheckSquare className="w-6 h-6 text-green-600" />
+          <Link to="/portal/tasks" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-soft hover:shadow-md transition-shadow group">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+                <CheckSquare className="w-5 h-5 text-green-600" />
               </div>
-              <span className="text-2xl font-bold text-[#1A1A2E]">{data?.tasks?.total || 0}</span>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-            <h3 className="mt-4 font-medium text-[#1A1A2E]">Tareas</h3>
-            <p className="text-sm text-gray-500">
-              {data?.tasks?.completed || 0} completadas
-            </p>
-          </div>
+            <p className="text-2xl font-bold text-[#1A1A2E]">{taskCompleted}/{taskTotal}</p>
+            <div className="mt-1.5">
+              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${taskProgress}%` }} />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{taskProgress}% completadas</p>
+            </div>
+          </Link>
         )}
 
         {/* Pending Approval */}
         {hasPermission('can_approve_tasks') && (
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft">
-            <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-6 h-6 text-amber-600" />
+          <Link to="/portal/tasks?requires_approval=1" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-soft hover:shadow-md transition-shadow group">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
               </div>
-              <span className="text-2xl font-bold text-[#1A1A2E]">{data?.tasks?.pending_approval || 0}</span>
+              {(data?.tasks?.pending_approval || 0) > 0 && (
+                <span className="w-6 h-6 bg-amber-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                  {data.tasks.pending_approval}
+                </span>
+              )}
             </div>
-            <h3 className="mt-4 font-medium text-[#1A1A2E]">Por Aprobar</h3>
-            <p className="text-sm text-gray-500">
-              Tareas esperando tu revisión
-            </p>
-          </div>
+            <p className="text-2xl font-bold text-[#1A1A2E]">{data?.tasks?.pending_approval || 0}</p>
+            <p className="text-sm text-gray-500 mt-0.5">Por aprobar</p>
+          </Link>
         )}
 
-        {/* Invoices */}
+        {/* Billing */}
         {hasPermission('can_view_invoices') && (
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft">
-            <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <FileText className="w-6 h-6 text-blue-600" />
+          <Link to="/portal/invoices" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-soft hover:shadow-md transition-shadow group">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-emerald-600" />
               </div>
-              <span className="text-2xl font-bold text-[#1A1A2E]">{formatCurrency(data?.invoices?.paid_amount)}</span>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-            <h3 className="mt-4 font-medium text-[#1A1A2E]">Pagado</h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-lg font-bold text-emerald-600">{formatCurrency(data?.invoices?.paid_amount)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
               {formatCurrency(data?.invoices?.pending_amount)} pendiente
             </p>
-          </div>
+          </Link>
         )}
       </div>
 
-      {/* Pending Approvals Section */}
+      {/* Main Content: 2 column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column (2/3) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Project Progress */}
+          {hasPermission('can_view_projects') && data?.project_details?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                    <Target className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-[#1A1A2E]">Progreso de Proyectos</h2>
+                    <p className="text-sm text-gray-500">Proyectos activos y su avance</p>
+                  </div>
+                </div>
+                <Link to="/portal/projects" className="text-sm text-gray-500 hover:text-[#1A1A2E] flex items-center gap-1">
+                  Ver todos <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {data.project_details.map((project) => (
+                  <Link
+                    key={project.id}
+                    to={`/portal/projects/${project.id}`}
+                    className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-[#1A1A2E] truncate">{project.name}</p>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
+                          project.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                          project.status === 'planning' ? 'bg-gray-100 text-gray-600' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {project.status === 'in_progress' ? 'Activo' : project.status === 'planning' ? 'Planeando' : project.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              project.progress >= 75 ? 'bg-green-500' : project.progress >= 40 ? 'bg-blue-500' : 'bg-amber-500'
+                            }`}
+                            style={{ width: `${project.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-600 w-16 text-right">
+                          {project.completed_count}/{project.task_count}
+                        </span>
+                      </div>
+                      {project.due_date && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Entrega: {new Date(project.due_date).toLocaleDateString('es-CO', { month: 'short', day: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Activity */}
+          {hasPermission('can_view_tasks') && data?.recent_tasks?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-[#1A1A2E]">Actividad Reciente</h2>
+                    <p className="text-sm text-gray-500">Últimas actualizaciones</p>
+                  </div>
+                </div>
+                <Link to="/portal/tasks" className="text-sm text-gray-500 hover:text-[#1A1A2E] flex items-center gap-1">
+                  Ver todas <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {data.recent_tasks.map((task) => {
+                  const sc = statusColors[task.status] || statusColors.todo;
+                  return (
+                    <Link
+                      key={task.id}
+                      to={`/portal/tasks/${task.id}`}
+                      className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${sc.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#1A1A2E] truncate">{task.title}</p>
+                        <p className="text-xs text-gray-400">{task.project_name}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${sc.bg} ${sc.text}`}>
+                          {sc.label}
+                        </span>
+                        <span className="text-xs text-gray-400 hidden sm:block">{timeAgo(task.updated_at)}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column (1/3) */}
+        <div className="space-y-6">
+          {/* Health Score */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+            <h3 className="font-semibold text-[#1A1A2E] mb-4">Salud del Proyecto</h3>
+            <div className="flex justify-center mb-4">
+              <div className="relative w-32 h-32">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#f3f4f6" strokeWidth="8" />
+                  <circle
+                    cx="50" cy="50" r="45" fill="none"
+                    stroke={healthColor}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-bold text-[#1A1A2E]">{healthScore}</span>
+                  <span className="text-xs text-gray-500">de 100</span>
+                </div>
+              </div>
+            </div>
+            {/* Status breakdown */}
+            {data?.tasks_by_status?.length > 0 && (
+              <div className="space-y-2">
+                {data.tasks_by_status.map((s) => {
+                  const sc = statusColors[s.status] || statusColors.todo;
+                  const pct = taskTotal > 0 ? Math.round((s.count / taskTotal) * 100) : 0;
+                  return (
+                    <div key={s.status} className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${sc.dot}`} />
+                      <span className="text-xs text-gray-600 flex-1">{sc.label}</span>
+                      <span className="text-xs font-medium text-gray-800">{s.count}</span>
+                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${sc.dot}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming Deadlines */}
+          {data?.upcoming_deadlines?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <h3 className="font-semibold text-[#1A1A2E] text-sm">Entregas Cercanas</h3>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {data.upcoming_deadlines.map((task) => {
+                  const days = daysUntil(task.due_date);
+                  return (
+                    <Link
+                      key={task.id}
+                      to={`/portal/tasks/${task.id}`}
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#1A1A2E] truncate">{task.title}</p>
+                        <p className="text-xs text-gray-400">{task.project_name}</p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0 ${
+                        days <= 2 ? 'bg-red-100 text-red-700' :
+                        days <= 5 ? 'bg-amber-100 text-amber-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `${days} días`}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Invoice Summary */}
+          {hasPermission('can_view_invoices') && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-4 h-4 text-gray-400" />
+                <h3 className="font-semibold text-[#1A1A2E] text-sm">Facturación</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-emerald-50 rounded-xl p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-emerald-700 font-medium">Pagado</span>
+                    <span className="text-xs text-emerald-600">{data?.invoices?.paid_count || 0} facturas</span>
+                  </div>
+                  <p className="text-lg font-bold text-emerald-700 mt-0.5">{formatCurrency(data?.invoices?.paid_amount)}</p>
+                </div>
+                <div className="bg-amber-50 rounded-xl p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-amber-700 font-medium">Pendiente</span>
+                    <span className="text-xs text-amber-600">{data?.invoices?.pending_count || 0} facturas</span>
+                  </div>
+                  <p className="text-lg font-bold text-amber-700 mt-0.5">{formatCurrency(data?.invoices?.pending_amount)}</p>
+                </div>
+                {/* Ratio bar */}
+                {(data?.invoices?.paid_amount || 0) + (data?.invoices?.pending_amount || 0) > 0 && (
+                  <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full"
+                      style={{
+                        width: `${Math.round(((data?.invoices?.paid_amount || 0) / ((data?.invoices?.paid_amount || 0) + (data?.invoices?.pending_amount || 0))) * 100)}%`
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Pending Approvals (full width, only if there are items) */}
       {hasPermission('can_approve_tasks') && data?.pending_approval?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="bg-amber-50 rounded-2xl border border-amber-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-amber-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-[#1A1A2E]">Esperando tu Aprobación</h2>
-                <p className="text-sm text-gray-500">Tareas que necesitan tu revisión</p>
+                <h2 className="font-semibold text-amber-900">Esperando tu Aprobación</h2>
+                <p className="text-sm text-amber-700">{data.pending_approval.length} tarea{data.pending_approval.length > 1 ? 's' : ''} necesitan tu revisión</p>
               </div>
             </div>
             <Link
               to="/portal/tasks?requires_approval=1"
-              className="text-sm text-gray-600 hover:text-[#1A1A2E] flex items-center gap-1"
+              className="text-sm text-amber-700 hover:text-amber-900 font-medium flex items-center gap-1"
             >
               Ver todas <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-amber-100">
             {data.pending_approval.slice(0, 5).map((task) => (
               <Link
                 key={task.id}
                 to={`/portal/tasks/${task.id}`}
-                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between px-6 py-3.5 hover:bg-amber-100/50 transition-colors"
               >
                 <div>
-                  <p className="font-medium text-[#1A1A2E]">{task.title}</p>
-                  <p className="text-sm text-gray-500">{task.project_name}</p>
+                  <p className="font-medium text-amber-900">{task.title}</p>
+                  <p className="text-sm text-amber-700">{task.project_name}</p>
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Tasks */}
-      {hasPermission('can_view_tasks') && data?.recent_tasks?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-[#1A1A2E]">Actividad Reciente</h2>
-                <p className="text-sm text-gray-500">Últimas actualizaciones en tus tareas</p>
-              </div>
-            </div>
-            <Link
-              to="/portal/tasks"
-              className="text-sm text-gray-600 hover:text-[#1A1A2E] flex items-center gap-1"
-            >
-              Ver todas <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {data.recent_tasks.map((task) => (
-              <Link
-                key={task.id}
-                to={`/portal/tasks/${task.id}`}
-                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    task.status === 'done' ? 'bg-green-100' : 'bg-gray-100'
-                  }`}>
-                    {task.status === 'done' ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <Clock className="w-4 h-4 text-gray-400" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-[#1A1A2E]">{task.title}</p>
-                    <p className="text-sm text-gray-500">{task.project_name}</p>
-                  </div>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  task.status === 'done'
-                    ? 'bg-green-100 text-green-700'
-                    : task.status === 'in_progress'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {task.status === 'done' ? 'Completada' :
-                   task.status === 'in_progress' ? 'En progreso' :
-                   task.status === 'review' ? 'En revisión' : 'Pendiente'}
-                </span>
+                <ArrowRight className="w-5 h-5 text-amber-400" />
               </Link>
             ))}
           </div>

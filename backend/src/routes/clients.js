@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import db from '../config/database.js';
 import axios from 'axios';
 import { createRecurringInvoice } from '../utils/recurringInvoices.js';
@@ -198,6 +199,33 @@ router.post('/', async (req, res) => {
 
     const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(result.lastInsertRowid);
 
+    // Auto-create portal settings + invite code
+    let portalInfo = null;
+    try {
+      await db.prepare(`
+        INSERT OR IGNORE INTO client_portal_settings (client_id) VALUES (?)
+      `).run(client.id);
+
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let inviteCode = '';
+      for (let i = 0; i < 8; i++) {
+        if (i === 4) inviteCode += '-';
+        inviteCode += chars.charAt(crypto.randomInt(chars.length));
+      }
+
+      await db.prepare(`
+        INSERT INTO client_access_tokens (client_id, token, token_type, status, organization_id)
+        VALUES (?, ?, 'invite', 'active', ?)
+      `).run(client.id, inviteCode, req.orgId);
+
+      portalInfo = {
+        invite_code: inviteCode,
+        portal_url: `https://orbit.larealmarketing.com/portal/login?code=${inviteCode}`
+      };
+    } catch (portalErr) {
+      console.error('Error creating portal for client:', portalErr.message);
+    }
+
     // Create first recurring invoice if applicable
     if (client.is_recurring && client.status === 'active') {
       const invoiceId = createRecurringInvoice(client);
@@ -206,7 +234,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    res.status(201).json(client);
+    res.status(201).json({ ...client, portal: portalInfo });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

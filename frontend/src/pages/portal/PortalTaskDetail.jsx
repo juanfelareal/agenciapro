@@ -172,14 +172,6 @@ export default function PortalTaskDetail() {
           </div>
         </div>
 
-        {/* Task Description */}
-        {task.description && (
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Descripción</h3>
-            <p className="text-gray-600 whitespace-pre-wrap">{task.description}</p>
-          </div>
-        )}
-
         {/* Task Meta */}
         <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {task.assigned_to_name && (

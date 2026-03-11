@@ -45,6 +45,9 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks'),
 
     const tasks = await db.all(query, params);
 
+    // Strip descriptions (private to the agency)
+    tasks.forEach(t => delete t.description);
+
     // Get subtask progress for each task
     for (const task of tasks) {
       const subtaskProgress = await db.get(`
@@ -92,6 +95,9 @@ router.get('/:id', clientAuthMiddleware, requirePortalPermission('can_view_tasks
     if (!task) {
       return res.status(404).json({ error: 'Tarea no encontrada' });
     }
+
+    // Strip description (private to the agency)
+    delete task.description;
 
     // Get subtasks
     const subtasks = await db.all(`

@@ -65,6 +65,9 @@ router.get('/:id', clientAuthMiddleware, requirePortalPermission('can_view_proje
       ORDER BY t.created_at DESC
     `, [id]);
 
+    // Strip descriptions (private to the agency)
+    tasks.forEach(t => delete t.description);
+
     // Get team members if allowed
     let team = [];
     if (req.client.permissions.can_view_team) {
