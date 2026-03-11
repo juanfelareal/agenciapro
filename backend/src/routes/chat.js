@@ -24,6 +24,12 @@ async function verifyMembership(conversationId, teamMemberId) {
 // GET /conversations — list conversations with last message preview + unread count
 router.get('/conversations', async (req, res) => {
   try {
+    console.log('[Chat DEBUG] GET /conversations - teamMemberId:', req.teamMember.id, 'orgId:', req.orgId, 'types:', typeof req.teamMember.id, typeof req.orgId);
+    // Quick check: how many conversations exist for this member?
+    const memberCheck = await db.prepare('SELECT conversation_id FROM chat_members WHERE team_member_id = ?').all(req.teamMember.id);
+    console.log('[Chat DEBUG] Member conversations:', memberCheck);
+    const convCheck = await db.prepare('SELECT id, organization_id FROM chat_conversations').all();
+    console.log('[Chat DEBUG] All conversations:', convCheck);
     const conversations = await db.prepare(`
       SELECT cc.id, cc.type, cc.name, cc.created_by, cc.created_at, cc.updated_at,
         (SELECT content FROM chat_messages WHERE conversation_id = cc.id ORDER BY created_at DESC LIMIT 1) as last_message,
