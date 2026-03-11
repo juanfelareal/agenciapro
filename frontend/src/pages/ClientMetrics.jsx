@@ -535,24 +535,6 @@ function ClientMetrics() {
           loading={loading}
         />
         <MetricCard
-          title="Tasa de Conversión"
-          value={metrics?.conversion_rate}
-          icon={TrendingUp}
-          iconBgColor="bg-teal-100"
-          iconColor="text-teal-600"
-          format="percent"
-          loading={loading}
-        />
-        <MetricCard
-          title="Sesiones"
-          value={metrics?.total_sessions}
-          icon={MousePointerClick}
-          iconBgColor="bg-cyan-100"
-          iconColor="text-cyan-600"
-          format="integer"
-          loading={loading}
-        />
-        <MetricCard
           title="Impuestos"
           value={metrics?.total_tax}
           icon={Receipt}

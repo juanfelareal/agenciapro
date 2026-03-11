@@ -432,18 +432,10 @@ class ShopifyIntegration {
       const landing = (order.landing_site || '').toLowerCase();
       const source = (order.source_name || '').toLowerCase();
 
-      let channel = 'Directo / Orgánico';
+      let channel = 'Online';
 
       if (source === 'shopify_draft_order' || source === 'draft_order') {
         channel = 'Pedidos preliminares';
-      } else if (
-        referring.includes('facebook.com') || referring.includes('instagram.com') ||
-        referring.includes('fb.com') || referring.includes('l.facebook.com') ||
-        landing.includes('utm_source=facebook') || landing.includes('utm_source=instagram') ||
-        landing.includes('utm_source=fb') || landing.includes('utm_source=ig') ||
-        landing.includes('fbclid=')
-      ) {
-        channel = 'Meta';
       } else if (
         referring.includes('klaviyo') || referring.includes('mailchimp') ||
         referring.includes('sendinblue') || referring.includes('omnisend') ||
@@ -451,12 +443,6 @@ class ShopifyIntegration {
         landing.includes('utm_source=klaviyo') || landing.includes('utm_source=mailchimp')
       ) {
         channel = 'Email';
-      } else if (
-        referring.includes('google.com') || landing.includes('utm_source=google') || landing.includes('gclid=')
-      ) {
-        channel = 'Google';
-      } else if (referring.includes('tiktok.com') || landing.includes('utm_source=tiktok')) {
-        channel = 'TikTok';
       }
 
       if (!channelMap[channel]) {

@@ -269,12 +269,9 @@ export default function PortalMetrics() {
   };
 
   const CHANNEL_COLORS = {
-    'Meta': '#3B82F6',
+    'Online': '#3B82F6',
     'Email': '#8B5CF6',
     'Pedidos preliminares': '#F59E0B',
-    'Google': '#EF4444',
-    'TikTok': '#10B981',
-    'Directo / Orgánico': '#6B7280',
   };
 
   const formatCurrency = (value) => {
@@ -1009,31 +1006,6 @@ export default function PortalMetrics() {
                   </div>
                 </div>
 
-                {/* Sessions (always visible) */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Sesiones</p>
-                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                        {formatNumber(metrics.shopify.sessions)}
-                      </p>
-                    </div>
-                    <TrendIndicator value={metrics.shopify.sessions_change} />
-                  </div>
-                </div>
-
-                {/* Conversion Rate (always visible) */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">Tasa de Conversión</p>
-                      <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                        {formatPercent(metrics.shopify.conversion_rate)}
-                      </p>
-                    </div>
-                    <TrendIndicator value={metrics.shopify.conversion_rate_change} />
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -1273,58 +1245,41 @@ export default function PortalMetrics() {
             </div>
           )}
 
-          {/* Conversion Funnel */}
+          {/* Conversion Funnel — compact */}
           {funnelData && funnelData.maxValue > 0 && (() => {
-            const widths = [100, 80, 62, 46, 32];
+            const barWidths = [100, 70, 50, 30, 18];
+            const barColors = ['#334155', '#475569', '#64748B', '#94A3B8', '#22C55E'];
             return (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2 mb-6">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2 mb-4">
                   <Filter className="w-4 h-4 text-indigo-500" />
                   Embudo de Conversión
                 </h3>
-                <div className="flex flex-col items-center">
+                <div className="space-y-1.5">
                   {funnelData.steps.map((step, idx) => {
-                    const topW = widths[idx];
-                    const botW = widths[idx + 1] || widths[idx] * 0.75;
                     const rate = funnelData.rates[idx];
-                    const clipLeft = ((100 - topW) / 2);
-                    const clipRight = ((100 + topW) / 2);
-                    const clipBotLeft = ((100 - botW) / 2);
-                    const clipBotRight = ((100 + botW) / 2);
-
+                    const semaphore = rate ? getSemaphore(rate.value, rate.key) : null;
                     return (
-                      <div key={step.label} className="w-full flex flex-col items-center">
-                        {/* Trapezoid step */}
-                        <div
-                          className="w-full flex flex-col items-center justify-center py-5 text-white"
-                          style={{
-                            backgroundColor: '#1E293B',
-                            clipPath: `polygon(${clipLeft}% 0%, ${clipRight}% 0%, ${clipBotRight}% 100%, ${clipBotLeft}% 100%)`,
-                          }}
-                        >
-                          <span className="text-xs font-medium text-gray-300 tracking-wide">{step.label}</span>
-                          <span className="text-2xl font-bold mt-0.5">{formatNumber(step.value)}</span>
-                        </div>
-                        {/* Rate row between steps */}
-                        {rate && (
-                          <div className="w-full flex items-center justify-center py-2.5 border-b border-gray-100">
-                            <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${getSemaphore(rate.value, rate.key).color}`}>
-                              {getSemaphore(rate.value, rate.key).icon} {rate.label}: {rate.value.toFixed(1)}%
-                            </span>
+                      <div key={step.label}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <div
+                              className="rounded-lg px-3 py-2 flex items-center justify-between text-white"
+                              style={{ width: `${barWidths[idx]}%`, backgroundColor: barColors[idx], minWidth: '180px' }}
+                            >
+                              <span className="text-xs font-medium opacity-80">{step.label}</span>
+                              <span className="text-sm font-bold">{formatNumber(step.value)}</span>
+                            </div>
                           </div>
-                        )}
+                          {rate && (
+                            <span className={`text-xs font-semibold whitespace-nowrap ${semaphore.color}`}>
+                              {semaphore.icon} {rate.label}: {rate.value.toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
-                </div>
-                {/* Threshold legend */}
-                <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                  <span className="font-medium">Umbrales:</span>
-                  <span>🟢 CTR ≥ 1.5%</span>
-                  <span>🟢 Landing ≥ 60%</span>
-                  <span>🟢 ATC ≥ 8%</span>
-                  <span>🟢 Conv ≥ 25%</span>
-                  <span className="text-gray-400">| 🟡 Medio | 🔴 Bajo</span>
                 </div>
               </div>
             );
@@ -1421,155 +1376,6 @@ export default function PortalMetrics() {
             </div>
           )}
 
-          {/* Demographics Section */}
-          {(metrics?.facebook || metrics?.shopify) && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-500" />
-                  Demográficos y Avatar de Marca
-                </h3>
-                {demographics === null && (
-                  <button
-                    onClick={loadDemographics}
-                    disabled={demographicsLoading}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
-                  >
-                    {demographicsLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <UserCircle className="w-4 h-4" />
-                    )}
-                    Ver demográficos
-                  </button>
-                )}
-              </div>
-
-              {demographicsLoading && (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                </div>
-              )}
-
-              {demographics !== null && !demographicsLoading && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Avatar de Marca */}
-                  {demographics.avatar && demographics.avatar.summary && (
-                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6 flex flex-col items-center text-center">
-                      <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-                        <UserCircle className="w-12 h-12 text-indigo-500" />
-                      </div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-2">Tu comprador típico</p>
-                      <p className="text-lg font-bold text-[#1A1A2E] mb-1">{demographics.avatar.summary}</p>
-                      {demographics.avatar.confidence > 0 && (
-                        <p className="text-sm text-gray-500">
-                          Representa el <span className="font-semibold text-indigo-600">{demographics.avatar.confidence.toFixed(0)}%</span> de tus compras
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Edad y Género (Meta) */}
-                  {demographics.facebook && demographics.facebook.length > 0 && (
-                    <div>
-                      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <Users className="w-3.5 h-3.5" />
-                        Edad y Género (Meta)
-                      </p>
-                      <div className="space-y-2">
-                        {(() => {
-                          // Group by age range
-                          const ageGroups = {};
-                          demographics.facebook.forEach(row => {
-                            if (!ageGroups[row.age]) ageGroups[row.age] = { male: 0, female: 0, unknown: 0, total: 0 };
-                            const g = row.gender === 'male' ? 'male' : row.gender === 'female' ? 'female' : 'unknown';
-                            ageGroups[row.age][g] += row.spend || 0;
-                            ageGroups[row.age].total += row.spend || 0;
-                          });
-                          const grandTotal = Object.values(ageGroups).reduce((s, g) => s + g.total, 0);
-                          const sorted = Object.entries(ageGroups).sort((a, b) => {
-                            const order = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
-                            return order.indexOf(a[0]) - order.indexOf(b[0]);
-                          });
-
-                          return sorted.map(([age, data]) => {
-                            const pct = grandTotal > 0 ? (data.total / grandTotal) * 100 : 0;
-                            const malePct = data.total > 0 ? (data.male / data.total) * 100 : 0;
-                            const femalePct = data.total > 0 ? (data.female / data.total) * 100 : 0;
-                            return (
-                              <div key={age}>
-                                <div className="flex items-center justify-between text-xs mb-1">
-                                  <span className="font-medium text-gray-700 w-12">{age}</span>
-                                  <span className="text-gray-400">{pct.toFixed(0)}%</span>
-                                </div>
-                                <div className="h-5 bg-gray-100 rounded-full overflow-hidden flex">
-                                  <div
-                                    className="h-full bg-blue-400 transition-all"
-                                    style={{ width: `${malePct * pct / 100}%` }}
-                                    title={`Hombres: ${malePct.toFixed(0)}%`}
-                                  />
-                                  <div
-                                    className="h-full bg-pink-400 transition-all"
-                                    style={{ width: `${femalePct * pct / 100}%` }}
-                                    title={`Mujeres: ${femalePct.toFixed(0)}%`}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          });
-                        })()}
-                      </div>
-                      <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-400 inline-block" /> Hombres</span>
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-pink-400 inline-block" /> Mujeres</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Top Ciudades (Shopify) */}
-                  {demographics.shopify && demographics.shopify.length > 0 && (
-                    <div>
-                      <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5" />
-                        Top Ciudades (Compras)
-                      </p>
-                      <div className="space-y-2.5">
-                        {demographics.shopify.slice(0, 10).map((region, idx) => {
-                          const maxOrders = demographics.shopify[0]?.orders || 1;
-                          const barPct = (region.orders / maxOrders) * 100;
-                          return (
-                            <div key={idx}>
-                              <div className="flex items-center justify-between text-xs mb-1">
-                                <span className="font-medium text-gray-700 truncate max-w-[60%]">
-                                  {region.city}{region.province ? `, ${region.province}` : ''}
-                                </span>
-                                <span className="text-gray-500 flex-shrink-0">
-                                  {region.orders} pedidos · {formatCurrency(region.revenue)}
-                                </span>
-                              </div>
-                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-green-400 rounded-full transition-all"
-                                  style={{ width: `${barPct}%` }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Empty state */}
-                  {!demographics.avatar?.summary && (!demographics.facebook || demographics.facebook.length === 0) && (!demographics.shopify || demographics.shopify.length === 0) && (
-                    <div className="col-span-full text-center py-8">
-                      <p className="text-sm text-gray-500">No hay datos demográficos disponibles para este periodo</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Charts */}
           {chartData.length > 1 && (
