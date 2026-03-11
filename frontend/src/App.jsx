@@ -406,8 +406,9 @@ function App() {
                 />
                 <Route path="chat" element={<Chat />} />
                 <Route path="chat/:conversationId" element={<Chat />} />
-                <Route path="agents" element={<Agents />} />
-                <Route path="agents/:slug" element={<Agents />} />
+                {/* Agents routes hidden until API auth is resolved */}
+                {/* <Route path="agents" element={<Agents />} /> */}
+                {/* <Route path="agents/:slug" element={<Agents />} /> */}
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>
