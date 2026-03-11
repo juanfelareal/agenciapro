@@ -1,106 +1,116 @@
 /**
- * Agent Runner — Executes agents using the Anthropic SDK.
- * Supports both synchronous queries and streaming responses.
+ * Agent Runner — Executes agents using the Claude Agent SDK.
+ * No API key needed — inherits auth from Claude Code CLI (Team plan).
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-
-let client = null;
-
-function getClient() {
-  if (!client) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is not set. Add it to your environment variables.');
-    }
-    client = new Anthropic({ apiKey });
-  }
-  return client;
-}
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
 /**
- * Run a synchronous query against an agent.
+ * Run an agent query and collect all events.
  * @param {Object} agent - Agent config from registry
- * @param {string} userMessage - User's query
- * @param {Array} history - Previous messages [{role, content}]
- * @returns {Promise<{content: string, usage: Object}>}
+ * @param {string} prompt - User's query
+ * @param {string} [sessionId] - Optional session ID for conversation continuity
+ * @returns {Promise<{messages: Array, result: Object}>}
  */
-export async function runAgentQuery(agent, userMessage, history = []) {
-  const anthropic = getClient();
+export async function runAgentQuery(agent, prompt, sessionId) {
+  const messages = [];
+  let result = null;
 
-  const messages = [
-    ...history,
-    { role: 'user', content: userMessage },
-  ];
+  for await (const message of query({
+    prompt,
+    options: {
+      systemPrompt: agent.systemPrompt,
+      allowedTools: agent.allowedTools,
+      maxTurns: agent.maxTurns,
+      maxBudgetUsd: agent.maxBudgetUsd,
+      model: agent.model,
+      permissionMode: agent.permissionMode,
+      ...(sessionId && { sessionId }),
+    },
+  })) {
+    messages.push(message);
 
-  const response = await anthropic.messages.create({
-    model: agent.model,
-    max_tokens: agent.maxTokens,
-    temperature: agent.temperature,
-    system: agent.systemPrompt,
-    messages,
-  });
+    if (message.type === 'result') {
+      result = message;
+    }
+  }
 
-  const textContent = response.content
+  // Extract text content from assistant messages
+  const textParts = messages
+    .filter((m) => m.type === 'assistant')
+    .flatMap((m) => (m.message?.content || []))
     .filter((block) => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n');
+    .map((block) => block.text);
 
   return {
-    content: textContent,
-    usage: response.usage,
-    stop_reason: response.stop_reason,
-    model: response.model,
+    content: textParts.join('\n'),
+    messages,
+    result: result ? {
+      sessionId: result.sessionId,
+      cost: result.cost,
+      usage: result.usage,
+      exitReason: result.exitReason,
+    } : null,
   };
 }
 
 /**
- * Stream a response from an agent.
+ * Stream agent events to callbacks in real time.
+ * The Agent SDK query() is already an async iterator — each message is emitted as it arrives.
+ *
  * @param {Object} agent - Agent config
- * @param {string} userMessage - User's query
- * @param {Array} history - Previous messages
- * @param {Function} onChunk - Callback for each text chunk (delta)
- * @param {Function} onDone - Callback when streaming completes
- * @param {Function} onError - Callback on error
+ * @param {string} prompt - User's query
+ * @param {string} [sessionId] - Optional session ID
+ * @param {Object} callbacks
+ * @param {Function} callbacks.onMessage - Called for each event (assistant, system, result, etc.)
+ * @param {Function} callbacks.onText - Called when assistant text content is detected
+ * @param {Function} callbacks.onDone - Called when the stream finishes
+ * @param {Function} callbacks.onError - Called on error
  */
-export async function streamAgentResponse(agent, userMessage, history = [], { onChunk, onDone, onError }) {
-  const anthropic = getClient();
-
-  const messages = [
-    ...history,
-    { role: 'user', content: userMessage },
-  ];
-
+export async function streamAgentResponse(agent, prompt, sessionId, { onMessage, onText, onDone, onError }) {
   try {
-    const stream = await anthropic.messages.stream({
-      model: agent.model,
-      max_tokens: agent.maxTokens,
-      temperature: agent.temperature,
-      system: agent.systemPrompt,
-      messages,
-    });
-
     let fullText = '';
+    let result = null;
 
-    stream.on('text', (text) => {
-      fullText += text;
-      onChunk?.(text);
-    });
+    for await (const message of query({
+      prompt,
+      options: {
+        systemPrompt: agent.systemPrompt,
+        allowedTools: agent.allowedTools,
+        maxTurns: agent.maxTurns,
+        maxBudgetUsd: agent.maxBudgetUsd,
+        model: agent.model,
+        permissionMode: agent.permissionMode,
+        ...(sessionId && { sessionId }),
+      },
+    })) {
+      // Forward every event
+      onMessage?.(message);
 
-    stream.on('error', (err) => {
-      onError?.(err);
-    });
+      // Extract text from assistant messages
+      if (message.type === 'assistant' && message.message?.content) {
+        for (const block of message.message.content) {
+          if (block.type === 'text') {
+            fullText += block.text;
+            onText?.(block.text);
+          }
+        }
+      }
 
-    const finalMessage = await stream.finalMessage();
+      if (message.type === 'result') {
+        result = message;
+      }
+    }
 
     onDone?.({
       content: fullText,
-      usage: finalMessage.usage,
-      stop_reason: finalMessage.stop_reason,
-      model: finalMessage.model,
+      sessionId: result?.sessionId,
+      cost: result?.cost,
+      usage: result?.usage,
+      exitReason: result?.exitReason,
     });
 
-    return { content: fullText, usage: finalMessage.usage };
+    return { content: fullText, result };
   } catch (err) {
     onError?.(err);
     throw err;

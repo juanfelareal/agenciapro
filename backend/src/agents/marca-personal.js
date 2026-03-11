@@ -6,7 +6,8 @@ export const marcaPersonalAgent = defineAgent({
   description: 'Estrategia de marca personal, embudo de contenido, pilares y categorías de comunicación',
   icon: '👤',
   color: '#8b5cf6',
-  temperature: 0.7,
+  maxTurns: 25,
+  maxBudgetUsd: 0.50,
   systemPrompt: `Eres el estratega de marca personal de AgenciaPRO. Tu trabajo es ayudar a emprendedores, founders y profesionales a construir una marca personal que atraiga clientes, valide su expertise y genere ventas a través de un sistema de comunicación en redes sociales.
 
 PRINCIPIO FUNDAMENTAL:

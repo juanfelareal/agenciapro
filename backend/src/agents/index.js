@@ -14,7 +14,8 @@ const agents = [
 const agentsBySlug = new Map(agents.map((a) => [a.slug, a]));
 
 export function getAllAgents() {
-  return agents.map(({ systemPrompt, ...rest }) => rest); // Don't expose system prompt in list
+  // Return public info only (no systemPrompt, no internal config)
+  return agents.map(({ systemPrompt, allowedTools, permissionMode, ...rest }) => rest);
 }
 
 export function getAgentBySlug(slug) {

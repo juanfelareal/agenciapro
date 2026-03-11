@@ -20,29 +20,29 @@ router.get('/:slug', (req, res) => {
   res.json(publicInfo);
 });
 
-// POST /agents/:slug/query — Synchronous query
+// POST /agents/:slug/query — Synchronous query (waits for full response)
 router.post('/:slug/query', async (req, res) => {
   const agent = getAgentBySlug(req.params.slug);
   if (!agent) {
     return res.status(404).json({ error: 'Agent not found' });
   }
 
-  const { message, history } = req.body;
+  const { message, sessionId } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'message is required' });
   }
 
   try {
-    const result = await runAgentQuery(agent, message.trim(), history || []);
+    const result = await runAgentQuery(agent, message.trim(), sessionId);
     res.json({
       agent: agent.slug,
-      ...result,
+      content: result.content,
+      sessionId: result.result?.sessionId,
+      cost: result.result?.cost,
+      usage: result.result?.usage,
     });
   } catch (error) {
     console.error(`[Agent:${agent.slug}] Query error:`, error.message);
-    if (error.message.includes('ANTHROPIC_API_KEY')) {
-      return res.status(503).json({ error: 'AI service not configured' });
-    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -54,12 +54,12 @@ router.post('/:slug/stream', async (req, res) => {
     return res.status(404).json({ error: 'Agent not found' });
   }
 
-  const { message, history } = req.body;
+  const { message, sessionId } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'message is required' });
   }
 
-  // Set SSE headers
+  // SSE headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -67,12 +67,15 @@ router.post('/:slug/stream', async (req, res) => {
   });
 
   try {
-    await streamAgentResponse(agent, message.trim(), history || [], {
-      onChunk: (text) => {
-        res.write(`data: ${JSON.stringify({ type: 'chunk', text })}\n\n`);
+    await streamAgentResponse(agent, message.trim(), sessionId, {
+      onMessage: (msg) => {
+        res.write(`data: ${JSON.stringify({ type: msg.type, data: msg })}\n\n`);
+      },
+      onText: (text) => {
+        res.write(`data: ${JSON.stringify({ type: 'text', text })}\n\n`);
       },
       onDone: (result) => {
-        res.write(`data: ${JSON.stringify({ type: 'done', usage: result.usage, model: result.model })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', ...result })}\n\n`);
         res.end();
       },
       onError: (err) => {
@@ -82,9 +85,7 @@ router.post('/:slug/stream', async (req, res) => {
     });
   } catch (error) {
     console.error(`[Agent:${agent.slug}] Stream error:`, error.message);
-    if (!res.headersSent) {
-      res.status(500).json({ error: error.message });
-    } else {
+    if (!res.writableEnded) {
       res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
       res.end();
     }
