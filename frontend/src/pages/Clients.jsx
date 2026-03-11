@@ -40,10 +40,9 @@ const Clients = () => {
   const tableRef = useRef(null);
   const [columnWidths, setColumnWidths] = useState({
     checkbox: 48,
-    empresa: 320,
-    nit: 130,
-    contacto: 200,
-    email: 200,
+    empresa: 350,
+    contacto: 220,
+    email: 230,
     estado: 80,
     valor: 130,
     acciones: 140,
@@ -551,10 +550,6 @@ const Clients = () => {
                 Empresa
                 <ResizeHandle columnKey="empresa" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.nit }}>
-                NIT/Cédula
-                <ResizeHandle columnKey="nit" />
-              </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.contacto }}>
                 Contacto
                 <ResizeHandle columnKey="contacto" />
@@ -595,7 +590,6 @@ const Clients = () => {
                   </button>
                 </td>
                 <td className="px-4 py-4 font-medium text-[#1A1A2E] truncate" title={client.company || client.name}>{client.company || client.name}</td>
-                <td className="px-4 py-4 text-sm text-gray-500 truncate">{client.nit ? `${client.nit}${client.check_digit ? `-${client.check_digit}` : ''}` : '-'}</td>
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.email}>{client.email || '-'}</td>
                 <td className="px-4 py-4 whitespace-nowrap">
