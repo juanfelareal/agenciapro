@@ -82,7 +82,8 @@ router.put('/clients/:id/settings', async (req, res) => {
       can_comment_tasks,
       can_view_team,
       can_download_files,
-      welcome_message
+      welcome_message,
+      portal_revenue_metric
     } = req.body;
 
     // Check client exists and belongs to org
@@ -109,25 +110,27 @@ router.put('/clients/:id/settings', async (req, res) => {
           can_view_team = COALESCE(?, can_view_team),
           can_download_files = COALESCE(?, can_download_files),
           welcome_message = COALESCE(?, welcome_message),
+          portal_revenue_metric = COALESCE(?, portal_revenue_metric),
           updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ?
       `, [
         toInt(can_view_projects), toInt(can_view_tasks), toInt(can_view_invoices), toInt(can_view_metrics),
         toInt(can_approve_tasks), toInt(can_comment_tasks), toInt(can_view_team), toInt(can_download_files),
-        welcome_message, id
+        welcome_message, portal_revenue_metric || null, id
       ]);
     } else {
       await db.run(`
         INSERT INTO client_portal_settings (
           client_id, can_view_projects, can_view_tasks, can_view_invoices,
           can_view_metrics, can_approve_tasks, can_comment_tasks, can_view_team,
-          can_download_files, welcome_message
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          can_download_files, welcome_message, portal_revenue_metric
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         id,
         toInt(can_view_projects) ?? 1, toInt(can_view_tasks) ?? 1, toInt(can_view_invoices) ?? 1,
         toInt(can_view_metrics) ?? 1, toInt(can_approve_tasks) ?? 1, toInt(can_comment_tasks) ?? 1,
-        toInt(can_view_team) ?? 0, toInt(can_download_files) ?? 1, welcome_message ?? null
+        toInt(can_view_team) ?? 0, toInt(can_download_files) ?? 1, welcome_message ?? null,
+        portal_revenue_metric || 'confirmed'
       ]);
     }
 

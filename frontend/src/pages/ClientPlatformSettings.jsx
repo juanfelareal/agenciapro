@@ -12,7 +12,7 @@ import {
   Loader2,
   Check
 } from 'lucide-react';
-import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, shopifyOAuthAPI } from '../utils/api';
+import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, shopifyOAuthAPI, portalAdminAPI } from '../utils/api';
 
 function ClientPlatformSettings() {
   const { id: clientId } = useParams();
@@ -43,6 +43,10 @@ function ClientPlatformSettings() {
   const [shopifyApiSecret, setShopifyApiSecret] = useState('');
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [hasCustomApp, setHasCustomApp] = useState(false);
+
+  // Portal revenue metric setting
+  const [portalRevenueMetric, setPortalRevenueMetric] = useState('confirmed');
+  const [savingRevenueMetric, setSavingRevenueMetric] = useState(false);
 
   // Load client and credentials
   useEffect(() => {
@@ -108,10 +112,33 @@ function ClientPlatformSettings() {
           setShopifyApiKey(credentialsRes.data.shopify.shopify_api_key);
         }
       }
+
+      // Load portal settings for revenue metric
+      try {
+        const portalRes = await portalAdminAPI.getSettings(clientId);
+        if (portalRes.data?.portal_revenue_metric) {
+          setPortalRevenueMetric(portalRes.data.portal_revenue_metric);
+        }
+      } catch (e) {
+        // Settings may not exist yet, use default
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveRevenueMetric = async (value) => {
+    setSavingRevenueMetric(true);
+    try {
+      await portalAdminAPI.updateSettings(clientId, { portal_revenue_metric: value });
+      setPortalRevenueMetric(value);
+    } catch (error) {
+      console.error('Error saving revenue metric:', error);
+      alert('Error al guardar configuración');
+    } finally {
+      setSavingRevenueMetric(false);
     }
   };
 
@@ -660,6 +687,46 @@ function ClientPlatformSettings() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Portal Revenue Metric Setting */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">Métrica de Ventas en Portal del Cliente</h2>
+          <p className="text-sm text-gray-500 mt-1">Elige qué métrica de ventas ve el cliente en su portal</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { value: 'total', label: 'Venta Total', desc: 'Incluye pedidos pendientes de pago' },
+              { value: 'confirmed', label: 'Venta Total Confirmada', desc: 'Solo pedidos pagados (con envío e impuesto)' },
+              { value: 'net_confirmed', label: 'Venta Neta Confirmada', desc: 'Solo pedidos pagados (sin envío ni impuesto)' },
+            ].map(option => (
+              <button
+                key={option.value}
+                onClick={() => saveRevenueMetric(option.value)}
+                disabled={savingRevenueMetric}
+                className={`p-4 rounded-lg border-2 text-left transition-all ${
+                  portalRevenueMetric === option.value
+                    ? 'border-[#1A1A2E] bg-[#1A1A2E]/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    portalRevenueMetric === option.value ? 'border-[#1A1A2E]' : 'border-gray-300'
+                  }`}>
+                    {portalRevenueMetric === option.value && (
+                      <div className="w-2 h-2 rounded-full bg-[#1A1A2E]" />
+                    )}
+                  </div>
+                  <span className="font-medium text-sm text-gray-900">{option.label}</span>
+                </div>
+                <p className="text-xs text-gray-500 ml-6">{option.desc}</p>
+              </button>
+            ))}
           </div>
         </div>
       </div>

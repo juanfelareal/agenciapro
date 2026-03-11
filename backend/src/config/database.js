@@ -1570,6 +1570,30 @@ export const initializeDatabase = async () => {
       END $$
     `);
 
+    // Add portal_revenue_metric to client_portal_settings (controls which revenue metric portal clients see)
+    // Values: 'total' (all orders), 'confirmed' (paid only, default), 'net_confirmed' (paid subtotal only)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='portal_revenue_metric') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN portal_revenue_metric TEXT DEFAULT 'confirmed';
+        END IF;
+      END $$
+    `);
+
+    // Add new Shopify revenue columns to client_daily_metrics
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_daily_metrics' AND column_name='shopify_all_orders_revenue') THEN
+          ALTER TABLE client_daily_metrics ADD COLUMN shopify_all_orders_revenue REAL DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_daily_metrics' AND column_name='shopify_all_orders_count') THEN
+          ALTER TABLE client_daily_metrics ADD COLUMN shopify_all_orders_count INTEGER DEFAULT 0;
+        END IF;
+      END $$
+    `);
+
     // Seed default pipeline stages (only if empty)
     const stageCount = await pool.query('SELECT COUNT(*) as count FROM crm_pipeline_stages');
     if (parseInt(stageCount.rows[0].count) === 0) {

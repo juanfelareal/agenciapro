@@ -116,29 +116,38 @@ class ShopifyIntegration {
    * @returns {{revenue, orders, aov, refunds, netRevenue}}
    */
   calculateMetricsFromOrders(orders) {
-    let totalRevenue = 0;    // total_price (includes shipping + tax)
-    let totalSubtotal = 0;   // subtotal_price (products - discounts, no shipping/tax)
+    let confirmedRevenue = 0;    // total_price of paid orders (includes shipping + tax)
+    let confirmedSubtotal = 0;   // subtotal_price of paid orders (products - discounts, no shipping/tax)
+    let allOrdersRevenue = 0;    // total_price of ALL non-cancelled orders (including pending)
     let totalRefunds = 0;
     let totalTax = 0;
     let totalDiscounts = 0;
-    let orderCount = 0;
+    let confirmedOrderCount = 0;
     let pendingOrders = 0;
+    let allOrderCount = 0;
 
     orders.forEach(order => {
       // Skip cancelled orders
       if (order.cancelled_at) return;
 
+      const orderTotal = parseFloat(order.total_price) || 0;
+      const orderSubtotal = parseFloat(order.subtotal_price) || 0;
+
+      // "Venta total" = ALL non-cancelled orders (including pending)
+      allOrdersRevenue += orderTotal;
+      allOrderCount++;
+
       // Count pending/unpaid orders
       if (order.financial_status === 'pending' || order.financial_status === 'authorized' || order.financial_status === 'partially_paid') {
         pendingOrders++;
-        return; // Don't count in revenue
+        return; // Don't count in confirmed metrics
       }
 
-      // Count paid orders
+      // Count paid orders — "Venta total confirmada" and "Venta neta confirmada"
       if (order.financial_status === 'paid' || order.financial_status === 'partially_refunded') {
-        orderCount++;
-        totalRevenue += parseFloat(order.total_price) || 0;
-        totalSubtotal += parseFloat(order.subtotal_price) || 0;
+        confirmedOrderCount++;
+        confirmedRevenue += orderTotal;
+        confirmedSubtotal += orderSubtotal;
         totalTax += parseFloat(order.total_tax) || 0;
         totalDiscounts += parseFloat(order.total_discounts) || 0;
 
@@ -153,18 +162,20 @@ class ShopifyIntegration {
       }
     });
 
-    const netRevenue = totalSubtotal - totalRefunds;  // Fixed: without shipping/tax
-    const aov = orderCount > 0 ? totalRevenue / orderCount : 0;
+    const confirmedNetRevenue = confirmedSubtotal - totalRefunds;
+    const aov = confirmedOrderCount > 0 ? confirmedRevenue / confirmedOrderCount : 0;
 
     return {
-      revenue: totalRevenue,       // "Venta Total" = total_price
-      orders: orderCount,
+      revenue: confirmedRevenue,           // "Venta total confirmada" = total_price of paid orders (backwards compat)
+      orders: confirmedOrderCount,         // Pedidos confirmados (backwards compat)
       aov,
       refunds: totalRefunds,
-      netRevenue,                  // "Venta Neta" = subtotal - refunds (= Shopify "Ventas netas")
+      netRevenue: confirmedNetRevenue,     // "Venta neta confirmada" = subtotal - refunds of paid orders
       totalTax,
       totalDiscounts,
-      pendingOrders                // Pedidos sin pagar
+      pendingOrders,                       // Pedidos sin pagar
+      allOrdersRevenue,                    // "Venta total" = ALL non-cancelled (including pending)
+      allOrderCount,                       // Total pedidos (including pending)
     };
   }
 

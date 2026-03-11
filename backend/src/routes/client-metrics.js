@@ -61,7 +61,9 @@ router.get('/:clientId', async (req, res) => {
         SUM(fb_video_3sec_views) as total_video_3sec_views,
         SUM(fb_video_thruplay_views) as total_video_thruplay_views,
         SUM(fb_landing_page_views) as total_landing_page_views,
-        SUM(shopify_pending_orders) as total_pending_orders
+        SUM(shopify_pending_orders) as total_pending_orders,
+        SUM(COALESCE(shopify_all_orders_revenue, 0)) as total_all_orders_revenue,
+        SUM(COALESCE(shopify_all_orders_count, 0)) as total_all_orders_count
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
     `).get(clientId, start_date, end_date);
@@ -88,7 +90,9 @@ router.get('/:clientId', async (req, res) => {
       total_landing_page_views: metrics.total_landing_page_views || 0,
       total_video_3sec_views: metrics.total_video_3sec_views || 0,
       total_video_thruplay_views: metrics.total_video_thruplay_views || 0,
-      total_pending_orders: metrics.total_pending_orders || 0
+      total_pending_orders: metrics.total_pending_orders || 0,
+      total_all_orders_revenue: metrics.total_all_orders_revenue || 0,
+      total_all_orders_count: metrics.total_all_orders_count || 0
     };
 
     res.json(result);
@@ -149,7 +153,9 @@ router.get('/:clientId/daily', async (req, res) => {
         shopify_total_discounts,
         shopify_sessions,
         shopify_conversion_rate,
-        shopify_pending_orders
+        shopify_pending_orders,
+        shopify_all_orders_revenue,
+        shopify_all_orders_count
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
       ORDER BY metric_date DESC
@@ -193,7 +199,9 @@ router.get('/aggregate/all', async (req, res) => {
         SUM(m.fb_video_3sec_views) as total_video_3sec_views,
         SUM(m.fb_video_thruplay_views) as total_video_thruplay_views,
         SUM(m.fb_landing_page_views) as total_landing_page_views,
-        SUM(m.shopify_pending_orders) as total_pending_orders
+        SUM(m.shopify_pending_orders) as total_pending_orders,
+        SUM(COALESCE(m.shopify_all_orders_revenue, 0)) as total_all_orders_revenue,
+        SUM(COALESCE(m.shopify_all_orders_count, 0)) as total_all_orders_count
       FROM clients c
       INNER JOIN client_daily_metrics m ON c.id = m.client_id
       WHERE m.metric_date BETWEEN ? AND ? AND c.organization_id = ?

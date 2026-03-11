@@ -276,10 +276,21 @@ function ClientMetrics() {
         </div>
       </div>
 
-      {/* Metric Cards - Similar to Master Metrics layout */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {/* Revenue Metrics - 3 types */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <MetricCard
           title="Venta Total"
+          subtitle="Incluye pedidos pendientes"
+          value={metrics?.total_all_orders_revenue}
+          icon={DollarSign}
+          iconBgColor="bg-gray-100"
+          iconColor="text-gray-600"
+          format="currency"
+          loading={loading}
+        />
+        <MetricCard
+          title="Venta Total Confirmada"
+          subtitle="Solo pedidos pagados"
           value={metrics?.total_revenue}
           icon={DollarSign}
           iconBgColor="bg-green-100"
@@ -288,7 +299,8 @@ function ClientMetrics() {
           loading={loading}
         />
         <MetricCard
-          title="Venta Neta"
+          title="Venta Neta Confirmada"
+          subtitle="Sin envío ni impuesto"
           value={metrics?.net_revenue}
           icon={DollarSign}
           iconBgColor="bg-emerald-100"
@@ -296,12 +308,34 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
         />
+      </div>
+
+      {/* Other Metric Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
-          title="Pedidos"
+          title="Pedidos Confirmados"
           value={metrics?.total_orders}
           icon={ShoppingCart}
           iconBgColor="bg-orange-100"
           iconColor="text-orange-600"
+          format="integer"
+          loading={loading}
+        />
+        <MetricCard
+          title="Pedidos Pendientes"
+          value={metrics?.total_pending_orders}
+          icon={ShoppingCart}
+          iconBgColor="bg-yellow-100"
+          iconColor="text-yellow-600"
+          format="integer"
+          loading={loading}
+        />
+        <MetricCard
+          title="Total Pedidos"
+          value={metrics?.total_all_orders_count}
+          icon={ShoppingCart}
+          iconBgColor="bg-gray-100"
+          iconColor="text-gray-600"
           format="integer"
           loading={loading}
         />

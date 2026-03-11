@@ -290,7 +290,7 @@ export default function PortalMetrics() {
 
     if (metrics?.shopify) {
       cols.push(
-        { key: 'shopify_revenue', label: 'Venta Total', type: 'currency', align: 'right' },
+        { key: 'shopify_revenue', label: metrics.shopify.revenue_label || 'Venta Total', type: 'currency', align: 'right' },
         { key: 'shopify_orders', label: 'Pedidos', type: 'integer', align: 'right' },
         { key: 'shopify_aov', label: 'Ticket', type: 'currency', align: 'right' },
       );
@@ -620,7 +620,7 @@ export default function PortalMetrics() {
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-500">Venta Total</p>
+                      <p className="text-sm text-gray-500">{metrics.shopify?.revenue_label || 'Venta Total'}</p>
                       <p className="text-xl font-bold text-[#1A1A2E] mt-1">
                         {formatCurrency(metrics.blended.total_revenue)}
                       </p>
@@ -910,7 +910,7 @@ export default function PortalMetrics() {
                   <p className="text-2xl font-bold text-[#1A1A2E]">
                     {formatCurrency(metrics.shopify.revenue)}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">Ingresos</p>
+                  <p className="text-sm text-gray-500 mt-1">{metrics.shopify.revenue_label || 'Ingresos'}</p>
                 </div>
 
                 {/* Orders */}

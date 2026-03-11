@@ -60,6 +60,13 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const clientId = req.client.id;
     const { startDate, endDate, prevStart, prevEnd } = resolveRange(req.query);
 
+    // Get portal revenue metric setting
+    const portalSettings = await db.get(
+      'SELECT portal_revenue_metric FROM client_portal_settings WHERE client_id = ?',
+      [clientId]
+    );
+    const revenueMetric = portalSettings?.portal_revenue_metric || 'confirmed';
+
     // Current period aggregated metrics
     const current = await db.get(`
       SELECT
@@ -80,7 +87,10 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(shopify_sessions), 0) as total_sessions,
         COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders,
         COALESCE(SUM(fb_link_clicks), 0) as total_link_clicks,
-        COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart
+        COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart,
+        COALESCE(SUM(shopify_all_orders_revenue), 0) as total_all_orders_revenue,
+        COALESCE(SUM(shopify_all_orders_count), 0) as total_all_orders_count,
+        COALESCE(SUM(shopify_net_revenue), 0) as total_net_revenue
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -106,7 +116,10 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(shopify_sessions), 0) as total_sessions,
         COALESCE(SUM(shopify_pending_orders), 0) as total_pending_orders,
         COALESCE(SUM(fb_link_clicks), 0) as total_link_clicks,
-        COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart
+        COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart,
+        COALESCE(SUM(shopify_all_orders_revenue), 0) as total_all_orders_revenue,
+        COALESCE(SUM(shopify_all_orders_count), 0) as total_all_orders_count,
+        COALESCE(SUM(shopify_net_revenue), 0) as total_net_revenue
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -186,6 +199,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const response = {
       period: { start_date: startDate, end_date: endDate },
       has_comparison: hasComparison,
+      revenue_metric: revenueMetric,
       connected_platforms: {
         facebook: facebookAccounts,
         shopify: shopifyStore
@@ -229,8 +243,30 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
 
     // Include shopify object if there's Shopify data or credentials
     if (shopifyStore || revenue > 0 || orders > 0) {
+      // Select revenue value based on portal_revenue_metric setting
+      const allOrdersRevenue = current?.total_all_orders_revenue || 0;
+      const netConfirmedRevenue = current?.total_net_revenue || 0;
+      const prevAllOrdersRevenue = previous?.total_all_orders_revenue || 0;
+      const prevNetConfirmedRevenue = previous?.total_net_revenue || 0;
+
+      let portalRevenue, prevPortalRevenue, portalRevenueLabel;
+      if (revenueMetric === 'total') {
+        portalRevenue = allOrdersRevenue;
+        prevPortalRevenue = prevAllOrdersRevenue;
+        portalRevenueLabel = 'Venta Total';
+      } else if (revenueMetric === 'net_confirmed') {
+        portalRevenue = netConfirmedRevenue;
+        prevPortalRevenue = prevNetConfirmedRevenue;
+        portalRevenueLabel = 'Venta Neta Confirmada';
+      } else {
+        portalRevenue = revenue;
+        prevPortalRevenue = prevRevenue;
+        portalRevenueLabel = 'Venta Total Confirmada';
+      }
+
       response.shopify = {
-        revenue: revenue,
+        revenue: portalRevenue,
+        revenue_label: portalRevenueLabel,
         orders: orders,
         aov: aov,
         customers: customers,
@@ -240,7 +276,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         conversion_rate: conversionRate,
         pending_orders: pendingOrders,
         ...(hasComparison && {
-          revenue_change: calcChange(revenue, prevRevenue),
+          revenue_change: calcChange(portalRevenue, prevPortalRevenue),
           orders_change: calcChange(orders, prevOrders),
           aov_change: calcChange(aov, prevAov),
           customers_change: calcChange(customers, prevCustomers),
@@ -254,26 +290,29 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     }
 
     // Blended metrics (when both platforms have data)
-    if (response.facebook && response.shopify && revenue > 0 && fbSpend > 0) {
-      const overallRoas = revenue / fbSpend;
+    // Use the portal-configured revenue for blended too
+    const blendedRevenue = response.shopify?.revenue || revenue;
+    const prevBlendedRevenue = response.shopify ? (revenueMetric === 'total' ? (previous?.total_all_orders_revenue || 0) : revenueMetric === 'net_confirmed' ? (previous?.total_net_revenue || 0) : prevRevenue) : prevRevenue;
+    if (response.facebook && response.shopify && blendedRevenue > 0 && fbSpend > 0) {
+      const overallRoas = blendedRevenue / fbSpend;
       const costPerOrder = orders > 0 ? fbSpend / orders : 0;
-      const adSpendPercentage = revenue > 0 ? (fbSpend / revenue) * 100 : 0;
-      const marginAfterAds = revenue - fbSpend;
+      const adSpendPercentage = blendedRevenue > 0 ? (fbSpend / blendedRevenue) * 100 : 0;
+      const marginAfterAds = blendedRevenue - fbSpend;
 
-      const prevOverallRoas = prevRevenue > 0 && prevSpend > 0 ? prevRevenue / prevSpend : 0;
+      const prevOverallRoas = prevBlendedRevenue > 0 && prevSpend > 0 ? prevBlendedRevenue / prevSpend : 0;
       const prevCostPerOrder = prevOrders > 0 ? prevSpend / prevOrders : 0;
-      const prevAdSpendPercentage = prevRevenue > 0 ? (prevSpend / prevRevenue) * 100 : 0;
-      const prevMarginAfterAds = prevRevenue - prevSpend;
+      const prevAdSpendPercentage = prevBlendedRevenue > 0 ? (prevSpend / prevBlendedRevenue) * 100 : 0;
+      const prevMarginAfterAds = prevBlendedRevenue - prevSpend;
 
       response.blended = {
-        total_revenue: revenue,
+        total_revenue: blendedRevenue,
         total_ad_spend: fbSpend,
         overall_roas: overallRoas,
         cost_per_order: costPerOrder,
         ad_spend_percentage: adSpendPercentage,
         margin_after_ads: marginAfterAds,
         ...(hasComparison && {
-          total_revenue_change: calcChange(revenue, prevRevenue),
+          total_revenue_change: calcChange(blendedRevenue, prevBlendedRevenue),
           total_ad_spend_change: calcChange(fbSpend, prevSpend),
           overall_roas_change: calcChange(overallRoas, prevOverallRoas),
           cost_per_order_change: calcChange(costPerOrder, prevCostPerOrder),
