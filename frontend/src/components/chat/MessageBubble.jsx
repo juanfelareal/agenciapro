@@ -1,22 +1,160 @@
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { CheckSquare, FolderKanban, User, Calendar, Flag } from 'lucide-react';
+import { chatAPI } from '../../utils/api';
+
+// Cache for entity previews
+const previewCache = new Map();
+
+const STATUS_COLORS = {
+  pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pendiente' },
+  in_progress: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'En progreso' },
+  completed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completada' },
+  done: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completada' },
+  active: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Activo' },
+  blocked: { bg: 'bg-red-100', text: 'text-red-700', label: 'Bloqueada' },
+  review: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'En revisión' },
+};
+
+const PRIORITY_COLORS = {
+  high: 'text-red-500',
+  medium: 'text-yellow-500',
+  low: 'text-green-500',
+  urgent: 'text-red-600',
+};
+
+const EntityPreviewCard = ({ type, id }) => {
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const cacheKey = `${type}-${id}`;
+    if (previewCache.has(cacheKey)) {
+      setPreview(previewCache.get(cacheKey));
+      setLoading(false);
+      return;
+    }
+
+    chatAPI.getEntityPreview(type, id)
+      .then((res) => {
+        previewCache.set(cacheKey, res.data);
+        setPreview(res.data);
+      })
+      .catch(() => setPreview(null))
+      .finally(() => setLoading(false));
+  }, [type, id]);
+
+  if (loading) {
+    return (
+      <div className="mt-1.5 p-2.5 bg-white/10 rounded-xl animate-pulse">
+        <div className="h-3 bg-gray-300/30 rounded w-3/4 mb-2" />
+        <div className="h-2.5 bg-gray-300/20 rounded w-1/2" />
+      </div>
+    );
+  }
+
+  if (!preview) return null;
+
+  const statusInfo = STATUS_COLORS[preview.status] || { bg: 'bg-gray-100', text: 'text-gray-600', label: preview.status };
+  const linkPath = type === 'task' ? '/app/tasks' : `/app/projects/${id}`;
+
+  if (type === 'task') {
+    return (
+      <Link to={linkPath} className="block mt-1.5 group/card">
+        <div className="p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all">
+          <div className="flex items-start gap-2.5">
+            <div className="p-1.5 bg-blue-50 rounded-lg flex-shrink-0 mt-0.5">
+              <CheckSquare size={14} className="text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 truncate group-hover/card:text-blue-600 transition-colors">
+                {preview.title}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${statusInfo.bg} ${statusInfo.text}`}>
+                  {statusInfo.label}
+                </span>
+                {preview.priority && (
+                  <span className={`inline-flex items-center gap-0.5 text-[10px] ${PRIORITY_COLORS[preview.priority] || 'text-gray-500'}`}>
+                    <Flag size={10} />
+                    {preview.priority}
+                  </span>
+                )}
+                {preview.assigned_to_name && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                    <User size={10} />
+                    {preview.assigned_to_name}
+                  </span>
+                )}
+                {preview.due_date && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                    <Calendar size={10} />
+                    {new Date(preview.due_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                  </span>
+                )}
+              </div>
+              {preview.project_name && (
+                <p className="text-[10px] text-gray-400 mt-1 truncate">{preview.project_name}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // Project preview
+  return (
+    <Link to={linkPath} className="block mt-1.5 group/card">
+      <div className="p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all">
+        <div className="flex items-start gap-2.5">
+          <div className="p-1.5 bg-purple-50 rounded-lg flex-shrink-0 mt-0.5">
+            <FolderKanban size={14} className="text-purple-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-800 truncate group-hover/card:text-purple-600 transition-colors">
+              {preview.name}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-1.5">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${statusInfo.bg} ${statusInfo.text}`}>
+                {statusInfo.label}
+              </span>
+              {preview.client_name && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                  <User size={10} />
+                  {preview.client_name}
+                </span>
+              )}
+              {preview.deadline && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                  <Calendar size={10} />
+                  {new Date(preview.deadline).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};
 
 const MessageBubble = ({ message, isOwn, showSender }) => {
-  // Parse entity mentions in content
-  const renderContent = (content, entityMentions) => {
-    if (!entityMentions || entityMentions.length === 0) {
-      return content;
-    }
-
-    let mentions;
+  const mentions = useMemo(() => {
+    if (!message.entity_mentions) return [];
     try {
-      mentions = typeof entityMentions === 'string' ? JSON.parse(entityMentions) : entityMentions;
+      const parsed = typeof message.entity_mentions === 'string'
+        ? JSON.parse(message.entity_mentions)
+        : message.entity_mentions;
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
-      return content;
+      return [];
     }
+  }, [message.entity_mentions]);
 
-    if (!Array.isArray(mentions) || mentions.length === 0) return content;
+  const renderContent = (content) => {
+    if (mentions.length === 0) return content;
 
-    // Replace mention labels with links
     const parts = [];
     let remaining = content;
 
@@ -26,15 +164,17 @@ const MessageBubble = ({ message, isOwn, showSender }) => {
 
       if (idx > 0) parts.push(remaining.substring(0, idx));
 
-      const path = mention.type === 'task' ? '/app/tasks' : '/app/projects';
       parts.push(
-        <Link
+        <span
           key={`${mention.type}-${mention.id}`}
-          to={path}
-          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200 transition-colors"
+          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-semibold ${
+            isOwn
+              ? 'bg-white/20 text-blue-200'
+              : 'bg-blue-100 text-blue-700'
+          }`}
         >
           {mention.label}
-        </Link>
+        </span>
       );
 
       remaining = remaining.substring(idx + mention.label.length);
@@ -73,12 +213,25 @@ const MessageBubble = ({ message, isOwn, showSender }) => {
           }`}
         >
           <p className="text-sm whitespace-pre-wrap break-words">
-            {renderContent(message.content, message.entity_mentions)}
+            {renderContent(message.content)}
           </p>
-          <p className={`text-[10px] mt-1 text-right ${isOwn ? 'text-gray-400' : 'text-gray-400'}`}>
+          <p className="text-[10px] mt-1 text-right text-gray-400">
             {time}
           </p>
         </div>
+
+        {/* Entity preview cards */}
+        {mentions.length > 0 && (
+          <div className="mt-1 space-y-1">
+            {mentions.map((mention) => (
+              <EntityPreviewCard
+                key={`${mention.type}-${mention.id}`}
+                type={mention.type}
+                id={mention.id}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

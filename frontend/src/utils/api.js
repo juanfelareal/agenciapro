@@ -470,6 +470,7 @@ export const chatAPI = {
   markRead: (id) => api.put(`/chat/conversations/${id}/read`),
   getUnreadCount: () => api.get('/chat/unread-count'),
   searchEntities: (q, type) => api.get('/chat/search/entities', { params: { q, type } }),
+  getEntityPreview: (type, id) => api.get(`/chat/entity-preview/${type}/${id}`),
 };
 
 export default api;

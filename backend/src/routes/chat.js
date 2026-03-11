@@ -353,4 +353,44 @@ router.get('/search/entities', async (req, res) => {
   }
 });
 
+// GET /entity-preview/:type/:id — get entity preview for mention cards
+router.get('/entity-preview/:type/:id', async (req, res) => {
+  try {
+    const { type, id } = req.params;
+
+    if (type === 'task') {
+      const task = await db.prepare(`
+        SELECT t.id, t.title, t.status, t.priority, t.due_date,
+          tm.name as assigned_to_name,
+          p.name as project_name
+        FROM tasks t
+        LEFT JOIN team_members tm ON t.assigned_to = tm.id
+        LEFT JOIN projects p ON t.project_id = p.id
+        WHERE t.id = ? AND t.organization_id = ?
+      `).get(id, req.orgId);
+
+      if (!task) return res.status(404).json({ error: 'Task not found' });
+      return res.json({ type: 'task', ...task });
+    }
+
+    if (type === 'project') {
+      const project = await db.prepare(`
+        SELECT p.id, p.name, p.status, p.deadline,
+          c.name as client_name
+        FROM projects p
+        LEFT JOIN clients c ON p.client_id = c.id
+        WHERE p.id = ? AND p.organization_id = ?
+      `).get(id, req.orgId);
+
+      if (!project) return res.status(404).json({ error: 'Project not found' });
+      return res.json({ type: 'project', ...project });
+    }
+
+    res.status(400).json({ error: 'Invalid entity type' });
+  } catch (error) {
+    console.error('Error getting entity preview:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
