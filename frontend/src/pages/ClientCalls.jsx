@@ -1,40 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clientsAPI } from '../utils/api';
+import api from '../utils/api';
 import { Phone, Plus, Edit, Trash2, X, Clock, Calendar, ArrowLeft, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
 const callsAPI = {
-  getAll: async (clientId) => {
-    const res = await fetch(`${API_URL}/client-calls/${clientId}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    });
-    return res.json();
-  },
-  create: async (clientId, data) => {
-    const res = await fetch(`${API_URL}/client-calls/${clientId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  },
-  update: async (clientId, callId, data) => {
-    const res = await fetch(`${API_URL}/client-calls/${clientId}/${callId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  },
-  delete: async (clientId, callId) => {
-    const res = await fetch(`${API_URL}/client-calls/${clientId}/${callId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    });
-    return res.json();
-  }
+  getAll: (clientId) => api.get(`/client-calls/${clientId}`).then(r => r.data),
+  create: (clientId, data) => api.post(`/client-calls/${clientId}`, data).then(r => r.data),
+  update: (clientId, callId, data) => api.put(`/client-calls/${clientId}/${callId}`, data).then(r => r.data),
+  delete: (clientId, callId) => api.delete(`/client-calls/${clientId}/${callId}`).then(r => r.data),
 };
 
 export default function ClientCalls() {
@@ -60,7 +34,7 @@ export default function ClientCalls() {
         clientsAPI.getById(clientId),
         callsAPI.getAll(clientId)
       ]);
-      setClient(clientRes);
+      setClient(clientRes.data);
       setCalls(Array.isArray(callsRes) ? callsRes : []);
     } catch (error) {
       console.error('Error loading data:', error);
