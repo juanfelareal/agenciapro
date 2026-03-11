@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { CheckSquare, FolderKanban, User, Calendar, Flag } from 'lucide-react';
+import { CheckSquare, FolderKanban, StickyNote, User, Calendar, Flag, Folder } from 'lucide-react';
 import { chatAPI } from '../../utils/api';
 import EntityDetailModal from './EntityDetailModal';
 
@@ -58,10 +58,11 @@ const EntityPreviewCard = ({ type, id }) => {
 
   const statusInfo = STATUS_COLORS[preview.status] || { bg: 'bg-gray-100', text: 'text-gray-600', label: preview.status };
   const isTask = type === 'task';
-  const title = isTask ? preview.title : preview.name;
-  const accentBg = isTask ? 'bg-blue-50' : 'bg-purple-50';
-  const accentText = isTask ? 'text-blue-600' : 'text-purple-600';
-  const Icon = isTask ? CheckSquare : FolderKanban;
+  const isNote = type === 'note';
+  const title = isTask ? preview.title : isNote ? preview.title : preview.name;
+  const accentBg = isTask ? 'bg-blue-50' : isNote ? 'bg-amber-50' : 'bg-purple-50';
+  const accentText = isTask ? 'text-blue-600' : isNote ? 'text-amber-600' : 'text-purple-600';
+  const Icon = isTask ? CheckSquare : isNote ? StickyNote : FolderKanban;
 
   return (
     <>
@@ -76,9 +77,11 @@ const EntityPreviewCard = ({ type, id }) => {
                 {title}
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${statusInfo.bg} ${statusInfo.text}`}>
-                  {statusInfo.label}
-                </span>
+                {!isNote && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${statusInfo.bg} ${statusInfo.text}`}>
+                    {statusInfo.label}
+                  </span>
+                )}
                 {isTask && preview.priority && (
                   <span className={`inline-flex items-center gap-0.5 text-[10px] ${PRIORITY_COLORS[preview.priority] || 'text-gray-500'}`}>
                     <Flag size={10} /> {preview.priority}
@@ -89,9 +92,24 @@ const EntityPreviewCard = ({ type, id }) => {
                     <User size={10} /> {preview.assigned_to_name}
                   </span>
                 )}
-                {!isTask && preview.client_name && (
+                {!isTask && !isNote && preview.client_name && (
                   <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
                     <User size={10} /> {preview.client_name}
+                  </span>
+                )}
+                {isNote && preview.category_name && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                    {preview.category_name}
+                  </span>
+                )}
+                {isNote && preview.folder_name && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                    <Folder size={10} /> {preview.folder_name}
+                  </span>
+                )}
+                {isNote && preview.created_by_name && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                    <User size={10} /> {preview.created_by_name}
                   </span>
                 )}
                 {(preview.due_date || preview.deadline) && (

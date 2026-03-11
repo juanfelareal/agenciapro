@@ -363,6 +363,18 @@ router.get('/search/entities', async (req, res) => {
       }
     }
 
+    if (!type || type === 'note') {
+      const notes = await db.prepare(`
+        SELECT id, title FROM notes
+        WHERE title ILIKE ? AND organization_id = ?
+        LIMIT 10
+      `).all(searchTerm, req.orgId);
+
+      for (const note of notes) {
+        results.push({ type: 'note', id: note.id, label: note.title, title: note.title });
+      }
+    }
+
     res.json(results);
   } catch (error) {
     console.error('Error searching entities:', error);
@@ -401,6 +413,23 @@ router.get('/entity-preview/:type/:id', async (req, res) => {
 
       if (!project) return res.status(404).json({ error: 'Project not found' });
       return res.json({ type: 'project', ...project });
+    }
+
+    if (type === 'note') {
+      const note = await db.prepare(`
+        SELECT n.id, n.title, n.color, n.is_pinned, n.created_at, n.updated_at,
+          tm.name as created_by_name,
+          nc.name as category_name,
+          nf.name as folder_name
+        FROM notes n
+        LEFT JOIN team_members tm ON n.created_by = tm.id
+        LEFT JOIN note_categories nc ON n.category_id = nc.id
+        LEFT JOIN note_folders nf ON n.folder_id = nf.id
+        WHERE n.id = ? AND n.organization_id = ?
+      `).get(id, req.orgId);
+
+      if (!note) return res.status(404).json({ error: 'Note not found' });
+      return res.json({ type: 'note', ...note });
     }
 
     res.status(400).json({ error: 'Invalid entity type' });

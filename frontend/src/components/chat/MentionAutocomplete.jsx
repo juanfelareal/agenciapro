@@ -55,9 +55,11 @@ const MentionAutocomplete = ({ query, onSelect, onClose, position }) => {
             className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm transition-colors"
           >
             <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-              item.type === 'task' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+              item.type === 'task' ? 'bg-blue-100 text-blue-700'
+                : item.type === 'note' ? 'bg-amber-100 text-amber-700'
+                : 'bg-purple-100 text-purple-700'
             }`}>
-              {item.type === 'task' ? '#T' : '#P'}
+              {item.type === 'task' ? '#T' : item.type === 'note' ? '#N' : '#P'}
             </span>
             <span className="truncate">{item.title}</span>
           </button>

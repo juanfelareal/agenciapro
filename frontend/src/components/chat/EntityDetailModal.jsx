@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  X, CheckSquare, FolderKanban, User, Calendar, Flag, Clock,
-  ExternalLink, MessageSquare, Loader2
+  X, CheckSquare, FolderKanban, StickyNote, User, Calendar, Flag, Clock,
+  ExternalLink, MessageSquare, Loader2, Folder
 } from 'lucide-react';
-import { tasksAPI, projectsAPI, subtasksAPI, taskCommentsAPI } from '../../utils/api';
+import { tasksAPI, projectsAPI, subtasksAPI, taskCommentsAPI, notesAPI } from '../../utils/api';
 
 const STATUS_CONFIG = {
   pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pendiente' },
@@ -42,6 +42,9 @@ const EntityDetailModal = ({ type, id, onClose }) => {
           setData(taskRes.data);
           setSubtasks(subtasksRes.data || []);
           setComments(commentsRes.data || []);
+        } else if (type === 'note') {
+          const res = await notesAPI.getById(id);
+          setData(res.data);
         } else {
           const res = await projectsAPI.getById(id);
           setData(res.data);
@@ -63,7 +66,7 @@ const EntityDetailModal = ({ type, id, onClose }) => {
     return new Date(d).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  const linkPath = type === 'task' ? '/app/tasks' : `/app/projects/${id}`;
+  const linkPath = type === 'task' ? '/app/tasks' : type === 'note' ? '/app/notas' : `/app/projects/${id}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
@@ -74,11 +77,11 @@ const EntityDetailModal = ({ type, id, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-lg ${type === 'task' ? 'bg-blue-50' : 'bg-purple-50'}`}>
-              {type === 'task' ? <CheckSquare size={16} className="text-blue-600" /> : <FolderKanban size={16} className="text-purple-600" />}
+            <div className={`p-1.5 rounded-lg ${type === 'task' ? 'bg-blue-50' : type === 'note' ? 'bg-amber-50' : 'bg-purple-50'}`}>
+              {type === 'task' ? <CheckSquare size={16} className="text-blue-600" /> : type === 'note' ? <StickyNote size={16} className="text-amber-600" /> : <FolderKanban size={16} className="text-purple-600" />}
             </div>
             <span className="text-xs font-medium text-gray-400 uppercase">
-              {type === 'task' ? `Tarea #T-${id}` : `Proyecto #P-${id}`}
+              {type === 'task' ? `Tarea #T-${id}` : type === 'note' ? `Nota #N-${id}` : `Proyecto #P-${id}`}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -104,6 +107,61 @@ const EntityDetailModal = ({ type, id, onClose }) => {
             </div>
           ) : !data ? (
             <p className="text-center text-gray-400 py-8">No se encontró la entidad</p>
+          ) : type === 'note' ? (
+            /* Note Detail */
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-gray-800">{data.title}</h2>
+
+              <div className="flex flex-wrap gap-2">
+                {data.category_name && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                    {data.category_name}
+                  </span>
+                )}
+                {data.is_pinned === 1 && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                    Fijada
+                  </span>
+                )}
+              </div>
+
+              {data.content_plain && (
+                <div>
+                  <p className="text-xs font-medium text-gray-400 mb-1">Contenido</p>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-[12]">{data.content_plain}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                {data.folder_name && (
+                  <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg">
+                    <Folder size={14} className="text-gray-400" />
+                    <div>
+                      <p className="text-[10px] text-gray-400">Carpeta</p>
+                      <p className="text-xs font-medium text-gray-700">{data.folder_name}</p>
+                    </div>
+                  </div>
+                )}
+                {data.created_by_name && (
+                  <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg">
+                    <User size={14} className="text-gray-400" />
+                    <div>
+                      <p className="text-[10px] text-gray-400">Creada por</p>
+                      <p className="text-xs font-medium text-gray-700">{data.created_by_name}</p>
+                    </div>
+                  </div>
+                )}
+                {data.updated_at && (
+                  <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg">
+                    <Clock size={14} className="text-gray-400" />
+                    <div>
+                      <p className="text-[10px] text-gray-400">Última edición</p>
+                      <p className="text-xs font-medium text-gray-700">{formatDate(data.updated_at)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : type === 'task' ? (
             /* Task Detail */
             <div className="space-y-4">
@@ -269,7 +327,7 @@ const EntityDetailModal = ({ type, id, onClose }) => {
             className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ExternalLink size={14} />
-            Abrir {type === 'task' ? 'tarea' : 'proyecto'} completo
+            Abrir {type === 'task' ? 'tarea' : type === 'note' ? 'nota' : 'proyecto'} completo
           </Link>
         </div>
       </div>

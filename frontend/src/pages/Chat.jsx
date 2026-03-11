@@ -135,7 +135,7 @@ const Chat = () => {
   };
 
   const handleMentionSelect = (entity) => {
-    const label = entity.type === 'task' ? `#T-${entity.id}` : `#P-${entity.id}`;
+    const label = entity.type === 'task' ? `#T-${entity.id}` : entity.type === 'note' ? `#N-${entity.id}` : `#P-${entity.id}`;
     // Replace the #query with the label
     const cursorPos = inputRef.current.selectionStart;
     const textBefore = inputValue.substring(0, cursorPos);
