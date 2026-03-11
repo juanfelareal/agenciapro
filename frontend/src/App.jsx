@@ -39,6 +39,7 @@ import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
 import ClientCalls from './pages/ClientCalls';
 import Chat from './pages/Chat';
+import Agents from './pages/Agents';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -405,6 +406,8 @@ function App() {
                 />
                 <Route path="chat" element={<Chat />} />
                 <Route path="chat/:conversationId" element={<Chat />} />
+                <Route path="agents" element={<Agents />} />
+                <Route path="agents/:slug" element={<Agents />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>

@@ -24,6 +24,7 @@ import {
   ClipboardList,
   Receipt,
   MessageCircle,
+  Bot,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -85,6 +86,7 @@ const Layout = ({ children }) => {
     { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
     { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
     { name: 'Chat', path: '/app/chat', icon: MessageCircle, permission: null },
+    { name: 'Agentes IA', path: '/app/agents', icon: Bot, permission: null },
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
     { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
   ];
