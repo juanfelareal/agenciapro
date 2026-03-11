@@ -353,6 +353,24 @@ router.get('/search/entities', async (req, res) => {
   }
 });
 
+// DEBUG: temporary endpoint to diagnose conversation issue
+router.get('/debug-conversations', async (req, res) => {
+  try {
+    const convs = await db.prepare('SELECT * FROM chat_conversations').all();
+    const members = await db.prepare('SELECT cm.*, tm.name FROM chat_members cm JOIN team_members tm ON cm.team_member_id = tm.id').all();
+    const msgs = await db.prepare('SELECT id, conversation_id, sender_id, content, message_type FROM chat_messages').all();
+    res.json({
+      reqOrgId: req.orgId,
+      reqTeamMemberId: req.teamMember.id,
+      conversations: convs,
+      members,
+      messages: msgs,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /entity-preview/:type/:id — get entity preview for mention cards
 router.get('/entity-preview/:type/:id', async (req, res) => {
   try {
