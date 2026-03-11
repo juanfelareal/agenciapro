@@ -39,6 +39,10 @@ function ClientPlatformSettings() {
   const [linkingStore, setLinkingStore] = useState(false);
   const [shopifyStoreUrlInput, setShopifyStoreUrlInput] = useState('');
   const [testResults, setTestResults] = useState({ shopify: null });
+  const [shopifyApiKey, setShopifyApiKey] = useState('');
+  const [shopifyApiSecret, setShopifyApiSecret] = useState('');
+  const [savingCredentials, setSavingCredentials] = useState(false);
+  const [hasCustomApp, setHasCustomApp] = useState(false);
 
   // Load client and credentials
   useEffect(() => {
@@ -96,9 +100,13 @@ function ClientPlatformSettings() {
         });
       }
 
-      // Pre-fill Shopify store URL input if credentials exist
+      // Pre-fill Shopify store URL input and custom app state
       if (credentialsRes.data.shopify) {
         setShopifyStoreUrlInput(credentialsRes.data.shopify.store_url || '');
+        setHasCustomApp(!!credentialsRes.data.shopify.has_custom_app);
+        if (credentialsRes.data.shopify.shopify_api_key) {
+          setShopifyApiKey(credentialsRes.data.shopify.shopify_api_key);
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -197,6 +205,28 @@ function ClientPlatformSettings() {
       loadData();
     } catch (error) {
       alert('Error al desconectar: ' + error.message);
+    }
+  };
+
+  // Save per-client Shopify app credentials
+  const saveShopifyCredentials = async () => {
+    if (!shopifyApiKey.trim() || !shopifyApiSecret.trim()) {
+      alert('Ingresa el Client ID y Client Secret de la app de Shopify');
+      return;
+    }
+    try {
+      setSavingCredentials(true);
+      await shopifyOAuthAPI.saveCredentials({
+        client_id: parseInt(clientId),
+        shopify_api_key: shopifyApiKey.trim(),
+        shopify_api_secret: shopifyApiSecret.trim()
+      });
+      setHasCustomApp(true);
+      alert('Credenciales guardadas. Ahora puedes conectar la tienda.');
+    } catch (error) {
+      alert('Error al guardar credenciales: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setSavingCredentials(false);
     }
   };
 
@@ -535,40 +565,99 @@ function ClientPlatformSettings() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL de la tienda
-                  </label>
-                  <input
-                    type="text"
-                    value={shopifyStoreUrlInput}
-                    onChange={(e) => setShopifyStoreUrlInput(e.target.value)}
-                    placeholder="mi-tienda.myshopify.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
+                {/* Step 1: App Credentials */}
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        {hasCustomApp ? <CheckCircle className="w-4 h-4 text-green-500" /> : <span className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs text-white font-bold">1</span>}
+                        Credenciales de la App
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Client ID y Secret del Dev Dashboard de Shopify Partners</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Client ID</label>
+                      <input
+                        type="text"
+                        value={shopifyApiKey}
+                        onChange={(e) => setShopifyApiKey(e.target.value)}
+                        placeholder="ej: 8a7b6c5d4e3f2g1h"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Client Secret</label>
+                      <input
+                        type="password"
+                        value={shopifyApiSecret}
+                        onChange={(e) => setShopifyApiSecret(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+                  {!hasCustomApp && (
+                    <button
+                      onClick={saveShopifyCredentials}
+                      disabled={savingCredentials || !shopifyApiKey.trim() || !shopifyApiSecret.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {savingCredentials ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      Guardar Credenciales
+                    </button>
+                  )}
+                  {hasCustomApp && (
+                    <button
+                      onClick={saveShopifyCredentials}
+                      disabled={savingCredentials}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline"
+                    >
+                      Actualizar credenciales
+                    </button>
+                  )}
                 </div>
 
-                <button
-                  onClick={connectWithShopify}
-                  disabled={connectingShopify}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
-                  {connectingShopify ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Conectando...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingBag className="w-5 h-5" />
-                      Conectar con Shopify
-                    </>
-                  )}
-                </button>
+                {/* Step 2: Connect Store */}
+                <div className={`space-y-3 ${!hasCustomApp ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-xs text-white font-bold">2</span>
+                    <h3 className="text-sm font-semibold text-gray-900">Conectar Tienda</h3>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">URL de la tienda</label>
+                    <input
+                      type="text"
+                      value={shopifyStoreUrlInput}
+                      onChange={(e) => setShopifyStoreUrlInput(e.target.value)}
+                      placeholder="mi-tienda.myshopify.com"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
 
-                <p className="text-xs text-gray-400 text-center">
-                  Se abrirá una ventana para autorizar el acceso a tu tienda
-                </p>
+                  <button
+                    onClick={connectWithShopify}
+                    disabled={connectingShopify || !hasCustomApp}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {connectingShopify ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Conectando...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag className="w-5 h-5" />
+                        Conectar con Shopify
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-xs text-gray-400 text-center">
+                    Se abrirá una ventana para autorizar el acceso a tu tienda
+                  </p>
+                </div>
               </div>
             )}
           </div>

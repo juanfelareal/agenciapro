@@ -322,6 +322,7 @@ export const shopifyOAuthAPI = {
     api.get(`/oauth/shopify/store-info?session_id=${sessionId}`),
   linkStore: (data) => api.post('/oauth/shopify/link-store', data),
   unlinkStore: (credentialId) => api.delete(`/oauth/shopify/unlink/${credentialId}`),
+  saveCredentials: (data) => api.post('/oauth/shopify/save-credentials', data),
 };
 
 // PDF Analysis API (RUT extraction with Claude AI)

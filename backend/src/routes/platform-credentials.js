@@ -32,7 +32,9 @@ router.get('/client/:clientId', async (req, res) => {
     `).all(clientId);
 
     const shopify = await db.prepare(`
-      SELECT id, client_id, store_url, status, last_sync_at, last_error, created_at
+      SELECT id, client_id, store_url, status, last_sync_at, last_error, created_at,
+        CASE WHEN shopify_api_key IS NOT NULL AND shopify_api_key != '' THEN true ELSE false END as has_custom_app,
+        shopify_api_key
       FROM client_shopify_credentials
       WHERE client_id = ?
     `).get(clientId);

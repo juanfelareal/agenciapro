@@ -9,8 +9,9 @@ const oauthSessions = new Map();
 // Store callback results for frontend polling (since window.opener is lost in cross-origin redirects)
 const callbackResults = new Map();
 
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
+// Fallback global credentials (used if client has no per-client app)
+const GLOBAL_SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
+const GLOBAL_SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 const REDIRECT_URI = `${BACKEND_URL}/api/oauth/shopify/callback`;
 
@@ -18,9 +19,25 @@ const REDIRECT_URI = `${BACKEND_URL}/api/oauth/shopify/callback`;
 const SCOPES = 'read_orders,read_reports';
 
 /**
+ * Get Shopify credentials for a client (per-client app or global fallback)
+ */
+async function getShopifyCredentials(clientId) {
+  // Check if client has stored app credentials
+  if (clientId) {
+    const cred = await db.get(`
+      SELECT shopify_api_key, shopify_api_secret FROM client_shopify_credentials WHERE client_id = ?
+    `, [clientId]);
+    if (cred?.shopify_api_key && cred?.shopify_api_secret) {
+      return { apiKey: cred.shopify_api_key, apiSecret: cred.shopify_api_secret };
+    }
+  }
+  return { apiKey: GLOBAL_SHOPIFY_API_KEY, apiSecret: GLOBAL_SHOPIFY_API_SECRET };
+}
+
+/**
  * Verify Shopify HMAC signature on callback
  */
-function verifyShopifyHmac(query) {
+function verifyShopifyHmac(query, apiSecret) {
   const { hmac, ...params } = query;
   if (!hmac) return false;
 
@@ -31,7 +48,7 @@ function verifyShopifyHmac(query) {
     .join('&');
 
   const generatedHmac = crypto
-    .createHmac('sha256', SHOPIFY_API_SECRET)
+    .createHmac('sha256', apiSecret)
     .update(message)
     .digest('hex');
 
@@ -70,6 +87,43 @@ function cleanOldSessions() {
 }
 
 /**
+ * POST /api/oauth/shopify/save-credentials
+ * Save per-client Shopify app credentials (Client ID + Secret)
+ */
+router.post('/save-credentials', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { client_id, shopify_api_key, shopify_api_secret } = req.body;
+
+    if (!client_id || !shopify_api_key || !shopify_api_secret) {
+      return res.status(400).json({ error: 'client_id, shopify_api_key y shopify_api_secret son requeridos' });
+    }
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    // Upsert credentials
+    await db.run(`
+      INSERT INTO client_shopify_credentials (client_id, store_url, access_token, shopify_api_key, shopify_api_secret, status, organization_id)
+      VALUES (?, '', '', ?, ?, 'inactive', ?)
+      ON CONFLICT(client_id)
+      DO UPDATE SET
+        shopify_api_key = EXCLUDED.shopify_api_key,
+        shopify_api_secret = EXCLUDED.shopify_api_secret,
+        updated_at = CURRENT_TIMESTAMP
+    `, [client_id, shopify_api_key.trim(), shopify_api_secret.trim(), orgId]);
+
+    res.json({ message: 'Credenciales guardadas exitosamente' });
+  } catch (error) {
+    console.error('Error saving Shopify credentials:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/oauth/shopify/url
  * Generate OAuth authorization URL for Shopify
  */
@@ -86,8 +140,11 @@ router.get('/url', async (req, res) => {
       return res.status(400).json({ error: 'store_url es requerido' });
     }
 
-    if (!SHOPIFY_API_KEY) {
-      return res.status(500).json({ error: 'SHOPIFY_API_KEY no configurado en .env' });
+    // Get per-client or global credentials
+    const { apiKey, apiSecret } = await getShopifyCredentials(client_id);
+
+    if (!apiKey) {
+      return res.status(500).json({ error: 'No hay credenciales de Shopify configuradas para este cliente. Ingresa el Client ID y Secret primero.' });
     }
 
     // Verify client belongs to org
@@ -106,11 +163,13 @@ router.get('/url', async (req, res) => {
     // Generate state for CSRF protection
     const state = `${client_id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Store state with client_id, orgId, and store URL for later verification
+    // Store state with client_id, orgId, store URL, and credentials for later use in callback
     oauthSessions.set(state, {
       clientId: client_id,
       orgId: orgId,
       storeUrl: normalizedStore,
+      apiKey,
+      apiSecret,
       createdAt: Date.now()
     });
 
@@ -118,7 +177,7 @@ router.get('/url', async (req, res) => {
     cleanOldSessions();
 
     const authUrl = `https://${normalizedStore}/admin/oauth/authorize?` +
-      `client_id=${SHOPIFY_API_KEY}` +
+      `client_id=${apiKey}` +
       `&scope=${SCOPES}` +
       `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
       `&state=${state}`;
@@ -178,17 +237,19 @@ router.get('/callback', async (req, res) => {
       return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Autorización cancelada o parámetros faltantes' });
     }
 
-    // Verify HMAC signature
-    if (!verifyShopifyHmac(req.query)) {
-      console.log('Shopify callback: HMAC verification failed');
-      return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Firma HMAC inválida' });
-    }
-
-    // Verify state exists and shop matches
+    // Get session to retrieve per-client credentials
     const session = oauthSessions.get(state);
     if (!session) {
       console.log('Shopify callback: state not found in sessions. Active sessions:', oauthSessions.size);
       return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Sesión expirada o inválida. Intenta de nuevo.' });
+    }
+
+    const { apiKey, apiSecret } = session;
+
+    // Verify HMAC signature using the correct secret for this client
+    if (!verifyShopifyHmac(req.query, apiSecret)) {
+      console.log('Shopify callback: HMAC verification failed');
+      return sendCallbackPage(res, { type: 'shopify_oauth_error', error: 'Firma HMAC inválida' });
     }
 
     const normalizedShop = normalizeStoreUrl(shop);
@@ -201,13 +262,13 @@ router.get('/callback', async (req, res) => {
     const clientId = session.clientId;
     oauthSessions.delete(state);
 
-    // Exchange code for permanent access token
+    // Exchange code for permanent access token using per-client credentials
     const tokenResponse = await fetch(`https://${normalizedShop}/admin/oauth/access_token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: SHOPIFY_API_KEY,
-        client_secret: SHOPIFY_API_SECRET,
+        client_id: apiKey,
+        client_secret: apiSecret,
         code: code
       })
     });
@@ -361,7 +422,7 @@ router.post('/link-store', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    // Upsert into client_shopify_credentials
+    // Upsert into client_shopify_credentials (preserve existing api_key/secret)
     await db.prepare(`
       INSERT INTO client_shopify_credentials (client_id, store_url, access_token, status, organization_id)
       VALUES (?, ?, ?, 'active', ?)

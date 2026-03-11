@@ -1547,6 +1547,19 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_calls_client_id ON client_calls(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_calls_org_id ON client_calls(organization_id)`);
 
+    // Add shopify_api_key and shopify_api_secret to client_shopify_credentials (per-client app credentials)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_shopify_credentials' AND column_name='shopify_api_key') THEN
+          ALTER TABLE client_shopify_credentials ADD COLUMN shopify_api_key TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_shopify_credentials' AND column_name='shopify_api_secret') THEN
+          ALTER TABLE client_shopify_credentials ADD COLUMN shopify_api_secret TEXT;
+        END IF;
+      END $$
+    `);
+
     // Add can_view_forms to client_portal_settings
     await pool.query(`
       DO $$
