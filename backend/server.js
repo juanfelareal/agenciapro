@@ -76,6 +76,8 @@ import formShareRoutes from './src/routes/form-share.js';
 // Collections / Cartera
 import collectionsRoutes from './src/routes/collections.js';
 import clientCallsRoutes from './src/routes/client-calls.js';
+// Ad Creative Tagging
+import adTagRoutes from './src/routes/ad-tags.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -211,6 +213,8 @@ app.use('/api/invoice-pdf', invoicePdfRoutes);
 // Collections / Cartera
 app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
 app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
+// Ad Creative Tagging
+app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

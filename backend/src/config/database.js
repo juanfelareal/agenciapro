@@ -692,6 +692,45 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Ad Tag Categories (Audiencia, Concepto, Ángulo, Formato, Hook)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ad_tag_categories (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#6366F1',
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(name, organization_id)
+      )
+    `);
+
+    // Ad Tag Values (e.g., "Problem + Solution" under "Concepto")
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ad_tag_values (
+        id SERIAL PRIMARY KEY,
+        category_id INTEGER NOT NULL REFERENCES ad_tag_categories(id) ON DELETE CASCADE,
+        organization_id INTEGER,
+        name TEXT NOT NULL,
+        color TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(name, category_id)
+      )
+    `);
+
+    // Ad Tag Assignments (links Facebook ad_id to tag values)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ad_tag_assignments (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER,
+        ad_id TEXT NOT NULL,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        tag_value_id INTEGER NOT NULL REFERENCES ad_tag_values(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(ad_id, tag_value_id)
+      )
+    `);
+
     // SOP Categories
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sop_categories (
@@ -1046,6 +1085,7 @@ export const initializeDatabase = async () => {
       // Client portal and integrations
       'client_access_tokens', 'client_portal_settings', 'client_comments', 'client_notifications',
       'client_facebook_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
+      'ad_tag_categories', 'ad_tag_values', 'ad_tag_assignments',
       // Siigo (accounting integration)
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
       // Note: 'forms' and 'form_assignments' already have organization_id in their CREATE TABLE
@@ -1189,6 +1229,13 @@ export const initializeDatabase = async () => {
 
     // Portal settings index
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_portal_settings_client ON client_portal_settings(client_id)`);
+
+    // Ad tag indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_values_category ON ad_tag_values(category_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_assignments_ad ON ad_tag_assignments(ad_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_assignments_client ON ad_tag_assignments(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_assignments_value ON ad_tag_assignments(tag_value_id)`);
 
     // Notifications indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)`);
@@ -1593,6 +1640,45 @@ export const initializeDatabase = async () => {
         END IF;
       END $$
     `);
+
+    // Seed default ad tag categories (only if empty)
+    const adTagCount = await pool.query('SELECT COUNT(*) as count FROM ad_tag_categories');
+    if (parseInt(adTagCount.rows[0].count) === 0) {
+      // Get all org IDs to seed for each
+      const orgs = await pool.query('SELECT id FROM organizations');
+      for (const org of orgs.rows) {
+        const orgId = org.id;
+        const categories = [
+          { name: 'Audiencia', color: '#8B5CF6', sort_order: 0 },
+          { name: 'Concepto', color: '#F59E0B', sort_order: 1 },
+          { name: 'Ángulo', color: '#3B82F6', sort_order: 2 },
+          { name: 'Formato', color: '#10B981', sort_order: 3 },
+          { name: 'Hook', color: '#EF4444', sort_order: 4 },
+        ];
+        for (const cat of categories) {
+          const catResult = await pool.query(
+            'INSERT INTO ad_tag_categories (organization_id, name, color, sort_order) VALUES ($1, $2, $3, $4) RETURNING id',
+            [orgId, cat.name, cat.color, cat.sort_order]
+          );
+          const catId = catResult.rows[0].id;
+          // Seed values per category
+          const values = {
+            'Concepto': ['Problem + Solution', 'Product Features', 'Social Proof', 'Testimonial', 'UGC', 'Us vs Them', 'Call Out'],
+            'Ángulo': ['Before / After', 'Use Case', 'Problem Agitation', 'Lifestyle', 'Educational', 'Urgency'],
+            'Formato': ['Video', 'Imagen', 'Carrusel', 'Reel', 'UGC Video'],
+            'Hook': ['Pregunta', 'Dato Estadístico', 'Pain Point', 'Bold Claim', 'Visual Disruption'],
+          };
+          if (values[cat.name]) {
+            for (const val of values[cat.name]) {
+              await pool.query(
+                'INSERT INTO ad_tag_values (category_id, organization_id, name) VALUES ($1, $2, $3)',
+                [catId, orgId, val]
+              );
+            }
+          }
+        }
+      }
+    }
 
     // Seed default pipeline stages (only if empty)
     const stageCount = await pool.query('SELECT COUNT(*) as count FROM crm_pipeline_stages');

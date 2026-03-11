@@ -446,4 +446,18 @@ export const formsAPI = {
   getPublicResponse: (responseId) => api.get(`/forms/public-responses/${responseId}`),
 };
 
+// Ad Creative Tagging API
+export const adTagsAPI = {
+  getCategories: () => api.get('/ad-tags/categories'),
+  createCategory: (data) => api.post('/ad-tags/categories', data),
+  updateCategory: (id, data) => api.put(`/ad-tags/categories/${id}`, data),
+  deleteCategory: (id) => api.delete(`/ad-tags/categories/${id}`),
+  createValue: (categoryId, data) => api.post(`/ad-tags/categories/${categoryId}/values`, data),
+  updateValue: (id, data) => api.put(`/ad-tags/values/${id}`, data),
+  deleteValue: (id) => api.delete(`/ad-tags/values/${id}`),
+  getAssignments: (clientId) => api.get(`/ad-tags/assignments/${clientId}`),
+  setAdTags: (adId, data) => api.put(`/ad-tags/assignments/${adId}`, data),
+  bulkAssign: (data) => api.post('/ad-tags/assignments/bulk', data),
+};
+
 export default api;

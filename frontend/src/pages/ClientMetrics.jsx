@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -18,13 +18,18 @@ import {
   Target,
   Tag,
   ExternalLink,
-  Package
+  Package,
+  Plus,
+  ChevronDown,
+  X,
+  Check,
+  BarChart3
 } from 'lucide-react';
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
+  LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { clientsAPI, clientMetricsAPI } from '../utils/api';
+import { clientsAPI, clientMetricsAPI, adTagsAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import MetricsTable from '../components/MetricsTable';
 import DashboardShareModal from '../components/DashboardShareModal';
@@ -53,6 +58,13 @@ function ClientMetrics() {
   const [adsLoading, setAdsLoading] = useState(false);
   const [topProducts, setTopProducts] = useState(null);
   const [topProductsLoading, setTopProductsLoading] = useState(false);
+  const [tagCategories, setTagCategories] = useState([]);
+  const [tagDropdown, setTagDropdown] = useState(null); // { adId, categoryId }
+  const [tagSearch, setTagSearch] = useState('');
+  const [newValueName, setNewValueName] = useState('');
+  const [analysisCategoryId, setAnalysisCategoryId] = useState(null);
+  const [analysisMetric, setAnalysisMetric] = useState('roas');
+  const tagDropdownRef = useRef(null);
 
   const [dateRange, setDateRange] = useState({
     start: getColombiaDate(-7),
@@ -61,7 +73,21 @@ function ClientMetrics() {
 
   useEffect(() => {
     loadClient();
+    loadTagCategories();
   }, [clientId]);
+
+  // Close tag dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target)) {
+        setTagDropdown(null);
+        setTagSearch('');
+        setNewValueName('');
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   useEffect(() => {
     if (client) {
@@ -103,6 +129,92 @@ function ClientMetrics() {
       setTopProductsLoading(false);
     }
   };
+
+  const loadTagCategories = async () => {
+    try {
+      const res = await adTagsAPI.getCategories();
+      setTagCategories(res.data || []);
+      if (res.data?.length > 0 && !analysisCategoryId) {
+        setAnalysisCategoryId(res.data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading tag categories:', error);
+    }
+  };
+
+  const handleTagAssign = async (adId, categoryId, valueId) => {
+    if (!ads) return;
+    const ad = ads.find(a => a.ad_id === adId);
+    if (!ad) return;
+
+    // Build new assignments: keep existing tags from other categories, set this one
+    const otherTags = (ad.tags || []).filter(t => t.category_id !== categoryId);
+    const assignments = otherTags.map(t => ({ category_id: t.category_id, value_id: t.value_id }));
+    if (valueId) {
+      assignments.push({ category_id: categoryId, value_id: valueId });
+    }
+
+    try {
+      const res = await adTagsAPI.setAdTags(adId, { client_id: parseInt(clientId), assignments });
+      // Update local state
+      setAds(prev => prev.map(a => a.ad_id === adId ? { ...a, tags: res.data } : a));
+    } catch (error) {
+      console.error('Error assigning tag:', error);
+    }
+    setTagDropdown(null);
+    setTagSearch('');
+    setNewValueName('');
+  };
+
+  const handleCreateValueAndAssign = async (adId, categoryId) => {
+    if (!newValueName.trim()) return;
+    try {
+      const res = await adTagsAPI.createValue(categoryId, { name: newValueName.trim() });
+      const newValue = res.data;
+      // Refresh categories to include new value
+      await loadTagCategories();
+      // Assign it
+      await handleTagAssign(adId, categoryId, newValue.id);
+    } catch (error) {
+      console.error('Error creating value:', error);
+    }
+  };
+
+  // Analysis: group ads by selected tag category
+  const tagAnalysis = useMemo(() => {
+    if (!ads || !analysisCategoryId) return [];
+    const groups = {};
+    for (const ad of ads) {
+      const tag = (ad.tags || []).find(t => t.category_id === analysisCategoryId);
+      const key = tag ? tag.value_name : 'Sin etiqueta';
+      const color = tag ? (tag.value_color || tag.category_color) : '#9CA3AF';
+      if (!groups[key]) groups[key] = { label: key, color, ads: [] };
+      groups[key].ads.push(ad);
+    }
+    return Object.values(groups).map(g => {
+      const totalSpend = g.ads.reduce((s, a) => s + a.spend, 0);
+      const totalRevenue = g.ads.reduce((s, a) => s + (a.revenue || 0), 0);
+      const totalImpressions = g.ads.reduce((s, a) => s + a.impressions, 0);
+      const totalConversions = g.ads.reduce((s, a) => s + a.conversions, 0);
+      const totalVideo3Sec = g.ads.reduce((s, a) => s + (a.hook_rate > 0 ? (a.hook_rate / 100) * a.impressions : 0), 0);
+      const totalThruplay = g.ads.reduce((s, a) => {
+        const v3s = a.hook_rate > 0 ? (a.hook_rate / 100) * a.impressions : 0;
+        return s + (a.hold_rate > 0 ? (a.hold_rate / 100) * v3s : 0);
+      }, 0);
+      return {
+        label: g.label,
+        color: g.color,
+        count: g.ads.length,
+        spend: totalSpend,
+        roas: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+        hookRate: totalImpressions > 0 ? (totalVideo3Sec / totalImpressions) * 100 : 0,
+        holdRate: totalVideo3Sec > 0 ? (totalThruplay / totalVideo3Sec) * 100 : 0,
+        cpm: totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0,
+        costPerPurchase: totalConversions > 0 ? totalSpend / totalConversions : 0,
+        conversions: totalConversions,
+      };
+    }).sort((a, b) => b[analysisMetric] - a[analysisMetric]);
+  }, [ads, analysisCategoryId, analysisMetric]);
 
   const loadMetrics = async () => {
     try {
@@ -746,6 +858,14 @@ function ClientMetrics() {
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
                   <th className="text-left py-3 px-3 font-medium text-gray-500">Campaña</th>
+                  {tagCategories.map(cat => (
+                    <th key={cat.id} className="text-left py-3 px-3 font-medium text-gray-500" style={{ minWidth: '120px' }}>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }}></span>
+                        {cat.name}
+                      </span>
+                    </th>
+                  ))}
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Presupuesto</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">CPM</th>
@@ -775,6 +895,82 @@ function ClientMetrics() {
                       <td className="py-3 px-3 max-w-[160px] truncate text-gray-500" title={ad.campaign_name}>
                         {ad.campaign_name}
                       </td>
+                      {tagCategories.map(cat => {
+                        const tag = (ad.tags || []).find(t => t.category_id === cat.id);
+                        const isOpen = tagDropdown?.adId === ad.ad_id && tagDropdown?.categoryId === cat.id;
+                        const filteredValues = (cat.values || []).filter(v =>
+                          !tagSearch || v.name.toLowerCase().includes(tagSearch.toLowerCase())
+                        );
+                        return (
+                          <td key={cat.id} className="py-2 px-3 relative">
+                            <button
+                              onClick={() => {
+                                if (isOpen) { setTagDropdown(null); setTagSearch(''); setNewValueName(''); }
+                                else setTagDropdown({ adId: ad.ad_id, categoryId: cat.id });
+                              }}
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                                tag
+                                  ? 'text-white hover:opacity-80'
+                                  : 'text-gray-400 bg-gray-100 hover:bg-gray-200'
+                              }`}
+                              style={tag ? { backgroundColor: tag.value_color || cat.color } : {}}
+                            >
+                              {tag ? tag.value_name : <Plus className="w-3 h-3" />}
+                            </button>
+                            {isOpen && (
+                              <div ref={tagDropdownRef} className="absolute z-50 top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 w-56 py-1">
+                                <div className="px-2 py-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Buscar..."
+                                    value={tagSearch}
+                                    onChange={e => setTagSearch(e.target.value)}
+                                    className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    autoFocus
+                                  />
+                                </div>
+                                <div className="max-h-40 overflow-y-auto">
+                                  {tag && (
+                                    <button
+                                      onClick={() => handleTagAssign(ad.ad_id, cat.id, null)}
+                                      className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 flex items-center gap-2"
+                                    >
+                                      <X className="w-3 h-3" /> Quitar etiqueta
+                                    </button>
+                                  )}
+                                  {filteredValues.map(v => (
+                                    <button
+                                      key={v.id}
+                                      onClick={() => handleTagAssign(ad.ad_id, cat.id, v.id)}
+                                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: v.color || cat.color }}></span>
+                                      <span className="truncate">{v.name}</span>
+                                      {tag?.value_id === v.id && <Check className="w-3 h-3 text-green-500 ml-auto" />}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="border-t border-gray-100 px-2 py-1 flex gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder="Nuevo valor..."
+                                    value={newValueName}
+                                    onChange={e => setNewValueName(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleCreateValueAndAssign(ad.ad_id, cat.id)}
+                                    className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                  />
+                                  <button
+                                    onClick={() => handleCreateValueAndAssign(ad.ad_id, cat.id)}
+                                    className="px-2 py-1 text-xs bg-[#1A1A2E] text-white rounded-md hover:bg-[#252542]"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
                       <td className="py-3 px-3 text-right font-medium">{fmtCurrency(ad.spend)}</td>
                       <td className="py-3 px-3 text-right">{ad.budget ? fmtCurrency(ad.budget) : '—'}</td>
                       <td className="py-3 px-3 text-right">{fmtCurrency(ad.cpm)}</td>
@@ -831,6 +1027,7 @@ function ClientMetrics() {
                     <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#1A1A2E]">
                       <td className="py-3 px-3">Total</td>
                       <td className="py-3 px-3"></td>
+                      {tagCategories.map(cat => <td key={cat.id} className="py-3 px-3"></td>)}
                       <td className="py-3 px-3 text-right">{fmtCurrency(totSpend)}</td>
                       <td className="py-3 px-3"></td>
                       <td className="py-3 px-3 text-right">{fmtCurrency(avgCpm)}</td>
@@ -853,6 +1050,103 @@ function ClientMetrics() {
           </div>
         )}
       </div>
+
+      {/* Tag Analysis */}
+      {ads !== null && ads.length > 0 && tagCategories.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-purple-500" />
+              Análisis por Etiquetas
+            </h3>
+            <div className="flex items-center gap-3">
+              <select
+                value={analysisCategoryId || ''}
+                onChange={e => setAnalysisCategoryId(parseInt(e.target.value))}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                {tagCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              <select
+                value={analysisMetric}
+                onChange={e => setAnalysisMetric(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                <option value="roas">ROAS</option>
+                <option value="hookRate">Hook Rate</option>
+                <option value="holdRate">Hold Rate</option>
+                <option value="cpm">CPM</option>
+                <option value="costPerPurchase">Costo/Compra</option>
+                <option value="conversions">Conversiones</option>
+              </select>
+            </div>
+          </div>
+
+          {tagAnalysis.length > 0 && (
+            <>
+              <div className="h-64 mb-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={tagAnalysis} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={120} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                      formatter={(value) => {
+                        if (analysisMetric === 'roas') return [`${value.toFixed(2)}x`, 'ROAS'];
+                        if (analysisMetric === 'hookRate' || analysisMetric === 'holdRate') return [`${value.toFixed(2)}%`, analysisMetric === 'hookRate' ? 'Hook Rate' : 'Hold Rate'];
+                        if (analysisMetric === 'cpm' || analysisMetric === 'costPerPurchase' || analysisMetric === 'spend') return [new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value), analysisMetric === 'cpm' ? 'CPM' : 'Costo/Compra'];
+                        return [value, 'Conversiones'];
+                      }}
+                    />
+                    <Bar dataKey={analysisMetric} radius={[0, 4, 4, 0]}>
+                      {tagAnalysis.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 px-3 font-medium text-gray-500">Etiqueta</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Anuncios</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Inversión</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">ROAS</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Hook Rate</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Hold Rate</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Costo/Compra</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tagAnalysis.map((row) => (
+                      <tr key={row.label} className="border-b border-gray-50 hover:bg-gray-50/50">
+                        <td className="py-2 px-3">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: row.color }}></span>
+                            {row.label}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-right">{row.count}</td>
+                        <td className="py-2 px-3 text-right">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(row.spend)}</td>
+                        <td className="py-2 px-3 text-right font-medium">{row.roas.toFixed(2)}x</td>
+                        <td className="py-2 px-3 text-right">{row.hookRate.toFixed(2)}%</td>
+                        <td className="py-2 px-3 text-right">{row.holdRate.toFixed(2)}%</td>
+                        <td className="py-2 px-3 text-right">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(row.costPerPurchase)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Daily Metrics Table */}
       <MetricsTable

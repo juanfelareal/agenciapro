@@ -54,6 +54,65 @@ export default function PortalMetrics() {
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [channels, setChannels] = useState(null);
   const [channelsLoading, setChannelsLoading] = useState(false);
+  const [analysisCategoryId, setAnalysisCategoryId] = useState(null);
+  const [analysisMetric, setAnalysisMetric] = useState('roas');
+
+  // Extract unique tag categories from loaded ads
+  const portalTagCategories = useMemo(() => {
+    if (!ads || ads.length === 0) return [];
+    const catMap = {};
+    for (const ad of ads) {
+      for (const tag of (ad.tags || [])) {
+        if (!catMap[tag.category_id]) {
+          catMap[tag.category_id] = { id: tag.category_id, name: tag.category_name, color: tag.category_color };
+        }
+      }
+    }
+    return Object.values(catMap);
+  }, [ads]);
+
+  // Set default analysis category when ads load
+  useEffect(() => {
+    if (portalTagCategories.length > 0 && !analysisCategoryId) {
+      setAnalysisCategoryId(portalTagCategories[0].id);
+    }
+  }, [portalTagCategories]);
+
+  // Analysis: group ads by selected tag category (portal)
+  const portalTagAnalysis = useMemo(() => {
+    if (!ads || !analysisCategoryId) return [];
+    const groups = {};
+    for (const ad of ads) {
+      const tag = (ad.tags || []).find(t => t.category_id === analysisCategoryId);
+      const key = tag ? tag.value_name : 'Sin etiqueta';
+      const color = tag ? (tag.value_color || tag.category_color) : '#9CA3AF';
+      if (!groups[key]) groups[key] = { label: key, color, ads: [] };
+      groups[key].ads.push(ad);
+    }
+    return Object.values(groups).map(g => {
+      const totalSpend = g.ads.reduce((s, a) => s + a.spend, 0);
+      const totalRevenue = g.ads.reduce((s, a) => s + (a.revenue || 0), 0);
+      const totalImpressions = g.ads.reduce((s, a) => s + a.impressions, 0);
+      const totalConversions = g.ads.reduce((s, a) => s + a.conversions, 0);
+      const totalVideo3Sec = g.ads.reduce((s, a) => s + (a.hook_rate > 0 ? (a.hook_rate / 100) * a.impressions : 0), 0);
+      const totalThruplay = g.ads.reduce((s, a) => {
+        const v3s = a.hook_rate > 0 ? (a.hook_rate / 100) * a.impressions : 0;
+        return s + (a.hold_rate > 0 ? (a.hold_rate / 100) * v3s : 0);
+      }, 0);
+      return {
+        label: g.label,
+        color: g.color,
+        count: g.ads.length,
+        spend: totalSpend,
+        roas: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+        hookRate: totalImpressions > 0 ? (totalVideo3Sec / totalImpressions) * 100 : 0,
+        holdRate: totalVideo3Sec > 0 ? (totalThruplay / totalVideo3Sec) * 100 : 0,
+        cpm: totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0,
+        costPerPurchase: totalConversions > 0 ? totalSpend / totalConversions : 0,
+        conversions: totalConversions,
+      };
+    }).sort((a, b) => b[analysisMetric] - a[analysisMetric]);
+  }, [ads, analysisCategoryId, analysisMetric]);
 
   useEffect(() => {
     if (dateRange !== 'custom') {
@@ -1805,6 +1864,14 @@ export default function PortalMetrics() {
                   <tr className="border-b border-gray-100">
                     <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
                     <th className="text-left py-3 px-3 font-medium text-gray-500">Campaña</th>
+                    {portalTagCategories.map(cat => (
+                      <th key={cat.id} className="text-left py-3 px-3 font-medium text-gray-500" style={{ minWidth: '100px' }}>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }}></span>
+                          {cat.name}
+                        </span>
+                      </th>
+                    ))}
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">Presupuesto</th>
                     <th className="text-right py-3 px-3 font-medium text-gray-500">CPM</th>
@@ -1830,6 +1897,23 @@ export default function PortalMetrics() {
                       <td className="py-3 px-3 max-w-[160px] truncate text-gray-500" title={ad.campaign_name}>
                         {ad.campaign_name}
                       </td>
+                      {portalTagCategories.map(cat => {
+                        const tag = (ad.tags || []).find(t => t.category_id === cat.id);
+                        return (
+                          <td key={cat.id} className="py-2 px-3">
+                            {tag ? (
+                              <span
+                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white"
+                                style={{ backgroundColor: tag.value_color || cat.color }}
+                              >
+                                {tag.value_name}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300 text-xs">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
                       <td className="py-3 px-3 text-right font-medium">{formatCurrency(ad.spend)}</td>
                       <td className="py-3 px-3 text-right">{ad.budget ? formatCurrency(ad.budget) : '—'}</td>
                       <td className="py-3 px-3 text-right">{formatCurrency(ad.cpm)}</td>
@@ -1882,6 +1966,7 @@ export default function PortalMetrics() {
                       <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#1A1A2E]">
                         <td className="py-3 px-3">Total</td>
                         <td className="py-3 px-3"></td>
+                        {portalTagCategories.map(cat => <td key={cat.id} className="py-3 px-3"></td>)}
                         <td className="py-3 px-3 text-right">{formatCurrency(totSpend)}</td>
                         <td className="py-3 px-3"></td>
                         <td className="py-3 px-3 text-right">{formatCurrency(avgCpm)}</td>
@@ -1902,6 +1987,103 @@ export default function PortalMetrics() {
                 </tfoot>
               </table>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Tag Analysis (Portal — read-only) */}
+      {ads !== null && ads.length > 0 && portalTagCategories.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-purple-500" />
+              Análisis por Etiquetas
+            </h3>
+            <div className="flex items-center gap-3">
+              <select
+                value={analysisCategoryId || ''}
+                onChange={e => setAnalysisCategoryId(parseInt(e.target.value))}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                {portalTagCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              <select
+                value={analysisMetric}
+                onChange={e => setAnalysisMetric(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                <option value="roas">ROAS</option>
+                <option value="hookRate">Hook Rate</option>
+                <option value="holdRate">Hold Rate</option>
+                <option value="cpm">CPM</option>
+                <option value="costPerPurchase">Costo/Compra</option>
+                <option value="conversions">Conversiones</option>
+              </select>
+            </div>
+          </div>
+
+          {portalTagAnalysis.length > 0 && (
+            <>
+              <div className="h-64 mb-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={portalTagAnalysis} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={120} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                      formatter={(value) => {
+                        if (analysisMetric === 'roas') return [`${value.toFixed(2)}x`, 'ROAS'];
+                        if (analysisMetric === 'hookRate' || analysisMetric === 'holdRate') return [`${value.toFixed(2)}%`, analysisMetric === 'hookRate' ? 'Hook Rate' : 'Hold Rate'];
+                        if (analysisMetric === 'cpm' || analysisMetric === 'costPerPurchase') return [formatCurrency(value), analysisMetric === 'cpm' ? 'CPM' : 'Costo/Compra'];
+                        return [value, 'Conversiones'];
+                      }}
+                    />
+                    <Bar dataKey={analysisMetric} radius={[0, 4, 4, 0]}>
+                      {portalTagAnalysis.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 px-3 font-medium text-gray-500">Etiqueta</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Anuncios</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Inversión</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">ROAS</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Hook Rate</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Hold Rate</th>
+                      <th className="text-right py-2 px-3 font-medium text-gray-500">Costo/Compra</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {portalTagAnalysis.map((row) => (
+                      <tr key={row.label} className="border-b border-gray-50 hover:bg-gray-50/50">
+                        <td className="py-2 px-3">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: row.color }}></span>
+                            {row.label}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-right">{row.count}</td>
+                        <td className="py-2 px-3 text-right">{formatCurrency(row.spend)}</td>
+                        <td className="py-2 px-3 text-right font-medium">{row.roas.toFixed(2)}x</td>
+                        <td className="py-2 px-3 text-right">{row.hookRate.toFixed(2)}%</td>
+                        <td className="py-2 px-3 text-right">{row.holdRate.toFixed(2)}%</td>
+                        <td className="py-2 px-3 text-right">{formatCurrency(row.costPerPurchase)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}

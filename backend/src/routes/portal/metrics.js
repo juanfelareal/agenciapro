@@ -381,6 +381,37 @@ router.get('/ads', clientAuthMiddleware, requirePortalPermission('can_view_metri
     const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
     const ads = await fb.getAdLevelInsights(startDate, endDate);
 
+    // Merge persisted tags into ads (read-only for portal)
+    if (ads.length > 0) {
+      const adIds = ads.map(a => a.ad_id);
+      const placeholders = adIds.map((_, i) => `$${i + 1}`).join(',');
+      const tagRows = await db.prepare(`
+        SELECT ata.ad_id, atv.id as value_id, atv.name as value_name, atv.color as value_color,
+               atc.id as category_id, atc.name as category_name, atc.color as category_color
+        FROM ad_tag_assignments ata
+        JOIN ad_tag_values atv ON ata.tag_value_id = atv.id
+        JOIN ad_tag_categories atc ON atv.category_id = atc.id
+        WHERE ata.ad_id IN (${placeholders}) AND ata.client_id = $${adIds.length + 1}
+      `).all(...adIds, clientId);
+
+      const tagsByAd = {};
+      for (const row of tagRows) {
+        if (!tagsByAd[row.ad_id]) tagsByAd[row.ad_id] = [];
+        tagsByAd[row.ad_id].push({
+          category_id: row.category_id,
+          category_name: row.category_name,
+          category_color: row.category_color,
+          value_id: row.value_id,
+          value_name: row.value_name,
+          value_color: row.value_color
+        });
+      }
+
+      for (const ad of ads) {
+        ad.tags = tagsByAd[ad.ad_id] || [];
+      }
+    }
+
     res.json({ ads });
   } catch (error) {
     console.error('Error fetching portal ad-level insights:', error.response?.data || error.message);
