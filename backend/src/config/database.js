@@ -1086,8 +1086,7 @@ export const initializeDatabase = async () => {
       'client_access_tokens', 'client_portal_settings', 'client_comments', 'client_notifications',
       'client_facebook_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
       'ad_tag_categories', 'ad_tag_values', 'ad_tag_assignments',
-      // Chat
-      'chat_conversations', 'chat_messages',
+      // Note: 'chat_conversations' and 'chat_messages' already have organization_id in their CREATE TABLE
       // Siigo (accounting integration)
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
       // Note: 'forms' and 'form_assignments' already have organization_id in their CREATE TABLE
