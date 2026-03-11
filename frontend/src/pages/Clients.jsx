@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Users, Copy, Check, Key, RefreshCw, Shield } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Users, Copy, Check, Key, RefreshCw, Shield, Link2 } from 'lucide-react';
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -52,6 +52,7 @@ const Clients = () => {
   const [newInviteCode, setNewInviteCode] = useState(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedPortalId, setCopiedPortalId] = useState(null);
 
   // Resizable columns
   const tableRef = useRef(null);
@@ -488,6 +489,26 @@ const Clients = () => {
     }
   };
 
+  const handleQuickCopyPortalLink = async (client) => {
+    try {
+      const tokensRes = await portalAdminAPI.getAccess(client.id);
+      const tokens = Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []);
+      const activeInvite = tokens.find(t => t.token_type === 'invite' && t.status === 'active');
+      if (activeInvite) {
+        const link = `${window.location.origin}/portal/login?code=${activeInvite.token}`;
+        await navigator.clipboard.writeText(link);
+        setCopiedPortalId(client.id);
+        setTimeout(() => setCopiedPortalId(null), 2000);
+      } else {
+        // No active invite, open portal config to generate one
+        handleOpenPortalConfig(client);
+      }
+    } catch (error) {
+      console.error('Error copying portal link:', error);
+      handleOpenPortalConfig(client);
+    }
+  };
+
   const copyInviteLink = () => {
     if (!newInviteCode) return;
     const link = `${window.location.origin}/portal/login?code=${newInviteCode}`;
@@ -661,6 +682,17 @@ const Clients = () => {
                     title="Facturar"
                   >
                     <FileText size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleQuickCopyPortalLink(client)}
+                    className={`p-1.5 rounded-lg mr-1 transition-colors ${
+                      copiedPortalId === client.id
+                        ? 'text-green-600 bg-green-50'
+                        : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                    }`}
+                    title={copiedPortalId === client.id ? 'Link copiado!' : 'Copiar link del portal'}
+                  >
+                    {copiedPortalId === client.id ? <Check size={18} /> : <Link2 size={18} />}
                   </button>
                   <button
                     onClick={() => handleOpenPortalConfig(client)}
