@@ -125,6 +125,7 @@ class ShopifyIntegration {
     let confirmedOrderCount = 0;
     let pendingOrders = 0;
     let allOrderCount = 0;
+    const uniqueCustomers = new Set();
 
     orders.forEach(order => {
       // Skip cancelled orders
@@ -132,6 +133,10 @@ class ShopifyIntegration {
 
       const orderTotal = parseFloat(order.total_price) || 0;
       const orderSubtotal = parseFloat(order.subtotal_price) || 0;
+
+      // Track unique customers (by email or customer id)
+      const customerId = order.customer?.id || order.email;
+      if (customerId) uniqueCustomers.add(customerId);
 
       // "Venta total" = ALL non-cancelled orders (including pending)
       allOrdersRevenue += orderTotal;
@@ -176,6 +181,7 @@ class ShopifyIntegration {
       pendingOrders,                       // Pedidos sin pagar
       allOrdersRevenue,                    // "Venta total" = ALL non-cancelled (including pending)
       allOrderCount,                       // Total pedidos (including pending)
+      customers: uniqueCustomers.size,     // Clientes únicos
     };
   }
 

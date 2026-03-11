@@ -15,8 +15,8 @@ const GLOBAL_SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 const REDIRECT_URI = `${BACKEND_URL}/api/oauth/shopify/callback`;
 
-// Scopes needed for Shopify metrics (orders + reports)
-const SCOPES = 'read_orders,read_reports';
+// Scopes needed for Shopify metrics (orders + reports + analytics for sessions)
+const SCOPES = 'read_orders,read_reports,read_analytics';
 
 /**
  * Get Shopify credentials for a client (per-client app or global fallback)
