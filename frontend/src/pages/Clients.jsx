@@ -403,15 +403,18 @@ const Clients = () => {
     try {
       const tokensRes = await portalAdminAPI.getAccess(client.id);
       const tokens = Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []);
-      const activeInvite = tokens.find(t => t.token_type === 'invite' && t.status === 'active');
-      if (activeInvite) {
-        const link = `${window.location.origin}/portal/login?code=${activeInvite.token}`;
-        await navigator.clipboard.writeText(link);
-        setCopiedPortalId(client.id);
-        setTimeout(() => setCopiedPortalId(null), 2000);
-      } else {
-        alert('Este cliente no tiene un código de invitación activo. Intenta guardarlo de nuevo para regenerar.');
+      let activeInvite = tokens.find(t => t.token_type === 'invite' && t.status === 'active');
+
+      // Auto-generate invite if none exists
+      if (!activeInvite) {
+        const response = await portalAdminAPI.generateInvite(client.id);
+        activeInvite = { token: response.invite_code };
       }
+
+      const link = `${window.location.origin}/portal/login?code=${activeInvite.token}`;
+      await navigator.clipboard.writeText(link);
+      setCopiedPortalId(client.id);
+      setTimeout(() => setCopiedPortalId(null), 2000);
     } catch (error) {
       console.error('Error copying portal link:', error);
     }
