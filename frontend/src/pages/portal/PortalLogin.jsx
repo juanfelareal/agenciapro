@@ -11,20 +11,17 @@ export default function PortalLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Check for code in URL — if present, clear existing session first
+  // Check for code in URL on mount
   useEffect(() => {
     const urlCode = searchParams.get('code');
     if (urlCode) {
-      // If already authenticated with a different session, clear it so the new code can be used
-      if (isAuthenticated) {
-        logout();
-      }
+      // Clear any existing session so the new code can be used
+      localStorage.removeItem('portalToken');
       setCode(urlCode);
     } else if (isAuthenticated) {
-      // No code in URL and already authenticated — redirect to portal
       navigate('/portal');
     }
-  }, [searchParams, isAuthenticated]);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
