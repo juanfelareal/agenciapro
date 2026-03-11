@@ -95,7 +95,7 @@ const Layout = ({ children }) => {
   // Filtrar por permisos
   const filteredMain = mainNavigation.filter((item) => !item.permission || hasPermission(item.permission));
   const filteredFinanzas = finanzasSubItems.filter((item) => hasPermission(item.permission));
-  const filteredBottom = bottomNavigation.filter((item) => hasPermission(item.permission));
+  const filteredBottom = bottomNavigation.filter((item) => !item.permission || hasPermission(item.permission));
 
   const isActive = (path) => {
     if (path === '/app') {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { CheckSquare, FolderKanban, User, Calendar, Flag } from 'lucide-react';
 import { chatAPI } from '../../utils/api';
+import EntityDetailModal from './EntityDetailModal';
 
 // Cache for entity previews
 const previewCache = new Map();
@@ -26,6 +26,7 @@ const PRIORITY_COLORS = {
 const EntityPreviewCard = ({ type, id }) => {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDetail, setShowDetail] = useState(false);
 
   useEffect(() => {
     const cacheKey = `${type}-${id}`;
@@ -56,86 +57,62 @@ const EntityPreviewCard = ({ type, id }) => {
   if (!preview) return null;
 
   const statusInfo = STATUS_COLORS[preview.status] || { bg: 'bg-gray-100', text: 'text-gray-600', label: preview.status };
-  const linkPath = type === 'task' ? '/app/tasks' : `/app/projects/${id}`;
+  const isTask = type === 'task';
+  const title = isTask ? preview.title : preview.name;
+  const accentBg = isTask ? 'bg-blue-50' : 'bg-purple-50';
+  const accentText = isTask ? 'text-blue-600' : 'text-purple-600';
+  const Icon = isTask ? CheckSquare : FolderKanban;
 
-  if (type === 'task') {
-    return (
-      <Link to={linkPath} className="block mt-1.5 group/card">
-        <div className="p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all">
+  return (
+    <>
+      <button onClick={() => setShowDetail(true)} className="block mt-1.5 w-full text-left group/card">
+        <div className="p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer">
           <div className="flex items-start gap-2.5">
-            <div className="p-1.5 bg-blue-50 rounded-lg flex-shrink-0 mt-0.5">
-              <CheckSquare size={14} className="text-blue-600" />
+            <div className={`p-1.5 ${accentBg} rounded-lg flex-shrink-0 mt-0.5`}>
+              <Icon size={14} className={accentText} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate group-hover/card:text-blue-600 transition-colors">
-                {preview.title}
+              <p className={`text-sm font-medium text-gray-800 truncate group-hover/card:${accentText} transition-colors`}>
+                {title}
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${statusInfo.bg} ${statusInfo.text}`}>
                   {statusInfo.label}
                 </span>
-                {preview.priority && (
+                {isTask && preview.priority && (
                   <span className={`inline-flex items-center gap-0.5 text-[10px] ${PRIORITY_COLORS[preview.priority] || 'text-gray-500'}`}>
-                    <Flag size={10} />
-                    {preview.priority}
+                    <Flag size={10} /> {preview.priority}
                   </span>
                 )}
-                {preview.assigned_to_name && (
+                {isTask && preview.assigned_to_name && (
                   <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
-                    <User size={10} />
-                    {preview.assigned_to_name}
+                    <User size={10} /> {preview.assigned_to_name}
                   </span>
                 )}
-                {preview.due_date && (
+                {!isTask && preview.client_name && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
+                    <User size={10} /> {preview.client_name}
+                  </span>
+                )}
+                {(preview.due_date || preview.deadline) && (
                   <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
                     <Calendar size={10} />
-                    {new Date(preview.due_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                    {new Date(preview.due_date || preview.deadline).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
                   </span>
                 )}
               </div>
-              {preview.project_name && (
+              {isTask && preview.project_name && (
                 <p className="text-[10px] text-gray-400 mt-1 truncate">{preview.project_name}</p>
               )}
             </div>
           </div>
         </div>
-      </Link>
-    );
-  }
+      </button>
 
-  // Project preview
-  return (
-    <Link to={linkPath} className="block mt-1.5 group/card">
-      <div className="p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all">
-        <div className="flex items-start gap-2.5">
-          <div className="p-1.5 bg-purple-50 rounded-lg flex-shrink-0 mt-0.5">
-            <FolderKanban size={14} className="text-purple-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-800 truncate group-hover/card:text-purple-600 transition-colors">
-              {preview.name}
-            </p>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${statusInfo.bg} ${statusInfo.text}`}>
-                {statusInfo.label}
-              </span>
-              {preview.client_name && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
-                  <User size={10} />
-                  {preview.client_name}
-                </span>
-              )}
-              {preview.deadline && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-500">
-                  <Calendar size={10} />
-                  {new Date(preview.deadline).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Link>
+      {showDetail && (
+        <EntityDetailModal type={type} id={id} onClose={() => setShowDetail(false)} />
+      )}
+    </>
   );
 };
 
