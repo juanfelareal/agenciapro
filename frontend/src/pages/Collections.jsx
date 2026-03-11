@@ -833,10 +833,17 @@ const Collections = () => {
           <div className="p-12 text-center">
             <CheckCircle size={48} className="text-green-400 mx-auto mb-3" />
             <p className="text-lg font-medium text-gray-600">No hay cartera pendiente</p>
-            <p className="text-sm text-gray-400 mt-1">Todas las facturas estan al dia</p>
+            <p className="text-sm text-gray-400 mt-1">Todas las facturas están al día</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
+            {/* Column headers */}
+            <div className="px-6 py-2 flex items-center gap-4 bg-gray-50/50 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <div className="flex-1">Cliente</div>
+              <div className="w-40 text-center">Último cobro</div>
+              <div className="w-36 text-right">Saldo</div>
+              <div className="w-24"></div>
+            </div>
             {debtors.map((client) => {
               const daysOverdue = getDaysOverdue(client.oldest_due_date);
               const isOverdue = daysOverdue !== null && daysOverdue > 0;
@@ -856,19 +863,25 @@ const Collections = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                      <span>{client.invoice_count} factura{client.invoice_count > 1 ? 's' : ''}</span>
-                      {client.last_reminder_sent && (
-                        <span className="flex items-center gap-1">
-                          <Mail size={12} />
-                          Ultimo recordatorio: {formatDate(client.last_reminder_sent)}
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">{client.invoice_count} factura{client.invoice_count > 1 ? 's' : ''}</p>
+                  </div>
+
+                  {/* Last reminder */}
+                  <div className="w-40 text-center shrink-0">
+                    {client.last_reminder_sent ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Mail size={12} />
+                        {formatDate(client.last_reminder_sent)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
+                        Sin cobro
+                      </span>
+                    )}
                   </div>
 
                   {/* Amount */}
-                  <div className="text-right mr-4">
+                  <div className="text-right w-36 shrink-0">
                     <p className="text-lg font-bold text-[#1A1A2E]">{formatCurrency(client.total_owed)}</p>
                   </div>
 
