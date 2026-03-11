@@ -12,18 +12,21 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
   try {
     const clientId = req.client.id;
 
-    // Get projects summary
-    const projectsSummary = await db.get(`
+    // Helper to safely run queries — if one fails, return default instead of crashing
+    const safeQuery = async (fn, defaultVal) => {
+      try { return await fn(); } catch (e) { console.error('Dashboard query error:', e.message); return defaultVal; }
+    };
+
+    const projectsSummary = await safeQuery(() => db.get(`
       SELECT
         COUNT(*) as total,
         SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
         SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
       FROM projects
       WHERE client_id = ?
-    `, [clientId]);
+    `, [clientId]), { total: 0, in_progress: 0, completed: 0 });
 
-    // Get tasks summary (from client's projects)
-    const tasksSummary = await db.get(`
+    const tasksSummary = await safeQuery(() => db.get(`
       SELECT
         COUNT(*) as total,
         SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as completed,
@@ -32,22 +35,20 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       JOIN projects p ON t.project_id = p.id
       WHERE p.client_id = ?
         AND t.visible_to_client = 1
-    `, [clientId]);
+    `, [clientId]), { total: 0, completed: 0, pending_approval: 0 });
 
-    // Get invoices summary with counts
-    const invoicesSummary = await db.get(`
+    const invoicesSummary = await safeQuery(() => db.get(`
       SELECT
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as paid_amount,
-        SUM(CASE WHEN status IN ('draft', 'approved', 'invoiced') THEN amount ELSE 0 END) as pending_amount,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as paid_amount,
+        COALESCE(SUM(CASE WHEN status IN ('draft', 'approved', 'invoiced') THEN amount ELSE 0 END), 0) as pending_amount,
         SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_count,
         SUM(CASE WHEN status IN ('approved', 'invoiced') THEN 1 ELSE 0 END) as pending_count
       FROM invoices
       WHERE client_id = ?
-    `, [clientId]);
+    `, [clientId]), { total: 0, paid_amount: 0, pending_amount: 0, paid_count: 0, pending_count: 0 });
 
-    // Get active projects with progress details
-    const projectDetails = await db.all(`
+    const projectDetails = await safeQuery(() => db.all(`
       SELECT p.id, p.name, p.status, p.due_date,
         (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1) as task_count,
         (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1 AND status = 'done') as completed_count
@@ -55,31 +56,28 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       WHERE p.client_id = ? AND p.status != 'completed'
       ORDER BY p.updated_at DESC
       LIMIT 5
-    `, [clientId]);
+    `, [clientId]), []);
 
-    // Get tasks by status breakdown
-    const tasksByStatus = await db.all(`
+    const tasksByStatus = await safeQuery(() => db.all(`
       SELECT t.status, COUNT(*) as count
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
       WHERE p.client_id = ? AND t.visible_to_client = 1
       GROUP BY t.status
-    `, [clientId]);
+    `, [clientId]), []);
 
-    // Get upcoming deadlines (next 14 days)
-    const upcomingDeadlines = await db.all(`
+    const upcomingDeadlines = await safeQuery(() => db.all(`
       SELECT t.id, t.title, t.due_date, t.status, p.name as project_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
       WHERE p.client_id = ? AND t.visible_to_client = 1
-        AND t.due_date IS NOT NULL AND t.due_date >= date('now')
-        AND t.due_date <= date('now', '+14 days')
+        AND t.due_date IS NOT NULL AND t.due_date >= CURRENT_DATE
+        AND t.due_date <= CURRENT_DATE + INTERVAL '14 days'
       ORDER BY t.due_date ASC
       LIMIT 8
-    `, [clientId]);
+    `, [clientId]), []);
 
-    // Get recent activity (expanded to 10)
-    const recentTasks = await db.all(`
+    const recentTasks = await safeQuery(() => db.all(`
       SELECT t.id, t.title, t.status, t.updated_at, t.client_approval_status, p.name as project_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
@@ -87,10 +85,9 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
         AND t.visible_to_client = 1
       ORDER BY t.updated_at DESC
       LIMIT 10
-    `, [clientId]);
+    `, [clientId]), []);
 
-    // Get tasks pending approval
-    const pendingApproval = await db.all(`
+    const pendingApproval = await safeQuery(() => db.all(`
       SELECT t.id, t.title, t.status, t.updated_at, p.name as project_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
@@ -100,48 +97,49 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
         AND (t.client_approval_status IS NULL OR t.client_approval_status = 'pending')
       ORDER BY t.updated_at DESC
       LIMIT 10
-    `, [clientId]);
+    `, [clientId]), []);
 
-    // Get unread notifications count
-    const unreadNotifications = await db.get(`
+    const unreadNotifications = await safeQuery(() => db.get(`
       SELECT COUNT(*) as count
       FROM client_notifications
       WHERE client_id = ? AND is_read = 0
-    `, [clientId]);
+    `, [clientId]), { count: 0 });
 
     // Calculate health score
-    const totalTasks = tasksSummary.total || 0;
-    const completedTasks = tasksSummary.completed || 0;
+    const totalTasks = parseInt(tasksSummary.total) || 0;
+    const completedTasks = parseInt(tasksSummary.completed) || 0;
     const healthScore = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     res.json({
       projects: {
-        total: projectsSummary.total || 0,
-        in_progress: projectsSummary.in_progress || 0,
-        completed: projectsSummary.completed || 0
+        total: parseInt(projectsSummary.total) || 0,
+        in_progress: parseInt(projectsSummary.in_progress) || 0,
+        completed: parseInt(projectsSummary.completed) || 0
       },
       tasks: {
-        total: tasksSummary.total || 0,
-        completed: tasksSummary.completed || 0,
-        pending_approval: tasksSummary.pending_approval || 0
+        total: totalTasks,
+        completed: completedTasks,
+        pending_approval: parseInt(tasksSummary.pending_approval) || 0
       },
       invoices: {
-        total: invoicesSummary.total || 0,
-        paid_amount: invoicesSummary.paid_amount || 0,
-        pending_amount: invoicesSummary.pending_amount || 0,
-        paid_count: invoicesSummary.paid_count || 0,
-        pending_count: invoicesSummary.pending_count || 0
+        total: parseInt(invoicesSummary.total) || 0,
+        paid_amount: parseFloat(invoicesSummary.paid_amount) || 0,
+        pending_amount: parseFloat(invoicesSummary.pending_amount) || 0,
+        paid_count: parseInt(invoicesSummary.paid_count) || 0,
+        pending_count: parseInt(invoicesSummary.pending_count) || 0
       },
       project_details: projectDetails.map(p => ({
         ...p,
-        progress: p.task_count > 0 ? Math.round((p.completed_count / p.task_count) * 100) : 0
+        task_count: parseInt(p.task_count) || 0,
+        completed_count: parseInt(p.completed_count) || 0,
+        progress: parseInt(p.task_count) > 0 ? Math.round((parseInt(p.completed_count) / parseInt(p.task_count)) * 100) : 0
       })),
       tasks_by_status: tasksByStatus,
       upcoming_deadlines: upcomingDeadlines,
       health_score: healthScore,
       recent_tasks: recentTasks,
       pending_approval: pendingApproval,
-      unread_notifications: unreadNotifications?.count || 0
+      unread_notifications: parseInt(unreadNotifications?.count) || 0
     });
   } catch (error) {
     console.error('Error getting portal dashboard:', error);
