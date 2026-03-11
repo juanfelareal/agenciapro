@@ -280,7 +280,7 @@ function ClientMetrics() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <MetricCard
           title="Venta Total"
-          subtitle="Incluye pedidos pendientes"
+          subtitle="Todos los pedidos, antes de devoluciones"
           value={metrics?.total_all_orders_revenue}
           icon={DollarSign}
           iconBgColor="bg-gray-100"
@@ -290,7 +290,7 @@ function ClientMetrics() {
         />
         <MetricCard
           title="Venta Total Confirmada"
-          subtitle="Solo pedidos pagados"
+          subtitle="Solo pagados, con envío e impuesto"
           value={metrics?.total_revenue}
           icon={DollarSign}
           iconBgColor="bg-green-100"
@@ -300,7 +300,7 @@ function ClientMetrics() {
         />
         <MetricCard
           title="Venta Neta Confirmada"
-          subtitle="Sin envío ni impuesto"
+          subtitle="Solo pagados, sin envío ni impuesto"
           value={metrics?.net_revenue}
           icon={DollarSign}
           iconBgColor="bg-emerald-100"
