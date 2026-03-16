@@ -475,6 +475,7 @@ export const chatAPI = {
   getMessages: (id, params) => api.get(`/chat/conversations/${id}/messages`, { params }),
   sendMessage: (id, data) => api.post(`/chat/conversations/${id}/messages`, data),
   markRead: (id) => api.put(`/chat/conversations/${id}/read`),
+  uploadImage: (id, formData) => api.post(`/chat/conversations/${id}/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getUnreadCount: () => api.get('/chat/unread-count'),
   searchEntities: (q, type) => api.get('/chat/search/entities', { params: { q, type } }),
   getEntityPreview: (type, id) => api.get(`/chat/entity-preview/${type}/${id}`),

@@ -134,7 +134,8 @@ const EntityPreviewCard = ({ type, id }) => {
   );
 };
 
-const MessageBubble = ({ message, isOwn, showSender }) => {
+const MessageBubble = ({ message, isOwn, showSender, apiBase = '' }) => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const mentions = useMemo(() => {
     if (!message.entity_mentions) return [];
     try {
@@ -207,9 +208,34 @@ const MessageBubble = ({ message, isOwn, showSender }) => {
               : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
           }`}
         >
-          <p className="text-sm whitespace-pre-wrap break-words">
-            {renderContent(message.content)}
-          </p>
+          {message.image_url && (
+            <>
+              <img
+                src={`${apiBase}${message.image_url}`}
+                alt="Imagen"
+                className="max-w-full max-h-72 rounded-lg cursor-pointer mb-1 object-contain"
+                onClick={() => setLightboxOpen(true)}
+                loading="lazy"
+              />
+              {lightboxOpen && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-pointer"
+                  onClick={() => setLightboxOpen(false)}
+                >
+                  <img
+                    src={`${apiBase}${message.image_url}`}
+                    alt="Imagen"
+                    className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                  />
+                </div>
+              )}
+            </>
+          )}
+          {message.content && (
+            <p className="text-sm whitespace-pre-wrap break-words">
+              {renderContent(message.content)}
+            </p>
+          )}
           <p className="text-[10px] mt-1 text-right text-gray-400">
             {time}
           </p>

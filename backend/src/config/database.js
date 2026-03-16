@@ -1797,13 +1797,32 @@ export const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         conversation_id INTEGER NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
         sender_id INTEGER NOT NULL REFERENCES team_members(id),
-        content TEXT NOT NULL,
-        message_type TEXT CHECK(message_type IN ('text', 'system')) DEFAULT 'text',
+        content TEXT NOT NULL DEFAULT '',
+        message_type TEXT CHECK(message_type IN ('text', 'system', 'image')) DEFAULT 'text',
+        image_url TEXT,
         entity_mentions JSONB DEFAULT '[]',
         organization_id INTEGER REFERENCES organizations(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add image_url column if it doesn't exist (migration for existing DBs)
+    await pool.query(`
+      DO $$ BEGIN
+        ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS image_url TEXT;
+      EXCEPTION WHEN others THEN NULL;
+      END $$;
+    `);
+
+    // Update message_type check constraint to include 'image'
+    await pool.query(`
+      DO $$ BEGIN
+        ALTER TABLE chat_messages DROP CONSTRAINT IF EXISTS chat_messages_message_type_check;
+        ALTER TABLE chat_messages ADD CONSTRAINT chat_messages_message_type_check
+          CHECK (message_type IN ('text', 'system', 'image'));
+      EXCEPTION WHEN others THEN NULL;
+      END $$;
     `);
 
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation ON chat_messages(conversation_id)`);

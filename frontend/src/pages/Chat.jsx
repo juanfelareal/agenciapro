@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Plus, Search, Send, Hash, ArrowDown } from 'lucide-react';
+import { MessageCircle, Plus, Search, Send, Hash, ArrowDown, Paperclip, X, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI } from '../utils/api';
 import useChat from '../hooks/useChat';
 import MessageBubble from '../components/chat/MessageBubble';
 import MentionAutocomplete from '../components/chat/MentionAutocomplete';
 import NewConversationModal from '../components/chat/NewConversationModal';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '');
 
 const Chat = () => {
   const { conversationId } = useParams();
@@ -23,11 +25,14 @@ const Chat = () => {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [pendingImage, setPendingImage] = useState(null); // { file, preview }
+  const [uploading, setUploading] = useState(false);
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const { connected, onlineUsers, typingUsers, sendMessage, markRead, startTyping, stopTyping, onNewMessage, onMessageSent } = useChat(user);
 
@@ -149,17 +154,88 @@ const Chat = () => {
     inputRef.current.focus();
   };
 
-  const handleSend = () => {
-    if (!inputValue.trim() || !conversationId) return;
+  // Image handling
+  const handleImageFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('La imagen no puede superar 10MB');
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    setPendingImage({ file, preview });
+  };
 
-    sendMessage({
-      conversationId: Number(conversationId),
-      content: inputValue.trim(),
-      entityMentions: entityMentions.length > 0 ? entityMentions : undefined,
-    });
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        handleImageFile(file);
+        return;
+      }
+    }
+  };
 
-    setInputValue('');
-    setEntityMentions([]);
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleImageFile(file);
+    e.target.value = '';
+  };
+
+  const cancelImage = () => {
+    if (pendingImage?.preview) URL.revokeObjectURL(pendingImage.preview);
+    setPendingImage(null);
+  };
+
+  const handleSend = async () => {
+    if ((!inputValue.trim() && !pendingImage) || !conversationId) return;
+
+    if (pendingImage) {
+      // Upload image via REST, then broadcast via socket
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append('image', pendingImage.file);
+        if (inputValue.trim()) formData.append('content', inputValue.trim());
+
+        const res = await chatAPI.uploadImage(conversationId, formData);
+        const savedMsg = res.data;
+
+        // Add to local messages immediately
+        setMessages((prev) => [...prev, savedMsg]);
+        scrollToBottom();
+
+        // Broadcast to other users via socket
+        sendMessage({
+          conversationId: Number(conversationId),
+          content: savedMsg.content || '',
+          imageUrl: savedMsg.image_url,
+          messageType: 'image',
+        });
+
+        cancelImage();
+        setInputValue('');
+        loadConversations();
+      } catch (err) {
+        console.error('Error uploading image:', err);
+        alert('Error al subir la imagen');
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      // Text message via socket
+      sendMessage({
+        conversationId: Number(conversationId),
+        content: inputValue.trim(),
+        entityMentions: entityMentions.length > 0 ? entityMentions : undefined,
+      });
+
+      setInputValue('');
+      setEntityMentions([]);
+    }
+
     stopTyping(conversationId);
   };
 
@@ -168,6 +244,19 @@ const Chat = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  // Drop handler
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      handleImageFile(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
   };
 
   const getConversationName = (conv) => {
@@ -299,7 +388,11 @@ const Chat = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-[#F8F9FA]">
+      <div
+        className="flex-1 flex flex-col bg-[#F8F9FA]"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
         {!conversationId ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -369,6 +462,7 @@ const Chat = () => {
                       message={item}
                       isOwn={isOwn}
                       showSender={showSender}
+                      apiBase={API_BASE}
                     />
                   );
                 })
@@ -394,6 +488,25 @@ const Chat = () => {
               </div>
             )}
 
+            {/* Image preview */}
+            {pendingImage && (
+              <div className="px-6 py-2 bg-white border-t">
+                <div className="relative inline-block">
+                  <img
+                    src={pendingImage.preview}
+                    alt="Preview"
+                    className="h-24 rounded-lg border border-gray-200 object-cover"
+                  />
+                  <button
+                    onClick={cancelImage}
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Input */}
             <div className="px-6 py-3 bg-white border-t relative">
               {mentionQuery !== null && (
@@ -404,11 +517,26 @@ const Chat = () => {
                 />
               )}
               <div className="flex items-end gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                  title="Adjuntar imagen"
+                >
+                  <Paperclip size={18} />
+                </button>
                 <textarea
                   ref={inputRef}
                   value={inputValue}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder="Escribe un mensaje... (# para mencionar)"
                   rows={1}
                   className="flex-1 resize-none px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 max-h-32"
@@ -416,10 +544,14 @@ const Chat = () => {
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!inputValue.trim()}
+                  disabled={(!inputValue.trim() && !pendingImage) || uploading}
                   className="p-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#2A2A3E] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Send size={18} />
+                  {uploading ? (
+                    <div className="w-[18px] h-[18px] border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Send size={18} />
+                  )}
                 </button>
               </div>
             </div>

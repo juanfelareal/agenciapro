@@ -1,5 +1,33 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 import db from '../config/database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Multer config for chat images
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, '../../uploads/chat'),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.png';
+    cb(null, `${randomUUID()}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten imágenes'), false);
+    }
+  },
+});
 
 const router = express.Router();
 
@@ -302,6 +330,44 @@ router.put('/conversations/:id/read', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('Error marking conversation as read:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /conversations/:id/upload — upload image to conversation
+router.post('/conversations/:id/upload', upload.single('image'), async (req, res) => {
+  try {
+    const membership = await verifyMembership(req.params.id, req.teamMember.id);
+    if (!membership) {
+      return res.status(403).json({ error: 'Not a member of this conversation' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image uploaded' });
+    }
+
+    const imageUrl = `/uploads/chat/${req.file.filename}`;
+    const content = req.body.content?.trim() || '';
+
+    const result = await db.prepare(`
+      INSERT INTO chat_messages (conversation_id, sender_id, content, message_type, image_url)
+      VALUES (?, ?, ?, 'image', ?)
+    `).run(req.params.id, req.teamMember.id, content, imageUrl);
+
+    await db.prepare(`
+      UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(req.params.id);
+
+    const message = await db.prepare(`
+      SELECT cm.*, tm.name as sender_name
+      FROM chat_messages cm
+      JOIN team_members tm ON cm.sender_id = tm.id
+      WHERE cm.id = ?
+    `).get(result.lastInsertRowid);
+
+    res.status(201).json(message);
+  } catch (error) {
+    console.error('Error uploading image:', error);
     res.status(500).json({ error: error.message });
   }
 });

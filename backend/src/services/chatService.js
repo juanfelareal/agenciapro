@@ -56,8 +56,8 @@ export const setupChat = (io) => {
       }
     });
 
-    // send-message — receives { conversationId, content, entityMentions }
-    socket.on('send-message', async ({ conversationId, content, entityMentions }) => {
+    // send-message — receives { conversationId, content, entityMentions, imageUrl, messageType }
+    socket.on('send-message', async ({ conversationId, content, entityMentions, imageUrl, messageType }) => {
       if (!socket.data.teamMemberId) {
         socket.emit('error', { message: 'No autenticado' });
         return;
@@ -80,10 +80,11 @@ export const setupChat = (io) => {
         const orgId = conversation.organization_id;
 
         // Insert message
+        const msgType = imageUrl ? 'image' : 'text';
         const result = await db.run(
-          `INSERT INTO chat_messages (conversation_id, sender_id, content, entity_mentions)
-           VALUES (?, ?, ?, ?)`,
-          [conversationId, senderId, content, entityMentions ? JSON.stringify(entityMentions) : null]
+          `INSERT INTO chat_messages (conversation_id, sender_id, content, message_type, image_url, entity_mentions)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [conversationId, senderId, content || '', msgType, imageUrl || null, entityMentions ? JSON.stringify(entityMentions) : null]
         );
 
         const messageId = result.lastInsertRowid;

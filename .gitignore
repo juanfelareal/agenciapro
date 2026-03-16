@@ -23,6 +23,10 @@ build/
 .DS_Store
 Thumbs.db
 
+# Uploaded files (keep directory structure)
+backend/uploads/chat/*
+!backend/uploads/chat/.gitkeep
+
 # Logs
 *.log
 npm-debug.log*

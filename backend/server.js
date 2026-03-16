@@ -96,6 +96,16 @@ console.log('  - NODE_ENV:', process.env.NODE_ENV || 'not set');
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
+// Serve uploaded files
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, 'uploads', 'chat');
+fs.mkdirSync(uploadsDir, { recursive: true });
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Health check - MUST BE BEFORE database init so Railway can check health
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AgenciaPro API is running' });
