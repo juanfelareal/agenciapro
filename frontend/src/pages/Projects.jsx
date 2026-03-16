@@ -29,7 +29,8 @@ const Projects = () => {
   const [templateTasks, setTemplateTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [templates, setTemplates] = useState([]);
-  const [templateTasksDueDates, setTemplateTasksDueDates] = useState({}); // { taskId: 'date' }
+  const [templateTasksDueDates, setTemplateTasksDueDates] = useState({}); // { taskKey: 'date' }
+  const [templateTasksAssignees, setTemplateTasksAssignees] = useState({}); // { taskKey: memberId }
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -67,7 +68,15 @@ const Projects = () => {
     setLoadingTasks(true);
     try {
       const response = await projectTemplatesAPI.getById(templateId);
-      setTemplateTasks(response.data.tasks || []);
+      const loadedTasks = response.data.tasks || [];
+      setTemplateTasks(loadedTasks);
+      // Pre-fill assignees from template defaults
+      const assigneeDefaults = {};
+      for (const task of loadedTasks) {
+        const key = task.id || task.title;
+        if (task.default_assignee_id) assigneeDefaults[key] = task.default_assignee_id;
+      }
+      setTemplateTasksAssignees(assigneeDefaults);
     } catch (error) {
       console.error('Error loading template tasks:', error);
       setTemplateTasks([]);
@@ -120,16 +129,19 @@ const Projects = () => {
         if (useTemplate && templateTasks.length > 0) {
           for (const task of templateTasks) {
             const taskKey = task.id || task.title;
+            const assigneeId = templateTasksAssignees[taskKey];
             await tasksAPI.create({
               title: task.title,
               description: task.description || '',
               project_id: newProjectId,
-              assignee_ids: task.assignees?.length > 0
-                ? task.assignees.map(a => a.id)
-                : (task.assigned_to ? [task.assigned_to] : []),
-              status: 'todo', // Reset status for new project
+              assignee_ids: assigneeId
+                ? [Number(assigneeId)]
+                : (task.assignees?.length > 0
+                  ? task.assignees.map(a => a.id)
+                  : (task.assigned_to ? [task.assigned_to] : [])),
+              status: 'todo',
               priority: task.priority || 'medium',
-              due_date: templateTasksDueDates[taskKey] || null, // Use individual due date
+              due_date: templateTasksDueDates[taskKey] || null,
               is_recurring: task.is_recurring || false,
               recurrence_pattern: task.recurrence_pattern || null,
               estimated_hours: task.estimated_hours || null,
@@ -188,6 +200,7 @@ const Projects = () => {
     setTemplateProjectId('');
     setTemplateTasks([]);
     setTemplateTasksDueDates({});
+    setTemplateTasksAssignees({});
   };
 
   const handleNew = () => {
@@ -742,22 +755,37 @@ const Projects = () => {
                                         {task.priority}
                                       </span>
                                     </div>
-                                    <input
-                                      type="date"
-                                      className="w-full border border-gray-100 rounded-lg px-2 py-1 text-sm"
-                                      placeholder="Fecha de vencimiento"
-                                      value={templateTasksDueDates[taskKey] || ''}
-                                      onChange={(e) => setTemplateTasksDueDates({
-                                        ...templateTasksDueDates,
-                                        [taskKey]: e.target.value
-                                      })}
-                                    />
+                                    <div className="flex gap-2">
+                                      <select
+                                        className="flex-1 border border-gray-100 rounded-lg px-2 py-1 text-sm text-gray-600"
+                                        value={templateTasksAssignees[taskKey] || ''}
+                                        onChange={(e) => setTemplateTasksAssignees({
+                                          ...templateTasksAssignees,
+                                          [taskKey]: e.target.value ? Number(e.target.value) : ''
+                                        })}
+                                      >
+                                        <option value="">Sin asignar</option>
+                                        {teamMembers.map((m) => (
+                                          <option key={m.id} value={m.id}>{m.name}</option>
+                                        ))}
+                                      </select>
+                                      <input
+                                        type="date"
+                                        className="border border-gray-100 rounded-lg px-2 py-1 text-sm"
+                                        placeholder="Fecha de vencimiento"
+                                        value={templateTasksDueDates[taskKey] || ''}
+                                        onChange={(e) => setTemplateTasksDueDates({
+                                          ...templateTasksDueDates,
+                                          [taskKey]: e.target.value
+                                        })}
+                                      />
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
                             <p className="text-xs text-gray-500 mt-2">
-                              Asigna una fecha de vencimiento a cada tarea (opcional)
+                              Asigna un responsable y fecha de entrega a cada tarea (opcional)
                             </p>
                           </div>
                         )}

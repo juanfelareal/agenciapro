@@ -871,9 +871,18 @@ export const initializeDatabase = async () => {
         description TEXT,
         priority TEXT CHECK(priority IN ('low', 'medium', 'high', 'urgent')) DEFAULT 'medium',
         estimated_hours REAL DEFAULT 0,
+        default_assignee_id INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
         order_index INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Migration: add default_assignee_id if missing
+    await pool.query(`
+      DO $$ BEGIN
+        ALTER TABLE project_template_tasks ADD COLUMN IF NOT EXISTS default_assignee_id INTEGER REFERENCES team_members(id) ON DELETE SET NULL;
+      EXCEPTION WHEN others THEN NULL;
+      END $$;
     `);
 
     // ========================================

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { projectTemplatesAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { projectTemplatesAPI, teamAPI } from '../utils/api';
+import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, GripVertical, User } from 'lucide-react';
 
 const ProjectTemplates = () => {
   const [templates, setTemplates] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -23,8 +24,12 @@ const ProjectTemplates = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await projectTemplatesAPI.getAll();
-      setTemplates(response.data);
+      const [templatesRes, teamRes] = await Promise.all([
+        projectTemplatesAPI.getAll(),
+        teamAPI.getAll({ status: 'active' }),
+      ]);
+      setTemplates(templatesRes.data);
+      setTeamMembers(teamRes.data);
     } catch (error) {
       console.error('Error loading templates:', error);
     } finally {
@@ -87,6 +92,7 @@ const ProjectTemplates = () => {
           tasks: tasks.map((t, index) => ({
             title: t.title,
             description: t.description || '',
+            default_assignee_id: t.default_assignee_id || null,
             order_index: index,
           })),
         });
@@ -381,15 +387,25 @@ const ProjectTemplates = () => {
                             </button>
                           </div>
 
-                          {/* Task Description */}
-                          <div className="mt-2 ml-14">
+                          {/* Task Description + Assignee */}
+                          <div className="mt-2 ml-14 flex gap-2">
                             <input
                               type="text"
-                              className="w-full bg-white border rounded px-2 py-1.5 text-sm text-gray-600"
+                              className="flex-1 bg-white border rounded px-2 py-1.5 text-sm text-gray-600"
                               value={task.description || ''}
                               onChange={(e) => handleUpdateTask(index, 'description', e.target.value)}
-                              placeholder="Descripción de la tarea (opcional)"
+                              placeholder="Descripción (opcional)"
                             />
+                            <select
+                              className="bg-white border rounded px-2 py-1.5 text-sm text-gray-600 min-w-[140px]"
+                              value={task.default_assignee_id || ''}
+                              onChange={(e) => handleUpdateTask(index, 'default_assignee_id', e.target.value ? Number(e.target.value) : null)}
+                            >
+                              <option value="">Sin asignar</option>
+                              {teamMembers.map((m) => (
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       ))}

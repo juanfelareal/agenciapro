@@ -31,9 +31,11 @@ router.get('/:id', async (req, res) => {
     }
 
     const tasks = await db.prepare(`
-      SELECT * FROM project_template_tasks
-      WHERE template_id = ?
-      ORDER BY order_index ASC
+      SELECT ptt.*, tm.name as default_assignee_name
+      FROM project_template_tasks ptt
+      LEFT JOIN team_members tm ON ptt.default_assignee_id = tm.id
+      WHERE ptt.template_id = ?
+      ORDER BY ptt.order_index ASC
     `).all(req.params.id);
 
     res.json({ ...template, tasks });
@@ -65,14 +67,15 @@ router.post('/', async (req, res) => {
       for (let index = 0; index < tasks.length; index++) {
         const task = tasks[index];
         await db.prepare(`
-          INSERT INTO project_template_tasks (template_id, title, description, priority, estimated_hours, order_index)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO project_template_tasks (template_id, title, description, priority, estimated_hours, default_assignee_id, order_index)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `).run(
           templateId,
           task.title,
           task.description || null,
           task.priority || 'medium',
           task.estimated_hours || 0,
+          task.default_assignee_id || null,
           task.order_index !== undefined ? task.order_index : index
         );
       }
@@ -141,7 +144,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/tasks', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const { title, description, priority, estimated_hours } = req.body;
+    const { title, description, priority, estimated_hours, default_assignee_id } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'El titulo de la tarea es requerido' });
@@ -158,9 +161,9 @@ router.post('/:id/tasks', async (req, res) => {
     const newOrderIndex = (maxOrder.max || 0) + 1;
 
     const result = await db.prepare(`
-      INSERT INTO project_template_tasks (template_id, title, description, priority, estimated_hours, order_index)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(req.params.id, title, description || null, priority || 'medium', estimated_hours || 0, newOrderIndex);
+      INSERT INTO project_template_tasks (template_id, title, description, priority, estimated_hours, default_assignee_id, order_index)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(req.params.id, title, description || null, priority || 'medium', estimated_hours || 0, default_assignee_id || null, newOrderIndex);
 
     const task = await db.prepare('SELECT * FROM project_template_tasks WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(task);
@@ -173,7 +176,7 @@ router.post('/:id/tasks', async (req, res) => {
 router.put('/:id/tasks/:taskId', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const { title, description, priority, estimated_hours, order_index } = req.body;
+    const { title, description, priority, estimated_hours, default_assignee_id, order_index } = req.body;
 
     // Verify template belongs to org
     const template = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
@@ -190,13 +193,14 @@ router.put('/:id/tasks/:taskId', async (req, res) => {
     const updatedDescription = description !== undefined ? description : currentTask.description;
     const updatedPriority = priority !== undefined ? priority : currentTask.priority;
     const updatedEstimatedHours = estimated_hours !== undefined ? estimated_hours : currentTask.estimated_hours;
+    const updatedAssignee = default_assignee_id !== undefined ? (default_assignee_id || null) : currentTask.default_assignee_id;
     const updatedOrderIndex = order_index !== undefined ? order_index : currentTask.order_index;
 
     await db.prepare(`
       UPDATE project_template_tasks
-      SET title = ?, description = ?, priority = ?, estimated_hours = ?, order_index = ?
+      SET title = ?, description = ?, priority = ?, estimated_hours = ?, default_assignee_id = ?, order_index = ?
       WHERE id = ?
-    `).run(updatedTitle, updatedDescription, updatedPriority, updatedEstimatedHours, updatedOrderIndex, req.params.taskId);
+    `).run(updatedTitle, updatedDescription, updatedPriority, updatedEstimatedHours, updatedAssignee, updatedOrderIndex, req.params.taskId);
 
     const task = await db.prepare('SELECT * FROM project_template_tasks WHERE id = ?').get(req.params.taskId);
     res.json(task);
