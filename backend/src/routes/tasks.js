@@ -296,33 +296,33 @@ router.put('/:id', async (req, res) => {
       ? (resolvedAssigneeIds.length > 0 ? resolvedAssigneeIds[0] : null)
       : (assigned_to !== undefined ? (assigned_to || null) : oldTask.assigned_to);
 
+    // Only update fields that were actually sent in the request body
+    const fields = {};
+    if (title !== undefined) fields.title = title;
+    if (description !== undefined) fields.description = description || null;
+    if (project_id !== undefined) fields.project_id = project_id || null;
+    fields.assigned_to = primaryAssignee;
+    if (status !== undefined) fields.status = status;
+    if (priority !== undefined) fields.priority = priority;
+    if (due_date !== undefined) fields.due_date = due_date || null;
+    if (is_recurring !== undefined) fields.is_recurring = is_recurring ? 1 : 0;
+    if (recurrence_pattern !== undefined) fields.recurrence_pattern = recurrence_pattern ? JSON.stringify(recurrence_pattern) : null;
+    if (timeline_start !== undefined) fields.timeline_start = timeline_start || null;
+    if (timeline_end !== undefined) fields.timeline_end = timeline_end || null;
+    if (progress !== undefined) fields.progress = progress || null;
+    if (color !== undefined) fields.color = color || null;
+    if (estimated_hours !== undefined) fields.estimated_hours = estimated_hours || null;
+    if (delivery_url !== undefined) fields.delivery_url = delivery_url || null;
+
+    const setClauses = Object.keys(fields).map((k) => `${k} = ?`);
+    setClauses.push('updated_at = CURRENT_TIMESTAMP');
+    const values = Object.values(fields);
+
     await db.run(`
       UPDATE tasks
-      SET title = ?, description = ?, project_id = ?, assigned_to = ?,
-          status = ?, priority = ?, due_date = ?, is_recurring = ?,
-          recurrence_pattern = ?, timeline_start = ?, timeline_end = ?,
-          progress = ?, color = ?, estimated_hours = ?, delivery_url = ?,
-          updated_at = CURRENT_TIMESTAMP
+      SET ${setClauses.join(', ')}
       WHERE id = ? AND organization_id = ?
-    `, [
-      title,
-      description || null,
-      project_id || null,
-      primaryAssignee,
-      status,
-      priority,
-      due_date || null,
-      is_recurring ? 1 : 0,
-      recurrence_pattern ? JSON.stringify(recurrence_pattern) : null,
-      timeline_start || null,
-      timeline_end || null,
-      progress || null,
-      color || null,
-      estimated_hours || null,
-      delivery_url || null,
-      req.params.id,
-      req.orgId
-    ]);
+    `, [...values, req.params.id, req.orgId]);
 
     const task = await db.get('SELECT * FROM tasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
 
@@ -334,22 +334,22 @@ router.put('/:id', async (req, res) => {
     task.assignees = allAssignees;
     const allAssigneeIds = allAssignees.map(a => a.id);
 
-    // Notification logic
+    // Notification logic (use task from DB, not req.body which may be partial)
     if (oldTask) {
       // Check if task was completed
-      if (status === 'done' && oldTask.status !== 'done') {
-        notifyTaskCompleted(req.params.id, title, 0);
+      if (task.status === 'done' && oldTask.status !== 'done') {
+        notifyTaskCompleted(req.params.id, task.title, 0);
       }
 
       // Check if other important fields changed
       const changes = {};
-      if (title !== oldTask.title) changes.título = true;
-      if (priority !== oldTask.priority) changes.prioridad = true;
-      if (due_date !== oldTask.due_date) changes.fecha_vencimiento = true;
-      if (status !== oldTask.status && status !== 'done') changes.estado = true;
+      if (task.title !== oldTask.title) changes.título = true;
+      if (task.priority !== oldTask.priority) changes.prioridad = true;
+      if (task.due_date !== oldTask.due_date) changes.fecha_vencimiento = true;
+      if (task.status !== oldTask.status && task.status !== 'done') changes.estado = true;
 
-      if (Object.keys(changes).length > 0 && allAssigneeIds.length > 0 && status !== 'done') {
-        notifyTaskUpdated(req.params.id, title, allAssigneeIds, 0, changes);
+      if (Object.keys(changes).length > 0 && allAssigneeIds.length > 0 && task.status !== 'done') {
+        notifyTaskUpdated(req.params.id, task.title, allAssigneeIds, 0, changes);
       }
 
       // Process automations for task update
