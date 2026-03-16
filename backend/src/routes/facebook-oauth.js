@@ -220,7 +220,7 @@ router.get('/ad-accounts', async (req, res) => {
     // Get user's ad accounts (with pagination to fetch ALL)
     let allAccounts = [];
     let nextUrl = `https://graph.facebook.com/v18.0/me/adaccounts?` +
-      `fields=id,name,account_status,currency,timezone_name,business` +
+      `fields=id,name,account_status,currency,timezone_name` +
       `&limit=200&access_token=${accessToken}`;
 
     while (nextUrl) {
@@ -252,7 +252,7 @@ router.get('/ad-accounts', async (req, res) => {
       status: account.account_status === 1 ? 'active' : 'inactive',
       currency: account.currency,
       timezone: account.timezone_name,
-      business: account.business?.name || null,
+      business: null,
       isLinked: linkedIds.has(account.id) || linkedIds.has(account.id.replace('act_', ''))
     }));
 
