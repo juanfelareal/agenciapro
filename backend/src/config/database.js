@@ -234,6 +234,7 @@ export const initializeDatabase = async () => {
         progress INTEGER DEFAULT 0,
         color TEXT,
         estimated_hours REAL,
+        order_index INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -1780,6 +1781,16 @@ export const initializeDatabase = async () => {
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='project_templates' AND column_name='category') THEN
           ALTER TABLE project_templates ADD COLUMN category TEXT;
+        END IF;
+      END $$
+    `);
+
+    // Add order_index to tasks
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='order_index') THEN
+          ALTER TABLE tasks ADD COLUMN order_index INTEGER;
         END IF;
       END $$
     `);

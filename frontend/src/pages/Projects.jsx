@@ -127,7 +127,8 @@ const Projects = () => {
 
         // If using template, copy tasks to new project
         if (useTemplate && templateTasks.length > 0) {
-          for (const task of templateTasks) {
+          for (let i = 0; i < templateTasks.length; i++) {
+            const task = templateTasks[i];
             const taskKey = task.id || task.title;
             const assigneeId = templateTasksAssignees[taskKey];
             await tasksAPI.create({
@@ -145,6 +146,7 @@ const Projects = () => {
               is_recurring: task.is_recurring || false,
               recurrence_pattern: task.recurrence_pattern || null,
               estimated_hours: task.estimated_hours || null,
+              order_index: task.order_index != null ? task.order_index : i,
             });
           }
         }

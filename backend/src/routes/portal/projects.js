@@ -62,7 +62,7 @@ router.get('/:id', clientAuthMiddleware, requirePortalPermission('can_view_proje
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE t.project_id = ?
         AND t.visible_to_client = 1
-      ORDER BY t.created_at DESC
+      ORDER BY t.order_index ASC NULLS LAST, t.created_at ASC
     `, [id]);
 
     // Strip descriptions (private to the agency)

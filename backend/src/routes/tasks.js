@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
       params.push(client_id);
     }
 
-    query += ' ORDER BY t.created_at DESC';
+    query += ' ORDER BY t.order_index ASC NULLS LAST, t.created_at DESC';
     const tasks = await db.all(query, params);
     // Ensure assignees is always an array
     tasks.forEach(t => { t.assignees = t.assignees || []; });
@@ -105,7 +105,8 @@ router.post('/', async (req, res) => {
       color,
       estimated_hours,
       delivery_url,
-      created_by
+      created_by,
+      order_index
     } = req.body;
 
     if (!title) {
@@ -146,9 +147,9 @@ router.post('/', async (req, res) => {
       INSERT INTO tasks (
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
-        progress, color, estimated_hours, delivery_url, created_by, organization_id
+        progress, color, estimated_hours, delivery_url, created_by, order_index, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       title,
       description || null,
@@ -166,6 +167,7 @@ router.post('/', async (req, res) => {
       estimated_hours || null,
       delivery_url || null,
       created_by || null,
+      order_index != null ? order_index : null,
       req.orgId
     ]);
 

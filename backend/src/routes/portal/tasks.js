@@ -41,7 +41,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks'),
       params.push('pending');
     }
 
-    query += ' ORDER BY t.updated_at DESC';
+    query += ' ORDER BY t.order_index ASC NULLS LAST, t.updated_at DESC';
 
     const tasks = await db.all(query, params);
 
