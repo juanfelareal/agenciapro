@@ -166,6 +166,7 @@ export const initializeDatabase = async () => {
         check_digit TEXT,
         address TEXT,
         city TEXT,
+        nickname TEXT,
         status TEXT CHECK(status IN ('active', 'inactive')) DEFAULT 'active',
         contract_value REAL DEFAULT 0,
         contract_start_date TEXT,
@@ -1765,6 +1766,9 @@ export const initializeDatabase = async () => {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='city') THEN
           ALTER TABLE clients ADD COLUMN city TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='nickname') THEN
+          ALTER TABLE clients ADD COLUMN nickname TEXT;
         END IF;
       END $$
     `);

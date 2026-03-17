@@ -38,11 +38,14 @@ const Clients = () => {
 
   // Resizable columns
   const tableRef = useRef(null);
+  const [editingNickname, setEditingNickname] = useState(null);
+  const [nicknameValue, setNicknameValue] = useState('');
   const [columnWidths, setColumnWidths] = useState({
     checkbox: 48,
-    empresa: 350,
-    contacto: 220,
-    email: 230,
+    nickname: 180,
+    empresa: 300,
+    contacto: 200,
+    email: 220,
     estado: 80,
     valor: 130,
     acciones: 140,
@@ -388,6 +391,21 @@ const Clients = () => {
     }
   };
 
+  const handleNicknameEdit = (client) => {
+    setEditingNickname(client.id);
+    setNicknameValue(client.nickname || '');
+  };
+
+  const handleNicknameSave = async (clientId) => {
+    try {
+      await clientsAPI.update(clientId, { nickname: nicknameValue || null });
+      setClients(clients.map(c => c.id === clientId ? { ...c, nickname: nicknameValue || null } : c));
+    } catch (error) {
+      console.error('Error saving nickname:', error);
+    }
+    setEditingNickname(null);
+  };
+
   const handleToggleStatus = async (client) => {
     const newStatus = client.status === 'active' ? 'inactive' : 'active';
     try {
@@ -528,7 +546,7 @@ const Clients = () => {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-        <table ref={tableRef} className="min-w-[1100px]" style={{ tableLayout: 'fixed', width: Object.values(columnWidths).reduce((a, b) => a + b, 0) }}>
+        <table ref={tableRef} className="min-w-[1300px]" style={{ tableLayout: 'fixed', width: Object.values(columnWidths).reduce((a, b) => a + b, 0) }}>
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-3 py-3 text-center relative" style={{ width: columnWidths.checkbox }}>
@@ -545,6 +563,10 @@ const Clients = () => {
                     <Square size={18} />
                   )}
                 </button>
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.nickname }}>
+                Nombre Cliente
+                <ResizeHandle columnKey="nickname" />
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.empresa }}>
                 Empresa
@@ -588,6 +610,31 @@ const Clients = () => {
                       <Square size={18} />
                     )}
                   </button>
+                </td>
+                <td className="px-4 py-4 text-sm">
+                  {editingNickname === client.id ? (
+                    <input
+                      type="text"
+                      className="w-full border border-blue-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      value={nicknameValue}
+                      onChange={(e) => setNicknameValue(e.target.value)}
+                      onBlur={() => handleNicknameSave(client.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleNicknameSave(client.id);
+                        if (e.key === 'Escape') setEditingNickname(null);
+                      }}
+                      autoFocus
+                      placeholder="Nombre interno..."
+                    />
+                  ) : (
+                    <span
+                      onClick={() => handleNicknameEdit(client)}
+                      className={`cursor-pointer hover:bg-gray-100 rounded px-2 py-1 -mx-2 block truncate ${client.nickname ? 'text-gray-700' : 'text-gray-300 italic'}`}
+                      title={client.nickname ? `${client.nickname} (clic para editar)` : 'Clic para agregar nombre'}
+                    >
+                      {client.nickname || 'Sin nombre'}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-4 font-medium text-[#1A1A2E] truncate" title={client.company || client.name}>{client.company || client.name}</td>
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
