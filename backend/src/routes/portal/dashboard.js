@@ -67,9 +67,10 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), []);
 
     const upcomingDeadlines = await safeQuery(() => db.all(`
-      SELECT t.id, t.title, t.due_date, t.status, p.name as project_name
+      SELECT t.id, t.title, t.due_date, t.status, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
+      LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE p.client_id = ? AND t.visible_to_client = 1
         AND t.due_date IS NOT NULL AND t.due_date >= CURRENT_DATE
         AND t.due_date <= CURRENT_DATE + INTERVAL '14 days'
@@ -78,9 +79,10 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), []);
 
     const recentTasks = await safeQuery(() => db.all(`
-      SELECT t.id, t.title, t.status, t.updated_at, t.client_approval_status, p.name as project_name
+      SELECT t.id, t.title, t.status, t.updated_at, t.client_approval_status, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
+      LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE p.client_id = ?
         AND t.visible_to_client = 1
       ORDER BY t.updated_at DESC
@@ -88,9 +90,10 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), []);
 
     const pendingApproval = await safeQuery(() => db.all(`
-      SELECT t.id, t.title, t.status, t.updated_at, p.name as project_name
+      SELECT t.id, t.title, t.status, t.updated_at, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
+      LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE p.client_id = ?
         AND t.visible_to_client = 1
         AND t.requires_client_approval = 1

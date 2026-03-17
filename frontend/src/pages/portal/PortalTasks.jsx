@@ -13,7 +13,8 @@ import {
   ArrowRight,
   FolderKanban,
   Plus,
-  X
+  X,
+  User
 } from 'lucide-react';
 
 export default function PortalTasks() {
@@ -241,12 +242,18 @@ export default function PortalTasks() {
                   </div>
                   <div>
                     <p className="font-medium text-[#1A1A2E]">{task.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="text-sm text-gray-500 flex items-center gap-1">
                         <FolderKanban className="w-3.5 h-3.5" />
                         {task.project_name}
                       </span>
                       {getStatusBadge(task.status)}
+                      {task.assigned_to_name && (
+                        <span className="text-sm text-gray-500 flex items-center gap-1">
+                          <User className="w-3.5 h-3.5" />
+                          {task.assigned_to_name}
+                        </span>
+                      )}
                       {task.requires_client_approval && getApprovalBadge(task.client_approval_status)}
                     </div>
                   </div>

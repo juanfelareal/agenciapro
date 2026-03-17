@@ -273,7 +273,7 @@ export default function PortalDashboard() {
                       <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${sc.dot}`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[#1A1A2E] truncate">{task.title}</p>
-                        <p className="text-xs text-gray-400">{task.project_name}</p>
+                        <p className="text-xs text-gray-400">{task.project_name}{task.assigned_to_name ? ` · ${task.assigned_to_name}` : ''}</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${sc.bg} ${sc.text}`}>
@@ -309,7 +309,7 @@ export default function PortalDashboard() {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[#1A1A2E] truncate">{task.title}</p>
-                        <p className="text-xs text-gray-400">{task.project_name}</p>
+                        <p className="text-xs text-gray-400">{task.project_name}{task.assigned_to_name ? ` · ${task.assigned_to_name}` : ''}</p>
                       </div>
                       <span className={`text-xs font-semibold px-2 py-1 rounded-lg flex-shrink-0 ${
                         days <= 2 ? 'bg-red-100 text-red-700' :
@@ -393,7 +393,7 @@ export default function PortalDashboard() {
               >
                 <div>
                   <p className="font-medium text-amber-900">{task.title}</p>
-                  <p className="text-sm text-amber-700">{task.project_name}</p>
+                  <p className="text-sm text-amber-700">{task.project_name}{task.assigned_to_name ? ` · ${task.assigned_to_name}` : ''}</p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-amber-400" />
               </Link>
