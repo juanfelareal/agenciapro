@@ -48,7 +48,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const { name, description, tasks } = req.body;
+    const { name, description, category, tasks } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'El nombre es requerido' });
@@ -56,9 +56,9 @@ router.post('/', async (req, res) => {
 
     // Create template with organization_id
     const result = await db.prepare(`
-      INSERT INTO project_templates (name, description, organization_id)
-      VALUES (?, ?, ?)
-    `).run(name, description || null, orgId);
+      INSERT INTO project_templates (name, description, category, organization_id)
+      VALUES (?, ?, ?, ?)
+    `).run(name, description || null, category || null, orgId);
 
     const templateId = result.lastInsertRowid;
 
@@ -95,7 +95,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const { name, description } = req.body;
+    const { name, description, category } = req.body;
 
     const currentTemplate = await db.prepare('SELECT * FROM project_templates WHERE id = ? AND organization_id = ?').get(req.params.id, orgId);
     if (!currentTemplate) {
@@ -104,12 +104,13 @@ router.put('/:id', async (req, res) => {
 
     const updatedName = name !== undefined ? name : currentTemplate.name;
     const updatedDescription = description !== undefined ? description : currentTemplate.description;
+    const updatedCategory = category !== undefined ? (category || null) : currentTemplate.category;
 
     await db.prepare(`
       UPDATE project_templates
-      SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, description = ?, category = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `).run(updatedName, updatedDescription, req.params.id, orgId);
+    `).run(updatedName, updatedDescription, updatedCategory, req.params.id, orgId);
 
     const template = await db.prepare('SELECT * FROM project_templates WHERE id = ?').get(req.params.id);
     const tasks = await db.prepare('SELECT * FROM project_template_tasks WHERE template_id = ? ORDER BY order_index ASC').all(req.params.id);

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { projectTemplatesAPI, teamAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, GripVertical, User } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, Tag } from 'lucide-react';
 
 const ProjectTemplates = () => {
   const [templates, setTemplates] = useState([]);
@@ -9,14 +9,30 @@ const ProjectTemplates = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('all');
 
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    category: '',
   });
   const [tasks, setTasks] = useState([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Derive categories from templates
+  const categories = useMemo(() => {
+    const cats = [...new Set(templates.map(t => t.category).filter(Boolean))].sort();
+    return cats;
+  }, [templates]);
+
+  const filteredTemplates = activeCategory === 'all'
+    ? templates
+    : activeCategory === 'uncategorized'
+      ? templates.filter(t => !t.category)
+      : templates.filter(t => t.category === activeCategory);
 
   useEffect(() => {
     loadTemplates();
@@ -39,9 +55,11 @@ const ProjectTemplates = () => {
 
   const handleNew = () => {
     setEditingTemplate(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', category: activeCategory !== 'all' && activeCategory !== 'uncategorized' ? activeCategory : '' });
     setTasks([]);
     setNewTaskTitle('');
+    setShowNewCategory(false);
+    setNewCategoryName('');
     setShowModal(true);
   };
 
@@ -52,9 +70,12 @@ const ProjectTemplates = () => {
       setFormData({
         name: response.data.name,
         description: response.data.description || '',
+        category: response.data.category || '',
       });
       setTasks(response.data.tasks || []);
       setNewTaskTitle('');
+      setShowNewCategory(false);
+      setNewCategoryName('');
       setShowModal(true);
     } catch (error) {
       console.error('Error loading template:', error);
@@ -80,15 +101,16 @@ const ProjectTemplates = () => {
       return;
     }
 
+    const categoryToSave = showNewCategory ? newCategoryName.trim() : formData.category;
+
     setSaving(true);
     try {
+      const payload = { ...formData, category: categoryToSave || null };
       if (editingTemplate) {
-        // Update template
-        await projectTemplatesAPI.update(editingTemplate.id, formData);
+        await projectTemplatesAPI.update(editingTemplate.id, payload);
       } else {
-        // Create template with tasks
         await projectTemplatesAPI.create({
-          ...formData,
+          ...payload,
           tasks: tasks.map((t, index) => ({
             title: t.title,
             description: t.description || '',
@@ -107,7 +129,7 @@ const ProjectTemplates = () => {
     }
   };
 
-  // Task management for editing mode
+  // Task management
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
 
@@ -124,11 +146,10 @@ const ProjectTemplates = () => {
         alert('Error al agregar tarea');
       }
     } else {
-      // For new templates, just add to local state
       setTasks([
         ...tasks,
         {
-          id: Date.now(), // Temp ID
+          id: Date.now(),
           title: newTaskTitle.trim(),
           description: '',
           order_index: tasks.length,
@@ -209,22 +230,84 @@ const ProjectTemplates = () => {
         </button>
       </div>
 
+      {/* Category Tabs */}
+      {categories.length > 0 && (
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl flex-wrap">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              activeCategory === 'all'
+                ? 'bg-white text-[#1A1A2E] shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Todas
+            <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
+              activeCategory === 'all' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-500'
+            }`}>
+              {templates.length}
+            </span>
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeCategory === cat
+                  ? 'bg-white text-[#1A1A2E] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {cat}
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
+                activeCategory === cat ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-gray-200 text-gray-500'
+              }`}>
+                {templates.filter(t => t.category === cat).length}
+              </span>
+            </button>
+          ))}
+          {templates.some(t => !t.category) && (
+            <button
+              onClick={() => setActiveCategory('uncategorized')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeCategory === 'uncategorized'
+                  ? 'bg-white text-[#1A1A2E] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Sin categoría
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
+                activeCategory === 'uncategorized' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-500'
+              }`}>
+                {templates.filter(t => !t.category).length}
+              </span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Templates Grid */}
-      {templates.length === 0 ? (
+      {filteredTemplates.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <FileText size={48} className="mx-auto text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">No hay plantillas</h3>
-          <p className="text-gray-500 mb-4">Crea tu primera plantilla para agilizar la creación de proyectos</p>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">
+            {templates.length === 0 ? 'No hay plantillas' : 'No hay plantillas en esta categoría'}
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {templates.length === 0
+              ? 'Crea tu primera plantilla para agilizar la creación de proyectos'
+              : 'Crea una plantilla o cambia de categoría'}
+          </p>
           <button
             onClick={handleNew}
-            className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg hover:bg-[#1A1A2E]"
+            className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg hover:bg-[#252542]"
           >
             Crear Plantilla
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((template) => (
+          {filteredTemplates.map((template) => (
             <div
               key={template.id}
               className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-5"
@@ -258,6 +341,14 @@ const ProjectTemplates = () => {
                   </button>
                 </div>
               </div>
+              {template.category && (
+                <div className="mb-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#1A1A2E]/5 text-[#1A1A2E]">
+                    <Tag size={11} />
+                    {template.category}
+                  </span>
+                </div>
+              )}
               {template.description && (
                 <p className="text-sm text-gray-600 line-clamp-2">{template.description}</p>
               )}
@@ -294,6 +385,50 @@ const ProjectTemplates = () => {
                   />
                 </div>
 
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Categoría</label>
+                  {!showNewCategory ? (
+                    <div className="flex gap-2">
+                      <select
+                        className="flex-1 border rounded-lg px-3 py-2"
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      >
+                        <option value="">Sin categoría</option>
+                        {categories.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewCategory(true)}
+                        className="px-3 py-2 border rounded-lg text-sm text-[#1A1A2E] hover:bg-gray-50 whitespace-nowrap"
+                      >
+                        + Nueva
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 border rounded-lg px-3 py-2"
+                        placeholder="Ej: Email Marketing, Tráfico, CRO..."
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+                        className="px-3 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Descripción</label>
@@ -326,7 +461,7 @@ const ProjectTemplates = () => {
                     <button
                       type="button"
                       onClick={handleAddTask}
-                      className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg hover:bg-[#1A1A2E]"
+                      className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg hover:bg-[#252542]"
                     >
                       <Plus size={20} />
                     </button>
@@ -427,7 +562,7 @@ const ProjectTemplates = () => {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:bg-gray-400"
+                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] disabled:bg-gray-400"
               >
                 {saving ? 'Guardando...' : editingTemplate ? 'Guardar Cambios' : 'Crear Plantilla'}
               </button>

@@ -858,6 +858,7 @@ export const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
+        category TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -1769,6 +1770,16 @@ export const initializeDatabase = async () => {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='nickname') THEN
           ALTER TABLE clients ADD COLUMN nickname TEXT;
+        END IF;
+      END $$
+    `);
+
+    // Add category to project_templates
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='project_templates' AND column_name='category') THEN
+          ALTER TABLE project_templates ADD COLUMN category TEXT;
         END IF;
       END $$
     `);
