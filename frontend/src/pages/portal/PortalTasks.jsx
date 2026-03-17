@@ -14,7 +14,8 @@ import {
   FolderKanban,
   Plus,
   X,
-  User
+  User,
+  Calendar
 } from 'lucide-react';
 
 export default function PortalTasks() {
@@ -252,6 +253,16 @@ export default function PortalTasks() {
                         <span className="text-sm text-gray-500 flex items-center gap-1">
                           <User className="w-3.5 h-3.5" />
                           {task.assigned_to_name}
+                        </span>
+                      )}
+                      {task.due_date && (
+                        <span className={`text-sm flex items-center gap-1 ${
+                          new Date(task.due_date) < new Date() && task.status !== 'done'
+                            ? 'text-red-500'
+                            : 'text-gray-500'
+                        }`}>
+                          <Calendar className="w-3.5 h-3.5" />
+                          {new Date(task.due_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
                         </span>
                       )}
                       {task.requires_client_approval && getApprovalBadge(task.client_approval_status)}

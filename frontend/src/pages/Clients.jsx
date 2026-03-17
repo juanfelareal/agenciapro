@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen } from 'lucide-react';
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -662,6 +662,13 @@ const Clients = () => {
                     title="Llamadas"
                   >
                     <Phone size={18} />
+                  </button>
+                  <button
+                    onClick={() => navigate(`/app/clients/${client.id}/documentos`)}
+                    className="text-gray-400 hover:text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    title="Documentos"
+                  >
+                    <FolderOpen size={18} />
                   </button>
                   <button
                     onClick={() => handleFacturar(client)}

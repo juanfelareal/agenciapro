@@ -230,6 +230,9 @@ app.use('/api/invoice-pdf', invoicePdfRoutes);
 // Collections / Cartera
 app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
 app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
+// Client Documents
+import clientDocumentsRoutes from './src/routes/client-documents.js';
+app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);
 // Ad Creative Tagging
 app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 // Chat

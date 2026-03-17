@@ -19,6 +19,14 @@ export const clientsAPI = {
   searchNit: (nit) => api.get(`/clients/search-nit/${nit}`),
 };
 
+// Client Documents API
+export const clientDocumentsAPI = {
+  getAll: (clientId) => api.get(`/client-documents/${clientId}`),
+  upload: (clientId, formData) => api.post(`/client-documents/${clientId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  update: (clientId, docId, data) => api.put(`/client-documents/${clientId}/${docId}`, data),
+  delete: (clientId, docId) => api.delete(`/client-documents/${clientId}/${docId}`),
+};
+
 // Projects API
 export const projectsAPI = {
   getAll: (filters) => api.get('/projects', { params: filters }),

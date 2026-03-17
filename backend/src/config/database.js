@@ -1784,6 +1784,24 @@ export const initializeDatabase = async () => {
       END $$
     `);
 
+    // Client Documents table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_documents (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        label TEXT NOT NULL,
+        category TEXT DEFAULT 'General',
+        file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER,
+        file_type TEXT,
+        uploaded_by INTEGER REFERENCES team_members(id),
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Fix invoices with siigo_id that still have status 'draft' or 'sent' — they should be 'invoiced'
     await pool.query(`
       UPDATE invoices SET status = 'invoiced' WHERE siigo_id IS NOT NULL AND status IN ('draft', 'sent', 'approved')

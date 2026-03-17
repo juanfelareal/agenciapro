@@ -38,6 +38,7 @@ import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
 import ClientCalls from './pages/ClientCalls';
+import ClientDocuments from './pages/ClientDocuments';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 
@@ -361,6 +362,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="clients">
                       <ClientPlatformSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="clients/:id/documentos"
+                  element={
+                    <ProtectedRoute permission="clients">
+                      <ClientDocuments />
                     </ProtectedRoute>
                   }
                 />
