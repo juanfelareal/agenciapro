@@ -2,14 +2,17 @@ import Image from '@tiptap/extension-image';
 import { Plugin } from '@tiptap/pm/state';
 import { notesAPI } from '../utils/api';
 
-// Upload image file to server, returns URL
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '');
+
+// Upload image file to server, returns full URL
 const uploadImage = async (file) => {
   // Compress on canvas first
   const compressed = await compressImage(file);
   const formData = new FormData();
   formData.append('image', compressed, 'image.jpg');
   const res = await notesAPI.uploadImage(formData);
-  return res.data.url;
+  // res.data.url is like "/uploads/notes/xxx.jpg" — prepend backend base
+  return `${API_BASE}${res.data.url}`;
 };
 
 // Compress image to a smaller Blob
@@ -55,32 +58,10 @@ export const ImagePaste = Image.extend({
                 event.preventDefault();
                 const file = item.getAsFile();
                 if (file) {
-                  // Show placeholder while uploading
-                  const placeholderSrc = URL.createObjectURL(file);
-                  editor.chain().focus().setImage({ src: placeholderSrc, alt: 'Subiendo...' }).run();
-
                   uploadImage(file).then((url) => {
-                    // Replace placeholder with server URL
-                    const { state } = editor;
-                    const { doc } = state;
-                    let found = false;
-                    doc.descendants((node, pos) => {
-                      if (!found && node.type.name === 'image' && node.attrs.src === placeholderSrc) {
-                        editor.chain().focus().setNodeSelection(pos).setImage({ src: url, alt: '' }).run();
-                        found = true;
-                      }
-                    });
-                    URL.revokeObjectURL(placeholderSrc);
+                    editor.chain().focus().setImage({ src: url }).run();
                   }).catch((err) => {
                     console.error('Error uploading image:', err);
-                    // Remove placeholder on error
-                    const { doc } = editor.state;
-                    doc.descendants((node, pos) => {
-                      if (node.type.name === 'image' && node.attrs.src === placeholderSrc) {
-                        editor.chain().focus().setNodeSelection(pos).deleteSelection().run();
-                      }
-                    });
-                    URL.revokeObjectURL(placeholderSrc);
                   });
                 }
                 return true;

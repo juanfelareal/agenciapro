@@ -11,6 +11,8 @@ import { ImagePaste } from '../extensions/ImagePaste';
 import { VideoEmbed } from '../extensions/VideoEmbed';
 import VideoEmbedModal from './VideoEmbedModal';
 import { notesAPI } from '../utils/api';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '');
 import {
   Bold,
   Italic,
@@ -297,7 +299,7 @@ const NoteEditor = ({
       const formData = new FormData();
       formData.append('image', blob, 'image.jpg');
       const res = await notesAPI.uploadImage(formData);
-      editor.chain().focus().setImage({ src: res.data.url }).run();
+      editor.chain().focus().setImage({ src: `${API_BASE}${res.data.url}` }).run();
     } catch (err) {
       console.error('Error uploading image:', err);
     }
