@@ -22,6 +22,7 @@ import ListView from '../components/tasks/ListView';
 import TableView from '../components/TableView';
 import SubtaskList from '../components/SubtaskList';
 import TagSelector from '../components/TagSelector';
+import TaskDescriptionEditor from '../components/TaskDescriptionEditor';
 
 const statusLabels = {
   layout: 'Layout',
@@ -706,11 +707,10 @@ const ProjectDetail = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <textarea
+                <TaskDescriptionEditor
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
-                  rows={3}
+                  onChange={(json) => setFormData({ ...formData, description: json })}
+                  placeholder="Descripción de la tarea... (puedes pegar imágenes)"
                 />
               </div>
 

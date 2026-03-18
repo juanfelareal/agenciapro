@@ -3,6 +3,7 @@ import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from
 import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
+import TaskDescriptionEditor from '../components/TaskDescriptionEditor';
 import TagSelector from '../components/TagSelector';
 import TaskViewSwitcher from '../components/tasks/TaskViewSwitcher';
 import TaskFilters from '../components/tasks/TaskFilters';
@@ -672,11 +673,10 @@ const Tasks = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Descripción</label>
-                  <textarea
-                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-                    rows="3"
+                  <TaskDescriptionEditor
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(json) => setFormData({ ...formData, description: json })}
+                    placeholder="Descripción de la tarea... (puedes pegar imágenes)"
                   />
                 </div>
 

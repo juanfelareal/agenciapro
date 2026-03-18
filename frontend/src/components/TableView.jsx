@@ -3,6 +3,7 @@ import { tasksAPI, boardColumnsAPI, teamAPI } from '../utils/api';
 import { Plus, Edit, Trash2, Settings, GripVertical, MessageCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import TaskComments from './TaskComments';
+import TaskDescriptionEditor from './TaskDescriptionEditor';
 
 const TableView = ({ projectId }) => {
   const [tasks, setTasks] = useState([]);
@@ -436,11 +437,10 @@ const TableView = ({ projectId }) => {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Descripción</label>
-                  <textarea
-                    className="w-full border rounded-lg px-3 py-2"
-                    rows="3"
+                  <TaskDescriptionEditor
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(json) => setFormData({ ...formData, description: json })}
+                    placeholder="Descripción de la tarea... (puedes pegar imágenes)"
                   />
                 </div>
 
