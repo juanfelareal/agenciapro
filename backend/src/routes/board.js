@@ -1,6 +1,6 @@
 import express from 'express';
-import db from '../config/database.js';
 import { streamAgentResponse } from '../agents/runner.js';
+import db from '../config/database.js';
 
 const router = express.Router();
 
@@ -8,7 +8,6 @@ const router = express.Router();
 // ADVISOR CRUD
 // ========================================
 
-// GET /advisors — List active advisors for the org
 router.get('/advisors', async (req, res) => {
   try {
     const advisors = await db.all(
@@ -25,7 +24,6 @@ router.get('/advisors', async (req, res) => {
   }
 });
 
-// POST /advisors — Create advisor
 router.post('/advisors', async (req, res) => {
   try {
     const { name, slug, role, expertise, icon, avatar_color, system_prompt, example_prompts } = req.body;
@@ -53,7 +51,6 @@ router.post('/advisors', async (req, res) => {
   }
 });
 
-// PUT /advisors/:id — Update advisor
 router.put('/advisors/:id', async (req, res) => {
   try {
     const { name, slug, role, expertise, icon, avatar_color, system_prompt, example_prompts, is_active } = req.body;
@@ -92,7 +89,6 @@ router.put('/advisors/:id', async (req, res) => {
   }
 });
 
-// DELETE /advisors/:id — Delete advisor (cascades conversations)
 router.delete('/advisors/:id', async (req, res) => {
   try {
     const existing = await db.get(
@@ -113,7 +109,6 @@ router.delete('/advisors/:id', async (req, res) => {
 // CONVERSATIONS
 // ========================================
 
-// GET /conversations — List all conversations for this user (group + direct)
 router.get('/conversations', async (req, res) => {
   try {
     const conversations = await db.all(`
@@ -134,7 +129,6 @@ router.get('/conversations', async (req, res) => {
   }
 });
 
-// POST /conversations — Create conversation (group or direct)
 router.post('/conversations', async (req, res) => {
   try {
     const { type, advisor_slug, title } = req.body;
@@ -169,7 +163,6 @@ router.post('/conversations', async (req, res) => {
   }
 });
 
-// GET /conversations/:id — Get conversation with messages
 router.get('/conversations/:id', async (req, res) => {
   try {
     const conversation = await db.get(`
@@ -190,7 +183,6 @@ router.get('/conversations/:id', async (req, res) => {
       ORDER BY bm.created_at ASC
     `, [req.params.id]);
 
-    // For group conversations, also return the advisors list
     let advisors = [];
     if (conversation.type === 'group') {
       advisors = await db.all(
@@ -206,7 +198,6 @@ router.get('/conversations/:id', async (req, res) => {
   }
 });
 
-// DELETE /conversations/:id — Delete conversation
 router.delete('/conversations/:id', async (req, res) => {
   try {
     const conversation = await db.get(
@@ -224,25 +215,36 @@ router.delete('/conversations/:id', async (req, res) => {
 });
 
 // ========================================
-// MESSAGES + STREAMING
+// MESSAGES + STREAMING (using Claude Agent SDK via runner.js)
 // ========================================
 
-// Helper: stream a single advisor response
-async function streamAdvisorResponse(advisor, prompt, res, conversationId, orgId) {
-  const agentConfig = {
-    systemPrompt: advisor.system_prompt,
-    allowedTools: [],
-    maxTurns: 1,
-    maxBudgetUsd: 0.50,
-    model: 'claude-sonnet-4-6',
-    permissionMode: 'plan',
-  };
-
+// Helper: stream a single advisor response using Agent SDK
+async function streamAdvisorResponse(advisor, promptText, res, conversationId, orgId) {
   let fullContent = '';
 
-  return new Promise((resolve, reject) => {
-    streamAgentResponse(agentConfig, prompt, undefined, {
-      onMessage: () => {},
+  try {
+    // Signal advisor start
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({
+        type: 'advisor_start',
+        advisor_id: advisor.id,
+        advisor_name: advisor.name,
+        advisor_slug: advisor.slug,
+        advisor_icon: advisor.icon,
+        advisor_color: advisor.avatar_color,
+      })}\n\n`);
+    }
+
+    const agentConfig = {
+      systemPrompt: advisor.system_prompt,
+      allowedTools: [],
+      maxTurns: 1,
+      maxBudgetUsd: 0.50,
+      model: 'claude-sonnet-4-6',
+      permissionMode: 'plan',
+    };
+
+    await streamAgentResponse(agentConfig, promptText, null, {
       onText: (text) => {
         fullContent += text;
         if (!res.writableEnded) {
@@ -250,14 +252,11 @@ async function streamAdvisorResponse(advisor, prompt, res, conversationId, orgId
             type: 'text',
             text,
             advisor_id: advisor.id,
-            advisor_name: advisor.name,
-            advisor_slug: advisor.slug,
-            advisor_icon: advisor.icon,
-            advisor_color: advisor.avatar_color,
           })}\n\n`);
         }
       },
-      onDone: async () => {
+      onMessage: () => {},
+      onDone: async (result) => {
         // Save advisor message to DB
         await db.run(
           'INSERT INTO board_messages (conversation_id, role, content, advisor_id, organization_id) VALUES (?, ?, ?, ?, ?)',
@@ -272,10 +271,9 @@ async function streamAdvisorResponse(advisor, prompt, res, conversationId, orgId
             content: fullContent,
           })}\n\n`);
         }
-
-        resolve(fullContent);
       },
       onError: (err) => {
+        console.error(`[Board] Stream error for ${advisor.name}:`, err.message);
         if (!res.writableEnded) {
           res.write(`data: ${JSON.stringify({
             type: 'advisor_error',
@@ -284,13 +282,22 @@ async function streamAdvisorResponse(advisor, prompt, res, conversationId, orgId
             error: err.message,
           })}\n\n`);
         }
-        resolve(''); // Don't reject, continue with other advisors
       },
-    }).catch((err) => {
-      console.error(`[Board] Stream error for ${advisor.name}:`, err.message);
-      resolve('');
     });
-  });
+
+    return fullContent;
+  } catch (err) {
+    console.error(`[Board] Stream error for ${advisor.name}:`, err.message);
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({
+        type: 'advisor_error',
+        advisor_id: advisor.id,
+        advisor_name: advisor.name,
+        error: err.message,
+      })}\n\n`);
+    }
+    return '';
+  }
 }
 
 // POST /conversations/:id/messages — Send message + stream responses via SSE
@@ -349,27 +356,22 @@ router.post('/conversations/:id/messages', async (req, res) => {
         return;
       }
 
-      // Get conversation history for context
-      const history = await db.all(
-        'SELECT role, content, advisor_id FROM board_messages WHERE conversation_id = ? ORDER BY created_at ASC',
-        [req.params.id]
-      );
+      // Build prompt from conversation history
+      const history = await db.all(`
+        SELECT bm.role, bm.content
+        FROM board_messages bm
+        WHERE bm.conversation_id = ? AND (bm.advisor_id IS NULL OR bm.advisor_id = ?)
+        ORDER BY bm.created_at ASC
+      `, [req.params.id, advisor.id]);
 
-      // Build full prompt with history
-      const historyText = history.slice(0, -1).map(m => {
-        if (m.role === 'user') return `Usuario: ${m.content}`;
-        return `${advisor.name}: ${m.content}`;
-      }).join('\n\n');
+      // Format history as a single prompt string for the Agent SDK
+      const historyLines = history.map(m => {
+        if (m.role === 'user') return `[Usuario]: ${m.content}`;
+        return `[${advisor.name}]: ${m.content}`;
+      });
+      const promptText = historyLines.join('\n\n');
 
-      const fullPrompt = historyText
-        ? `${historyText}\n\nUsuario: ${message.trim()}`
-        : message.trim();
-
-      await streamAdvisorResponse(advisor, fullPrompt, res, req.params.id, req.orgId);
-
-      await db.run('UPDATE board_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
-      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-      res.end();
+      await streamAdvisorResponse(advisor, promptText, res, req.params.id, req.orgId);
 
     } else {
       // ===== GROUP: All advisors respond sequentially =====
@@ -384,64 +386,50 @@ router.post('/conversations/:id/messages', async (req, res) => {
         return;
       }
 
-      // Get conversation history for context
-      const history = await db.all(`
-        SELECT bm.role, bm.content, bm.advisor_id, ba.name as advisor_name
-        FROM board_messages bm
-        LEFT JOIN board_advisors ba ON bm.advisor_id = ba.id
-        WHERE bm.conversation_id = ?
-        ORDER BY bm.created_at ASC
-      `, [req.params.id]);
-
-      // Build history text (exclude the message we just saved)
-      const prevMessages = history.slice(0, -1);
-      const historyText = prevMessages.map(m => {
-        if (m.role === 'user') return `Usuario: ${m.content}`;
-        return `${m.advisor_name || 'Advisor'}: ${m.content}`;
-      }).join('\n\n');
-
       // Signal which advisors will respond
       res.write(`data: ${JSON.stringify({
         type: 'group_start',
         advisors: advisors.map(a => ({ id: a.id, name: a.name, slug: a.slug, icon: a.icon, color: a.avatar_color })),
       })}\n\n`);
 
-      // Each advisor responds with awareness of the full conversation + other advisors' responses in this round
+      // Get full conversation history for context
+      const history = await db.all(`
+        SELECT bm.role, bm.content, ba.name as advisor_name
+        FROM board_messages bm
+        LEFT JOIN board_advisors ba ON bm.advisor_id = ba.id
+        WHERE bm.conversation_id = ?
+        ORDER BY bm.created_at ASC
+      `, [req.params.id]);
+
+      // Each advisor responds with context of the whole conversation + previous advisors' responses in this round
       const roundResponses = [];
 
       for (const advisor of advisors) {
-        // Build prompt: history + current question + what other advisors said in this round
+        // Build history text (everything except the last user message which is already in history)
+        const historyText = history.slice(0, -1).map(m => {
+          if (m.role === 'user') return `[Usuario]: ${m.content}`;
+          return `[${m.advisor_name || 'Advisor'}]: ${m.content}`;
+        }).join('\n\n');
+
+        // Add round context (other advisors' responses this round)
         let roundContext = '';
         if (roundResponses.length > 0) {
           roundContext = '\n\n--- Respuestas de otros advisors en esta ronda ---\n' +
-            roundResponses.map(r => `${r.name}: ${r.content}`).join('\n\n') +
-            '\n--- Fin de respuestas previas ---\n\nAhora es tu turno. Puedes complementar, debatir o agregar tu perspectiva única. No repitas lo que ya dijeron otros.';
+            roundResponses.map(r => `[${r.name}]: ${r.content}`).join('\n\n') +
+            '\n--- Fin ---\nAhora es tu turno. Complementa, debate o agrega tu perspectiva. No repitas lo que ya dijeron.';
         }
 
-        const fullPrompt = [
-          historyText,
-          `Usuario: ${message.trim()}`,
-          roundContext,
-        ].filter(Boolean).join('\n\n');
+        const promptText = [historyText, `[Usuario]: ${message.trim()}`, roundContext].filter(Boolean).join('\n\n');
 
-        // Signal this advisor is about to respond
-        res.write(`data: ${JSON.stringify({
-          type: 'advisor_start',
-          advisor_id: advisor.id,
-          advisor_name: advisor.name,
-          advisor_slug: advisor.slug,
-          advisor_icon: advisor.icon,
-          advisor_color: advisor.avatar_color,
-        })}\n\n`);
-
-        const content = await streamAdvisorResponse(advisor, fullPrompt, res, req.params.id, req.orgId);
+        const content = await streamAdvisorResponse(advisor, promptText, res, req.params.id, req.orgId);
         roundResponses.push({ name: advisor.name, content });
       }
-
-      await db.run('UPDATE board_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
-      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-      res.end();
     }
+
+    await db.run('UPDATE board_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
+    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    res.end();
+
   } catch (error) {
     console.error('Error in board message:', error);
     if (!res.headersSent) {
