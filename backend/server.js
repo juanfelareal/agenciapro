@@ -82,6 +82,8 @@ import { setupChat } from './src/services/chatService.js';
 // AI Agents
 import agentRoutes from './src/routes/agents.js';
 import { setupAgentSocket } from './src/agents/socket.js';
+// Board of Advisors (Junta Directiva)
+import boardRoutes from './src/routes/board.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -239,6 +241,8 @@ app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 app.use('/api/chat', teamAuthMiddleware, chatRoutes);
 // AI Agents
 app.use('/api/agents', teamAuthMiddleware, agentRoutes);
+// Board of Advisors (Junta Directiva)
+app.use('/api/board', teamAuthMiddleware, boardRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
