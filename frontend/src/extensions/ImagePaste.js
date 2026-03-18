@@ -1,8 +1,19 @@
 import Image from '@tiptap/extension-image';
 import { Plugin } from '@tiptap/pm/state';
+import { notesAPI } from '../utils/api';
 
-// Compress image to base64
-const compressImageToBase64 = (file, maxWidth = 800, quality = 0.7) => {
+// Upload image file to server, returns URL
+const uploadImage = async (file) => {
+  // Compress on canvas first
+  const compressed = await compressImage(file);
+  const formData = new FormData();
+  formData.append('image', compressed, 'image.jpg');
+  const res = await notesAPI.uploadImage(formData);
+  return res.data.url;
+};
+
+// Compress image to a smaller Blob
+const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -14,16 +25,11 @@ const compressImageToBase64 = (file, maxWidth = 800, quality = 0.7) => {
         canvas.height = img.height * ratio;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-
-        // Check size (warn if > 500KB)
-        const base64Length = dataUrl.length - 'data:image/jpeg;base64,'.length;
-        const sizeInKB = (base64Length * 0.75) / 1024;
-        if (sizeInKB > 500) {
-          console.warn(`Image is ${sizeInKB.toFixed(0)}KB after compression`);
-        }
-
-        resolve(dataUrl);
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Compression failed')),
+          'image/jpeg',
+          quality
+        );
       };
       img.onerror = reject;
       img.src = e.target.result;
@@ -49,10 +55,32 @@ export const ImagePaste = Image.extend({
                 event.preventDefault();
                 const file = item.getAsFile();
                 if (file) {
-                  compressImageToBase64(file).then((base64) => {
-                    editor.chain().focus().setImage({ src: base64 }).run();
+                  // Show placeholder while uploading
+                  const placeholderSrc = URL.createObjectURL(file);
+                  editor.chain().focus().setImage({ src: placeholderSrc, alt: 'Subiendo...' }).run();
+
+                  uploadImage(file).then((url) => {
+                    // Replace placeholder with server URL
+                    const { state } = editor;
+                    const { doc } = state;
+                    let found = false;
+                    doc.descendants((node, pos) => {
+                      if (!found && node.type.name === 'image' && node.attrs.src === placeholderSrc) {
+                        editor.chain().focus().setNodeSelection(pos).setImage({ src: url, alt: '' }).run();
+                        found = true;
+                      }
+                    });
+                    URL.revokeObjectURL(placeholderSrc);
                   }).catch((err) => {
-                    console.error('Error compressing image:', err);
+                    console.error('Error uploading image:', err);
+                    // Remove placeholder on error
+                    const { doc } = editor.state;
+                    doc.descendants((node, pos) => {
+                      if (node.type.name === 'image' && node.attrs.src === placeholderSrc) {
+                        editor.chain().focus().setNodeSelection(pos).deleteSelection().run();
+                      }
+                    });
+                    URL.revokeObjectURL(placeholderSrc);
                   });
                 }
                 return true;
@@ -67,14 +95,10 @@ export const ImagePaste = Image.extend({
             for (const file of files) {
               if (file.type.startsWith('image/')) {
                 event.preventDefault();
-                compressImageToBase64(file).then((base64) => {
-                  const { state } = view;
-                  const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
-                  if (pos) {
-                    editor.chain().focus().setImage({ src: base64 }).run();
-                  }
+                uploadImage(file).then((url) => {
+                  editor.chain().focus().setImage({ src: url }).run();
                 }).catch((err) => {
-                  console.error('Error compressing image:', err);
+                  console.error('Error uploading image:', err);
                 });
                 return true;
               }

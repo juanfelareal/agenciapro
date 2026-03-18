@@ -254,6 +254,7 @@ export const notesAPI = {
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),
   togglePin: (id) => api.put(`/notes/${id}/pin`),
+  uploadImage: (formData) => api.post('/notes/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   updateColor: (id, color) => api.put(`/notes/${id}/color`, { color }),
   addLink: (id, data) => api.post(`/notes/${id}/links`, data),
   removeLink: (id, linkId) => api.delete(`/notes/${id}/links/${linkId}`),

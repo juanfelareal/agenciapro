@@ -1,5 +1,38 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
+import fs from 'fs';
 import db from '../config/database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure uploads/notes directory exists
+const notesUploadsDir = path.join(__dirname, '../../uploads/notes');
+fs.mkdirSync(notesUploadsDir, { recursive: true });
+
+// Multer config for note images
+const storage = multer.diskStorage({
+  destination: notesUploadsDir,
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.png';
+    cb(null, `${randomUUID()}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten imágenes'), false);
+    }
+  },
+});
 
 const router = express.Router();
 
@@ -508,6 +541,20 @@ router.get('/search/query', async (req, res) => {
 
     res.json(notes);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /upload-image — Upload image for note editor
+router.post('/upload-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image provided' });
+    }
+    const imageUrl = `/uploads/notes/${req.file.filename}`;
+    res.json({ url: imageUrl });
+  } catch (error) {
+    console.error('Error uploading note image:', error);
     res.status(500).json({ error: error.message });
   }
 });

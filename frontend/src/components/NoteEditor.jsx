@@ -10,6 +10,7 @@ import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { ImagePaste } from '../extensions/ImagePaste';
 import { VideoEmbed } from '../extensions/VideoEmbed';
 import VideoEmbedModal from './VideoEmbedModal';
+import { notesAPI } from '../utils/api';
 import {
   Bold,
   Italic,
@@ -266,31 +267,41 @@ const NoteEditor = ({
     }
   }, [editor, content, collaborative]);
 
-  // Handle image file selection
+  // Handle image file selection — upload to server
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !editor) return;
 
-    // Compress and insert
-    const reader = new FileReader();
-    reader.onload = (event) => {
+    try {
+      // Compress on canvas
+      const canvas = document.createElement('canvas');
       const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxWidth = 800;
-        const ratio = Math.min(maxWidth / img.width, 1);
-        canvas.width = img.width * ratio;
-        canvas.height = img.height * ratio;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        editor.chain().focus().setImage({ src: dataUrl }).run();
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+      const maxWidth = 1200;
+      const ratio = Math.min(maxWidth / img.width, 1);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
 
-    // Reset input
+      const formData = new FormData();
+      formData.append('image', blob, 'image.jpg');
+      const res = await notesAPI.uploadImage(formData);
+      editor.chain().focus().setImage({ src: res.data.url }).run();
+    } catch (err) {
+      console.error('Error uploading image:', err);
+    }
+
     e.target.value = '';
   };
 
