@@ -468,17 +468,6 @@ export const adTagsAPI = {
   bulkAssign: (data) => api.post('/ad-tags/assignments/bulk', data),
 };
 
-export const boardAPI = {
-  getAdvisors: () => api.get('/board/advisors'),
-  createAdvisor: (data) => api.post('/board/advisors', data),
-  updateAdvisor: (id, data) => api.put(`/board/advisors/${id}`, data),
-  deleteAdvisor: (id) => api.delete(`/board/advisors/${id}`),
-  getConversations: () => api.get('/board/conversations'),
-  createConversation: (data) => api.post('/board/conversations', data),
-  getConversation: (id) => api.get(`/board/conversations/${id}`),
-  deleteConversation: (id) => api.delete(`/board/conversations/${id}`),
-};
-
 export const agentsAPI = {
   list: () => api.get('/agents'),
   getBySlug: (slug) => api.get(`/agents/${slug}`),

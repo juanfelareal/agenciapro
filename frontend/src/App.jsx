@@ -41,7 +41,6 @@ import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
-import BoardAdvisors from './pages/BoardAdvisors';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -419,8 +418,6 @@ function App() {
                 {/* Agents routes hidden until API auth is resolved */}
                 {/* <Route path="agents" element={<Agents />} /> */}
                 {/* <Route path="agents/:slug" element={<Agents />} /> */}
-                <Route path="junta-directiva" element={<BoardAdvisors />} />
-                <Route path="junta-directiva/:slug" element={<BoardAdvisors />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>
