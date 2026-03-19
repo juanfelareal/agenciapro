@@ -11,19 +11,20 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').r
 const TaskDescriptionEditor = ({ value, onChange, placeholder = 'Descripción...' }) => {
   const fileInputRef = useRef(null);
 
-  // Parse initial content: could be JSON (TipTap) or plain string (legacy)
-  const initialContent = (() => {
-    if (!value) return '';
-    if (typeof value === 'object') return value;
+  // Convert any value to TipTap-compatible content
+  const parseContent = (val) => {
+    if (!val) return '';
+    if (typeof val === 'object') return val;
     try {
-      const parsed = JSON.parse(value);
+      const parsed = JSON.parse(val);
       if (parsed && parsed.type === 'doc') return parsed;
     } catch {}
     // Legacy plain text — convert newlines to separate paragraphs
-    // so TipTap preserves the original line breaks
-    const lines = value.split('\n');
+    const lines = val.split('\n');
     return lines.map(line => `<p>${line || '<br>'}</p>`).join('');
-  })();
+  };
+
+  const isInternalChange = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -31,33 +32,27 @@ const TaskDescriptionEditor = ({ value, onChange, placeholder = 'Descripción...
       Placeholder.configure({ placeholder }),
       ImagePaste.configure({ inline: false, allowBase64: true }),
     ],
-    content: initialContent,
+    content: parseContent(value),
     onUpdate: ({ editor }) => {
       if (onChange) {
+        isInternalChange.current = true;
         const json = editor.getJSON();
-        const text = editor.getText();
-        // Store as JSON string so backend gets rich content
-        onChange(JSON.stringify(json), text);
+        onChange(JSON.stringify(json));
       }
     },
   });
 
-  // Sync external value changes
+  // Sync when value changes externally (e.g. modal opens with task data)
   useEffect(() => {
     if (!editor || !value) return;
-    const currentJson = JSON.stringify(editor.getJSON());
-    // Only update if value is different (avoid cursor jumps)
-    if (typeof value === 'string') {
-      try {
-        const parsed = JSON.parse(value);
-        if (parsed?.type === 'doc' && JSON.stringify(parsed) !== currentJson) {
-          editor.commands.setContent(parsed);
-        }
-      } catch {
-        // plain text — don't override if editor already has content
-      }
+    // Skip updates that came from our own onUpdate callback
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
     }
-  }, [value]);
+    const content = parseContent(value);
+    editor.commands.setContent(content);
+  }, [editor, value]);
 
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
