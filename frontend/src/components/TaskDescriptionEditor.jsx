@@ -19,8 +19,10 @@ const TaskDescriptionEditor = ({ value, onChange, placeholder = 'Descripción...
       const parsed = JSON.parse(value);
       if (parsed && parsed.type === 'doc') return parsed;
     } catch {}
-    // Legacy plain text — convert to simple paragraph
-    return value;
+    // Legacy plain text — convert newlines to separate paragraphs
+    // so TipTap preserves the original line breaks
+    const lines = value.split('\n');
+    return lines.map(line => `<p>${line || '<br>'}</p>`).join('');
   })();
 
   const editor = useEditor({
