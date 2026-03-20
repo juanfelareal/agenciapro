@@ -48,7 +48,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks'),
     // Strip descriptions (private to the agency)
     tasks.forEach(t => delete t.description);
 
-    // Get subtask progress for each task
+    // Get subtask progress and form assignment for each task
     for (const task of tasks) {
       const subtaskProgress = await db.get(`
         SELECT
@@ -59,6 +59,17 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks'),
       `, [task.id]);
       task.subtask_total = subtaskProgress?.total || 0;
       task.subtask_completed = subtaskProgress?.completed || 0;
+
+      // If task has linked form, get the assignment for this client
+      if (task.linked_form_id) {
+        const formAssignment = await db.get(`
+          SELECT fa.id as assignment_id, fa.status as form_status, f.title as form_title
+          FROM form_assignments fa
+          JOIN forms f ON fa.form_id = f.id
+          WHERE fa.form_id = ? AND fa.client_id = ?
+        `, [task.linked_form_id, clientId]);
+        task.linked_form = formAssignment || null;
+      }
     }
 
     res.json({ tasks });
@@ -140,11 +151,23 @@ router.get('/:id', clientAuthMiddleware, requirePortalPermission('can_view_tasks
       ...clientComments.map(c => ({ ...c, is_client_comment: true, author_name: c.client_name }))
     ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
+    // If task has linked form, get the assignment for this client
+    let linkedForm = null;
+    if (task.linked_form_id) {
+      linkedForm = await db.get(`
+        SELECT fa.id as assignment_id, fa.status as form_status, f.title as form_title
+        FROM form_assignments fa
+        JOIN forms f ON fa.form_id = f.id
+        WHERE fa.form_id = ? AND fa.client_id = ?
+      `, [task.linked_form_id, clientId]);
+    }
+
     res.json({
       task: {
         ...task,
         subtasks,
-        files
+        files,
+        linked_form: linkedForm
       },
       comments
     });

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
+import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI } from '../utils/api';
 import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
@@ -58,12 +58,14 @@ const Tasks = () => {
     priority: 'medium',
     due_date: '',
     delivery_url: '',
+    linked_form_id: '',
     is_recurring: false,
     recurrence_pattern: {
       type: 'weekly',
       days: [],
     },
   });
+  const [availableForms, setAvailableForms] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -76,18 +78,20 @@ const Tasks = () => {
 
   const loadData = async () => {
     try {
-      const [tasksRes, projectsRes, teamRes, tagsRes, clientsRes] = await Promise.all([
+      const [tasksRes, projectsRes, teamRes, tagsRes, clientsRes, formsRes] = await Promise.all([
         tasksAPI.getAll(),
         projectsAPI.getAll(),
         teamAPI.getAll({ status: 'active' }),
         tagsAPI.getAll(),
         clientsAPI.getAll(),
+        formsAPI.getAll({ status: 'published' }),
       ]);
       setTasks(tasksRes.data || []);
       setProjects(projectsRes.data || []);
       setTeamMembers(teamRes.data || []);
       setAllTags(tagsRes.data || []);
       setClients(clientsRes.data || []);
+      setAvailableForms(formsRes.data || []);
 
       // Load tags and subtask progress for each task
       const tasksList = tasksRes.data || [];
@@ -246,6 +250,7 @@ const Tasks = () => {
       priority: 'medium',
       due_date: '',
       delivery_url: '',
+      linked_form_id: '',
       is_recurring: false,
       recurrence_pattern: {
         type: 'weekly',
@@ -356,6 +361,7 @@ const Tasks = () => {
       color: task.color || null,
       estimated_hours: task.estimated_hours || null,
       delivery_url: task.delivery_url || '',
+      linked_form_id: task.linked_form_id || '',
     });
     // Load task tags
     const tags = taskTags[task.id] || [];
@@ -709,6 +715,27 @@ const Tasks = () => {
                   </div>
                   <p className="text-xs text-gray-400 mt-1">Drive, Figma, Canva, o cualquier URL donde se entregó el trabajo</p>
                 </div>
+
+                {/* Linked Form - Formulario vinculado */}
+                {availableForms.length > 0 && (
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-2">
+                      <ListChecks size={14} />
+                      Formulario vinculado
+                    </label>
+                    <select
+                      className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00] bg-white"
+                      value={formData.linked_form_id || ''}
+                      onChange={(e) => setFormData({ ...formData, linked_form_id: e.target.value ? parseInt(e.target.value) : '' })}
+                    >
+                      <option value="">Sin formulario</option>
+                      {availableForms.map(f => (
+                        <option key={f.id} value={f.id}>{f.title}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">El cliente verá un botón para llenar este formulario dentro de la tarea</p>
+                  </div>
+                )}
 
                 {/* Tags Section */}
                 <div className="col-span-2">

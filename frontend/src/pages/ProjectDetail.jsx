@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI, tasksAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI } from '../utils/api';
+import { projectsAPI, tasksAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI } from '../utils/api';
 import {
   ArrowLeft,
   Home,
@@ -85,7 +85,9 @@ const ProjectDetail = () => {
     priority: 'medium',
     due_date: '',
     delivery_url: '',
+    linked_form_id: '',
   });
+  const [availableForms, setAvailableForms] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -94,12 +96,14 @@ const ProjectDetail = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [projectRes, tasksRes, teamRes, tagsRes] = await Promise.all([
+      const [projectRes, tasksRes, teamRes, tagsRes, formsRes] = await Promise.all([
         projectsAPI.getById(id),
         tasksAPI.getAll({ project_id: id }),
         teamAPI.getAll({ status: 'active' }),
         tagsAPI.getAll(),
+        formsAPI.getAll({ status: 'published' }),
       ]);
+      setAvailableForms(formsRes.data || []);
 
       setProject(projectRes.data);
       setTasks(tasksRes.data || []);
@@ -179,6 +183,7 @@ const ProjectDetail = () => {
       priority: task.priority,
       due_date: task.due_date || '',
       delivery_url: task.delivery_url || '',
+      linked_form_id: task.linked_form_id || '',
     });
     setSelectedTagIds((taskTags[task.id] || []).map(t => t.id));
     setShowModal(true);
@@ -194,6 +199,7 @@ const ProjectDetail = () => {
       priority: 'medium',
       due_date: '',
       delivery_url: '',
+      linked_form_id: '',
     });
     setSelectedTagIds([]);
     setShowModal(true);
@@ -814,6 +820,23 @@ const ProjectDetail = () => {
                   />
                 </div>
               </div>
+
+              {availableForms.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Formulario vinculado</label>
+                  <select
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent bg-white"
+                    value={formData.linked_form_id || ''}
+                    onChange={(e) => setFormData({ ...formData, linked_form_id: e.target.value ? parseInt(e.target.value) : '' })}
+                  >
+                    <option value="">Sin formulario</option>
+                    {availableForms.map(f => (
+                      <option key={f.id} value={f.id}>{f.title}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">El cliente verá un botón para llenar este formulario</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Etiquetas</label>

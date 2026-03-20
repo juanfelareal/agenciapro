@@ -106,7 +106,8 @@ router.post('/', async (req, res) => {
       estimated_hours,
       delivery_url,
       created_by,
-      order_index
+      order_index,
+      linked_form_id
     } = req.body;
 
     if (!title) {
@@ -147,9 +148,9 @@ router.post('/', async (req, res) => {
       INSERT INTO tasks (
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
-        progress, color, estimated_hours, delivery_url, created_by, order_index, organization_id
+        progress, color, estimated_hours, delivery_url, created_by, order_index, linked_form_id, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       title,
       description || null,
@@ -168,6 +169,7 @@ router.post('/', async (req, res) => {
       delivery_url || null,
       created_by || null,
       order_index != null ? order_index : null,
+      linked_form_id || null,
       req.orgId
     ]);
 
@@ -182,6 +184,27 @@ router.post('/', async (req, res) => {
     }
 
     const task = await db.get('SELECT * FROM tasks WHERE id = ? AND organization_id = ?', [taskId, req.orgId]);
+
+    // Auto-create form_assignment if task links to a form and project has a client
+    if (linked_form_id && project_id) {
+      try {
+        const project = await db.get('SELECT client_id FROM projects WHERE id = ?', [project_id]);
+        if (project?.client_id) {
+          const existingAssignment = await db.get(
+            'SELECT id FROM form_assignments WHERE form_id = ? AND client_id = ?',
+            [linked_form_id, project.client_id]
+          );
+          if (!existingAssignment) {
+            await db.run(
+              'INSERT INTO form_assignments (form_id, client_id, due_date, assigned_by, organization_id) VALUES (?, ?, ?, ?, ?)',
+              [linked_form_id, project.client_id, due_date || null, created_by || req.teamMember?.id || null, req.orgId]
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Error auto-assigning form:', err);
+      }
+    }
 
     // Notify all assignees
     if (resolvedAssigneeIds.length > 0) {
@@ -221,7 +244,8 @@ router.put('/:id', async (req, res) => {
       progress,
       color,
       estimated_hours,
-      delivery_url
+      delivery_url,
+      linked_form_id
     } = req.body;
 
     // Get old task data and verify it belongs to this org
@@ -315,6 +339,7 @@ router.put('/:id', async (req, res) => {
     if (color !== undefined) fields.color = color || null;
     if (estimated_hours !== undefined) fields.estimated_hours = estimated_hours || null;
     if (delivery_url !== undefined) fields.delivery_url = delivery_url || null;
+    if (linked_form_id !== undefined) fields.linked_form_id = linked_form_id || null;
 
     const setClauses = Object.keys(fields).map((k) => `${k} = ?`);
     setClauses.push('updated_at = CURRENT_TIMESTAMP');
@@ -327,6 +352,27 @@ router.put('/:id', async (req, res) => {
     `, [...values, req.params.id, req.orgId]);
 
     const task = await db.get('SELECT * FROM tasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+
+    // Auto-create form_assignment if linked_form_id was set/changed
+    if (linked_form_id && task.project_id && linked_form_id !== oldTask.linked_form_id) {
+      try {
+        const project = await db.get('SELECT client_id FROM projects WHERE id = ?', [task.project_id]);
+        if (project?.client_id) {
+          const existingAssignment = await db.get(
+            'SELECT id FROM form_assignments WHERE form_id = ? AND client_id = ?',
+            [linked_form_id, project.client_id]
+          );
+          if (!existingAssignment) {
+            await db.run(
+              'INSERT INTO form_assignments (form_id, client_id, due_date, assigned_by, organization_id) VALUES (?, ?, ?, ?, ?)',
+              [linked_form_id, project.client_id, task.due_date || null, req.teamMember?.id || null, req.orgId]
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Error auto-assigning form:', err);
+      }
+    }
 
     // Get all current assignees for notifications
     const allAssignees = await db.all(

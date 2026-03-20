@@ -999,6 +999,16 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Add linked_form_id column to tasks (for "fill this form" tasks)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='linked_form_id') THEN
+          ALTER TABLE tasks ADD COLUMN linked_form_id INTEGER REFERENCES forms(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+
     // Add pin_hash column to team_members for authentication (if not exists)
     await pool.query(`
       DO $$

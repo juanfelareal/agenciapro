@@ -17,7 +17,9 @@ import {
   Calendar,
   ThumbsUp,
   ThumbsDown,
-  RotateCcw
+  RotateCcw,
+  ClipboardList,
+  ExternalLink
 } from 'lucide-react';
 
 export default function PortalTaskDetail() {
@@ -204,6 +206,43 @@ export default function PortalTaskDetail() {
           )}
         </div>
       </div>
+
+      {/* Linked Form Section */}
+      {task.linked_form && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
+                <ClipboardList className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-indigo-800">{task.linked_form.form_title}</h3>
+                <p className="text-sm text-indigo-600">
+                  {task.linked_form.form_status === 'submitted'
+                    ? 'Formulario enviado'
+                    : task.linked_form.form_status === 'draft'
+                      ? 'Formulario en progreso'
+                      : 'Formulario pendiente por llenar'}
+                </p>
+              </div>
+            </div>
+            <Link
+              to={`/portal/formularios/${task.linked_form.assignment_id}`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-colors ${
+                task.linked_form.form_status === 'submitted'
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
+            >
+              {task.linked_form.form_status === 'submitted' ? (
+                <><CheckCircle2 size={16} /> Ver respuestas</>
+              ) : (
+                <><ExternalLink size={16} /> Llenar formulario</>
+              )}
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Approval Section */}
       {task.requires_client_approval && hasPermission('can_approve_tasks') && (
