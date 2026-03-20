@@ -126,59 +126,60 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         AND metric_date <= ?
     `, [clientId, prevStart, prevEnd]) : null;
 
-    // Derived metrics
-    const fbSpend = current?.total_ad_spend || 0;
-    const fbConversions = current?.total_conversions || 0;
-    const fbClicks = current?.total_clicks || 0;
-    const fbImpressions = current?.total_impressions || 0;
+    // Derived metrics — parseFloat needed because pg driver returns SUM() as string
+    const p = (v) => parseFloat(v) || 0;
+    const fbSpend = p(current?.total_ad_spend);
+    const fbConversions = p(current?.total_conversions);
+    const fbClicks = p(current?.total_clicks);
+    const fbImpressions = p(current?.total_impressions);
     const cpa = fbConversions > 0 ? fbSpend / fbConversions : 0;
     const ctr = fbImpressions > 0 ? (fbClicks / fbImpressions) * 100 : 0;
-    const roas = current?.avg_roas || 0;
-    const revenue = current?.total_revenue || 0;
-    const orders = current?.total_orders || 0;
+    const roas = p(current?.avg_roas);
+    const revenue = p(current?.total_revenue);
+    const orders = p(current?.total_orders);
     const aov = orders > 0 ? revenue / orders : 0;
-    const customers = current?.total_customers || 0;
-    const landingPageViews = current?.total_landing_page_views || 0;
-    const linkClicks = current?.total_link_clicks || 0;
-    const addToCart = current?.total_add_to_cart || 0;
-    const video3sec = current?.total_video_3sec_views || 0;
-    const thruplay = current?.total_video_thruplay_views || 0;
-    const totalTax = current?.total_tax || 0;
-    const totalDiscounts = current?.total_discounts || 0;
-    const sessions = current?.total_sessions || 0;
+    const customers = p(current?.total_customers);
+    const landingPageViews = p(current?.total_landing_page_views);
+    const linkClicks = p(current?.total_link_clicks);
+    const addToCart = p(current?.total_add_to_cart);
+    const video3sec = p(current?.total_video_3sec_views);
+    const thruplay = p(current?.total_video_thruplay_views);
+    const totalTax = p(current?.total_tax);
+    const totalDiscounts = p(current?.total_discounts);
+    const sessions = p(current?.total_sessions);
     const cpm = fbImpressions > 0 ? (fbSpend / fbImpressions) * 1000 : 0;
     const costPerPurchase = fbConversions > 0 ? fbSpend / fbConversions : 0;
     const costPerLPV = landingPageViews > 0 ? fbSpend / landingPageViews : 0;
     const hookRate = fbImpressions > 0 ? (video3sec / fbImpressions) * 100 : 0;
     const holdRate = video3sec > 0 ? (thruplay / video3sec) * 100 : 0;
     const conversionRate = sessions > 0 ? (orders / sessions) * 100 : 0;
-    const pendingOrders = current?.total_pending_orders || 0;
+    const pendingOrders = p(current?.total_pending_orders);
 
     // Previous derived
-    const prevSpend = previous?.total_ad_spend || 0;
-    const prevConversions = previous?.total_conversions || 0;
-    const prevClicks = previous?.total_clicks || 0;
-    const prevImpressions = previous?.total_impressions || 0;
+    const prevSpend = p(previous?.total_ad_spend);
+    const prevConversions = p(previous?.total_conversions);
+    const prevClicks = p(previous?.total_clicks);
+    const prevImpressions = p(previous?.total_impressions);
     const prevCpa = prevConversions > 0 ? prevSpend / prevConversions : 0;
     const prevCtr = prevImpressions > 0 ? (prevClicks / prevImpressions) * 100 : 0;
-    const prevRoas = previous?.avg_roas || 0;
-    const prevRevenue = previous?.total_revenue || 0;
-    const prevOrders = previous?.total_orders || 0;
+    const prevRoas = p(previous?.avg_roas);
+    const prevRevenue = p(previous?.total_revenue);
+    const prevOrders = p(previous?.total_orders);
     const prevAov = prevOrders > 0 ? prevRevenue / prevOrders : 0;
-    const prevCustomers = previous?.total_customers || 0;
-    const prevLandingPageViews = previous?.total_landing_page_views || 0;
-    const prevVideo3sec = previous?.total_video_3sec_views || 0;
-    const prevThruplay = previous?.total_video_thruplay_views || 0;
-    const prevTotalTax = previous?.total_tax || 0;
-    const prevTotalDiscounts = previous?.total_discounts || 0;
-    const prevSessions = previous?.total_sessions || 0;
+    const prevCustomers = p(previous?.total_customers);
+    const prevLandingPageViews = p(previous?.total_landing_page_views);
+    const prevVideo3sec = p(previous?.total_video_3sec_views);
+    const prevThruplay = p(previous?.total_video_thruplay_views);
+    const prevTotalTax = p(previous?.total_tax);
+    const prevTotalDiscounts = p(previous?.total_discounts);
+    const prevSessions = p(previous?.total_sessions);
     const prevCpm = prevImpressions > 0 ? (prevSpend / prevImpressions) * 1000 : 0;
     const prevCostPerPurchase = prevConversions > 0 ? prevSpend / prevConversions : 0;
     const prevCostPerLPV = prevLandingPageViews > 0 ? prevSpend / prevLandingPageViews : 0;
     const prevHookRate = prevImpressions > 0 ? (prevVideo3sec / prevImpressions) * 100 : 0;
     const prevHoldRate = prevVideo3sec > 0 ? (prevThruplay / prevVideo3sec) * 100 : 0;
     const prevConversionRate = prevSessions > 0 ? (prevOrders / prevSessions) * 100 : 0;
-    const prevPendingOrders = previous?.total_pending_orders || 0;
+    const prevPendingOrders = p(previous?.total_pending_orders);
 
     // Connected platforms
     const facebookAccounts = await db.all(`

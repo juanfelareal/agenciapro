@@ -69,30 +69,41 @@ router.get('/:clientId', async (req, res) => {
     `).get(clientId, start_date, end_date);
 
     // Calculate derived metrics
-    const totalRevenue = metrics.total_revenue || 0;
-    const totalAdSpend = metrics.total_ad_spend || 0;
-    const totalOrders = metrics.total_orders || 0;
+    // Note: PostgreSQL SUM() returns BIGINT which pg driver sends as string — must parseFloat
+    const totalRevenue = parseFloat(metrics.total_revenue) || 0;
+    const totalAdSpend = parseFloat(metrics.total_ad_spend) || 0;
+    const totalOrders = parseFloat(metrics.total_orders) || 0;
+    const totalImpressions = parseFloat(metrics.total_impressions) || 0;
+    const totalConversions = parseFloat(metrics.total_conversions) || 0;
+    const totalVideo3sec = parseFloat(metrics.total_video_3sec_views) || 0;
+    const totalVideoThruplay = parseFloat(metrics.total_video_thruplay_views) || 0;
+    const totalSessions = parseFloat(metrics.total_sessions) || 0;
 
     const result = {
       ...metrics,
+      total_revenue: totalRevenue,
+      total_ad_spend: totalAdSpend,
+      total_orders: totalOrders,
+      total_impressions: totalImpressions,
+      total_conversions: totalConversions,
       roas: totalAdSpend > 0 ? totalRevenue / totalAdSpend : 0,
       cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
       ad_spend_percentage: totalRevenue > 0 ? (totalAdSpend / totalRevenue) * 100 : 0,
       ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-      cpm: metrics.total_impressions > 0 ? (totalAdSpend / metrics.total_impressions) * 1000 : 0,
-      cost_per_purchase: metrics.total_conversions > 0 ? totalAdSpend / metrics.total_conversions : 0,
-      hook_rate: metrics.total_impressions > 0 ? ((metrics.total_video_3sec_views || 0) / metrics.total_impressions) * 100 : 0,
-      hold_rate: (metrics.total_video_3sec_views || 0) > 0 ? ((metrics.total_video_thruplay_views || 0) / metrics.total_video_3sec_views) * 100 : 0,
-      conversion_rate: (metrics.total_sessions || 0) > 0 ? (totalOrders / metrics.total_sessions) * 100 : 0,
-      total_tax: metrics.total_tax || 0,
-      total_discounts: metrics.total_discounts || 0,
-      total_sessions: metrics.total_sessions || 0,
-      total_landing_page_views: metrics.total_landing_page_views || 0,
-      total_video_3sec_views: metrics.total_video_3sec_views || 0,
-      total_video_thruplay_views: metrics.total_video_thruplay_views || 0,
-      total_pending_orders: metrics.total_pending_orders || 0,
-      total_all_orders_revenue: metrics.total_all_orders_revenue || 0,
-      total_all_orders_count: metrics.total_all_orders_count || 0
+      cpm: totalAdSpend > 0 && totalImpressions > 0 ? (totalAdSpend / totalImpressions) * 1000 : 0,
+      cost_per_purchase: totalConversions > 0 ? totalAdSpend / totalConversions : 0,
+      hook_rate: totalImpressions > 0 ? (totalVideo3sec / totalImpressions) * 100 : 0,
+      hold_rate: totalVideo3sec > 0 ? (totalVideoThruplay / totalVideo3sec) * 100 : 0,
+      conversion_rate: totalSessions > 0 ? (totalOrders / totalSessions) * 100 : 0,
+      total_tax: parseFloat(metrics.total_tax) || 0,
+      total_discounts: parseFloat(metrics.total_discounts) || 0,
+      total_sessions: totalSessions,
+      total_landing_page_views: parseFloat(metrics.total_landing_page_views) || 0,
+      total_video_3sec_views: totalVideo3sec,
+      total_video_thruplay_views: totalVideoThruplay,
+      total_pending_orders: parseFloat(metrics.total_pending_orders) || 0,
+      total_all_orders_revenue: parseFloat(metrics.total_all_orders_revenue) || 0,
+      total_all_orders_count: parseFloat(metrics.total_all_orders_count) || 0
     };
 
     res.json(result);
@@ -210,22 +221,32 @@ router.get('/aggregate/all', async (req, res) => {
     `).all(start_date, end_date, orgId);
 
     // Calculate derived metrics for each client
+    // Note: PostgreSQL SUM() returns BIGINT which pg driver sends as string — must parseFloat
     const result = metrics.map(client => {
-      const totalRevenue = client.total_revenue || 0;
-      const totalAdSpend = client.total_ad_spend || 0;
-      const totalOrders = client.total_orders || 0;
+      const totalRevenue = parseFloat(client.total_revenue) || 0;
+      const totalAdSpend = parseFloat(client.total_ad_spend) || 0;
+      const totalOrders = parseFloat(client.total_orders) || 0;
+      const totalImpressions = parseFloat(client.total_impressions) || 0;
+      const totalClicks = parseFloat(client.total_clicks) || 0;
+      const totalConversions = parseFloat(client.total_conversions) || 0;
 
       return {
         ...client,
+        total_revenue: totalRevenue,
+        total_ad_spend: totalAdSpend,
+        total_orders: totalOrders,
+        total_impressions: totalImpressions,
+        total_clicks: totalClicks,
+        total_conversions: totalConversions,
         roas: totalAdSpend > 0 ? totalRevenue / totalAdSpend : 0,
         cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
         ad_spend_percentage: totalRevenue > 0 ? (totalAdSpend / totalRevenue) * 100 : 0,
         ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-        cpm: totalAdSpend > 0 && client.total_impressions > 0 ? (totalAdSpend / client.total_impressions) * 1000 : 0,
-        cost_per_purchase: client.total_conversions > 0 ? totalAdSpend / (client.total_conversions || 1) : 0,
-        total_tax: client.total_tax || 0,
-        total_discounts: client.total_discounts || 0,
-        total_sessions: client.total_sessions || 0
+        cpm: totalAdSpend > 0 && totalImpressions > 0 ? (totalAdSpend / totalImpressions) * 1000 : 0,
+        cost_per_purchase: totalConversions > 0 ? totalAdSpend / totalConversions : 0,
+        total_tax: parseFloat(client.total_tax) || 0,
+        total_discounts: parseFloat(client.total_discounts) || 0,
+        total_sessions: parseFloat(client.total_sessions) || 0
       };
     });
 

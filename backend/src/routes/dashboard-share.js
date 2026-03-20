@@ -220,19 +220,20 @@ router.get('/public/:token', async (req, res) => {
       LIMIT 1
     `, [clientId]);
 
-    // Build response
-    const fbSpend = current?.total_ad_spend || 0;
-    const fbConversions = current?.total_conversions || 0;
-    const fbClicks = current?.total_clicks || 0;
-    const fbImpressions = current?.total_impressions || 0;
-    const revenue = current?.total_revenue || 0;
-    const orders = current?.total_orders || 0;
-    const landingPageViews = current?.total_landing_page_views || 0;
-    const video3sec = current?.total_video_3sec_views || 0;
-    const thruplay = current?.total_video_thruplay_views || 0;
-    const totalTax = current?.total_tax || 0;
-    const totalDiscounts = current?.total_discounts || 0;
-    const sessions = current?.total_sessions || 0;
+    // Build response — parseFloat needed because pg driver returns SUM() as string
+    const p = (v) => parseFloat(v) || 0;
+    const fbSpend = p(current?.total_ad_spend);
+    const fbConversions = p(current?.total_conversions);
+    const fbClicks = p(current?.total_clicks);
+    const fbImpressions = p(current?.total_impressions);
+    const revenue = p(current?.total_revenue);
+    const orders = p(current?.total_orders);
+    const landingPageViews = p(current?.total_landing_page_views);
+    const video3sec = p(current?.total_video_3sec_views);
+    const thruplay = p(current?.total_video_thruplay_views);
+    const totalTax = p(current?.total_tax);
+    const totalDiscounts = p(current?.total_discounts);
+    const sessions = p(current?.total_sessions);
 
     const response = {
       client: {
@@ -247,10 +248,10 @@ router.get('/public/:token', async (req, res) => {
     if (fbSpend > 0 || fbImpressions > 0) {
       const ctr = fbImpressions > 0 ? (fbClicks / fbImpressions) * 100 : 0;
       const cpa = fbConversions > 0 ? fbSpend / fbConversions : 0;
-      const prevSpend = previous?.total_ad_spend || 0;
-      const prevImpressions = previous?.total_impressions || 0;
-      const prevClicks = previous?.total_clicks || 0;
-      const prevConversions = previous?.total_conversions || 0;
+      const prevSpend = p(previous?.total_ad_spend);
+      const prevImpressions = p(previous?.total_impressions);
+      const prevClicks = p(previous?.total_clicks);
+      const prevConversions = p(previous?.total_conversions);
       const prevCtr = prevImpressions > 0 ? (prevClicks / prevImpressions) * 100 : 0;
       const prevCpa = prevConversions > 0 ? prevSpend / prevConversions : 0;
 
@@ -267,23 +268,23 @@ router.get('/public/:token', async (req, res) => {
         conversions_change: calcChange(fbConversions, prevConversions),
         cpa: cpa,
         cpa_change: calcChange(cpa, prevCpa),
-        roas: current?.avg_roas || 0,
-        roas_change: calcChange(current?.avg_roas || 0, previous?.avg_roas || 0),
+        roas: p(current?.avg_roas),
+        roas_change: calcChange(p(current?.avg_roas), p(previous?.avg_roas)),
         cpm: fbImpressions > 0 ? (fbSpend / fbImpressions) * 1000 : 0,
         cpm_change: calcChange(fbImpressions > 0 ? (fbSpend / fbImpressions) * 1000 : 0, prevImpressions > 0 ? (prevSpend / prevImpressions) * 1000 : 0),
         cost_per_purchase: fbConversions > 0 ? fbSpend / fbConversions : 0,
         cost_per_purchase_change: calcChange(fbConversions > 0 ? fbSpend / fbConversions : 0, prevConversions > 0 ? prevSpend / prevConversions : 0),
         hook_rate: fbImpressions > 0 ? (video3sec / fbImpressions) * 100 : 0,
-        hook_rate_change: calcChange(fbImpressions > 0 ? (video3sec / fbImpressions) * 100 : 0, prevImpressions > 0 ? ((previous?.total_video_3sec_views || 0) / prevImpressions) * 100 : 0),
+        hook_rate_change: calcChange(fbImpressions > 0 ? (video3sec / fbImpressions) * 100 : 0, prevImpressions > 0 ? (p(previous?.total_video_3sec_views) / prevImpressions) * 100 : 0),
         hold_rate: video3sec > 0 ? (thruplay / video3sec) * 100 : 0,
-        hold_rate_change: calcChange(video3sec > 0 ? (thruplay / video3sec) * 100 : 0, (previous?.total_video_3sec_views || 0) > 0 ? ((previous?.total_video_thruplay_views || 0) / (previous?.total_video_3sec_views || 1)) * 100 : 0),
+        hold_rate_change: calcChange(video3sec > 0 ? (thruplay / video3sec) * 100 : 0, p(previous?.total_video_3sec_views) > 0 ? (p(previous?.total_video_thruplay_views) / p(previous?.total_video_3sec_views)) * 100 : 0),
       };
     }
 
     if (revenue > 0 || orders > 0) {
       const aov = orders > 0 ? revenue / orders : 0;
-      const prevRevenue = previous?.total_revenue || 0;
-      const prevOrders = previous?.total_orders || 0;
+      const prevRevenue = p(previous?.total_revenue);
+      const prevOrders = p(previous?.total_orders);
       const prevAov = prevOrders > 0 ? prevRevenue / prevOrders : 0;
 
       response.shopify = {
@@ -293,16 +294,16 @@ router.get('/public/:token', async (req, res) => {
         orders_change: calcChange(orders, prevOrders),
         aov: aov,
         aov_change: calcChange(aov, prevAov),
-        customers: current?.total_customers || 0,
-        customers_change: calcChange(current?.total_customers || 0, previous?.total_customers || 0),
+        customers: p(current?.total_customers),
+        customers_change: calcChange(p(current?.total_customers), p(previous?.total_customers)),
         total_tax: totalTax,
-        total_tax_change: calcChange(totalTax, previous?.total_tax || 0),
+        total_tax_change: calcChange(totalTax, p(previous?.total_tax)),
         total_discounts: totalDiscounts,
-        total_discounts_change: calcChange(totalDiscounts, previous?.total_discounts || 0),
+        total_discounts_change: calcChange(totalDiscounts, p(previous?.total_discounts)),
         sessions: sessions,
-        sessions_change: calcChange(sessions, previous?.total_sessions || 0),
+        sessions_change: calcChange(sessions, p(previous?.total_sessions)),
         conversion_rate: sessions > 0 ? (orders / sessions) * 100 : 0,
-        conversion_rate_change: calcChange(sessions > 0 ? (orders / sessions) * 100 : 0, (previous?.total_sessions || 0) > 0 ? ((previous?.total_orders || 0) / (previous?.total_sessions || 1)) * 100 : 0),
+        conversion_rate_change: calcChange(sessions > 0 ? (orders / sessions) * 100 : 0, p(previous?.total_sessions) > 0 ? (p(previous?.total_orders) / p(previous?.total_sessions)) * 100 : 0),
       };
     }
 
