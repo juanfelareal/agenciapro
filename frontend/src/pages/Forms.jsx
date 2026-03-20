@@ -108,6 +108,24 @@ export default function Forms() {
     setAssignments([]);
     setPublicResponses([]);
     setView('builder');
+
+    // Auto-load responses for existing forms
+    if (form) {
+      try {
+        const [assignRes, publicRes] = await Promise.all([
+          formsAPI.getAssignments(form.id),
+          formsAPI.getPublicResponses(form.id),
+        ]);
+        setAssignments(assignRes.data);
+        setPublicResponses(publicRes.data);
+        setResponseCounts({
+          submitted: assignRes.data.filter(a => a.status === 'submitted').length,
+          public: publicRes.data.length,
+        });
+      } catch (err) {
+        console.error('Error loading responses:', err);
+      }
+    }
   };
 
   const saveForm = async () => {
@@ -478,6 +496,61 @@ export default function Forms() {
         <button onClick={addSection} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#1A1A2E] py-3 px-4 border border-dashed border-slate-300 rounded-xl w-full justify-center hover:border-slate-400">
           <Plus size={16} /> Agregar sección
         </button>
+
+        {/* Responses Section — always visible when form has responses */}
+        {editingForm && (assignments.some(a => a.status === 'submitted') || publicResponses.length > 0) && (
+          <div className="bg-white rounded-xl border border-slate-200 mt-6 overflow-hidden">
+            <div className="p-4 bg-green-50 border-b border-green-100">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <FileText size={18} className="text-green-600" />
+                Respuestas recibidas ({assignments.filter(a => a.status === 'submitted').length + publicResponses.length})
+              </h3>
+            </div>
+            <div className="p-4 space-y-2">
+              {/* Assigned client responses */}
+              {assignments.filter(a => a.status === 'submitted').map(a => (
+                <div key={`assign-${a.id}`} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">{a.client_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Cliente asignado</span>
+                      {a.submitted_at && (
+                        <span className="text-xs text-slate-400">
+                          {new Date(a.submitted_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={() => viewResponse(a.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                    <Eye size={14} /> Ver
+                  </button>
+                </div>
+              ))}
+
+              {/* Public responses */}
+              {publicResponses.map(r => (
+                <div key={`public-${r.id}`} className="flex items-center justify-between p-3 bg-green-50/50 rounded-lg hover:bg-green-50 transition-colors">
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">{r.respondent_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
+                        <Globe size={10} /> Enlace público
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {new Date(r.submitted_at || r.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                  <button onClick={() => viewPublicResponse(r.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                    <Eye size={14} /> Ver
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Assign Panel */}
         {showAssignPanel && (
