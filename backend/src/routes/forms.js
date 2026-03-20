@@ -213,7 +213,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /:id — Update form (replace-all sections/fields)
+// PUT /:id — Update form (preserve section/field IDs to keep response data valid)
 router.put('/:id', async (req, res) => {
   try {
     const { title, description, status, sections } = req.body;
@@ -232,33 +232,87 @@ router.put('/:id', async (req, res) => {
       WHERE id = ?
     `).run(title, description, status, formId);
 
-    // Replace all sections/fields if provided
+    // Update sections/fields preserving IDs (so response data keys stay valid)
     if (sections) {
-      // Delete old sections (cascades to fields)
-      await db.prepare('DELETE FROM form_sections WHERE form_id = ?').run(formId);
+      // Get current section IDs for this form
+      const currentSections = await db.prepare(
+        'SELECT id FROM form_sections WHERE form_id = ?'
+      ).all(formId);
+      const currentSectionIds = new Set(currentSections.map(s => s.id));
+
+      // Track which section IDs we keep
+      const keptSectionIds = new Set();
 
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
-        const sectionResult = await db.prepare(`
-          INSERT INTO form_sections (form_id, title, description, position)
-          VALUES (?, ?, ?, ?)
-        `).run(formId, section.title, section.description || null, i);
+        let sectionId;
 
-        const sectionId = sectionResult.lastInsertRowid;
+        if (section.id && currentSectionIds.has(section.id)) {
+          // Update existing section
+          await db.prepare(`
+            UPDATE form_sections SET title = ?, description = ?, position = ?
+            WHERE id = ?
+          `).run(section.title, section.description || null, i, section.id);
+          sectionId = section.id;
+          keptSectionIds.add(sectionId);
+        } else {
+          // Insert new section
+          const sectionResult = await db.prepare(`
+            INSERT INTO form_sections (form_id, title, description, position)
+            VALUES (?, ?, ?, ?)
+          `).run(formId, section.title, section.description || null, i);
+          sectionId = sectionResult.lastInsertRowid;
+        }
 
         if (section.fields) {
+          // Get current field IDs for this section
+          const currentFields = await db.prepare(
+            'SELECT id FROM form_fields WHERE section_id = ?'
+          ).all(sectionId);
+          const currentFieldIds = new Set(currentFields.map(f => f.id));
+          const keptFieldIds = new Set();
+
           for (let j = 0; j < section.fields.length; j++) {
             const field = section.fields[j];
-            await db.prepare(`
-              INSERT INTO form_fields (section_id, label, field_type, help_text, options, is_required, position)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(
-              sectionId, field.label, field.field_type,
-              field.help_text || null,
-              field.options ? JSON.stringify(field.options) : null,
-              field.is_required ? 1 : 0, j
-            );
+            const optionsJson = field.options ? JSON.stringify(field.options) : null;
+
+            if (field.id && currentFieldIds.has(field.id)) {
+              // Update existing field
+              await db.prepare(`
+                UPDATE form_fields SET label = ?, field_type = ?, help_text = ?, options = ?, is_required = ?, position = ?
+                WHERE id = ?
+              `).run(
+                field.label, field.field_type,
+                field.help_text || null, optionsJson,
+                field.is_required ? 1 : 0, j, field.id
+              );
+              keptFieldIds.add(field.id);
+            } else {
+              // Insert new field
+              await db.prepare(`
+                INSERT INTO form_fields (section_id, label, field_type, help_text, options, is_required, position)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+              `).run(
+                sectionId, field.label, field.field_type,
+                field.help_text || null, optionsJson,
+                field.is_required ? 1 : 0, j
+              );
+            }
           }
+
+          // Delete removed fields
+          for (const fId of currentFieldIds) {
+            if (!keptFieldIds.has(fId)) {
+              await db.prepare('DELETE FROM form_fields WHERE id = ?').run(fId);
+            }
+          }
+        }
+      }
+
+      // Delete removed sections (cascades to their fields)
+      for (const sId of currentSectionIds) {
+        if (!keptSectionIds.has(sId)) {
+          await db.prepare('DELETE FROM form_sections WHERE id = ?').run(sId);
         }
       }
     }

@@ -56,6 +56,7 @@ export default function Forms() {
 
   // Public responses
   const [publicResponses, setPublicResponses] = useState([]);
+  const [responseCounts, setResponseCounts] = useState({ submitted: 0, public: 0 });
 
   // Response viewer
   const [responseData, setResponseData] = useState(null);
@@ -87,6 +88,7 @@ export default function Forms() {
         setSections(data.sections || []);
         setActiveAssignments(data.active_assignments || 0);
         setShareToken(data.share_token || null);
+        setResponseCounts({ submitted: form.submitted_count || 0, public: form.public_response_count || 0 });
       } catch (err) {
         console.error(err);
         return;
@@ -99,6 +101,7 @@ export default function Forms() {
       setSections([{ title: 'Sección 1', description: '', fields: [] }]);
       setActiveAssignments(0);
       setShareToken(null);
+      setResponseCounts({ submitted: 0, public: 0 });
     }
     setShowAssignPanel(false);
     setShowShareMenu(false);
@@ -202,6 +205,10 @@ export default function Forms() {
       setAssignments(assignRes.data);
       setClients(clientRes.data);
       setPublicResponses(publicRes.data);
+      setResponseCounts({
+        submitted: assignRes.data.filter(a => a.status === 'submitted').length,
+        public: publicRes.data.length,
+      });
       setShowAssignPanel(true);
     } catch (err) {
       console.error(err);
@@ -346,7 +353,19 @@ export default function Forms() {
             )}
             {editingForm && (
               <button onClick={loadAssignments} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm">
-                <Send size={16} /> Asignar
+                {(responseCounts.submitted + responseCounts.public) > 0 ? (
+                  <>
+                    <Eye size={16} />
+                    Respuestas
+                    <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded-full font-medium">
+                      {responseCounts.submitted + responseCounts.public}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={16} /> Asignar
+                  </>
+                )}
               </button>
             )}
             <button onClick={saveForm} disabled={saving || !formTitle.trim()} className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 text-sm">
@@ -465,7 +484,7 @@ export default function Forms() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl w-full max-w-lg overflow-hidden shadow-xl max-h-[80vh] flex flex-col">
               <div className="flex items-center justify-between p-4 border-b border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-800">Asignar formulario</h3>
+                <h3 className="text-lg font-semibold text-slate-800">Asignaciones y respuestas</h3>
                 <button onClick={() => setShowAssignPanel(false)} className="p-2 hover:bg-slate-100 rounded-lg"><X size={20} className="text-slate-500" /></button>
               </div>
               <div className="p-4 space-y-4 overflow-y-auto flex-1">
