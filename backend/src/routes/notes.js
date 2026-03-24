@@ -39,7 +39,7 @@ const router = express.Router();
 // Get all notes with filters
 router.get('/', async (req, res) => {
   try {
-    const { category_id, folder_id, pinned, search, client_id, project_id, team_member_id, visibility, limit = 50 } = req.query;
+    const { category_id, folder_id, pinned, search, client_id, project_id, team_member_id, visibility, created_by, limit = 50 } = req.query;
 
     let query = `
       SELECT DISTINCT n.*,
@@ -92,6 +92,10 @@ router.get('/', async (req, res) => {
     if (team_member_id) {
       query += ' AND nl.team_member_id = ?';
       params.push(team_member_id);
+    }
+    if (created_by) {
+      query += ' AND n.created_by = ?';
+      params.push(created_by);
     }
 
     query += ' ORDER BY n.is_pinned DESC, n.updated_at DESC LIMIT ?';

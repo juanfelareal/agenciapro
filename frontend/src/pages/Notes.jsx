@@ -101,6 +101,7 @@ const Notes = () => {
 
   // Filter for private notes only
   const [showPrivateOnly, setShowPrivateOnly] = useState(false);
+  const [selectedCreator, setSelectedCreator] = useState('');
 
   // Folder modal
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -127,7 +128,7 @@ const Notes = () => {
 
   useEffect(() => {
     loadNotes();
-  }, [searchQuery, selectedCategory, selectedFolder, showPinnedOnly, showPrivateOnly]);
+  }, [searchQuery, selectedCategory, selectedFolder, showPinnedOnly, showPrivateOnly, selectedCreator]);
 
   const loadInitialData = async () => {
     try {
@@ -160,6 +161,7 @@ const Notes = () => {
       else if (selectedFolder) params.folder_id = selectedFolder;
       if (showPinnedOnly) params.pinned = 'true';
       if (showPrivateOnly) params.visibility = 'private';
+      if (selectedCreator) params.created_by = selectedCreator;
 
       const response = await notesAPI.getAll(params);
       setNotes(response.data || []);
@@ -1274,6 +1276,22 @@ const Notes = () => {
               <Pin size={16} />
               Fijadas
             </button>
+
+            {/* Creator filter */}
+            <select
+              value={selectedCreator}
+              onChange={(e) => setSelectedCreator(e.target.value)}
+              className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+                selectedCreator
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'border-slate-200 text-slate-600'
+              }`}
+            >
+              <option value="">Todos los autores</option>
+              {teamMembers.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
 
             {/* New Note */}
             <button
