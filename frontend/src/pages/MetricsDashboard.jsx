@@ -273,10 +273,8 @@ function MetricsDashboard() {
                   <tr key={client.client_id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-medium text-gray-900">{client.company || client.client_name}</p>
-                        {client.company && (
-                          <p className="text-sm text-gray-500">{client.client_name}</p>
-                        )}
+                        <p className="font-medium text-gray-900">{client.nickname || client.company || client.client_name}</p>
+                        <p className="text-sm text-gray-500">{client.company || client.client_name}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right font-medium text-gray-900">

@@ -197,6 +197,7 @@ router.get('/aggregate/all', async (req, res) => {
         c.id as client_id,
         c.name as client_name,
         c.company,
+        c.nickname,
         SUM(m.shopify_revenue) as total_revenue,
         SUM(m.shopify_net_revenue) as net_revenue,
         SUM(m.shopify_orders) as total_orders,
