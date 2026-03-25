@@ -7,7 +7,18 @@ import axios from 'axios';
 class ShopifyIntegration {
   constructor(storeUrl, accessToken) {
     // Normalize store URL
-    this.storeUrl = storeUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    this.storeUrl = storeUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/\/$/, '');
+
+    // Safety: auto-append .myshopify.com if missing
+    if (!this.storeUrl.includes('.')) {
+      this.storeUrl = `${this.storeUrl}.myshopify.com`;
+    }
+
+    // Validate before building URL
+    if (!this.storeUrl.endsWith('.myshopify.com')) {
+      throw new Error(`URL de tienda inválida: ${this.storeUrl}. Debe terminar en .myshopify.com`);
+    }
+
     this.accessToken = accessToken;
     this.apiVersion = '2024-01';
     this.baseUrl = `https://${this.storeUrl}/admin/api/${this.apiVersion}`;

@@ -317,8 +317,8 @@ function ClientMetrics() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{client.company || client.name}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Métricas de rendimiento</p>
+            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{client.nickname || client.company || client.name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">{client.company || client.name}</p>
           </div>
         </div>
         <div className="flex gap-2">

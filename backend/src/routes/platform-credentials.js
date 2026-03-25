@@ -207,8 +207,18 @@ router.post('/shopify', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    // Normalize store URL
-    const normalizedUrl = store_url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    // Normalize store URL - strip protocol, trailing slashes, and /admin paths
+    let normalizedUrl = store_url.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/\/$/, '');
+
+    // Auto-append .myshopify.com if user only entered the store name
+    if (!normalizedUrl.includes('.')) {
+      normalizedUrl = `${normalizedUrl}.myshopify.com`;
+    }
+
+    // Validate it looks like a proper Shopify store URL
+    if (!normalizedUrl.endsWith('.myshopify.com')) {
+      return res.status(400).json({ error: 'La URL de la tienda debe terminar en .myshopify.com (ej: mi-tienda.myshopify.com)' });
+    }
 
     // Check if already exists
     const existing = await db.prepare('SELECT id FROM client_shopify_credentials WHERE client_id = ?').get(client_id);
