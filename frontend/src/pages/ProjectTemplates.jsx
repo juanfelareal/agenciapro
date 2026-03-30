@@ -525,8 +525,8 @@ const ProjectTemplates = () => {
                           {/* Task Description + Assignee */}
                           <div className="mt-2 ml-14 flex gap-2 items-start">
                             <textarea
-                              className="flex-1 bg-white border rounded px-2 py-1.5 text-sm text-gray-600 resize-none"
-                              rows={2}
+                              className="flex-1 bg-white border rounded px-2 py-1.5 text-sm text-gray-600"
+                              rows={4}
                               value={task.description || ''}
                               onChange={(e) => handleUpdateTask(index, 'description', e.target.value)}
                               placeholder="Descripción (opcional)"
