@@ -52,6 +52,7 @@ const Tasks = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    client_id: '',
     project_id: '',
     assignee_ids: [],
     status: 'todo',
@@ -244,6 +245,7 @@ const Tasks = () => {
     setFormData({
       title: '',
       description: '',
+      client_id: '',
       project_id: '',
       assignee_ids: [],
       status: 'todo',
@@ -268,6 +270,12 @@ const Tasks = () => {
     setNewProjectName('');
   };
 
+  // Projects filtered by selected client
+  const filteredProjects = useMemo(() => {
+    if (!formData.client_id) return [];
+    return projects.filter(p => p.client_id === Number(formData.client_id));
+  }, [projects, formData.client_id]);
+
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return;
 
@@ -277,6 +285,7 @@ const Tasks = () => {
         name: newProjectName.trim(),
         status: 'planning',
         budget: 0,
+        client_id: formData.client_id ? Number(formData.client_id) : null,
       });
       const newProject = response.data;
 
@@ -346,6 +355,7 @@ const Tasks = () => {
     setFormData({
       title: task.title,
       description: task.description || '',
+      client_id: task.client_id || '',
       project_id: task.project_id || '',
       assignee_ids: (task.assignees || []).map(a => a.id),
       status: task.status,
@@ -523,8 +533,25 @@ const Tasks = () => {
                 </div>
                 <div className="col-span-2 grid grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Cliente *</label>
+                  <select
+                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    value={formData.client_id}
+                    onChange={(e) => setFormData({ ...formData, client_id: e.target.value, project_id: '' })}
+                  >
+                    <option value="">Seleccionar cliente...</option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.nickname || client.company || client.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Proyecto</label>
-                  {showNewProject ? (
+                  {!formData.client_id ? (
+                    <p className="text-sm text-gray-400 py-2.5">Selecciona un cliente primero</p>
+                  ) : showNewProject ? (
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -569,8 +596,8 @@ const Tasks = () => {
                         value={formData.project_id}
                         onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
                       >
-                        <option value="">Sin proyecto</option>
-                        {projects.map((project) => (
+                        <option value="">{filteredProjects.length === 0 ? 'Sin proyectos para este cliente' : 'Seleccionar proyecto...'}</option>
+                        {filteredProjects.map((project) => (
                           <option key={project.id} value={project.id}>
                             {project.name}
                           </option>
