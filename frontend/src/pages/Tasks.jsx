@@ -60,6 +60,7 @@ const Tasks = () => {
     due_date: '',
     delivery_url: '',
     linked_form_id: '',
+    visible_to_client: false,
     is_recurring: false,
     recurrence_pattern: {
       type: 'weekly',
@@ -253,6 +254,7 @@ const Tasks = () => {
       due_date: '',
       delivery_url: '',
       linked_form_id: '',
+      visible_to_client: false,
       is_recurring: false,
       recurrence_pattern: {
         type: 'weekly',
@@ -330,6 +332,7 @@ const Tasks = () => {
         color: task.color,
         estimated_hours: task.estimated_hours,
         delivery_url: task.delivery_url,
+        visible_to_client: task.visible_to_client,
       };
       await tasksAPI.update(task.id, updateData);
       loadData();
@@ -372,6 +375,7 @@ const Tasks = () => {
       estimated_hours: task.estimated_hours || null,
       delivery_url: task.delivery_url || '',
       linked_form_id: task.linked_form_id || '',
+      visible_to_client: task.visible_to_client ? true : false,
     });
     // Load task tags
     const tags = taskTags[task.id] || [];
@@ -785,6 +789,24 @@ const Tasks = () => {
                       taskId={editingTask.id}
                       onProgressChange={setSubtaskProgress}
                     />
+                  </div>
+                )}
+
+                {/* Visible to Client Toggle */}
+                {formData.client_id && (
+                  <div className="col-span-2 border-t pt-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.visible_to_client}
+                        onChange={(e) =>
+                          setFormData({ ...formData, visible_to_client: e.target.checked })
+                        }
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium">👁 Visible en el portal del cliente</span>
+                    </label>
+                    <p className="text-xs text-gray-400 mt-1 ml-6">Si está activo, el cliente podrá ver esta tarea en su dashboard</p>
                   </div>
                 )}
 

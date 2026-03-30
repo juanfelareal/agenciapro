@@ -994,10 +994,15 @@ export const initializeDatabase = async () => {
           ALTER TABLE tasks ADD COLUMN requires_client_approval INTEGER DEFAULT 0;
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='visible_to_client') THEN
-          ALTER TABLE tasks ADD COLUMN visible_to_client INTEGER DEFAULT 1;
+          ALTER TABLE tasks ADD COLUMN visible_to_client INTEGER DEFAULT 0;
         END IF;
       END $$;
     `);
+
+    // Change visible_to_client default to 0 and reset existing tasks
+    // Only tasks explicitly marked should be visible in client portal
+    await pool.query(`ALTER TABLE tasks ALTER COLUMN visible_to_client SET DEFAULT 0`);
+    await pool.query(`UPDATE tasks SET visible_to_client = 0 WHERE visible_to_client = 1`);
 
     // Add linked_form_id column to tasks (for "fill this form" tasks)
     await pool.query(`

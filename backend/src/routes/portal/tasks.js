@@ -22,6 +22,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks'),
       JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE p.client_id = ?
+        AND p.client_id IS NOT NULL
         AND t.visible_to_client = 1
     `;
     const params = [clientId];
