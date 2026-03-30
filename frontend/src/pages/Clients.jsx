@@ -572,13 +572,12 @@ const Clients = () => {
                 Empresa
                 <ResizeHandle columnKey="empresa" />
               </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: columnWidths.acciones }}>
+                Acciones
+              </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.contacto }}>
                 Contacto
                 <ResizeHandle columnKey="contacto" />
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.email }}>
-                Email
-                <ResizeHandle columnKey="email" />
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.estado }}>
                 Estado
@@ -588,8 +587,9 @@ const Clients = () => {
                 Valor Contrato
                 <ResizeHandle columnKey="valor" />
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: columnWidths.acciones }}>
-                Acciones
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative" style={{ width: columnWidths.email }}>
+                Email
+                <ResizeHandle columnKey="email" />
               </th>
             </tr>
           </thead>
@@ -637,24 +637,6 @@ const Clients = () => {
                   )}
                 </td>
                 <td className="px-4 py-4 font-medium text-[#1A1A2E] truncate" title={client.company || client.name}>{client.company || client.name}</td>
-                <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
-                <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.email}>{client.email || '-'}</td>
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleToggleStatus(client)}
-                    className={`px-2 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
-                      client.status === 'active'
-                        ? 'bg-[#10B981]/10 text-[#10B981] hover:bg-[#10B981]/20'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                    title={client.status === 'active' ? 'Clic para desactivar' : 'Clic para activar'}
-                  >
-                    {client.status === 'active' ? 'Activo' : 'Inactivo'}
-                  </button>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap font-bold text-[#10B981]">
-                  ${client.contract_value?.toLocaleString('es-CO') || 0}
-                </td>
                 <td className="px-4 py-4 whitespace-nowrap text-center">
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/calls`)}
@@ -710,6 +692,24 @@ const Clients = () => {
                     <Trash2 size={18} />
                   </button>
                 </td>
+                <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <button
+                    onClick={() => handleToggleStatus(client)}
+                    className={`px-2 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                      client.status === 'active'
+                        ? 'bg-[#10B981]/10 text-[#10B981] hover:bg-[#10B981]/20'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    title={client.status === 'active' ? 'Clic para desactivar' : 'Clic para activar'}
+                  >
+                    {client.status === 'active' ? 'Activo' : 'Inactivo'}
+                  </button>
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap font-bold text-[#10B981]">
+                  ${client.contract_value?.toLocaleString('es-CO') || 0}
+                </td>
+                <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.email}>{client.email || '-'}</td>
               </tr>
             ))}
           </tbody>
