@@ -473,7 +473,7 @@ const ProjectTemplates = () => {
                       No hay tareas. Agrega tareas que se crearán automáticamente con cada proyecto.
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                       {tasks.map((task, index) => (
                         <div
                           key={task.id || index}
@@ -523,10 +523,10 @@ const ProjectTemplates = () => {
                           </div>
 
                           {/* Task Description + Assignee */}
-                          <div className="mt-2 ml-14 flex gap-2">
-                            <input
-                              type="text"
-                              className="flex-1 bg-white border rounded px-2 py-1.5 text-sm text-gray-600"
+                          <div className="mt-2 ml-14 flex gap-2 items-start">
+                            <textarea
+                              className="flex-1 bg-white border rounded px-2 py-1.5 text-sm text-gray-600 resize-none"
+                              rows={2}
                               value={task.description || ''}
                               onChange={(e) => handleUpdateTask(index, 'description', e.target.value)}
                               placeholder="Descripción (opcional)"
