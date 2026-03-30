@@ -48,7 +48,7 @@ const Clients = () => {
     email: 220,
     estado: 80,
     valor: 130,
-    acciones: 140,
+    acciones: 280,
   });
   const resizingRef = useRef(null);
 
