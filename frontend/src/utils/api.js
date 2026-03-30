@@ -45,6 +45,7 @@ export const tasksAPI = {
   create: (data) => api.post('/tasks', data),
   update: (id, data) => api.put(`/tasks/${id}`, data),
   delete: (id) => api.delete(`/tasks/${id}`),
+  bulkVisibility: (project_id, visible_to_client) => api.put('/tasks/bulk-visibility', { project_id, visible_to_client }),
 };
 
 // Auth API (multi-tenant)

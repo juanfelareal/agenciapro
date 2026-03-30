@@ -15,7 +15,9 @@ import {
   LayoutGrid,
   Table,
   List,
-  Plus
+  Plus,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
@@ -405,7 +407,31 @@ const ProjectDetail = () => {
           </div>
           <h1 className="text-2xl font-bold text-[#163B3B] mb-1">{project.name}</h1>
           {project.client_name && (
-            <p className="text-gray-500">Cliente: {project.client_name}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-gray-500">Cliente: {project.client_name}</p>
+              <button
+                onClick={async () => {
+                  const allVisible = tasks.every(t => t.visible_to_client);
+                  const newValue = !allVisible;
+                  try {
+                    await tasksAPI.bulkVisibility(project.id, newValue);
+                    setTasks(tasks.map(t => ({ ...t, visible_to_client: newValue ? 1 : 0 })));
+                  } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al actualizar visibilidad');
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  tasks.length > 0 && tasks.every(t => t.visible_to_client)
+                    ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+                title={tasks.every(t => t.visible_to_client) ? 'Ocultar tareas del portal del cliente' : 'Mostrar tareas en el portal del cliente'}
+              >
+                {tasks.every(t => t.visible_to_client) ? <Eye size={14} /> : <EyeOff size={14} />}
+                {tasks.every(t => t.visible_to_client) ? 'Visible al cliente' : 'Oculto al cliente'}
+              </button>
+            </div>
           )}
           {project.description && (
             <p className="text-gray-600 mt-2">{project.description}</p>

@@ -415,6 +415,35 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Bulk toggle visible_to_client for tasks in a project
+router.put('/bulk-visibility', async (req, res) => {
+  try {
+    const { project_id, visible_to_client } = req.body;
+    if (!project_id) {
+      return res.status(400).json({ error: 'project_id is required' });
+    }
+
+    // Verify project belongs to this org
+    const project = await db.get(
+      'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
+      [project_id, req.orgId]
+    );
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const result = await db.run(
+      'UPDATE tasks SET visible_to_client = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND organization_id = ?',
+      [visible_to_client ? 1 : 0, project_id, req.orgId]
+    );
+
+    res.json({ message: 'Visibilidad actualizada', updated: result.changes });
+  } catch (error) {
+    console.error('Error bulk updating visibility:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete task (verify org ownership directly)
 router.delete('/:id', async (req, res) => {
   try {
