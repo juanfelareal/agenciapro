@@ -265,7 +265,7 @@ export default function PortalTasks() {
                           {new Date(task.due_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
                         </span>
                       )}
-                      {task.requires_client_approval && getApprovalBadge(task.client_approval_status)}
+                      {!!task.requires_client_approval && getApprovalBadge(task.client_approval_status)}
                       {task.linked_form && (
                         <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
                           task.linked_form.form_status === 'submitted'
