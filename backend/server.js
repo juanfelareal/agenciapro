@@ -271,12 +271,13 @@ cron.schedule('0 8 * * *', () => {
 console.log('✅ Due date automations cron job scheduled (daily at 8:00 AM Colombia time)');
 
 // Setup cron job for metrics sync (Facebook Ads & Shopify)
-// Runs every day at 2:00 AM to sync yesterday's metrics
-cron.schedule('0 2 * * *', async () => {
-  console.log('⏰ Running daily metrics sync (Facebook Ads & Shopify)...');
+// Runs every 30 minutes (at :00 and :30) to keep metrics near real-time
+cron.schedule('0,30 * * * *', async () => {
+  console.log('⏰ Running metrics sync (Facebook Ads & Shopify)...');
   try {
+    // Sync today's metrics
     await syncAllClientsForDate();
-    console.log('✅ Daily metrics sync completed');
+    console.log('✅ Metrics sync completed');
   } catch (error) {
     console.error('❌ Error in metrics sync:', error.message);
   }

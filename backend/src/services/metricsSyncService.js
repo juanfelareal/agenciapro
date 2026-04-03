@@ -440,7 +440,7 @@ function getColombiaDate(offsetDays = 0) {
  */
 export async function syncAllClientsForDate(date = null) {
   if (!date) {
-    date = getColombiaDate(-1);
+    date = getColombiaDate(0); // Today — cron runs every 30 min for near real-time data
   }
 
   const clients = await getClientsWithCredentials();
