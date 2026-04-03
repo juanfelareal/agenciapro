@@ -116,8 +116,8 @@ function ClientPlatformSettings() {
       // Load portal settings for revenue metric
       try {
         const portalRes = await portalAdminAPI.getSettings(clientId);
-        if (portalRes.data?.portal_revenue_metric) {
-          setPortalRevenueMetric(portalRes.data.portal_revenue_metric);
+        if (portalRes.settings?.portal_revenue_metric) {
+          setPortalRevenueMetric(portalRes.settings.portal_revenue_metric);
         }
       } catch (e) {
         // Settings may not exist yet, use default
@@ -706,8 +706,8 @@ function ClientPlatformSettings() {
             ].map(option => (
               <button
                 key={option.value}
-                onClick={() => saveRevenueMetric(option.value)}
-                disabled={savingRevenueMetric}
+                type="button"
+                onClick={() => setPortalRevenueMetric(option.value)}
                 className={`p-4 rounded-lg border-2 text-left transition-all ${
                   portalRevenueMetric === option.value
                     ? 'border-[#1A1A2E] bg-[#1A1A2E]/5'
@@ -727,6 +727,15 @@ function ClientPlatformSettings() {
                 <p className="text-xs text-gray-500 ml-6">{option.desc}</p>
               </button>
             ))}
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => saveRevenueMetric(portalRevenueMetric)}
+              disabled={savingRevenueMetric}
+              className="px-5 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {savingRevenueMetric ? 'Guardando...' : 'Guardar'}
+            </button>
           </div>
         </div>
       </div>
