@@ -32,6 +32,9 @@ const Projects = () => {
   const [templateTasksDueDates, setTemplateTasksDueDates] = useState({}); // { taskKey: 'date' }
   const [templateTasksAssignees, setTemplateTasksAssignees] = useState({}); // { taskKey: memberId }
 
+  // Filter state
+  const [clientFilter, setClientFilter] = useState('');
+
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
@@ -328,13 +331,26 @@ const Projects = () => {
           <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Proyectos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de proyectos y presupuestos</p>
         </div>
-        <button
-          onClick={handleNew}
-          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
-        >
-          <Plus size={20} />
-          Nuevo Proyecto
-        </button>
+        <div className="flex items-center gap-3">
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="border border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] bg-white"
+          >
+            <option value="">Todos los clientes</option>
+            <option value="none">Sin cliente</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleNew}
+            className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+          >
+            <Plus size={20} />
+            Nuevo Proyecto
+          </button>
+        </div>
       </div>
 
       {/* Bulk Actions Bar */}
@@ -454,7 +470,11 @@ const Projects = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {projects.map((project) => (
+            {projects.filter(p => {
+              if (!clientFilter) return true;
+              if (clientFilter === 'none') return !p.client_id;
+              return p.client_id === Number(clientFilter);
+            }).map((project) => (
               <tr
                 key={project.id}
                 className={`hover:bg-gray-50 ${selectedIds.has(project.id) ? 'bg-[#BFFF00]/10' : ''}`}
