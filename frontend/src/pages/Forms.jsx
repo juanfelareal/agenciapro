@@ -795,7 +795,12 @@ function ResponseViewer({ data, onBack }) {
           </div>
           <div className="p-4 space-y-4">
             {section.fields.map(field => {
-              const val = parsed[String(field.id)];
+              const entry = parsed[String(field.id)];
+              // Support both flat format and object format { value, respondent, updated_at }
+              const isObject = entry && typeof entry === 'object' && entry.value !== undefined;
+              const val = isObject ? entry.value : entry;
+              const respondent = isObject ? entry.respondent : null;
+              const updatedAt = isObject ? entry.updated_at : null;
               return (
                 <div key={field.id}>
                   <p className="text-sm font-medium text-slate-600 mb-1">
@@ -808,6 +813,18 @@ function ResponseViewer({ data, onBack }) {
                       : <span className="text-slate-300 italic">Sin respuesta</span>
                     }
                   </div>
+                  {respondent && (
+                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                      <User size={12} />
+                      <span>{respondent}</span>
+                      {updatedAt && (
+                        <>
+                          <span className="text-slate-300">·</span>
+                          <span>{new Date(updatedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}, {new Date(updatedAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

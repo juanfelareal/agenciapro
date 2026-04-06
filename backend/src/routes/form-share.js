@@ -69,7 +69,9 @@ router.post('/public/:token/submit', async (req, res) => {
       );
 
       const missingFields = requiredFields.filter(f => {
-        const val = data[String(f.id)];
+        const entry = data[String(f.id)];
+        // Support both flat format ("value") and object format ({ value, respondent, updated_at })
+        const val = entry && typeof entry === 'object' && entry.value !== undefined ? entry.value : entry;
         return val === undefined || val === null || val === '';
       });
 
@@ -236,7 +238,9 @@ router.post('/assignment/:token/submit', async (req, res) => {
       );
 
       const missingFields = requiredFields.filter(f => {
-        const val = data[String(f.id)];
+        const entry = data[String(f.id)];
+        // Support both flat format ("value") and object format ({ value, respondent, updated_at })
+        const val = entry && typeof entry === 'object' && entry.value !== undefined ? entry.value : entry;
         return val === undefined || val === null || val === '';
       });
 
