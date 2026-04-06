@@ -120,7 +120,8 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), []);
 
     const commercialDates = await safeQuery(() => db.all(`
-      SELECT id, title, date::text as date FROM client_commercial_dates
+      SELECT id, title, date::text as date, will_participate, has_offer, offer_description, client_response_at
+      FROM client_commercial_dates
       WHERE client_id = ? AND date >= CURRENT_DATE
       ORDER BY date ASC
     `, [clientId]), []);
@@ -176,6 +177,36 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error getting portal dashboard:', error);
     res.status(500).json({ error: 'Error al cargar el dashboard' });
+  }
+});
+
+/**
+ * PUT /api/portal/dashboard/commercial-dates/:id
+ * Client responds to a commercial date (participate, offer)
+ */
+router.put('/commercial-dates/:id', clientAuthMiddleware, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { id } = req.params;
+    const { will_participate, has_offer, offer_description } = req.body;
+
+    // Verify the date belongs to this client
+    const cd = await db.get('SELECT id FROM client_commercial_dates WHERE id = ? AND client_id = ?', [id, clientId]);
+    if (!cd) {
+      return res.status(404).json({ error: 'Fecha no encontrada' });
+    }
+
+    await db.run(`
+      UPDATE client_commercial_dates
+      SET will_participate = ?, has_offer = ?, offer_description = ?, client_response_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [will_participate, has_offer ? true : false, has_offer ? (offer_description || null) : null, id]);
+
+    const updated = await db.get('SELECT id, will_participate, has_offer, offer_description, client_response_at FROM client_commercial_dates WHERE id = ?', [id]);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating commercial date response:', error);
+    res.status(500).json({ error: 'Error al guardar respuesta' });
   }
 });
 

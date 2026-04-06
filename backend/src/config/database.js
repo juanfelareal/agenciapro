@@ -1287,10 +1287,32 @@ export const initializeDatabase = async () => {
         title TEXT NOT NULL,
         date DATE NOT NULL,
         organization_id INTEGER REFERENCES organizations(id),
+        will_participate BOOLEAN,
+        has_offer BOOLEAN,
+        offer_description TEXT,
+        client_response_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_commercial_dates_client ON client_commercial_dates(client_id)`);
+
+    // Safe migration: add new columns to existing client_commercial_dates table
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_commercial_dates' AND column_name='will_participate') THEN
+          ALTER TABLE client_commercial_dates ADD COLUMN will_participate BOOLEAN;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_commercial_dates' AND column_name='has_offer') THEN
+          ALTER TABLE client_commercial_dates ADD COLUMN has_offer BOOLEAN;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_commercial_dates' AND column_name='offer_description') THEN
+          ALTER TABLE client_commercial_dates ADD COLUMN offer_description TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_commercial_dates' AND column_name='client_response_at') THEN
+          ALTER TABLE client_commercial_dates ADD COLUMN client_response_at TIMESTAMP;
+        END IF;
+      END $$
+    `);
 
     // Remove duplicate commercial dates and add unique constraint
     try {

@@ -9,13 +9,17 @@ import {
   ClipboardList,
   ExternalLink,
   Zap,
-  CalendarDays
+  CalendarDays,
+  X
 } from 'lucide-react';
 
 export default function PortalDashboard() {
   const { client, welcomeMessage } = usePortal();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [respondForm, setRespondForm] = useState({ will_participate: null, has_offer: false, offer_description: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -29,6 +33,35 @@ export default function PortalDashboard() {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openDateResponse = (cd) => {
+    setSelectedDate(cd);
+    setRespondForm({
+      will_participate: cd.will_participate ?? null,
+      has_offer: cd.has_offer ?? false,
+      offer_description: cd.offer_description || ''
+    });
+  };
+
+  const handleSaveResponse = async () => {
+    if (!selectedDate) return;
+    setSaving(true);
+    try {
+      await portalDashboardAPI.respondCommercialDate(selectedDate.id, respondForm);
+      // Update local data
+      setData(prev => ({
+        ...prev,
+        commercial_dates: prev.commercial_dates.map(cd =>
+          cd.id === selectedDate.id ? { ...cd, ...respondForm, client_response_at: new Date().toISOString() } : cd
+        )
+      }));
+      setSelectedDate(null);
+    } catch (error) {
+      console.error('Error saving response:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -121,8 +154,13 @@ export default function PortalDashboard() {
           <div className="divide-y divide-gray-50">
             {data.commercial_dates.map((cd) => {
               const days = daysUntil(cd.date);
+              const hasResponse = cd.client_response_at != null;
               return (
-                <div key={cd.id} className="flex items-center justify-between px-6 py-3.5">
+                <button
+                  key={cd.id}
+                  onClick={() => openDateResponse(cd)}
+                  className="flex items-center justify-between px-6 py-3.5 w-full text-left hover:bg-gray-50 transition-colors"
+                >
                   <div className="flex items-center gap-3">
                     <div className="text-center flex-shrink-0 w-12">
                       <p className="text-lg font-bold text-[#1A1A2E] leading-tight">
@@ -132,7 +170,21 @@ export default function PortalDashboard() {
                         {new Date(cd.date + 'T12:00:00').toLocaleDateString('es-CO', { month: 'short' })}
                       </p>
                     </div>
-                    <p className="text-gray-800 font-medium">{cd.title}</p>
+                    <div>
+                      <p className="text-gray-800 font-medium">{cd.title}</p>
+                      {hasResponse && (
+                        <p className="text-xs mt-0.5">
+                          {cd.will_participate ? (
+                            <span className="text-green-600">Vamos a participar{cd.has_offer ? ` · Oferta: ${cd.offer_description}` : ''}</span>
+                          ) : (
+                            <span className="text-gray-400">No participaremos</span>
+                          )}
+                        </p>
+                      )}
+                      {!hasResponse && (
+                        <p className="text-xs text-blue-500 mt-0.5">Clic para responder</p>
+                      )}
+                    </div>
                   </div>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 ${
                     days <= 7 ? 'bg-red-100 text-red-700' :
@@ -141,7 +193,7 @@ export default function PortalDashboard() {
                   }`}>
                     {days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `En ${days} días`}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -195,6 +247,80 @@ export default function PortalDashboard() {
                 </a>
               );
             })}
+          </div>
+        </div>
+      )}
+      {/* Commercial Date Response Modal */}
+      {selectedDate && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-[#1A1A2E]">{selectedDate.title}</h3>
+                <p className="text-sm text-gray-500">{formatDate(selectedDate.date)}</p>
+              </div>
+              <button onClick={() => setSelectedDate(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-3">¿Van a participar en esta fecha?</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setRespondForm(f => ({ ...f, will_participate: true }))}
+                    className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition-all ${
+                      respondForm.will_participate === true
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    Sí, participaremos
+                  </button>
+                  <button
+                    onClick={() => setRespondForm(f => ({ ...f, will_participate: false, has_offer: false, offer_description: '' }))}
+                    className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition-all ${
+                      respondForm.will_participate === false
+                        ? 'border-red-400 bg-red-50 text-red-600'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    No participaremos
+                  </button>
+                </div>
+              </div>
+
+              {respondForm.will_participate && (
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={respondForm.has_offer}
+                      onChange={e => setRespondForm(f => ({ ...f, has_offer: e.target.checked, offer_description: e.target.checked ? f.offer_description : '' }))}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Tendremos una oferta especial</span>
+                  </label>
+                  {respondForm.has_offer && (
+                    <textarea
+                      value={respondForm.offer_description}
+                      onChange={e => setRespondForm(f => ({ ...f, offer_description: e.target.value }))}
+                      placeholder="Describe la oferta (ej: 20% de descuento en toda la tienda, 2x1 en productos seleccionados...)"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] resize-none"
+                      rows={3}
+                    />
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveResponse}
+                disabled={respondForm.will_participate === null || saving}
+                className="w-full py-3 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] disabled:opacity-50 transition-colors font-medium"
+              >
+                {saving ? 'Guardando...' : 'Guardar respuesta'}
+              </button>
+            </div>
           </div>
         </div>
       )}

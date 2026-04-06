@@ -65,6 +65,10 @@ export const portalDashboardAPI = {
     const response = await portalApi.get('/dashboard');
     return response.data;
   },
+  respondCommercialDate: async (id, data) => {
+    const response = await portalApi.put(`/dashboard/commercial-dates/${id}`, data);
+    return response.data;
+  },
 };
 
 // ============================================

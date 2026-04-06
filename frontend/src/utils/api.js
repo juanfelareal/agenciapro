@@ -402,6 +402,7 @@ export const portalAdminAPI = {
   // Commercial dates (org-level)
   getAllCommercialDates: () => api.get('/portal-admin/commercial-dates'),
   createCommercialDate: (data) => api.post('/portal-admin/commercial-dates', data),
+  updateCommercialDateGroup: (data) => api.put('/portal-admin/commercial-dates/group', data),
   deleteCommercialDateGroup: (title, date) => api.delete(`/portal-admin/commercial-dates/group?title=${encodeURIComponent(title)}&date=${date}`),
 };
 

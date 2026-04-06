@@ -365,6 +365,7 @@ router.get('/commercial-dates', async (req, res) => {
   try {
     const dates = await db.all(`
       SELECT ccd.id, ccd.client_id, ccd.title, ccd.date::text as date,
+             ccd.will_participate, ccd.has_offer, ccd.offer_description,
              c.nickname, c.company, c.name as client_name
       FROM client_commercial_dates ccd
       JOIN clients c ON ccd.client_id = c.id
@@ -384,7 +385,10 @@ router.get('/commercial-dates', async (req, res) => {
         client_id: d.client_id,
         nickname: d.nickname,
         company: d.company,
-        client_name: d.client_name
+        client_name: d.client_name,
+        will_participate: d.will_participate,
+        has_offer: d.has_offer,
+        offer_description: d.offer_description
       });
     }
 
@@ -426,6 +430,43 @@ router.post('/commercial-dates', async (req, res) => {
   } catch (error) {
     console.error('Error creating commercial dates:', error);
     res.status(500).json({ error: 'Error al crear fecha comercial: ' + error.message });
+  }
+});
+
+// PUT /commercial-dates/group — update a commercial date group (title, date, client assignments)
+router.put('/commercial-dates/group', async (req, res) => {
+  try {
+    const { original_title, original_date, title, date, client_ids } = req.body;
+    if (!original_title || !original_date || !title?.trim() || !date || !client_ids) {
+      return res.status(400).json({ error: 'Datos incompletos' });
+    }
+
+    const trimmedTitle = title.trim();
+
+    // Delete all old entries for this group
+    await db.query(
+      'DELETE FROM client_commercial_dates WHERE title = $1 AND date = $2::date AND organization_id = $3',
+      [original_title, original_date, req.orgId]
+    );
+
+    // Insert new entries
+    let created = 0;
+    for (const clientId of client_ids) {
+      try {
+        await db.query(
+          'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES ($1, $2, $3, $4)',
+          [clientId, trimmedTitle, date, req.orgId]
+        );
+        created++;
+      } catch (e) {
+        // skip duplicates
+      }
+    }
+
+    res.json({ message: `Fecha actualizada para ${created} cliente(s)` });
+  } catch (error) {
+    console.error('Error updating commercial dates:', error);
+    res.status(500).json({ error: 'Error al actualizar fecha comercial' });
   }
 });
 

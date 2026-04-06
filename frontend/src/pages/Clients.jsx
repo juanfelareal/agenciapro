@@ -39,6 +39,7 @@ const Clients = () => {
   // Commercial dates
   const [commercialDates, setCommercialDates] = useState([]);
   const [showDateModal, setShowDateModal] = useState(false);
+  const [editingDate, setEditingDate] = useState(null); // null = create, { title, date } = edit
   const [newDateTitle, setNewDateTitle] = useState('');
   const [newDateDate, setNewDateDate] = useState('');
   const [newDateClientIds, setNewDateClientIds] = useState(new Set());
@@ -119,7 +120,26 @@ const Clients = () => {
     }
   };
 
-  const handleCreateCommercialDate = async () => {
+  const openDateModal = (cd = null) => {
+    if (cd) {
+      // Edit mode
+      setEditingDate({ title: cd.title, date: cd.date });
+      setNewDateTitle(cd.title);
+      setNewDateDate(typeof cd.date === 'string' ? cd.date.split('T')[0] : cd.date);
+      setNewDateAllClients(false);
+      setNewDateClientIds(new Set(cd.clients.map(c => c.client_id)));
+    } else {
+      // Create mode
+      setEditingDate(null);
+      setNewDateTitle('');
+      setNewDateDate('');
+      setNewDateAllClients(true);
+      setNewDateClientIds(new Set());
+    }
+    setShowDateModal(true);
+  };
+
+  const handleSaveCommercialDate = async () => {
     if (!newDateTitle.trim() || !newDateDate) return;
     const clientIds = newDateAllClients
       ? clients.filter(c => c.status === 'active').map(c => c.id)
@@ -130,20 +150,26 @@ const Clients = () => {
     }
 
     try {
-      await portalAdminAPI.createCommercialDate({
-        title: newDateTitle.trim(),
-        date: newDateDate,
-        client_ids: clientIds
-      });
-      setNewDateTitle('');
-      setNewDateDate('');
-      setNewDateClientIds(new Set());
-      setNewDateAllClients(true);
+      if (editingDate) {
+        await portalAdminAPI.updateCommercialDateGroup({
+          original_title: editingDate.title,
+          original_date: editingDate.date,
+          title: newDateTitle.trim(),
+          date: newDateDate,
+          client_ids: clientIds
+        });
+      } else {
+        await portalAdminAPI.createCommercialDate({
+          title: newDateTitle.trim(),
+          date: newDateDate,
+          client_ids: clientIds
+        });
+      }
       setShowDateModal(false);
       await loadCommercialDates();
     } catch (error) {
-      console.error('Error creating commercial date:', error);
-      alert('Error al crear la fecha comercial: ' + (error.response?.data?.error || error.message));
+      console.error('Error saving commercial date:', error);
+      alert('Error al guardar la fecha comercial: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -785,7 +811,7 @@ const Clients = () => {
             </div>
           </div>
           <button
-            onClick={() => setShowDateModal(true)}
+            onClick={() => openDateModal()}
             className="bg-[#1A1A2E] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors text-sm"
           >
             <Plus size={16} />
@@ -799,38 +825,37 @@ const Clients = () => {
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {commercialDates.map((cd, idx) => (
-              <div key={idx} className="flex items-center justify-between px-6 py-3.5">
-                <div className="flex items-center gap-4">
-                  <div className="text-center flex-shrink-0 w-12">
-                    {(() => {
-                      const dateStr = typeof cd.date === 'string' ? cd.date.split('T')[0] : new Date(cd.date).toISOString().split('T')[0];
-                      const d = new Date(dateStr + 'T12:00:00');
-                      return (
-                        <>
-                          <p className="text-lg font-bold text-[#1A1A2E] leading-tight">{d.getDate()}</p>
-                          <p className="text-[10px] text-gray-400 uppercase font-medium">
-                            {d.toLocaleDateString('es-CO', { month: 'short' })}
-                          </p>
-                        </>
-                      );
-                    })()}
+            {commercialDates.map((cd, idx) => {
+              const dateStr = typeof cd.date === 'string' ? cd.date.split('T')[0] : new Date(cd.date).toISOString().split('T')[0];
+              const d = new Date(dateStr + 'T12:00:00');
+              return (
+                <div key={idx} className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 transition-colors">
+                  <div
+                    className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+                    onClick={() => openDateModal(cd)}
+                  >
+                    <div className="text-center flex-shrink-0 w-12">
+                      <p className="text-lg font-bold text-[#1A1A2E] leading-tight">{d.getDate()}</p>
+                      <p className="text-[10px] text-gray-400 uppercase font-medium">
+                        {d.toLocaleDateString('es-CO', { month: 'short' })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{cd.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {cd.clients.length} cliente{cd.clients.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{cd.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {cd.clients.length} cliente{cd.clients.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
+                  <button
+                    onClick={() => handleDeleteCommercialDateGroup(cd.title, cd.date)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleDeleteCommercialDateGroup(cd.title, cd.date)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -840,7 +865,7 @@ const Clients = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-[#1A1A2E]">Nueva Fecha Comercial</h2>
+              <h2 className="text-lg font-semibold text-[#1A1A2E]">{editingDate ? 'Editar Fecha Comercial' : 'Nueva Fecha Comercial'}</h2>
               <button onClick={() => setShowDateModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
                 <X size={20} className="text-gray-500" />
               </button>
@@ -908,11 +933,11 @@ const Clients = () => {
                 )}
               </div>
               <button
-                onClick={handleCreateCommercialDate}
+                onClick={handleSaveCommercialDate}
                 disabled={!newDateTitle.trim() || !newDateDate || (!newDateAllClients && newDateClientIds.size === 0)}
                 className="w-full py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] disabled:opacity-50 transition-colors font-medium"
               >
-                Crear Fecha Comercial
+                {editingDate ? 'Guardar Cambios' : 'Crear Fecha Comercial'}
               </button>
             </div>
           </div>
