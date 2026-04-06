@@ -15,7 +15,10 @@ import {
   Calendar,
   Target,
   DollarSign,
-  Activity
+  Activity,
+  ClipboardList,
+  ExternalLink,
+  Send
 } from 'lucide-react';
 
 export default function PortalDashboard() {
@@ -363,6 +366,61 @@ export default function PortalDashboard() {
           )}
         </div>
       </div>
+
+      {/* Assigned Forms */}
+      {data?.assigned_forms?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center">
+              <ClipboardList className="w-5 h-5 text-violet-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-[#1A1A2E]">Formularios</h2>
+              <p className="text-sm text-gray-500">Formularios asignados para completar</p>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {data.assigned_forms.map((form) => {
+              const isSubmitted = form.status === 'submitted';
+              const isDraft = form.status === 'draft';
+              return (
+                <div key={form.id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[#1A1A2E]">{form.form_title}</p>
+                    {form.form_description && (
+                      <p className="text-sm text-gray-400 truncate mt-0.5">{form.form_description}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        isSubmitted ? 'bg-green-100 text-green-700' :
+                        isDraft ? 'bg-blue-100 text-blue-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {isSubmitted ? 'Enviado' : isDraft ? 'En borrador' : 'Pendiente'}
+                      </span>
+                    </div>
+                  </div>
+                  {isSubmitted ? (
+                    <div className="flex items-center gap-2 text-green-600 flex-shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                  ) : (
+                    <a
+                      href={`/fa/${form.share_token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#2a2a3e] transition-colors flex-shrink-0"
+                    >
+                      {isDraft ? 'Continuar' : 'Responder'}
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Pending Approvals (full width, only if there are items) */}
       {hasPermission('can_approve_tasks') && data?.pending_approval?.length > 0 && (

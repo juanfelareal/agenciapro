@@ -108,6 +108,15 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       WHERE client_id = ? AND is_read = 0
     `, [clientId]), { count: 0 });
 
+    const assignedForms = await safeQuery(() => db.all(`
+      SELECT fa.id, fa.status, fa.share_token, fa.created_at,
+        f.title as form_title, f.description as form_description
+      FROM form_assignments fa
+      JOIN forms f ON fa.form_id = f.id
+      WHERE fa.client_id = ? AND f.status = 'published'
+      ORDER BY fa.created_at DESC
+    `, [clientId]), []);
+
     // Calculate health score
     const totalTasks = parseInt(tasksSummary.total) || 0;
     const completedTasks = parseInt(tasksSummary.completed) || 0;
@@ -142,7 +151,8 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       health_score: healthScore,
       recent_tasks: recentTasks,
       pending_approval: pendingApproval,
-      unread_notifications: parseInt(unreadNotifications?.count) || 0
+      unread_notifications: parseInt(unreadNotifications?.count) || 0,
+      assigned_forms: assignedForms
     });
   } catch (error) {
     console.error('Error getting portal dashboard:', error);
