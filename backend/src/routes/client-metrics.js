@@ -198,6 +198,7 @@ router.get('/aggregate/all', async (req, res) => {
         c.name as client_name,
         c.company,
         c.nickname,
+        COALESCE(ps.portal_revenue_metric, 'total') as portal_revenue_metric,
         SUM(m.shopify_revenue) as total_revenue,
         SUM(m.shopify_net_revenue) as net_revenue,
         SUM(m.shopify_orders) as total_orders,
@@ -216,8 +217,9 @@ router.get('/aggregate/all', async (req, res) => {
         SUM(COALESCE(m.shopify_all_orders_count, 0)) as total_all_orders_count
       FROM clients c
       INNER JOIN client_daily_metrics m ON c.id = m.client_id
+      LEFT JOIN client_portal_settings ps ON c.id = ps.client_id
       WHERE m.metric_date BETWEEN ? AND ? AND c.organization_id = ?
-      GROUP BY c.id
+      GROUP BY c.id, ps.portal_revenue_metric
       ORDER BY total_revenue DESC
     `).all(start_date, end_date, orgId);
 
@@ -231,18 +233,31 @@ router.get('/aggregate/all', async (req, res) => {
       const totalClicks = parseFloat(client.total_clicks) || 0;
       const totalConversions = parseFloat(client.total_conversions) || 0;
 
+      const netRevenue = parseFloat(client.net_revenue) || 0;
+      const allOrdersRevenue = parseFloat(client.total_all_orders_revenue) || 0;
+
+      // Pick the display revenue based on the client's portal_revenue_metric setting
+      let displayRevenue = totalRevenue;
+      if (client.portal_revenue_metric === 'confirmed') displayRevenue = totalRevenue;
+      else if (client.portal_revenue_metric === 'net_confirmed') displayRevenue = netRevenue;
+      else displayRevenue = allOrdersRevenue || totalRevenue; // 'total' = all orders
+
       return {
         ...client,
         total_revenue: totalRevenue,
+        net_revenue: netRevenue,
+        total_all_orders_revenue: allOrdersRevenue,
+        display_revenue: displayRevenue,
+        portal_revenue_metric: client.portal_revenue_metric || 'total',
         total_ad_spend: totalAdSpend,
         total_orders: totalOrders,
         total_impressions: totalImpressions,
         total_clicks: totalClicks,
         total_conversions: totalConversions,
-        roas: totalAdSpend > 0 ? totalRevenue / totalAdSpend : 0,
+        roas: totalAdSpend > 0 ? displayRevenue / totalAdSpend : 0,
         cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
-        ad_spend_percentage: totalRevenue > 0 ? (totalAdSpend / totalRevenue) * 100 : 0,
-        ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+        ad_spend_percentage: displayRevenue > 0 ? (totalAdSpend / displayRevenue) * 100 : 0,
+        ticket_promedio: totalOrders > 0 ? displayRevenue / totalOrders : 0,
         cpm: totalAdSpend > 0 && totalImpressions > 0 ? (totalAdSpend / totalImpressions) * 1000 : 0,
         cost_per_purchase: totalConversions > 0 ? totalAdSpend / totalConversions : 0,
         total_tax: parseFloat(client.total_tax) || 0,
@@ -255,6 +270,7 @@ router.get('/aggregate/all', async (req, res) => {
     const totals = result.reduce((acc, client) => ({
       total_revenue: acc.total_revenue + (client.total_revenue || 0),
       net_revenue: acc.net_revenue + (client.net_revenue || 0),
+      display_revenue: acc.display_revenue + (client.display_revenue || 0),
       total_orders: acc.total_orders + (client.total_orders || 0),
       total_ad_spend: acc.total_ad_spend + (client.total_ad_spend || 0),
       total_impressions: acc.total_impressions + (client.total_impressions || 0),
@@ -262,13 +278,14 @@ router.get('/aggregate/all', async (req, res) => {
     }), {
       total_revenue: 0,
       net_revenue: 0,
+      display_revenue: 0,
       total_orders: 0,
       total_ad_spend: 0,
       total_impressions: 0,
       total_clicks: 0
     });
 
-    totals.roas = totals.total_ad_spend > 0 ? totals.total_revenue / totals.total_ad_spend : 0;
+    totals.roas = totals.total_ad_spend > 0 ? totals.display_revenue / totals.total_ad_spend : 0;
     totals.avg_ctr = totals.total_impressions > 0 ? (totals.total_clicks / totals.total_impressions) * 100 : 0;
 
     res.json({ clients: result, totals });

@@ -249,7 +249,7 @@ function MetricsDashboard() {
                     Cliente
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Venta Total
+                    Venta
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Inversion
@@ -278,7 +278,18 @@ function MetricsDashboard() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right font-medium text-gray-900">
-                      {formatCurrency(client.total_revenue)}
+                      <div className="flex items-center justify-end gap-2">
+                        {formatCurrency(client.display_revenue)}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          client.portal_revenue_metric === 'net_confirmed' ? 'bg-blue-100 text-blue-700' :
+                          client.portal_revenue_metric === 'confirmed' ? 'bg-green-100 text-green-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {client.portal_revenue_metric === 'net_confirmed' ? 'Neta' :
+                           client.portal_revenue_metric === 'confirmed' ? 'Confirmada' :
+                           'Total'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right text-gray-600">
                       {formatCurrency(client.total_ad_spend)}
@@ -320,7 +331,7 @@ function MetricsDashboard() {
                 <tr>
                   <td className="px-6 py-4 text-gray-900">Total</td>
                   <td className="px-6 py-4 text-right text-gray-900">
-                    {formatCurrency(data.totals?.total_revenue)}
+                    {formatCurrency(data.totals?.display_revenue)}
                   </td>
                   <td className="px-6 py-4 text-right text-gray-900">
                     {formatCurrency(data.totals?.total_ad_spend)}
