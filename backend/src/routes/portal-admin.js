@@ -363,14 +363,6 @@ router.put('/priorities/:clientId', async (req, res) => {
 // GET /commercial-dates — list all commercial dates for the org, grouped with client info
 router.get('/commercial-dates', async (req, res) => {
   try {
-    // First check raw count
-    const rawCount = await db.get('SELECT COUNT(*) as count FROM client_commercial_dates WHERE organization_id = ?', [req.orgId]);
-    console.log(`GET /commercial-dates — orgId: ${req.orgId}, raw count: ${rawCount?.count}`);
-
-    // Also check total without org filter
-    const totalCount = await db.get('SELECT COUNT(*) as count FROM client_commercial_dates');
-    console.log(`Total commercial dates in DB (all orgs): ${totalCount?.count}`);
-
     const dates = await db.all(`
       SELECT ccd.id, ccd.client_id, ccd.title, ccd.date::text as date,
              c.nickname, c.company, c.name as client_name
@@ -379,7 +371,6 @@ router.get('/commercial-dates', async (req, res) => {
       WHERE ccd.organization_id = ?
       ORDER BY ccd.date, ccd.title
     `, [req.orgId]);
-    console.log(`Grouped query returned ${dates.length} rows`);
 
     // Group by title+date
     const grouped = {};
@@ -414,26 +405,24 @@ router.post('/commercial-dates', async (req, res) => {
     }
 
     const trimmedTitle = title.trim();
-    const errors = [];
     let created = 0;
 
     for (const clientId of client_ids) {
-      try {
-        // Use db.query directly to avoid db.run's RETURNING id auto-append
-        await db.query(
-          'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES ($1, $2, $3, $4)',
-          [clientId, trimmedTitle, date, req.orgId]
-        );
-        created++;
-      } catch (insertErr) {
-        errors.push(`client ${clientId}: ${insertErr.message}`);
-      }
+      // Check for existing duplicate
+      const existing = await db.get(
+        'SELECT id FROM client_commercial_dates WHERE client_id = $1 AND title = $2 AND date = $3::date AND organization_id = $4',
+        [clientId, trimmedTitle, date, req.orgId]
+      );
+      if (existing) continue;
+
+      await db.query(
+        'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES ($1, $2, $3, $4)',
+        [clientId, trimmedTitle, date, req.orgId]
+      );
+      created++;
     }
 
-    res.status(201).json({
-      message: `Fecha creada para ${created} de ${client_ids.length} cliente(s)`,
-      errors: errors.length > 0 ? errors : undefined
-    });
+    res.status(201).json({ message: `Fecha creada para ${created} cliente(s)` });
   } catch (error) {
     console.error('Error creating commercial dates:', error);
     res.status(500).json({ error: 'Error al crear fecha comercial: ' + error.message });

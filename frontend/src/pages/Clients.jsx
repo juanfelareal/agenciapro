@@ -113,7 +113,6 @@ const Clients = () => {
   const loadCommercialDates = async () => {
     try {
       const response = await portalAdminAPI.getAllCommercialDates();
-      console.log('Commercial dates response:', response.data);
       setCommercialDates(response.data || []);
     } catch (error) {
       console.error('Error loading commercial dates:', error);
@@ -131,16 +130,11 @@ const Clients = () => {
     }
 
     try {
-      console.log('Sending commercial date:', { title: newDateTitle.trim(), date: newDateDate, client_ids: clientIds });
-      const res = await portalAdminAPI.createCommercialDate({
+      await portalAdminAPI.createCommercialDate({
         title: newDateTitle.trim(),
         date: newDateDate,
         client_ids: clientIds
       });
-      console.log('Create response:', res.data);
-      const msg = res.data?.message || 'Fecha comercial creada';
-      const errs = res.data?.errors;
-      alert(errs ? `${msg}\n\nErrores:\n${errs.join('\n')}` : msg);
       setNewDateTitle('');
       setNewDateDate('');
       setNewDateClientIds(new Set());
@@ -825,7 +819,7 @@ const Clients = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-800">{cd.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {cd.clients.length} cliente{cd.clients.length !== 1 ? 's' : ''}: {cd.clients.map(c => c.nickname || c.company || c.client_name).join(', ')}
+                      {cd.clients.length} cliente{cd.clients.length !== 1 ? 's' : ''}
                     </p>
                   </div>
                 </div>

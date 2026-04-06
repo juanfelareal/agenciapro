@@ -120,7 +120,7 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), []);
 
     const commercialDates = await safeQuery(() => db.all(`
-      SELECT id, title, date FROM client_commercial_dates
+      SELECT id, title, date::text as date FROM client_commercial_dates
       WHERE client_id = ? AND date >= CURRENT_DATE
       ORDER BY date ASC
     `, [clientId]), []);

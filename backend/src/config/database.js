@@ -1292,6 +1292,17 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_commercial_dates_client ON client_commercial_dates(client_id)`);
 
+    // Remove duplicate commercial dates and add unique constraint
+    try {
+      await pool.query(`
+        DELETE FROM client_commercial_dates a USING client_commercial_dates b
+        WHERE a.id > b.id AND a.client_id = b.client_id AND a.title = b.title AND a.date = b.date
+      `);
+      await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_client_commercial_dates_unique ON client_commercial_dates(client_id, title, date)`);
+    } catch (e) {
+      console.warn('Could not add unique index on client_commercial_dates:', e.message);
+    }
+
     // Ad tag indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_values_category ON ad_tag_values(category_id)`);
