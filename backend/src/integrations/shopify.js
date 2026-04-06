@@ -225,12 +225,18 @@ class ShopifyIntegration {
    */
   async getSessions(startDate, endDate) {
     try {
+      // ShopifyQL UNTIL is exclusive, so add 1 day to endDate to include it
+      const untilDate = new Date(endDate + 'T00:00:00');
+      untilDate.setDate(untilDate.getDate() + 1);
+      const untilStr = untilDate.toISOString().split('T')[0];
+
       const query = `{
-        shopifyqlQuery(query: "FROM visits SINCE ${startDate} UNTIL ${endDate} SHOW sum(totalSessions)") {
+        shopifyqlQuery(query: "FROM visits SINCE ${startDate} UNTIL ${untilStr} SHOW sum(totalSessions)") {
           __typename
           ... on TableResponse {
             tableData {
               rowData
+              columns { name dataType }
             }
           }
         }
@@ -247,9 +253,21 @@ class ShopifyIntegration {
         }
       );
 
-      const tableData = response.data?.data?.shopifyqlQuery?.tableData;
+      const queryResult = response.data?.data?.shopifyqlQuery;
+
+      // Check for errors in GraphQL response
+      if (response.data?.errors?.length > 0) {
+        console.warn(`ShopifyQL sessions error for ${this.storeUrl}:`, JSON.stringify(response.data.errors));
+        return 0;
+      }
+
+      const tableData = queryResult?.tableData;
       if (tableData?.rowData?.length > 0) {
-        return parseInt(tableData.rowData[0]) || 0;
+        // rowData elements are JSON strings like '["123"]', need to parse
+        const row = tableData.rowData[0];
+        const parsed = typeof row === 'string' ? JSON.parse(row) : row;
+        const value = Array.isArray(parsed) ? parsed[0] : parsed;
+        return parseInt(value) || 0;
       }
       return 0;
     } catch (error) {
