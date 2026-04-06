@@ -567,14 +567,10 @@ export default function Forms() {
                     <option value="">Seleccionar cliente</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}{c.company && c.nickname ? ` — ${c.company}` : ''}</option>)}
                   </select>
-                  <div className="flex gap-2">
-                    <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none" placeholder="Fecha límite (opcional)" />
-                    <button onClick={assignForm} disabled={!selectedClient}
-                      className="px-5 py-2.5 bg-[#1A1A2E] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3e] disabled:opacity-50 whitespace-nowrap">
-                      Asignar
-                    </button>
-                  </div>
+                  <button onClick={assignForm} disabled={!selectedClient}
+                    className="w-full px-5 py-2.5 bg-[#1A1A2E] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3e] disabled:opacity-50">
+                    Asignar
+                  </button>
                 </div>
 
                 {assignments.length > 0 && (
