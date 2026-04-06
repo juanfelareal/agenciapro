@@ -363,6 +363,14 @@ router.put('/priorities/:clientId', async (req, res) => {
 // GET /commercial-dates — list all commercial dates for the org, grouped with client info
 router.get('/commercial-dates', async (req, res) => {
   try {
+    // First check raw count
+    const rawCount = await db.get('SELECT COUNT(*) as count FROM client_commercial_dates WHERE organization_id = ?', [req.orgId]);
+    console.log(`GET /commercial-dates — orgId: ${req.orgId}, raw count: ${rawCount?.count}`);
+
+    // Also check total without org filter
+    const totalCount = await db.get('SELECT COUNT(*) as count FROM client_commercial_dates');
+    console.log(`Total commercial dates in DB (all orgs): ${totalCount?.count}`);
+
     const dates = await db.all(`
       SELECT ccd.id, ccd.client_id, ccd.title, ccd.date::text as date,
              c.nickname, c.company, c.name as client_name
@@ -371,6 +379,7 @@ router.get('/commercial-dates', async (req, res) => {
       WHERE ccd.organization_id = ?
       ORDER BY ccd.date, ccd.title
     `, [req.orgId]);
+    console.log(`Grouped query returned ${dates.length} rows`);
 
     // Group by title+date
     const grouped = {};
@@ -399,31 +408,42 @@ router.get('/commercial-dates', async (req, res) => {
 router.post('/commercial-dates', async (req, res) => {
   try {
     const { title, date, client_ids } = req.body;
+    console.log('POST /commercial-dates body:', { title, date, client_ids_count: client_ids?.length, orgId: req.orgId });
+
     if (!title?.trim() || !date || !client_ids?.length) {
       return res.status(400).json({ error: 'Título, fecha y al menos un cliente son requeridos' });
     }
 
     const trimmedTitle = title.trim();
-    let created = 0;
+    const errors = [];
 
     for (const clientId of client_ids) {
       try {
         await db.run(
-          `INSERT INTO client_commercial_dates (client_id, title, date, organization_id)
-           SELECT ?, ?, ?::date, ?
-           WHERE NOT EXISTS (
-             SELECT 1 FROM client_commercial_dates
-             WHERE client_id = ? AND title = ? AND date = ?::date AND organization_id = ?
-           )`,
-          [clientId, trimmedTitle, date, req.orgId, clientId, trimmedTitle, date, req.orgId]
+          'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES (?, ?, ?, ?)',
+          [clientId, trimmedTitle, date, req.orgId]
         );
-        created++;
       } catch (insertErr) {
-        console.error(`Error inserting commercial date for client ${clientId}:`, insertErr.message);
+        errors.push(`client ${clientId}: ${insertErr.message}`);
       }
     }
 
-    res.status(201).json({ message: `Fecha comercial creada para ${created} cliente(s)` });
+    if (errors.length > 0) {
+      console.error('Some inserts failed:', errors);
+    }
+
+    // Verify what was saved
+    const saved = await db.all(
+      'SELECT * FROM client_commercial_dates WHERE title = ? AND date = ?::date AND organization_id = ?',
+      [trimmedTitle, date, req.orgId]
+    );
+    console.log(`Saved ${saved.length} commercial dates for "${trimmedTitle}" on ${date}`);
+
+    res.status(201).json({
+      message: `Fecha creada para ${client_ids.length - errors.length} de ${client_ids.length} cliente(s)`,
+      saved_count: saved.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
   } catch (error) {
     console.error('Error creating commercial dates:', error);
     res.status(500).json({ error: 'Error al crear fecha comercial: ' + error.message });

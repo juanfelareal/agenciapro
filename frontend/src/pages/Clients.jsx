@@ -131,12 +131,14 @@ const Clients = () => {
     }
 
     try {
+      console.log('Sending commercial date:', { title: newDateTitle.trim(), date: newDateDate, client_ids: clientIds });
       const res = await portalAdminAPI.createCommercialDate({
         title: newDateTitle.trim(),
         date: newDateDate,
         client_ids: clientIds
       });
       console.log('Create response:', res.data);
+      alert(res.data?.message || 'Fecha comercial creada');
       setNewDateTitle('');
       setNewDateDate('');
       setNewDateClientIds(new Set());
