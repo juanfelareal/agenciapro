@@ -1118,19 +1118,24 @@ export const initializeDatabase = async () => {
       // Siigo (accounting integration)
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
       // Client portal dashboard
-      'client_priorities', 'client_commercial_dates',
+      'client_priorities',
+      // Note: 'client_commercial_dates' already has organization_id in its CREATE TABLE
       // Note: 'forms' and 'form_assignments' already have organization_id in their CREATE TABLE
     ];
 
     for (const table of rootTablesForOrgId) {
-      await pool.query(`
-        DO $$
-        BEGIN
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${table}' AND column_name='organization_id') THEN
-            ALTER TABLE ${table} ADD COLUMN organization_id INTEGER REFERENCES organizations(id);
-          END IF;
-        END $$;
-      `);
+      try {
+        await pool.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='${table}' AND column_name='organization_id') THEN
+              ALTER TABLE ${table} ADD COLUMN organization_id INTEGER REFERENCES organizations(id);
+            END IF;
+          END $$;
+        `);
+      } catch (e) {
+        console.warn(`Warning: Could not add organization_id to ${table}: ${e.message}`);
+      }
     }
 
     // ========================================
