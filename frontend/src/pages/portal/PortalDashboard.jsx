@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { usePortal } from '../../context/PortalContext';
 import { portalDashboardAPI } from '../../utils/portalApi';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -384,9 +385,10 @@ export default function PortalDashboard() {
         </div>
       )}
 
-      {/* Note Viewer — Full-screen overlay */}
-      {selectedNote && (
-        <NoteViewer note={selectedNote} onClose={() => setSelectedNote(null)} />
+      {/* Note Viewer — Full-screen overlay (portaled to body to escape stacking contexts) */}
+      {selectedNote && createPortal(
+        <NoteViewer note={selectedNote} onClose={() => setSelectedNote(null)} />,
+        document.body
       )}
     </div>
   );
