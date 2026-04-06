@@ -446,7 +446,8 @@ router.get('/:clientId/top-products', async (req, res) => {
 
 /**
  * POST /api/client-metrics/sync/:clientId
- * Manually sync metrics for a single client
+ * Manually sync metrics for a single client.
+ * If client has no existing data, auto-expands to full previous year + current year (runs in background).
  */
 router.post('/sync/:clientId', async (req, res) => {
   try {
@@ -460,24 +461,60 @@ router.post('/sync/:clientId', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    // Default to yesterday (Colombia timezone) if no dates provided
+    // Check if client has any existing metric data
+    const existingData = await db.get(
+      'SELECT COUNT(*) as count FROM client_daily_metrics WHERE client_id = ?',
+      [parseInt(clientId)]
+    );
+    const isFirstSync = !existingData || existingData.count === 0;
+
     let startDate = start_date;
     let endDate = end_date;
 
-    if (!startDate || !endDate) {
+    if (isFirstSync) {
+      // First sync: all of previous year + current year to date
+      const now = new Date();
+      startDate = `${now.getFullYear() - 1}-01-01`;
+      endDate = getColombiaDate(0);
+    } else if (!startDate || !endDate) {
       startDate = getColombiaDate(-1);
       endDate = startDate;
     }
 
-    const result = await syncClientDateRange(parseInt(clientId), startDate, endDate);
+    // Calculate approximate days
+    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1;
 
-    if (result.success) {
+    if (isFirstSync || days > 60) {
+      // Run in background for large syncs
       res.json({
-        message: `Sincronizacion completada: ${result.recordsProcessed} dias procesados`,
-        recordsProcessed: result.recordsProcessed
+        message: isFirstSync
+          ? `Primera sincronización: ${startDate} a ${endDate} (~${days} días). Se ejecuta en segundo plano.`
+          : `Sincronización de ${days} días iniciada en segundo plano.`,
+        status: 'running',
+        background: true,
+        days
       });
+
+      syncClientDateRange(parseInt(clientId), startDate, endDate)
+        .then(result => {
+          console.log(`✅ Client ${clientId} sync done: ${result.recordsProcessed} days processed`);
+        })
+        .catch(err => {
+          console.error(`❌ Client ${clientId} sync failed:`, err.message);
+        });
     } else {
-      res.status(500).json({ error: result.error });
+      // Short sync: wait for result
+      const result = await syncClientDateRange(parseInt(clientId), startDate, endDate);
+
+      if (result.success) {
+        res.json({
+          message: `Sincronización completada: ${result.recordsProcessed} días procesados`,
+          recordsProcessed: result.recordsProcessed,
+          background: false
+        });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
     }
   } catch (error) {
     console.error('Error syncing client metrics:', error);

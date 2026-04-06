@@ -237,8 +237,13 @@ function ClientMetrics() {
   const handleSync = async () => {
     try {
       setSyncing(true);
-      await clientMetricsAPI.syncClient(clientId, dateRange.start, dateRange.end);
-      alert('Sincronización completada');
+      const res = await clientMetricsAPI.syncClient(clientId, dateRange.start, dateRange.end);
+      const data = res.data || res;
+      if (data.background) {
+        alert(data.message + '\n\nLos datos se irán actualizando. Recarga la página en unos minutos.');
+      } else {
+        alert('Sincronización completada');
+      }
       loadMetrics();
     } catch (error) {
       alert('Error al sincronizar: ' + error.message);
