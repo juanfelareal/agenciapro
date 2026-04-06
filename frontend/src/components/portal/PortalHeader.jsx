@@ -76,7 +76,7 @@ export default function PortalHeader() {
               <Building2 className="w-5 h-5 text-white" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-ink-900">{client?.company || client?.name}</p>
+              <p className="text-sm font-semibold text-ink-900">{client?.nickname || client?.name}</p>
               <p className="text-xs text-ink-500">Portal de Cliente</p>
             </div>
           </Link>

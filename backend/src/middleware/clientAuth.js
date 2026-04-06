@@ -16,7 +16,7 @@ export const clientAuthMiddleware = async (req, res, next) => {
 
     // Find the session token
     const tokenRecord = await db.get(`
-      SELECT cat.*, c.name as client_name, c.company, c.email
+      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email
       FROM client_access_tokens cat
       JOIN clients c ON cat.client_id = c.id
       WHERE cat.token = ?
@@ -42,6 +42,7 @@ export const clientAuthMiddleware = async (req, res, next) => {
     req.client = {
       id: tokenRecord.client_id,
       name: tokenRecord.client_name,
+      nickname: tokenRecord.client_nickname,
       company: tokenRecord.company,
       email: tokenRecord.email,
       tokenId: tokenRecord.id,

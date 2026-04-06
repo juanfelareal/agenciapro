@@ -96,7 +96,7 @@ export default function PortalDashboard() {
         <div className="relative">
           <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">Panel de Control</p>
           <h1 className="text-2xl sm:text-3xl font-bold mt-1 tracking-tight">
-            Hola, {client?.name?.split(' ')[0]}
+            Hola, {client?.nickname || client?.name?.split(' ')[0]}
           </h1>
           {welcomeMessage ? (
             <p className="mt-2 text-gray-300 max-w-xl">{welcomeMessage}</p>
