@@ -947,16 +947,19 @@ const Notes = () => {
                         {entity.name}
                         {link.client_id && (
                           <button
-                            onClick={() => {
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setFormData(prev => ({
                                 ...prev,
                                 links: prev.links.map((l, i) => i === idx ? { ...l, visible_in_portal: !l.visible_in_portal } : l)
                               }));
                             }}
                             title={link.visible_in_portal ? 'Visible en dashboard del cliente' : 'No visible en dashboard del cliente'}
-                            className={`ml-1 p-0.5 rounded ${link.visible_in_portal ? 'text-green-600 hover:text-green-700' : 'text-slate-400 hover:text-slate-600'}`}
+                            className={`ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-medium transition-colors ${link.visible_in_portal ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`}
                           >
-                            {link.visible_in_portal ? <Eye size={14} /> : <EyeOff size={14} />}
+                            {link.visible_in_portal ? <Eye size={12} /> : <EyeOff size={12} />}
+                            {link.visible_in_portal ? 'Portal' : 'Portal'}
                           </button>
                         )}
                         <button
