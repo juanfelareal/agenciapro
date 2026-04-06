@@ -384,7 +384,13 @@ export default function PortalDashboard() {
               const isSubmitted = form.status === 'submitted';
               const isDraft = form.status === 'draft';
               return (
-                <div key={form.id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                <a
+                  key={form.id}
+                  href={`/fa/${form.share_token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-[#1A1A2E]">{form.form_title}</p>
                     {form.form_description && (
@@ -401,21 +407,11 @@ export default function PortalDashboard() {
                     </div>
                   </div>
                   {isSubmitted ? (
-                    <div className="flex items-center gap-2 text-green-600 flex-shrink-0">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
+                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
                   ) : (
-                    <a
-                      href={`/fa/${form.share_token}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#2a2a3e] transition-colors flex-shrink-0"
-                    >
-                      {isDraft ? 'Continuar' : 'Responder'}
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                    <ArrowRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
                   )}
-                </div>
+                </a>
               );
             })}
           </div>
