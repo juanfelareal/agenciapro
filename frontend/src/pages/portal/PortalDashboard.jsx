@@ -1,6 +1,11 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePortal } from '../../context/PortalContext';
 import { portalDashboardAPI } from '../../utils/portalApi';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Highlight from '@tiptap/extension-highlight';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import {
   CheckCircle2,
   ArrowRight,
@@ -11,9 +16,9 @@ import {
   Zap,
   CalendarDays,
   StickyNote,
+  ArrowLeft,
   X
 } from 'lucide-react';
-const NoteEditor = lazy(() => import('../../components/NoteEditor'));
 
 export default function PortalDashboard() {
   const { client, welcomeMessage } = usePortal();
@@ -379,43 +384,100 @@ export default function PortalDashboard() {
         </div>
       )}
 
-      {/* Note Viewer Modal */}
+      {/* Note Viewer — Full-screen overlay */}
       {selectedNote && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
-                {selectedNote.color && selectedNote.color !== '#FFFFFF' && (
-                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: selectedNote.color }} />
-                )}
-                <h3 className="text-lg font-semibold text-[#1A1A2E] truncate">{selectedNote.title}</h3>
-                {selectedNote.category_name && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0" style={{ backgroundColor: selectedNote.category_color + '20', color: selectedNote.category_color }}>
-                    {selectedNote.category_name}
+        <NoteViewer note={selectedNote} onClose={() => setSelectedNote(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ─── Read-only note viewer (full-screen, SharedNoteView style) ─── */
+
+const noteViewerStyles = `
+  .portal-note .ProseMirror { padding: 2.5rem; min-height: 300px; outline: none; font-size: 0.95rem; line-height: 1.75; color: #334155; }
+  .portal-note .ProseMirror h1 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #0f172a; }
+  .portal-note .ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; color: #1e293b; }
+  .portal-note .ProseMirror p { margin: 0.5rem 0; }
+  .portal-note .ProseMirror ul, .portal-note .ProseMirror ol { padding-left: 1.5rem; }
+  .portal-note .ProseMirror li { margin: 0.25rem 0; }
+  .portal-note .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+  .portal-note .ProseMirror ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }
+  .portal-note .ProseMirror ul[data-type="taskList"] li > label { flex-shrink: 0; margin-top: 0.25rem; }
+  .portal-note .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p { text-decoration: line-through; color: #94a3b8; }
+  .portal-note .ProseMirror blockquote { border-left: 3px solid #e2e8f0; padding-left: 1rem; margin-left: 0; color: #64748b; font-style: italic; }
+  .portal-note .ProseMirror code { background: #f1f5f9; padding: 0.2em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+  .portal-note .ProseMirror pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+  .portal-note .ProseMirror pre code { background: none; padding: 0; color: inherit; }
+  .portal-note .ProseMirror mark { background: #fef08a; padding: 0.1em 0.2em; border-radius: 0.15rem; }
+  .portal-note .ProseMirror img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; }
+  .portal-note .ProseMirror hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
+`;
+
+function NoteViewer({ note, onClose }) {
+  const extensions = useMemo(() => [
+    StarterKit.configure({ heading: { levels: [1, 2] } }),
+    Highlight.configure({ multicolor: false }),
+    TaskList,
+    TaskItem.configure({ nested: true }),
+  ], []);
+
+  const editor = useEditor({
+    extensions,
+    content: note.content ? JSON.parse(note.content) : `<p>${note.content_plain || ''}</p>`,
+    editable: false,
+  });
+
+  return (
+    <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col overflow-hidden">
+      <style>{noteViewerStyles}</style>
+
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 flex-shrink-0">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-100 rounded-xl transition-colors flex-shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-500" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-slate-800 text-lg truncate">{note.title}</h1>
+              <div className="flex items-center gap-2 mt-0.5">
+                {note.category_name && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: note.category_color + '20', color: note.category_color }}>
+                    {note.category_name}
                   </span>
                 )}
+                <span className="text-xs text-slate-400">Solo lectura</span>
               </div>
-              <button onClick={() => setSelectedNote(null)} className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto">
-              {selectedNote.content ? (
-                <Suspense fallback={<Loader2 className="w-6 h-6 text-gray-300 animate-spin mx-auto" />}>
-                  <NoteEditor
-                    content={JSON.parse(selectedNote.content)}
-                    readOnly
-                    placeholder=""
-                    minHeight="100px"
-                  />
-                </Suspense>
-              ) : (
-                <p className="text-sm text-gray-500 whitespace-pre-line">{selectedNote.content_plain}</p>
-              )}
             </div>
           </div>
+          <img
+            src="/logo-lareal.png"
+            alt="LA REAL"
+            className="h-8 sm:h-10 opacity-80 flex-shrink-0"
+          />
         </div>
-      )}
+      </header>
+
+      {/* Content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto py-6 sm:py-10 px-4 sm:px-6">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden portal-note">
+            <EditorContent editor={editor} />
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white py-3 text-center flex-shrink-0">
+        <div className="flex items-center justify-center gap-2">
+          <img src="/logo-lareal.png" alt="" className="h-4 opacity-40" />
+          <span className="text-xs text-slate-400">Compartido por LA REAL</span>
+        </div>
+      </footer>
     </div>
   );
 }
