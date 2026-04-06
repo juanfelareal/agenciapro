@@ -364,7 +364,8 @@ router.put('/priorities/:clientId', async (req, res) => {
 router.get('/commercial-dates', async (req, res) => {
   try {
     const dates = await db.all(`
-      SELECT ccd.*, c.nickname, c.company, c.name as client_name
+      SELECT ccd.id, ccd.client_id, ccd.title, ccd.date::text as date,
+             c.nickname, c.company, c.name as client_name
       FROM client_commercial_dates ccd
       JOIN clients c ON ccd.client_id = c.id
       WHERE ccd.organization_id = ?

@@ -113,7 +113,8 @@ const Clients = () => {
   const loadCommercialDates = async () => {
     try {
       const response = await portalAdminAPI.getAllCommercialDates();
-      setCommercialDates(response.data);
+      console.log('Commercial dates response:', response.data);
+      setCommercialDates(response.data || []);
     } catch (error) {
       console.error('Error loading commercial dates:', error);
     }
@@ -130,11 +131,12 @@ const Clients = () => {
     }
 
     try {
-      await portalAdminAPI.createCommercialDate({
+      const res = await portalAdminAPI.createCommercialDate({
         title: newDateTitle.trim(),
         date: newDateDate,
         client_ids: clientIds
       });
+      console.log('Create response:', res.data);
       setNewDateTitle('');
       setNewDateDate('');
       setNewDateClientIds(new Set());
@@ -799,16 +801,22 @@ const Clients = () => {
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {commercialDates.filter(d => d.date >= new Date().toISOString().split('T')[0]).map((cd, idx) => (
+            {commercialDates.map((cd, idx) => (
               <div key={idx} className="flex items-center justify-between px-6 py-3.5">
                 <div className="flex items-center gap-4">
                   <div className="text-center flex-shrink-0 w-12">
-                    <p className="text-lg font-bold text-[#1A1A2E] leading-tight">
-                      {new Date(cd.date + 'T12:00:00').getDate()}
-                    </p>
-                    <p className="text-[10px] text-gray-400 uppercase font-medium">
-                      {new Date(cd.date + 'T12:00:00').toLocaleDateString('es-CO', { month: 'short' })}
-                    </p>
+                    {(() => {
+                      const dateStr = typeof cd.date === 'string' ? cd.date.split('T')[0] : new Date(cd.date).toISOString().split('T')[0];
+                      const d = new Date(dateStr + 'T12:00:00');
+                      return (
+                        <>
+                          <p className="text-lg font-bold text-[#1A1A2E] leading-tight">{d.getDate()}</p>
+                          <p className="text-[10px] text-gray-400 uppercase font-medium">
+                            {d.toLocaleDateString('es-CO', { month: 'short' })}
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-800">{cd.title}</p>
