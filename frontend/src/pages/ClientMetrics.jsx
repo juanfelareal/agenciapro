@@ -240,7 +240,13 @@ function ClientMetrics() {
       const res = await clientMetricsAPI.syncClient(clientId, dateRange.start, dateRange.end);
       const data = res.data || res;
       if (data.background) {
-        alert(data.message + '\n\nLos datos se irán actualizando. Recarga la página en unos minutos.');
+        alert(data.message + '\n\nLos datos se irán actualizando progresivamente.');
+        // Poll for updates every 15s while background sync runs
+        const pollInterval = setInterval(() => {
+          loadMetrics();
+        }, 15000);
+        // Stop polling after estimated time (days * 2s each + buffer)
+        setTimeout(() => clearInterval(pollInterval), (data.days || 30) * 2500 + 10000);
       } else {
         alert('Sincronización completada');
       }

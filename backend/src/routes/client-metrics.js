@@ -484,7 +484,7 @@ router.post('/sync/:clientId', async (req, res) => {
     // Calculate approximate days
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1;
 
-    if (isFirstSync || days > 60) {
+    if (isFirstSync || days > 14) {
       // Run in background for large syncs
       res.json({
         message: isFirstSync

@@ -299,6 +299,9 @@ export async function syncClientForDate(clientId, date) {
       const shopify = new ShopifyIntegration(client.shopify_store_url, client.shopify_access_token);
       shopifyMetrics = await shopify.getMetrics(date, date);
       shopifyOk = true;
+      if (shopifyMetrics.allOrderCount > 0) {
+        console.log(`  Shopify ${date}: ${shopifyMetrics.allOrderCount} orders, $${Math.round(shopifyMetrics.allOrdersRevenue)} total, $${Math.round(shopifyMetrics.revenue)} confirmed`);
+      }
     } catch (error) {
       console.error(`Error syncing Shopify for client ${clientId} on ${date}:`, error.message);
     }
@@ -399,23 +402,43 @@ function generateDateRange(startDate, endDate) {
 export async function syncClientDateRange(clientId, startDate, endDate) {
   const jobId = await createSyncJob(clientId, 'all');
   let recordsProcessed = 0;
+  const errors = [];
 
   try {
     const dates = generateDateRange(startDate, endDate);
     for (let i = 0; i < dates.length; i++) {
-      await syncClientForDate(clientId, dates[i]);
-      recordsProcessed++;
-      // Rate limit: wait 600ms between API calls
+      const date = dates[i];
+      try {
+        await syncClientForDate(clientId, date);
+        recordsProcessed++;
+      } catch (err) {
+        console.error(`Error syncing client ${clientId} for ${date}:`, err.message);
+        errors.push({ date, error: err.message });
+        // On rate limit, wait longer before continuing
+        if (err.response?.status === 429) {
+          console.log(`  ⏳ Rate limited on ${date}, waiting 10 seconds...`);
+          await sleep(10000);
+          // Retry once after waiting
+          try {
+            await syncClientForDate(clientId, date);
+            recordsProcessed++;
+            errors.pop(); // Remove the error since retry succeeded
+          } catch (retryErr) {
+            console.error(`  Retry also failed for ${date}:`, retryErr.message);
+          }
+        }
+      }
+      // Rate limit: wait between API calls
       if (i < dates.length - 1) {
         await sleep(600);
       }
     }
 
     await updateSyncJob(jobId, 'completed', recordsProcessed);
-    return { success: true, recordsProcessed };
+    return { success: true, recordsProcessed, errors };
   } catch (error) {
     await updateSyncJob(jobId, 'failed', recordsProcessed, error.message);
-    return { success: false, recordsProcessed, error: error.message };
+    return { success: false, recordsProcessed, error: error.message, errors };
   }
 }
 
