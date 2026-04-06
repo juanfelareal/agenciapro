@@ -408,7 +408,6 @@ router.get('/commercial-dates', async (req, res) => {
 router.post('/commercial-dates', async (req, res) => {
   try {
     const { title, date, client_ids } = req.body;
-    console.log('POST /commercial-dates body:', { title, date, client_ids_count: client_ids?.length, orgId: req.orgId });
 
     if (!title?.trim() || !date || !client_ids?.length) {
       return res.status(400).json({ error: 'Título, fecha y al menos un cliente son requeridos' });
@@ -416,32 +415,23 @@ router.post('/commercial-dates', async (req, res) => {
 
     const trimmedTitle = title.trim();
     const errors = [];
+    let created = 0;
 
     for (const clientId of client_ids) {
       try {
-        await db.run(
-          'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES (?, ?, ?, ?)',
+        // Use db.query directly to avoid db.run's RETURNING id auto-append
+        await db.query(
+          'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES ($1, $2, $3, $4)',
           [clientId, trimmedTitle, date, req.orgId]
         );
+        created++;
       } catch (insertErr) {
         errors.push(`client ${clientId}: ${insertErr.message}`);
       }
     }
 
-    if (errors.length > 0) {
-      console.error('Some inserts failed:', errors);
-    }
-
-    // Verify what was saved
-    const saved = await db.all(
-      'SELECT * FROM client_commercial_dates WHERE title = ? AND date = ?::date AND organization_id = ?',
-      [trimmedTitle, date, req.orgId]
-    );
-    console.log(`Saved ${saved.length} commercial dates for "${trimmedTitle}" on ${date}`);
-
     res.status(201).json({
-      message: `Fecha creada para ${client_ids.length - errors.length} de ${client_ids.length} cliente(s)`,
-      saved_count: saved.length,
+      message: `Fecha creada para ${created} de ${client_ids.length} cliente(s)`,
       errors: errors.length > 0 ? errors : undefined
     });
   } catch (error) {

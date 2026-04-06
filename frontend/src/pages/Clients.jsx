@@ -138,7 +138,9 @@ const Clients = () => {
         client_ids: clientIds
       });
       console.log('Create response:', res.data);
-      alert(res.data?.message || 'Fecha comercial creada');
+      const msg = res.data?.message || 'Fecha comercial creada';
+      const errs = res.data?.errors;
+      alert(errs ? `${msg}\n\nErrores:\n${errs.join('\n')}` : msg);
       setNewDateTitle('');
       setNewDateDate('');
       setNewDateClientIds(new Set());
