@@ -124,25 +124,36 @@ export default function PortalDashboard() {
               <Zap className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Nuestra prioridad los próximos días</h2>
+              <h2 className="font-semibold text-[#1A1A2E]">Top prioridades para {client?.nickname || client?.name}</h2>
             </div>
           </div>
           <div className="divide-y divide-gray-50">
             {data.priorities.map((task) => {
-              const days = daysUntil(task.due_date);
+              const days = task.due_date ? daysUntil(task.due_date) : null;
+              const statusLabel = { todo: 'Pendiente', in_progress: 'En progreso', review: 'En revisión' };
               return (
                 <div key={task.id} className="flex items-center justify-between px-6 py-3.5">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#1A1A2E] truncate">{task.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{task.project_name}</p>
                   </div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 ml-3 ${
-                    days <= 2 ? 'bg-red-100 text-red-700' :
-                    days <= 7 ? 'bg-amber-100 text-amber-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `${formatDate(task.due_date)}`}
-                  </span>
+                  {days !== null ? (
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 ml-3 ${
+                      days <= 2 ? 'bg-red-100 text-red-700' :
+                      days <= 7 ? 'bg-amber-100 text-amber-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `${formatDate(task.due_date)}`}
+                    </span>
+                  ) : (
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-lg flex-shrink-0 ml-3 ${
+                      task.status === 'in_progress' ? 'bg-blue-50 text-blue-600' :
+                      task.status === 'review' ? 'bg-purple-50 text-purple-600' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>
+                      {statusLabel[task.status] || 'Pendiente'}
+                    </span>
+                  )}
                 </div>
               );
             })}

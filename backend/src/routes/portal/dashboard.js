@@ -109,14 +109,16 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), { count: 0 });
 
     const priorities = await safeQuery(() => db.all(`
-      SELECT t.id, t.title, t.due_date, t.status, p.name as project_name
+      SELECT t.id, t.title, t.due_date::text as due_date, t.status, p.name as project_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
       WHERE p.client_id = ? AND t.visible_to_client = 1
         AND t.status != 'done'
-        AND t.due_date IS NOT NULL AND t.due_date >= CURRENT_DATE
-      ORDER BY t.due_date ASC
-      LIMIT 5
+      ORDER BY
+        CASE WHEN t.due_date IS NOT NULL AND t.due_date >= CURRENT_DATE THEN 0 ELSE 1 END,
+        t.due_date ASC NULLS LAST,
+        t.updated_at DESC
+      LIMIT 8
     `, [clientId]), []);
 
     const clientNotes = await safeQuery(() => db.all(`
