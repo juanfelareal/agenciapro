@@ -124,7 +124,10 @@ const Clients = () => {
     const clientIds = newDateAllClients
       ? clients.filter(c => c.status === 'active').map(c => c.id)
       : Array.from(newDateClientIds);
-    if (clientIds.length === 0) return;
+    if (clientIds.length === 0) {
+      alert('No hay clientes para asignar');
+      return;
+    }
 
     try {
       await portalAdminAPI.createCommercialDate({
@@ -137,9 +140,10 @@ const Clients = () => {
       setNewDateClientIds(new Set());
       setNewDateAllClients(true);
       setShowDateModal(false);
-      loadCommercialDates();
+      await loadCommercialDates();
     } catch (error) {
       console.error('Error creating commercial date:', error);
+      alert('Error al crear la fecha comercial');
     }
   };
 
