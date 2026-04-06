@@ -194,7 +194,7 @@ export default function Forms() {
     const updated = [...sections];
     updated[sectionIdx].fields = [
       ...updated[sectionIdx].fields,
-      { label: '', field_type: 'short_text', help_text: '', is_required: false, options: [] }
+      { label: '', field_type: 'short_text', help_text: '', is_required: true, options: [] }
     ];
     setSections(updated);
   };
