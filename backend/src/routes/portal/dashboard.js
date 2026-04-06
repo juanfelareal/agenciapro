@@ -109,8 +109,14 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), { count: 0 });
 
     const priorities = await safeQuery(() => db.all(`
-      SELECT id, title FROM client_priorities
-      WHERE client_id = ? ORDER BY position, id
+      SELECT t.id, t.title, t.due_date, t.status, p.name as project_name
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE p.client_id = ? AND t.visible_to_client = 1
+        AND t.status != 'done'
+        AND t.due_date IS NOT NULL AND t.due_date >= CURRENT_DATE
+      ORDER BY t.due_date ASC
+      LIMIT 5
     `, [clientId]), []);
 
     const commercialDates = await safeQuery(() => db.all(`

@@ -79,6 +79,7 @@ function MetricsDashboard() {
   // Quick date range presets (Colombia timezone)
   const setPreset = (preset) => {
     const today = getColombiaDate();
+    const todayDate = new Date(today + 'T12:00:00');
     let start, end;
 
     switch (preset) {
@@ -88,18 +89,52 @@ function MetricsDashboard() {
       case 'yesterday':
         start = end = getColombiaDate(-1);
         break;
-      case 'last7':
+      case 'thisWeek': {
+        // Monday to Sunday
+        const dayOfWeek = todayDate.getDay(); // 0=Sun, 1=Mon...
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        start = getColombiaDate(-diffToMonday);
         end = today;
-        start = getColombiaDate(-6);
         break;
-      case 'last30':
-        end = today;
-        start = getColombiaDate(-29);
+      }
+      case 'lastWeek': {
+        const dayOfWeek = todayDate.getDay();
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const thisMonday = new Date(todayDate);
+        thisMonday.setDate(thisMonday.getDate() - diffToMonday);
+        const lastMonday = new Date(thisMonday);
+        lastMonday.setDate(lastMonday.getDate() - 7);
+        const lastSunday = new Date(thisMonday);
+        lastSunday.setDate(lastSunday.getDate() - 1);
+        start = lastMonday.toISOString().split('T')[0];
+        end = lastSunday.toISOString().split('T')[0];
         break;
+      }
       case 'thisMonth': {
         const [year, month] = today.split('-');
         start = `${year}-${month}-01`;
         end = today;
+        break;
+      }
+      case 'lastMonth': {
+        const d = new Date(todayDate);
+        d.setDate(1);
+        d.setMonth(d.getMonth() - 1);
+        start = d.toISOString().split('T')[0];
+        const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+        end = lastDay.toISOString().split('T')[0];
+        break;
+      }
+      case 'thisYear': {
+        const year = today.split('-')[0];
+        start = `${year}-01-01`;
+        end = today;
+        break;
+      }
+      case 'lastYear': {
+        const year = parseInt(today.split('-')[0]) - 1;
+        start = `${year}-01-01`;
+        end = `${year}-12-31`;
         break;
       }
       default:
@@ -166,18 +201,23 @@ function MetricsDashboard() {
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
           </div>
-          <div className="flex gap-2">
-            {['today', 'yesterday', 'last7', 'last30', 'thisMonth'].map((preset) => (
+          <div className="flex gap-1.5 flex-wrap">
+            {[
+              { key: 'yesterday', label: 'Ayer' },
+              { key: 'today', label: 'Hoy' },
+              { key: 'thisWeek', label: 'Esta semana' },
+              { key: 'lastWeek', label: 'Semana pasada' },
+              { key: 'thisMonth', label: 'Este mes' },
+              { key: 'lastMonth', label: 'Mes anterior' },
+              { key: 'thisYear', label: 'Este año' },
+              { key: 'lastYear', label: 'Año pasado' },
+            ].map((preset) => (
               <button
-                key={preset}
-                onClick={() => setPreset(preset)}
+                key={preset.key}
+                onClick={() => setPreset(preset.key)}
                 className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                {preset === 'today' && 'Hoy'}
-                {preset === 'yesterday' && 'Ayer'}
-                {preset === 'last7' && '7 días'}
-                {preset === 'last30' && '30 días'}
-                {preset === 'thisMonth' && 'Este mes'}
+                {preset.label}
               </button>
             ))}
           </div>

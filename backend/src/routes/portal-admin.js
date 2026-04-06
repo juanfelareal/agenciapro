@@ -357,10 +357,90 @@ router.put('/priorities/:clientId', async (req, res) => {
 });
 
 // =========================================================================
-// Client Commercial Dates
+// Client Commercial Dates (org-level, multi-client assignment)
 // =========================================================================
 
-// GET /commercial-dates/:clientId
+// GET /commercial-dates — list all commercial dates for the org, grouped with client info
+router.get('/commercial-dates', async (req, res) => {
+  try {
+    const dates = await db.all(`
+      SELECT ccd.*, c.nickname, c.company, c.name as client_name
+      FROM client_commercial_dates ccd
+      JOIN clients c ON ccd.client_id = c.id
+      WHERE ccd.organization_id = ?
+      ORDER BY ccd.date, ccd.title
+    `, [req.orgId]);
+
+    // Group by title+date
+    const grouped = {};
+    for (const d of dates) {
+      const key = `${d.title}|||${d.date}`;
+      if (!grouped[key]) {
+        grouped[key] = { title: d.title, date: d.date, clients: [] };
+      }
+      grouped[key].clients.push({
+        id: d.id,
+        client_id: d.client_id,
+        nickname: d.nickname,
+        company: d.company,
+        client_name: d.client_name
+      });
+    }
+
+    res.json(Object.values(grouped));
+  } catch (error) {
+    console.error('Error getting commercial dates:', error);
+    res.status(500).json({ error: 'Error al obtener fechas comerciales' });
+  }
+});
+
+// POST /commercial-dates — create for multiple clients
+router.post('/commercial-dates', async (req, res) => {
+  try {
+    const { title, date, client_ids } = req.body;
+    if (!title?.trim() || !date || !client_ids?.length) {
+      return res.status(400).json({ error: 'Título, fecha y al menos un cliente son requeridos' });
+    }
+
+    for (const clientId of client_ids) {
+      // Avoid duplicates
+      const existing = await db.get(
+        'SELECT id FROM client_commercial_dates WHERE client_id = ? AND title = ? AND date = ? AND organization_id = ?',
+        [clientId, title.trim(), date, req.orgId]
+      );
+      if (!existing) {
+        await db.run(
+          'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES (?, ?, ?, ?)',
+          [clientId, title.trim(), date, req.orgId]
+        );
+      }
+    }
+
+    res.status(201).json({ message: 'Fecha comercial creada' });
+  } catch (error) {
+    console.error('Error creating commercial dates:', error);
+    res.status(500).json({ error: 'Error al crear fecha comercial' });
+  }
+});
+
+// DELETE /commercial-dates/group — delete a date group (all clients with same title+date)
+router.delete('/commercial-dates/group', async (req, res) => {
+  try {
+    const { title, date } = req.query;
+    if (!title || !date) return res.status(400).json({ error: 'Título y fecha son requeridos' });
+
+    await db.run(
+      'DELETE FROM client_commercial_dates WHERE title = ? AND date = ? AND organization_id = ?',
+      [title, date, req.orgId]
+    );
+    res.json({ message: 'Eliminado' });
+  } catch (error) {
+    console.error('Error deleting commercial dates:', error);
+    res.status(500).json({ error: 'Error al eliminar fecha' });
+  }
+});
+
+// GET /commercial-dates/:clientId — per-client dates (used by portal dashboard)
 router.get('/commercial-dates/:clientId', async (req, res) => {
   try {
     const dates = await db.all(
@@ -371,38 +451,6 @@ router.get('/commercial-dates/:clientId', async (req, res) => {
   } catch (error) {
     console.error('Error getting commercial dates:', error);
     res.status(500).json({ error: 'Error al obtener fechas comerciales' });
-  }
-});
-
-// POST /commercial-dates/:clientId
-router.post('/commercial-dates/:clientId', async (req, res) => {
-  try {
-    const { title, date } = req.body;
-    if (!title?.trim() || !date) return res.status(400).json({ error: 'Título y fecha son requeridos' });
-
-    const result = await db.run(
-      'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES (?, ?, ?, ?)',
-      [req.params.clientId, title.trim(), date, req.orgId]
-    );
-    const newDate = await db.get('SELECT * FROM client_commercial_dates WHERE id = ?', [result.lastInsertRowid]);
-    res.status(201).json(newDate);
-  } catch (error) {
-    console.error('Error creating commercial date:', error);
-    res.status(500).json({ error: 'Error al crear fecha comercial' });
-  }
-});
-
-// DELETE /commercial-dates/:clientId/:id
-router.delete('/commercial-dates/:clientId/:id', async (req, res) => {
-  try {
-    await db.run(
-      'DELETE FROM client_commercial_dates WHERE id = ? AND client_id = ? AND organization_id = ?',
-      [req.params.id, req.params.clientId, req.orgId]
-    );
-    res.json({ message: 'Eliminado' });
-  } catch (error) {
-    console.error('Error deleting commercial date:', error);
-    res.status(500).json({ error: 'Error al eliminar fecha' });
   }
 });
 

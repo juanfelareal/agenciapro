@@ -84,17 +84,25 @@ export default function PortalDashboard() {
               <h2 className="font-semibold text-[#1A1A2E]">Nuestra prioridad los próximos días</h2>
             </div>
           </div>
-          <div className="px-6 py-4">
-            <ul className="space-y-3">
-              {data.priorities.map((p, idx) => (
-                <li key={p.id} className="flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                    {idx + 1}
+          <div className="divide-y divide-gray-50">
+            {data.priorities.map((task) => {
+              const days = daysUntil(task.due_date);
+              return (
+                <div key={task.id} className="flex items-center justify-between px-6 py-3.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#1A1A2E] truncate">{task.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{task.project_name}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 ml-3 ${
+                    days <= 2 ? 'bg-red-100 text-red-700' :
+                    days <= 7 ? 'bg-amber-100 text-amber-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `${formatDate(task.due_date)}`}
                   </span>
-                  <p className="text-gray-800">{p.title}</p>
-                </li>
-              ))}
-            </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

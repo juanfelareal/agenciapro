@@ -48,12 +48,6 @@ function ClientPlatformSettings() {
   const [portalRevenueMetric, setPortalRevenueMetric] = useState('confirmed');
   const [savingRevenueMetric, setSavingRevenueMetric] = useState(false);
 
-  // Client priorities & commercial dates
-  const [priorities, setPriorities] = useState([]);
-  const [savingPriorities, setSavingPriorities] = useState(false);
-  const [commercialDates, setCommercialDates] = useState([]);
-  const [newDateTitle, setNewDateTitle] = useState('');
-  const [newDateDate, setNewDateDate] = useState('');
 
   // Load client and credentials
   useEffect(() => {
@@ -130,17 +124,6 @@ function ClientPlatformSettings() {
         // Settings may not exist yet, use default
       }
 
-      // Load priorities and commercial dates
-      try {
-        const [prioritiesRes, datesRes] = await Promise.all([
-          portalAdminAPI.getPriorities(clientId),
-          portalAdminAPI.getCommercialDates(clientId)
-        ]);
-        setPriorities(prioritiesRes.data || []);
-        setCommercialDates(datesRes.data || []);
-      } catch (e) {
-        // May not exist yet
-      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -759,126 +742,6 @@ function ClientPlatformSettings() {
         </div>
       </div>
 
-      {/* ========== Portal Dashboard Content ========== */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Dashboard del Portal</h2>
-        <p className="text-sm text-gray-500 mb-6">Contenido que verá el cliente en su panel de control</p>
-
-        {/* Priorities */}
-        <div className="mb-8">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Nuestra prioridad los próximos días</h3>
-          <div className="space-y-2 mb-3">
-            {priorities.map((p, idx) => (
-              <div key={p.id || idx} className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
-                  {idx + 1}
-                </span>
-                <input
-                  type="text"
-                  value={p.title}
-                  onChange={e => {
-                    const updated = [...priorities];
-                    updated[idx] = { ...updated[idx], title: e.target.value };
-                    setPriorities(updated);
-                  }}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
-                  placeholder="Describe la prioridad..."
-                />
-                <button
-                  onClick={() => setPriorities(priorities.filter((_, i) => i !== idx))}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPriorities([...priorities, { title: '', position: priorities.length }])}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              + Agregar prioridad
-            </button>
-            <div className="flex-1" />
-            <button
-              onClick={async () => {
-                setSavingPriorities(true);
-                try {
-                  const items = priorities.map((p, i) => ({ title: p.title, position: i }));
-                  const res = await portalAdminAPI.savePriorities(clientId, items);
-                  setPriorities(res.data || []);
-                } catch (e) { console.error(e); }
-                setSavingPriorities(false);
-              }}
-              disabled={savingPriorities}
-              className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg text-sm font-medium hover:bg-[#252542] disabled:opacity-50"
-            >
-              {savingPriorities ? 'Guardando...' : 'Guardar prioridades'}
-            </button>
-          </div>
-        </div>
-
-        {/* Commercial Dates */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Fechas comerciales</h3>
-          {commercialDates.length > 0 && (
-            <div className="space-y-2 mb-3">
-              {commercialDates.map(cd => (
-                <div key={cd.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-500 w-20">
-                      {new Date(cd.date + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
-                    </span>
-                    <span className="text-sm text-gray-800">{cd.title}</span>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await portalAdminAPI.deleteCommercialDate(clientId, cd.id);
-                        setCommercialDates(commercialDates.filter(d => d.id !== cd.id));
-                      } catch (e) { console.error(e); }
-                    }}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={newDateTitle}
-              onChange={e => setNewDateTitle(e.target.value)}
-              placeholder="Ej: Día de la Madre"
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
-            />
-            <input
-              type="date"
-              value={newDateDate}
-              onChange={e => setNewDateDate(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
-            />
-            <button
-              onClick={async () => {
-                if (!newDateTitle.trim() || !newDateDate) return;
-                try {
-                  const res = await portalAdminAPI.addCommercialDate(clientId, { title: newDateTitle.trim(), date: newDateDate });
-                  setCommercialDates([...commercialDates, res.data].sort((a, b) => a.date.localeCompare(b.date)));
-                  setNewDateTitle('');
-                  setNewDateDate('');
-                } catch (e) { console.error(e); }
-              }}
-              disabled={!newDateTitle.trim() || !newDateDate}
-              className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg text-sm font-medium hover:bg-[#252542] disabled:opacity-50 whitespace-nowrap"
-            >
-              Agregar
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Shopify Store Confirmation Modal */}
       {showStoreConfirmModal && storeInfo && (

@@ -399,10 +399,10 @@ export const portalAdminAPI = {
   // Priorities
   getPriorities: (clientId) => api.get(`/portal-admin/priorities/${clientId}`),
   savePriorities: (clientId, items) => api.put(`/portal-admin/priorities/${clientId}`, { items }),
-  // Commercial dates
-  getCommercialDates: (clientId) => api.get(`/portal-admin/commercial-dates/${clientId}`),
-  addCommercialDate: (clientId, data) => api.post(`/portal-admin/commercial-dates/${clientId}`, data),
-  deleteCommercialDate: (clientId, id) => api.delete(`/portal-admin/commercial-dates/${clientId}/${id}`),
+  // Commercial dates (org-level)
+  getAllCommercialDates: () => api.get('/portal-admin/commercial-dates'),
+  createCommercialDate: (data) => api.post('/portal-admin/commercial-dates', data),
+  deleteCommercialDateGroup: (title, date) => api.delete(`/portal-admin/commercial-dates/group?title=${encodeURIComponent(title)}&date=${date}`),
 };
 
 // Note Share API

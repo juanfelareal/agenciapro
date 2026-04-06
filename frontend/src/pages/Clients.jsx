@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays } from 'lucide-react';
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -35,6 +35,14 @@ const Clients = () => {
 
   const [copiedPortalId, setCopiedPortalId] = useState(null);
   const [activeTab, setActiveTab] = useState('active');
+
+  // Commercial dates
+  const [commercialDates, setCommercialDates] = useState([]);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [newDateTitle, setNewDateTitle] = useState('');
+  const [newDateDate, setNewDateDate] = useState('');
+  const [newDateClientIds, setNewDateClientIds] = useState(new Set());
+  const [newDateAllClients, setNewDateAllClients] = useState(true);
 
   // Resizable columns
   const tableRef = useRef(null);
@@ -88,6 +96,7 @@ const Clients = () => {
 
   useEffect(() => {
     loadClients();
+    loadCommercialDates();
   }, []);
 
   const loadClients = async () => {
@@ -98,6 +107,49 @@ const Clients = () => {
       console.error('Error loading clients:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCommercialDates = async () => {
+    try {
+      const response = await portalAdminAPI.getAllCommercialDates();
+      setCommercialDates(response.data);
+    } catch (error) {
+      console.error('Error loading commercial dates:', error);
+    }
+  };
+
+  const handleCreateCommercialDate = async () => {
+    if (!newDateTitle.trim() || !newDateDate) return;
+    const clientIds = newDateAllClients
+      ? clients.filter(c => c.status === 'active').map(c => c.id)
+      : Array.from(newDateClientIds);
+    if (clientIds.length === 0) return;
+
+    try {
+      await portalAdminAPI.createCommercialDate({
+        title: newDateTitle.trim(),
+        date: newDateDate,
+        client_ids: clientIds
+      });
+      setNewDateTitle('');
+      setNewDateDate('');
+      setNewDateClientIds(new Set());
+      setNewDateAllClients(true);
+      setShowDateModal(false);
+      loadCommercialDates();
+    } catch (error) {
+      console.error('Error creating commercial date:', error);
+    }
+  };
+
+  const handleDeleteCommercialDateGroup = async (title, date) => {
+    if (!confirm(`¿Eliminar "${title}" para todos los clientes?`)) return;
+    try {
+      await portalAdminAPI.deleteCommercialDateGroup(title, date);
+      loadCommercialDates();
+    } catch (error) {
+      console.error('Error deleting commercial date:', error);
     }
   };
 
@@ -715,6 +767,147 @@ const Clients = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Commercial Dates Section */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
+              <CalendarDays className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-[#1A1A2E]">Fechas Comerciales</h2>
+              <p className="text-xs text-gray-500">Fechas clave que aparecen en el portal de cada cliente</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowDateModal(true)}
+            className="bg-[#1A1A2E] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors text-sm"
+          >
+            <Plus size={16} />
+            Nueva Fecha
+          </button>
+        </div>
+
+        {commercialDates.length === 0 ? (
+          <div className="p-8 text-center text-gray-400 text-sm">
+            No hay fechas comerciales configuradas
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {commercialDates.filter(d => d.date >= new Date().toISOString().split('T')[0]).map((cd, idx) => (
+              <div key={idx} className="flex items-center justify-between px-6 py-3.5">
+                <div className="flex items-center gap-4">
+                  <div className="text-center flex-shrink-0 w-12">
+                    <p className="text-lg font-bold text-[#1A1A2E] leading-tight">
+                      {new Date(cd.date + 'T12:00:00').getDate()}
+                    </p>
+                    <p className="text-[10px] text-gray-400 uppercase font-medium">
+                      {new Date(cd.date + 'T12:00:00').toLocaleDateString('es-CO', { month: 'short' })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{cd.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {cd.clients.length} cliente{cd.clients.length !== 1 ? 's' : ''}: {cd.clients.map(c => c.nickname || c.company || c.client_name).join(', ')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteCommercialDateGroup(cd.title, cd.date)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg flex-shrink-0"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Commercial Date Modal */}
+      {showDateModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-[#1A1A2E]">Nueva Fecha Comercial</h2>
+              <button onClick={() => setShowDateModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Título</label>
+                <input
+                  type="text"
+                  value={newDateTitle}
+                  onChange={e => setNewDateTitle(e.target.value)}
+                  placeholder="Ej: Día de la Madre"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Fecha</label>
+                <input
+                  type="date"
+                  value={newDateDate}
+                  onChange={e => setNewDateDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Asignar a</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={newDateAllClients}
+                      onChange={() => setNewDateAllClients(true)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Todos los clientes activos</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={!newDateAllClients}
+                      onChange={() => setNewDateAllClients(false)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Seleccionar clientes</span>
+                  </label>
+                </div>
+                {!newDateAllClients && (
+                  <div className="mt-3 max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-50">
+                    {clients.filter(c => c.status === 'active').map(c => (
+                      <label key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newDateClientIds.has(c.id)}
+                          onChange={() => {
+                            const next = new Set(newDateClientIds);
+                            next.has(c.id) ? next.delete(c.id) : next.add(c.id);
+                            setNewDateClientIds(next);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">{c.nickname || c.company || c.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleCreateCommercialDate}
+                disabled={!newDateTitle.trim() || !newDateDate || (!newDateAllClients && newDateClientIds.size === 0)}
+                className="w-full py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] disabled:opacity-50 transition-colors font-medium"
+              >
+                Crear Fecha Comercial
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Animation styles */}
       <style>{`
