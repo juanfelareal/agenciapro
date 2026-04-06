@@ -402,24 +402,30 @@ router.post('/commercial-dates', async (req, res) => {
       return res.status(400).json({ error: 'Título, fecha y al menos un cliente son requeridos' });
     }
 
+    const trimmedTitle = title.trim();
+    let created = 0;
+
     for (const clientId of client_ids) {
-      // Avoid duplicates
-      const existing = await db.get(
-        'SELECT id FROM client_commercial_dates WHERE client_id = ? AND title = ? AND date = ? AND organization_id = ?',
-        [clientId, title.trim(), date, req.orgId]
-      );
-      if (!existing) {
+      try {
         await db.run(
-          'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES (?, ?, ?, ?)',
-          [clientId, title.trim(), date, req.orgId]
+          `INSERT INTO client_commercial_dates (client_id, title, date, organization_id)
+           SELECT ?, ?, ?::date, ?
+           WHERE NOT EXISTS (
+             SELECT 1 FROM client_commercial_dates
+             WHERE client_id = ? AND title = ? AND date = ?::date AND organization_id = ?
+           )`,
+          [clientId, trimmedTitle, date, req.orgId, clientId, trimmedTitle, date, req.orgId]
         );
+        created++;
+      } catch (insertErr) {
+        console.error(`Error inserting commercial date for client ${clientId}:`, insertErr.message);
       }
     }
 
-    res.status(201).json({ message: 'Fecha comercial creada' });
+    res.status(201).json({ message: `Fecha comercial creada para ${created} cliente(s)` });
   } catch (error) {
     console.error('Error creating commercial dates:', error);
-    res.status(500).json({ error: 'Error al crear fecha comercial' });
+    res.status(500).json({ error: 'Error al crear fecha comercial: ' + error.message });
   }
 });
 

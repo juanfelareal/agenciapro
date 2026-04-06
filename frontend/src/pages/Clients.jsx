@@ -143,7 +143,7 @@ const Clients = () => {
       await loadCommercialDates();
     } catch (error) {
       console.error('Error creating commercial date:', error);
-      alert('Error al crear la fecha comercial');
+      alert('Error al crear la fecha comercial: ' + (error.response?.data?.error || error.message));
     }
   };
 
