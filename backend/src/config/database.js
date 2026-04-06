@@ -1009,11 +1009,10 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
-    // Change visible_to_client default to 0 — tasks must be explicitly marked visible
-    await pool.query(`ALTER TABLE tasks ALTER COLUMN visible_to_client SET DEFAULT 0`);
-    // Reset ALL tasks to hidden — team uses the toggle to control portal visibility
-    // This prevents cross-client data leaks from shared projects
-    await pool.query(`UPDATE tasks SET visible_to_client = 0 WHERE visible_to_client = 1`);
+    // Default visible_to_client to 1 — tasks are visible in portal unless explicitly hidden
+    await pool.query(`ALTER TABLE tasks ALTER COLUMN visible_to_client SET DEFAULT 1`);
+    // Make all existing tasks visible in portal
+    await pool.query(`UPDATE tasks SET visible_to_client = 1 WHERE visible_to_client = 0`);
 
     // Add linked_form_id column to tasks (for "fill this form" tasks)
     await pool.query(`
