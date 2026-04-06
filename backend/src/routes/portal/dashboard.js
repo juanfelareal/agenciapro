@@ -120,7 +120,7 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     `, [clientId]), []);
 
     const clientNotes = await safeQuery(() => db.all(`
-      SELECT n.id, n.title, n.content_plain, n.color, n.updated_at,
+      SELECT n.id, n.title, n.content, n.content_plain, n.color, n.updated_at,
         nc.name as category_name, nc.color as category_color
       FROM notes n
       INNER JOIN note_links nl ON n.id = nl.note_id

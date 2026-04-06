@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { usePortal } from '../../context/PortalContext';
 import { portalDashboardAPI } from '../../utils/portalApi';
 import {
@@ -13,6 +13,7 @@ import {
   StickyNote,
   X
 } from 'lucide-react';
+const NoteEditor = lazy(() => import('../../components/NoteEditor'));
 
 export default function PortalDashboard() {
   const { client, welcomeMessage } = usePortal();
@@ -21,6 +22,7 @@ export default function PortalDashboard() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [respondForm, setRespondForm] = useState({ will_participate: null, has_offer: false, offer_description: '', client_notes: '' });
   const [saving, setSaving] = useState(false);
+  const [selectedNote, setSelectedNote] = useState(null);
 
   useEffect(() => {
     loadDashboard();
@@ -155,7 +157,11 @@ export default function PortalDashboard() {
           </div>
           <div className="divide-y divide-gray-50">
             {data.client_notes.map((note) => (
-              <div key={note.id} className="px-6 py-4">
+              <button
+                key={note.id}
+                onClick={() => setSelectedNote(note)}
+                className="w-full text-left px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
                 <div className="flex items-center gap-2 mb-1">
                   {note.color && note.color !== '#FFFFFF' && (
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: note.color }} />
@@ -166,11 +172,12 @@ export default function PortalDashboard() {
                       {note.category_name}
                     </span>
                   )}
+                  <ArrowRight className="w-4 h-4 text-gray-300 ml-auto flex-shrink-0" />
                 </div>
                 {note.content_plain && (
-                  <p className="text-sm text-gray-500 line-clamp-3 whitespace-pre-line">{note.content_plain}</p>
+                  <p className="text-sm text-gray-500 line-clamp-2 whitespace-pre-line">{note.content_plain}</p>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -367,6 +374,44 @@ export default function PortalDashboard() {
               >
                 {saving ? 'Guardando...' : 'Guardar respuesta'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Note Viewer Modal */}
+      {selectedNote && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                {selectedNote.color && selectedNote.color !== '#FFFFFF' && (
+                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: selectedNote.color }} />
+                )}
+                <h3 className="text-lg font-semibold text-[#1A1A2E] truncate">{selectedNote.title}</h3>
+                {selectedNote.category_name && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0" style={{ backgroundColor: selectedNote.category_color + '20', color: selectedNote.category_color }}>
+                    {selectedNote.category_name}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setSelectedNote(null)} className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              {selectedNote.content ? (
+                <Suspense fallback={<Loader2 className="w-6 h-6 text-gray-300 animate-spin mx-auto" />}>
+                  <NoteEditor
+                    content={JSON.parse(selectedNote.content)}
+                    readOnly
+                    placeholder=""
+                    minHeight="100px"
+                  />
+                </Suspense>
+              ) : (
+                <p className="text-sm text-gray-500 whitespace-pre-line">{selectedNote.content_plain}</p>
+              )}
             </div>
           </div>
         </div>
