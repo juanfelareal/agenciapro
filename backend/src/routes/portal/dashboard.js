@@ -119,6 +119,16 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       LIMIT 5
     `, [clientId]), []);
 
+    const clientNotes = await safeQuery(() => db.all(`
+      SELECT n.id, n.title, n.content_plain, n.color, n.updated_at,
+        nc.name as category_name, nc.color as category_color
+      FROM notes n
+      INNER JOIN note_links nl ON n.id = nl.note_id
+      LEFT JOIN note_categories nc ON n.category_id = nc.id
+      WHERE nl.client_id = ? AND nl.visible_in_portal = 1
+      ORDER BY n.is_pinned DESC, n.updated_at DESC
+    `, [clientId]), []);
+
     const commercialDates = await safeQuery(() => db.all(`
       SELECT id, title, date::text as date, will_participate, has_offer, offer_description, client_notes, client_response_at
       FROM client_commercial_dates
@@ -171,6 +181,7 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       pending_approval: pendingApproval,
       unread_notifications: parseInt(unreadNotifications?.count) || 0,
       priorities,
+      client_notes: clientNotes,
       commercial_dates: commercialDates,
       assigned_forms: assignedForms
     });

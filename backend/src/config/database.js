@@ -533,6 +533,16 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Add visible_in_portal column to note_links
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='note_links' AND column_name='visible_in_portal') THEN
+          ALTER TABLE note_links ADD COLUMN visible_in_portal INTEGER DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+
     // Add yjs_state column to notes for real-time collaboration (if not exists)
     await pool.query(`
       DO $$

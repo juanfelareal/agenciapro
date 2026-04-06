@@ -268,12 +268,12 @@ router.post('/', async (req, res) => {
     // Add links if provided
     if (links && Array.isArray(links)) {
       const linkStmt = db.prepare(`
-        INSERT INTO note_links (note_id, client_id, project_id, team_member_id)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO note_links (note_id, client_id, project_id, team_member_id, visible_in_portal)
+        VALUES (?, ?, ?, ?, ?)
       `);
       for (const link of links) {
         if (link.client_id || link.project_id || link.team_member_id) {
-          await linkStmt.run(noteId, link.client_id || null, link.project_id || null, link.team_member_id || null);
+          await linkStmt.run(noteId, link.client_id || null, link.project_id || null, link.team_member_id || null, link.visible_in_portal ? 1 : 0);
         }
       }
     }
@@ -332,12 +332,12 @@ router.put('/:id', async (req, res) => {
       // Add new links
       if (Array.isArray(links)) {
         const linkStmt = db.prepare(`
-          INSERT INTO note_links (note_id, client_id, project_id, team_member_id)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO note_links (note_id, client_id, project_id, team_member_id, visible_in_portal)
+          VALUES (?, ?, ?, ?, ?)
         `);
         for (const link of links) {
           if (link.client_id || link.project_id || link.team_member_id) {
-            await linkStmt.run(req.params.id, link.client_id || null, link.project_id || null, link.team_member_id || null);
+            await linkStmt.run(req.params.id, link.client_id || null, link.project_id || null, link.team_member_id || null, link.visible_in_portal ? 1 : 0);
           }
         }
       }
@@ -465,13 +465,32 @@ router.post('/:id/links', async (req, res) => {
       if (!member) return res.status(400).json({ error: 'Team member not found in this organization' });
     }
 
+    const { visible_in_portal } = req.body;
     const result = await db.prepare(`
-      INSERT INTO note_links (note_id, client_id, project_id, team_member_id)
-      VALUES (?, ?, ?, ?)
-    `).run(req.params.id, client_id || null, project_id || null, team_member_id || null);
+      INSERT INTO note_links (note_id, client_id, project_id, team_member_id, visible_in_portal)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(req.params.id, client_id || null, project_id || null, team_member_id || null, visible_in_portal ? 1 : 0);
 
     const link = await db.prepare('SELECT * FROM note_links WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(link);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle portal visibility for a link
+router.put('/:id/links/:linkId/portal', async (req, res) => {
+  try {
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+
+    const link = await db.prepare('SELECT * FROM note_links WHERE id = ? AND note_id = ?').get(req.params.linkId, req.params.id);
+    if (!link) return res.status(404).json({ error: 'Link not found' });
+
+    const newValue = link.visible_in_portal ? 0 : 1;
+    await db.prepare('UPDATE note_links SET visible_in_portal = ? WHERE id = ?').run(newValue, req.params.linkId);
+
+    res.json({ visible_in_portal: newValue });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

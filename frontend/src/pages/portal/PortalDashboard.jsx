@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Zap,
   CalendarDays,
+  StickyNote,
   X
 } from 'lucide-react';
 
@@ -137,6 +138,40 @@ export default function PortalDashboard() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Client Notes */}
+      {data?.client_notes?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+              <StickyNote className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-[#1A1A2E]">Notas para {client?.nickname || client?.name}</h2>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {data.client_notes.map((note) => (
+              <div key={note.id} className="px-6 py-4">
+                <div className="flex items-center gap-2 mb-1">
+                  {note.color && note.color !== '#FFFFFF' && (
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: note.color }} />
+                  )}
+                  <p className="font-medium text-[#1A1A2E]">{note.title}</p>
+                  {note.category_name && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: note.category_color + '20', color: note.category_color }}>
+                      {note.category_name}
+                    </span>
+                  )}
+                </div>
+                {note.content_plain && (
+                  <p className="text-sm text-gray-500 line-clamp-3 whitespace-pre-line">{note.content_plain}</p>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

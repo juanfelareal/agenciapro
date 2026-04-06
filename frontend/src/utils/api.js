@@ -259,6 +259,7 @@ export const notesAPI = {
   updateColor: (id, color) => api.put(`/notes/${id}/color`, { color }),
   addLink: (id, data) => api.post(`/notes/${id}/links`, data),
   removeLink: (id, linkId) => api.delete(`/notes/${id}/links/${linkId}`),
+  togglePortalVisibility: (id, linkId) => api.put(`/notes/${id}/links/${linkId}/portal`),
 };
 
 // Note Categories API

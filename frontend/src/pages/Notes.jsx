@@ -380,7 +380,8 @@ const Notes = () => {
     const newLink = {
       client_id: type === 'client' ? id : null,
       project_id: type === 'project' ? id : null,
-      team_member_id: type === 'team' ? id : null
+      team_member_id: type === 'team' ? id : null,
+      visible_in_portal: false
     };
     setFormData(prev => ({
       ...prev,
@@ -944,6 +945,20 @@ const Notes = () => {
                       >
                         <entity.icon size={14} />
                         {entity.name}
+                        {link.client_id && (
+                          <button
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                links: prev.links.map((l, i) => i === idx ? { ...l, visible_in_portal: !l.visible_in_portal } : l)
+                              }));
+                            }}
+                            title={link.visible_in_portal ? 'Visible en dashboard del cliente' : 'No visible en dashboard del cliente'}
+                            className={`ml-1 p-0.5 rounded ${link.visible_in_portal ? 'text-green-600 hover:text-green-700' : 'text-slate-400 hover:text-slate-600'}`}
+                          >
+                            {link.visible_in_portal ? <Eye size={14} /> : <EyeOff size={14} />}
+                          </button>
+                        )}
                         <button
                           onClick={() => handleRemoveLink(idx)}
                           className="ml-1 hover:text-red-500"
