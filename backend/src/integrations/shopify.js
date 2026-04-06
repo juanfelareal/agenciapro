@@ -132,6 +132,7 @@ class ShopifyIntegration {
     let allOrdersRevenue = 0;    // total_price of ALL non-cancelled orders (including pending)
     let totalRefunds = 0;
     let totalTax = 0;
+    let totalShippingTax = 0;   // Tax on shipping lines only (needed to separate product tax)
     let totalDiscounts = 0;
     let confirmedOrderCount = 0;
     let pendingOrders = 0;
@@ -167,6 +168,17 @@ class ShopifyIntegration {
         totalTax += parseFloat(order.total_tax) || 0;
         totalDiscounts += parseFloat(order.total_discounts) || 0;
 
+        // Calculate shipping tax (needed to separate product tax from total tax)
+        if (order.shipping_lines) {
+          order.shipping_lines.forEach(sl => {
+            if (sl.tax_lines) {
+              sl.tax_lines.forEach(tl => {
+                totalShippingTax += parseFloat(tl.price) || 0;
+              });
+            }
+          });
+        }
+
         // Calculate refunds
         if (order.refunds && order.refunds.length > 0) {
           order.refunds.forEach(refund => {
@@ -178,7 +190,16 @@ class ShopifyIntegration {
       }
     });
 
-    const confirmedNetRevenue = confirmedSubtotal - totalRefunds;
+    // "Venta neta confirmada" must match Shopify's "Ventas netas" exactly.
+    // When taxes_included = true, subtotal_price has product tax baked in.
+    // total_tax includes BOTH product tax and shipping tax.
+    // We must only subtract product tax (total_tax - shipping_tax) from subtotal.
+    // When taxes_included = false, subtotal_price is already tax-free.
+    const taxIncludedInPrice = orders.some(o => o.taxes_included);
+    const productTax = totalTax - totalShippingTax;
+    const confirmedNetRevenue = taxIncludedInPrice
+      ? confirmedSubtotal - productTax - totalRefunds
+      : confirmedSubtotal - totalRefunds;
     const aov = confirmedOrderCount > 0 ? confirmedRevenue / confirmedOrderCount : 0;
 
     return {
