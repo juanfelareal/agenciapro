@@ -18,7 +18,7 @@ export default function PortalDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [respondForm, setRespondForm] = useState({ will_participate: null, has_offer: false, offer_description: '' });
+  const [respondForm, setRespondForm] = useState({ will_participate: null, has_offer: false, offer_description: '', client_notes: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,7 +41,8 @@ export default function PortalDashboard() {
     setRespondForm({
       will_participate: cd.will_participate ?? null,
       has_offer: cd.has_offer ?? false,
-      offer_description: cd.offer_description || ''
+      offer_description: cd.offer_description || '',
+      client_notes: cd.client_notes || ''
     });
   };
 
@@ -175,9 +176,9 @@ export default function PortalDashboard() {
                       {hasResponse && (
                         <p className="text-xs mt-0.5">
                           {cd.will_participate ? (
-                            <span className="text-green-600">Vamos a participar{cd.has_offer ? ` · Oferta: ${cd.offer_description}` : ''}</span>
+                            <span className="text-green-600">Vamos a participar{cd.has_offer ? ` · Oferta: ${cd.offer_description}` : ''}{cd.client_notes ? ` · ${cd.client_notes}` : ''}</span>
                           ) : (
-                            <span className="text-gray-400">No participaremos</span>
+                            <span className="text-gray-400">No participaremos{cd.client_notes ? ` · ${cd.client_notes}` : ''}</span>
                           )}
                         </p>
                       )}
@@ -312,6 +313,17 @@ export default function PortalDashboard() {
                   )}
                 </div>
               )}
+
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">Observaciones</p>
+                <textarea
+                  value={respondForm.client_notes}
+                  onChange={e => setRespondForm(f => ({ ...f, client_notes: e.target.value }))}
+                  placeholder="Notas adicionales, comentarios o instrucciones..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] resize-none"
+                  rows={3}
+                />
+              </div>
 
               <button
                 onClick={handleSaveResponse}

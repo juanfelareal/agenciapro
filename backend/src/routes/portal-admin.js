@@ -365,7 +365,7 @@ router.get('/commercial-dates', async (req, res) => {
   try {
     const dates = await db.all(`
       SELECT ccd.id, ccd.client_id, ccd.title, ccd.date::text as date,
-             ccd.will_participate, ccd.has_offer, ccd.offer_description,
+             ccd.will_participate, ccd.has_offer, ccd.offer_description, ccd.client_notes, ccd.client_response_at,
              c.nickname, c.company, c.name as client_name
       FROM client_commercial_dates ccd
       JOIN clients c ON ccd.client_id = c.id
@@ -388,7 +388,9 @@ router.get('/commercial-dates', async (req, res) => {
         client_name: d.client_name,
         will_participate: d.will_participate,
         has_offer: d.has_offer,
-        offer_description: d.offer_description
+        offer_description: d.offer_description,
+        client_notes: d.client_notes,
+        client_response_at: d.client_response_at
       });
     }
 

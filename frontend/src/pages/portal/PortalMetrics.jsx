@@ -40,7 +40,7 @@ export default function PortalMetrics() {
   const [dailyData, setDailyData] = useState([]);
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('30d');
+  const [dateRange, setDateRange] = useState('month');
   const [customDates, setCustomDates] = useState({ start: '', end: '' });
   const [ads, setAds] = useState(null);
   const [adsLoading, setAdsLoading] = useState(false);
@@ -145,29 +145,73 @@ export default function PortalMetrics() {
     }
   }, [compareDates.start, compareDates.end]);
 
-  const getApiParams = () => {
-    const params = dateRange === 'custom' && customDates.start && customDates.end
-      ? { start_date: customDates.start, end_date: customDates.end }
-      : { range: dateRange };
+  const resolveDateRange = () => {
+    const fmt = (d) => d.toISOString().split('T')[0];
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // Resolve current start/end for year comparison
-    if (compareMode === 'year') {
-      let s, e;
-      if (params.start_date && params.end_date) {
-        s = params.start_date;
-        e = params.end_date;
-      } else {
-        const days = parseInt(dateRange) || 30;
-        e = new Date().toISOString().split('T')[0];
-        s = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    switch (dateRange) {
+      case 'today':
+        return { start_date: fmt(today), end_date: fmt(today) };
+      case 'yesterday': {
+        const y = new Date(today);
+        y.setDate(y.getDate() - 1);
+        return { start_date: fmt(y), end_date: fmt(y) };
       }
+      case 'week': {
+        const day = today.getDay();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+        return { start_date: fmt(monday), end_date: fmt(today) };
+      }
+      case 'last_week': {
+        const day = today.getDay();
+        const thisMonday = new Date(today);
+        thisMonday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+        const lastSunday = new Date(thisMonday);
+        lastSunday.setDate(thisMonday.getDate() - 1);
+        const lastMonday = new Date(lastSunday);
+        lastMonday.setDate(lastSunday.getDate() - 6);
+        return { start_date: fmt(lastMonday), end_date: fmt(lastSunday) };
+      }
+      case 'month':
+        return { start_date: fmt(new Date(now.getFullYear(), now.getMonth(), 1)), end_date: fmt(today) };
+      case 'last_month':
+        return {
+          start_date: fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+          end_date: fmt(new Date(now.getFullYear(), now.getMonth(), 0))
+        };
+      case 'year':
+        return { start_date: fmt(new Date(now.getFullYear(), 0, 1)), end_date: fmt(today) };
+      case 'last_year':
+        return {
+          start_date: fmt(new Date(now.getFullYear() - 1, 0, 1)),
+          end_date: fmt(new Date(now.getFullYear() - 1, 11, 31))
+        };
+      case 'custom':
+        if (customDates.start && customDates.end) {
+          return { start_date: customDates.start, end_date: customDates.end };
+        }
+        return null;
+      default:
+        return { start_date: fmt(new Date(now.getFullYear(), now.getMonth(), 1)), end_date: fmt(today) };
+    }
+  };
+
+  const getApiParams = () => {
+    const resolved = resolveDateRange();
+    if (!resolved) return {};
+    const params = { ...resolved };
+
+    // Resolve comparison
+    if (compareMode === 'year') {
       const yearBack = (d) => {
         const dt = new Date(d + 'T00:00:00');
         dt.setFullYear(dt.getFullYear() - 1);
         return dt.toISOString().split('T')[0];
       };
-      params.compare_start = yearBack(s);
-      params.compare_end = yearBack(e);
+      params.compare_start = yearBack(params.start_date);
+      params.compare_end = yearBack(params.end_date);
     } else if (compareMode === 'custom' && compareDates.start && compareDates.end) {
       params.compare_start = compareDates.start;
       params.compare_end = compareDates.end;
@@ -550,9 +594,14 @@ export default function PortalMetrics() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
             {[
-              { value: '7d', label: '7 días' },
-              { value: '30d', label: '30 días' },
-              { value: '90d', label: '90 días' },
+              { value: 'yesterday', label: 'Ayer' },
+              { value: 'today', label: 'Hoy' },
+              { value: 'week', label: 'Esta semana' },
+              { value: 'last_week', label: 'Semana pasada' },
+              { value: 'month', label: 'Este mes' },
+              { value: 'last_month', label: 'Mes anterior' },
+              { value: 'year', label: 'Este año' },
+              { value: 'last_year', label: 'Año pasado' },
               { value: 'custom', label: 'Personalizado' }
             ].map((option) => (
               <button

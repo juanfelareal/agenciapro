@@ -1291,6 +1291,7 @@ export const initializeDatabase = async () => {
         has_offer BOOLEAN,
         offer_description TEXT,
         client_response_at TIMESTAMP,
+        client_notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -1310,6 +1311,9 @@ export const initializeDatabase = async () => {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_commercial_dates' AND column_name='client_response_at') THEN
           ALTER TABLE client_commercial_dates ADD COLUMN client_response_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_commercial_dates' AND column_name='client_notes') THEN
+          ALTER TABLE client_commercial_dates ADD COLUMN client_notes TEXT;
         END IF;
       END $$
     `);
