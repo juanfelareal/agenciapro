@@ -149,7 +149,7 @@ export default function PortalDashboard() {
               <CalendarDays className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Fechas comerciales</h2>
+              <h2 className="font-semibold text-[#1A1A2E]">Fechas comerciales para {client?.nickname || client?.name}</h2>
             </div>
           </div>
           <div className="divide-y divide-gray-50">
@@ -209,7 +209,7 @@ export default function PortalDashboard() {
               <ClipboardList className="w-5 h-5 text-violet-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Formularios</h2>
+              <h2 className="font-semibold text-[#1A1A2E]">Formularios para {client?.nickname || client?.name}</h2>
               <p className="text-sm text-gray-500">Formularios asignados para completar</p>
             </div>
           </div>
