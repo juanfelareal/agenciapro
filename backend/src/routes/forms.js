@@ -417,10 +417,11 @@ router.post('/:id/assign', async (req, res) => {
       return res.status(400).json({ error: 'Este formulario ya está asignado a este cliente' });
     }
 
+    const assignmentToken = crypto.randomBytes(16).toString('hex');
     const result = await db.prepare(`
-      INSERT INTO form_assignments (form_id, client_id, due_date, assigned_by, organization_id)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(formId, client_id, due_date || null, req.teamMember.id, req.orgId);
+      INSERT INTO form_assignments (form_id, client_id, due_date, assigned_by, organization_id, share_token)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(formId, client_id, due_date || null, req.teamMember.id, req.orgId, assignmentToken);
 
     const assignment = await db.prepare(`
       SELECT fa.*, c.name as client_name, c.company, c.nickname

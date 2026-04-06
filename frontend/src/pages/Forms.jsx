@@ -592,6 +592,15 @@ export default function Forms() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
+                          {a.share_token && (
+                            <button onClick={() => {
+                              const url = `${window.location.origin}/fa/${a.share_token}`;
+                              navigator.clipboard.writeText(url);
+                            }}
+                              className="p-1.5 hover:bg-blue-50 rounded text-slate-400 hover:text-blue-600" title="Copiar link del cliente">
+                              <Link2 size={16} />
+                            </button>
+                          )}
                           {a.status === 'submitted' && (
                             <button onClick={() => { setShowAssignPanel(false); viewResponse(a.id); }}
                               className="p-1.5 hover:bg-blue-50 rounded text-slate-400 hover:text-blue-600" title="Ver respuesta">

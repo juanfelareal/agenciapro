@@ -1568,6 +1568,25 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_assignments_form_id ON form_assignments(form_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_assignments_client_id ON form_assignments(client_id)`);
 
+    // Add share_token to form_assignments for per-client public links
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='form_assignments' AND column_name='share_token') THEN
+          ALTER TABLE form_assignments ADD COLUMN share_token TEXT UNIQUE;
+        END IF;
+      END $$
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_form_assignments_share_token ON form_assignments(share_token)`);
+
+    // Backfill share_token for existing assignments that don't have one
+    const missingTokens = await pool.query(`SELECT id FROM form_assignments WHERE share_token IS NULL`);
+    for (const row of missingTokens.rows) {
+      const { randomBytes } = await import('crypto');
+      const tkn = randomBytes(16).toString('hex');
+      await pool.query(`UPDATE form_assignments SET share_token = $1 WHERE id = $2`, [tkn, row.id]);
+    }
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS form_responses (
         id SERIAL PRIMARY KEY,

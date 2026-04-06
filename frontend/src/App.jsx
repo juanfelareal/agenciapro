@@ -24,6 +24,7 @@ import Notes from './pages/Notes';
 import SharedNoteView from './pages/SharedNoteView';
 import SharedDashboard from './pages/SharedDashboard';
 import PublicFormFill from './pages/PublicFormFill';
+import AssignmentFormFill from './pages/AssignmentFormFill';
 import CRM from './pages/CRM';
 import CRMDealDetail from './pages/CRMDealDetail';
 import MetricsDashboard from './pages/MetricsDashboard';
@@ -86,6 +87,7 @@ function App() {
 
         {/* Public form fill - no auth required */}
         <Route path="/f/:token" element={<PublicFormFill />} />
+        <Route path="/fa/:token" element={<AssignmentFormFill />} />
 
         {/* Portal Login - no layout but needs PortalProvider */}
         <Route path="/portal/login" element={<PortalProvider><PortalLogin /></PortalProvider>} />
