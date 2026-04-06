@@ -429,7 +429,7 @@ function NoteViewer({ note, onClose }) {
   });
 
   return (
-    <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-slate-50 z-[100] flex flex-col overflow-hidden">
       <style>{noteViewerStyles}</style>
 
       {/* Header */}
