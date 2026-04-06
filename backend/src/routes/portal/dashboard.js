@@ -108,6 +108,17 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       WHERE client_id = ? AND is_read = 0
     `, [clientId]), { count: 0 });
 
+    const priorities = await safeQuery(() => db.all(`
+      SELECT id, title FROM client_priorities
+      WHERE client_id = ? ORDER BY position, id
+    `, [clientId]), []);
+
+    const commercialDates = await safeQuery(() => db.all(`
+      SELECT id, title, date FROM client_commercial_dates
+      WHERE client_id = ? AND date >= CURRENT_DATE
+      ORDER BY date ASC
+    `, [clientId]), []);
+
     const assignedForms = await safeQuery(() => db.all(`
       SELECT fa.id, fa.status, fa.share_token, fa.created_at,
         f.title as form_title, f.description as form_description
@@ -152,6 +163,8 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       recent_tasks: recentTasks,
       pending_approval: pendingApproval,
       unread_notifications: parseInt(unreadNotifications?.count) || 0,
+      priorities,
+      commercial_dates: commercialDates,
       assigned_forms: assignedForms
     });
   } catch (error) {

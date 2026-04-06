@@ -1117,6 +1117,8 @@ export const initializeDatabase = async () => {
       // Note: 'chat_conversations' and 'chat_messages' already have organization_id in their CREATE TABLE
       // Siigo (accounting integration)
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
+      // Client portal dashboard
+      'client_priorities', 'client_commercial_dates',
       // Note: 'forms' and 'form_assignments' already have organization_id in their CREATE TABLE
     ];
 
@@ -1258,6 +1260,32 @@ export const initializeDatabase = async () => {
 
     // Portal settings index
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_portal_settings_client ON client_portal_settings(client_id)`);
+
+    // Client priorities (admin sets these for the portal dashboard)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_priorities (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        position INTEGER DEFAULT 0,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_priorities_client ON client_priorities(client_id)`);
+
+    // Client commercial dates (key dates per client for their campaigns)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_commercial_dates (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        date DATE NOT NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_commercial_dates_client ON client_commercial_dates(client_id)`);
 
     // Ad tag indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);

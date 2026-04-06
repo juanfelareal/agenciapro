@@ -310,5 +310,101 @@ router.get('/clients/:id/activity', async (req, res) => {
   }
 });
 
+// =========================================================================
+// Client Priorities (admin manages what shows on client portal dashboard)
+// =========================================================================
+
+// GET /priorities/:clientId
+router.get('/priorities/:clientId', async (req, res) => {
+  try {
+    const priorities = await db.all(
+      'SELECT * FROM client_priorities WHERE client_id = ? AND organization_id = ? ORDER BY position, id',
+      [req.params.clientId, req.orgId]
+    );
+    res.json(priorities);
+  } catch (error) {
+    console.error('Error getting priorities:', error);
+    res.status(500).json({ error: 'Error al obtener prioridades' });
+  }
+});
+
+// PUT /priorities/:clientId — Replace all priorities (bulk save)
+router.put('/priorities/:clientId', async (req, res) => {
+  try {
+    const { items } = req.body; // [{ title, position }]
+    const clientId = req.params.clientId;
+
+    await db.run('DELETE FROM client_priorities WHERE client_id = ? AND organization_id = ?', [clientId, req.orgId]);
+
+    for (const item of (items || [])) {
+      if (item.title?.trim()) {
+        await db.run(
+          'INSERT INTO client_priorities (client_id, title, position, organization_id) VALUES (?, ?, ?, ?)',
+          [clientId, item.title.trim(), item.position || 0, req.orgId]
+        );
+      }
+    }
+
+    const priorities = await db.all(
+      'SELECT * FROM client_priorities WHERE client_id = ? AND organization_id = ? ORDER BY position, id',
+      [clientId, req.orgId]
+    );
+    res.json(priorities);
+  } catch (error) {
+    console.error('Error saving priorities:', error);
+    res.status(500).json({ error: 'Error al guardar prioridades' });
+  }
+});
+
+// =========================================================================
+// Client Commercial Dates
+// =========================================================================
+
+// GET /commercial-dates/:clientId
+router.get('/commercial-dates/:clientId', async (req, res) => {
+  try {
+    const dates = await db.all(
+      'SELECT * FROM client_commercial_dates WHERE client_id = ? AND organization_id = ? ORDER BY date',
+      [req.params.clientId, req.orgId]
+    );
+    res.json(dates);
+  } catch (error) {
+    console.error('Error getting commercial dates:', error);
+    res.status(500).json({ error: 'Error al obtener fechas comerciales' });
+  }
+});
+
+// POST /commercial-dates/:clientId
+router.post('/commercial-dates/:clientId', async (req, res) => {
+  try {
+    const { title, date } = req.body;
+    if (!title?.trim() || !date) return res.status(400).json({ error: 'Título y fecha son requeridos' });
+
+    const result = await db.run(
+      'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES (?, ?, ?, ?)',
+      [req.params.clientId, title.trim(), date, req.orgId]
+    );
+    const newDate = await db.get('SELECT * FROM client_commercial_dates WHERE id = ?', [result.lastInsertRowid]);
+    res.status(201).json(newDate);
+  } catch (error) {
+    console.error('Error creating commercial date:', error);
+    res.status(500).json({ error: 'Error al crear fecha comercial' });
+  }
+});
+
+// DELETE /commercial-dates/:clientId/:id
+router.delete('/commercial-dates/:clientId/:id', async (req, res) => {
+  try {
+    await db.run(
+      'DELETE FROM client_commercial_dates WHERE id = ? AND client_id = ? AND organization_id = ?',
+      [req.params.id, req.params.clientId, req.orgId]
+    );
+    res.json({ message: 'Eliminado' });
+  } catch (error) {
+    console.error('Error deleting commercial date:', error);
+    res.status(500).json({ error: 'Error al eliminar fecha' });
+  }
+});
+
 export { generateSessionToken };
 export default router;
