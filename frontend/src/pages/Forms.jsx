@@ -560,19 +560,21 @@ export default function Forms() {
                 <h3 className="text-lg font-semibold text-slate-800">Asignaciones y respuestas</h3>
                 <button onClick={() => setShowAssignPanel(false)} className="p-2 hover:bg-slate-100 rounded-lg"><X size={20} className="text-slate-500" /></button>
               </div>
-              <div className="p-4 space-y-4 overflow-y-auto flex-1">
-                <div className="flex gap-2">
+              <div className="p-5 space-y-5 overflow-y-auto flex-1">
+                <div className="space-y-3">
                   <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)}
-                    className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]">
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]">
                     <option value="">Seleccionar cliente</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ''}</option>)}
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}{c.company && c.nickname ? ` — ${c.company}` : ''}</option>)}
                   </select>
-                  <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none" />
-                  <button onClick={assignForm} disabled={!selectedClient}
-                    className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg text-sm hover:bg-[#2a2a3e] disabled:opacity-50">
-                    Asignar
-                  </button>
+                  <div className="flex gap-2">
+                    <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none" placeholder="Fecha límite (opcional)" />
+                    <button onClick={assignForm} disabled={!selectedClient}
+                      className="px-5 py-2.5 bg-[#1A1A2E] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3e] disabled:opacity-50 whitespace-nowrap">
+                      Asignar
+                    </button>
+                  </div>
                 </div>
 
                 {assignments.length > 0 && (
@@ -581,7 +583,7 @@ export default function Forms() {
                     {assignments.map(a => (
                       <div key={a.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                         <div>
-                          <p className="text-sm font-medium text-slate-700">{a.client_name}</p>
+                          <p className="text-sm font-medium text-slate-700">{a.nickname || a.company || a.client_name}{a.company && a.nickname ? ` — ${a.company}` : ''}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className={`text-xs px-2 py-0.5 rounded-full ${ASSIGNMENT_STATUS[a.status]?.color || 'bg-slate-100'}`}>
                               {ASSIGNMENT_STATUS[a.status]?.label || a.status}

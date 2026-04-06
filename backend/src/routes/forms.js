@@ -75,7 +75,7 @@ router.get('/assignments/:assignmentId/response', async (req, res) => {
   try {
     const assignment = await db.prepare(`
       SELECT fa.*, f.title as form_title, f.description as form_description,
-        c.name as client_name, c.company
+        c.name as client_name, c.company, c.nickname
       FROM form_assignments fa
       JOIN forms f ON fa.form_id = f.id
       JOIN clients c ON fa.client_id = c.id
@@ -423,7 +423,7 @@ router.post('/:id/assign', async (req, res) => {
     `).run(formId, client_id, due_date || null, req.teamMember.id, req.orgId);
 
     const assignment = await db.prepare(`
-      SELECT fa.*, c.name as client_name, c.company
+      SELECT fa.*, c.name as client_name, c.company, c.nickname
       FROM form_assignments fa
       JOIN clients c ON fa.client_id = c.id
       WHERE fa.id = ?
@@ -440,7 +440,7 @@ router.post('/:id/assign', async (req, res) => {
 router.get('/:id/assignments', async (req, res) => {
   try {
     const assignments = await db.prepare(`
-      SELECT fa.*, c.name as client_name, c.company,
+      SELECT fa.*, c.name as client_name, c.company, c.nickname,
         fr.submitted_at,
         (SELECT COUNT(*) FROM form_responses fr2 WHERE fr2.assignment_id = fa.id) as has_response
       FROM form_assignments fa
