@@ -365,9 +365,14 @@ const Tasks = () => {
       priority: task.priority,
       due_date: task.due_date || '',
       is_recurring: task.is_recurring ? true : false,
-      recurrence_pattern: task.recurrence_pattern
-        ? JSON.parse(task.recurrence_pattern)
-        : { type: 'weekly', days: [] },
+      recurrence_pattern: (() => {
+        try {
+          const rp = task.recurrence_pattern
+            ? (typeof task.recurrence_pattern === 'string' ? JSON.parse(task.recurrence_pattern) : task.recurrence_pattern)
+            : null;
+          return rp && rp.days ? rp : { type: rp?.type || 'weekly', days: rp?.days || [] };
+        } catch { return { type: 'weekly', days: [] }; }
+      })(),
       timeline_start: task.timeline_start || null,
       timeline_end: task.timeline_end || null,
       progress: task.progress || 0,
@@ -840,18 +845,18 @@ const Tasks = () => {
                           <label
                             key={day.value}
                             className={`px-3 py-2 rounded-lg cursor-pointer transition ${
-                              formData.recurrence_pattern.days.includes(day.value)
+                              (formData.recurrence_pattern?.days || []).includes(day.value)
                                 ? 'bg-[#1A1A2E] text-[#BFFF00]'
                                 : 'bg-white border border-gray-100 hover:bg-gray-50'
                             }`}
                           >
                             <input
                               type="checkbox"
-                              checked={formData.recurrence_pattern.days.includes(day.value)}
+                              checked={(formData.recurrence_pattern?.days || []).includes(day.value)}
                               onChange={(e) => {
                                 const days = e.target.checked
-                                  ? [...formData.recurrence_pattern.days, day.value]
-                                  : formData.recurrence_pattern.days.filter((d) => d !== day.value);
+                                  ? [...(formData.recurrence_pattern?.days || []), day.value]
+                                  : (formData.recurrence_pattern?.days || []).filter((d) => d !== day.value);
                                 setFormData({
                                   ...formData,
                                   recurrence_pattern: { ...formData.recurrence_pattern, days },
