@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Trash2, ListChecks, Plus, Check, X, User } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, ListChecks, Plus, Check, X, User, CheckSquare, Square, MinusSquare } from 'lucide-react';
 
 const statusLabels = {
   todo: 'Por Hacer',
@@ -46,6 +46,8 @@ export default function ListView({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [assigneeDropdownTaskId, setAssigneeDropdownTaskId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const newTaskInputRef = useRef(null);
   const editInputRef = useRef(null);
   const assigneeDropdownRef = useRef(null);
@@ -339,12 +341,195 @@ export default function ListView({
     }
   };
 
+  // Bulk selection
+  const isAllSelected = sortedTasks.length > 0 && sortedTasks.every(t => selectedIds.has(t.id));
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedTasks.map(t => t.id)));
+    }
+  };
+
+  const toggleSelectOne = (e, id) => {
+    e.stopPropagation();
+    const next = new Set(selectedIds);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedIds.size === 0) return;
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id => {
+        const task = tasks.find(t => t.id === id);
+        if (task && onUpdateTask) return onUpdateTask(id, { status: newStatus });
+        return Promise.resolve();
+      });
+      await Promise.all(promises);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Error bulk updating:', error);
+      alert('Error al actualizar algunas tareas');
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkPriorityChange = async (newPriority) => {
+    if (selectedIds.size === 0) return;
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id => {
+        if (onUpdateTask) return onUpdateTask(id, { priority: newPriority });
+        return Promise.resolve();
+      });
+      await Promise.all(promises);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Error bulk updating:', error);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`¿Eliminar ${selectedIds.size} tarea(s)? Esta acción no se puede deshacer.`)) return;
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id => onDeleteTask(id));
+      await Promise.all(promises);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleBulkAssign = async (memberId) => {
+    if (selectedIds.size === 0 || !onUpdateTask) return;
+    setBulkUpdating(true);
+    try {
+      const promises = Array.from(selectedIds).map(id =>
+        onUpdateTask(id, { assignee_ids: memberId ? [memberId] : [] })
+      );
+      await Promise.all(promises);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Error bulk assigning:', error);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-[#163B3B]/5 border-b border-[#163B3B]/10 px-4 py-2.5 flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <CheckSquare size={16} className="text-[#163B3B]" />
+            <span className="text-sm font-medium text-[#163B3B]">
+              {selectedIds.size} tarea{selectedIds.size !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="h-5 w-px bg-[#163B3B]/20" />
+
+          {/* Status change */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">Estado:</span>
+            {Object.entries(statusLabels).map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => handleBulkStatusChange(val)}
+                disabled={bulkUpdating}
+                className={`px-2 py-1 text-xs rounded-lg font-medium disabled:opacity-50 transition-colors ${statusColors[val]} hover:opacity-80`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="h-5 w-px bg-[#163B3B]/20" />
+
+          {/* Priority change */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500">Prioridad:</span>
+            {Object.entries(priorityLabels).map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => handleBulkPriorityChange(val)}
+                disabled={bulkUpdating}
+                className={`px-2 py-1 text-xs rounded-lg font-medium disabled:opacity-50 transition-colors ${priorityColors[val]} hover:opacity-80`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="h-5 w-px bg-[#163B3B]/20" />
+
+          {/* Assign */}
+          <div className="relative group/assign">
+            <button className="px-2 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center gap-1">
+              <User size={12} />
+              Asignar
+            </button>
+            <div className="absolute z-30 top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg py-1 w-48 max-h-48 overflow-y-auto hidden group-hover/assign:block">
+              <button
+                onClick={() => handleBulkAssign(null)}
+                className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
+              >
+                Sin asignar
+              </button>
+              {teamMembers.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => handleBulkAssign(m.id)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <div className="w-5 h-5 rounded-lg bg-[#163B3B] text-[#E8C4B8] flex items-center justify-center text-xs font-medium">
+                    {m.name.charAt(0).toUpperCase()}
+                  </div>
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="h-5 w-px bg-[#163B3B]/20" />
+
+          {/* Delete */}
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkUpdating}
+            className="px-2 py-1 text-xs rounded-lg font-medium bg-red-100 text-red-600 hover:bg-red-200 disabled:opacity-50 transition-colors flex items-center gap-1"
+          >
+            <Trash2 size={12} />
+            Eliminar
+          </button>
+
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="ml-auto text-xs text-gray-500 hover:text-[#163B3B]"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
+              <th className="px-3 py-3 text-center w-10">
+                <button onClick={toggleSelectAll} className="text-gray-400 hover:text-[#163B3B]">
+                  {isAllSelected ? <CheckSquare size={16} className="text-[#163B3B]" /> :
+                   isSomeSelected ? <MinusSquare size={16} className="text-[#163B3B]" /> :
+                   <Square size={16} />}
+                </button>
+              </th>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('title')}
@@ -399,8 +584,14 @@ export default function ListView({
             {sortedTasks.map((task) => (
               <tr
                 key={task.id}
-                className="hover:bg-gray-50 transition-colors group"
+                className={`hover:bg-gray-50 transition-colors group ${selectedIds.has(task.id) ? 'bg-[#163B3B]/5' : ''}`}
               >
+                {/* Checkbox */}
+                <td className="px-3 py-3 text-center">
+                  <button onClick={(e) => toggleSelectOne(e, task.id)} className="text-gray-400 hover:text-[#163B3B]">
+                    {selectedIds.has(task.id) ? <CheckSquare size={16} className="text-[#163B3B]" /> : <Square size={16} />}
+                  </button>
+                </td>
                 {/* Title - editable */}
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-1">
@@ -575,7 +766,7 @@ export default function ListView({
 
             {/* Quick add row */}
             <tr className="bg-gray-50/50">
-              <td colSpan={6} className="px-4 py-2">
+              <td colSpan={7} className="px-4 py-2">
                 {isAddingTask ? (
                   <div className="flex items-center gap-2">
                     <Plus size={16} className="text-gray-400" />
