@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, Users, FolderKanban, CheckSquare, DollarSign, AlertCircle, Wallet, PieChart, TrendingUp, Clock, BarChart3 } from 'lucide-react';
+import { X, Plus, Users, FolderKanban, CheckSquare, DollarSign, AlertCircle, Wallet, PieChart, TrendingUp, Clock, BarChart3, FileCode2 } from 'lucide-react';
 import { useDashboard, WIDGET_CATALOG } from '../../context/DashboardContext';
 
 const ICONS = {
@@ -21,6 +21,7 @@ const CATEGORY_ICONS = {
   'Proyectos': FolderKanban,
   'Tareas': CheckSquare,
   'Equipo': Users,
+  'Contenido': FileCode2,
 };
 
 const WidgetPicker = ({ isOpen, onClose }) => {

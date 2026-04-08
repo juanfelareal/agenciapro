@@ -72,6 +72,11 @@ export const WIDGET_CATALOG = {
     category: 'Equipo',
     sizes: ['medium'],
   },
+  briefs: {
+    name: 'Briefs',
+    category: 'Contenido',
+    sizes: ['medium', 'large'],
+  },
 };
 
 export const useDashboard = () => {

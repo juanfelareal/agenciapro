@@ -20,6 +20,7 @@ import ProjectsWidget from './widgets/ProjectsWidget';
 import TasksUpcomingWidget from './widgets/TasksUpcomingWidget';
 import TasksPriorityWidget from './widgets/TasksPriorityWidget';
 import IncomeTrendWidget from './widgets/IncomeTrendWidget';
+import BriefsWidget from './widgets/BriefsWidget';
 
 // Map widget types to components
 const WIDGET_COMPONENTS = {
@@ -29,6 +30,7 @@ const WIDGET_COMPONENTS = {
   'tasks-upcoming': TasksUpcomingWidget,
   'tasks-priority': TasksPriorityWidget,
   'income-trend': IncomeTrendWidget,
+  briefs: BriefsWidget,
 };
 
 const WidgetGrid = ({ stats, period }) => {
