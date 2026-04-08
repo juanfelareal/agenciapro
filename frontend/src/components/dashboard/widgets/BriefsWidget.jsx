@@ -123,12 +123,31 @@ const BriefsWidget = ({ widget }) => {
             <div className="flex-1 overflow-hidden">
               <iframe
                 srcDoc={
-                  previewBrief.html_content ||
-                  '<p style="padding:2rem;color:#999">Sin contenido HTML</p>'
+                  previewBrief.html_content
+                    ? previewBrief.html_content.replace(
+                        /<\/body>/i,
+                        `<script>
+                          document.addEventListener('click', function(e) {
+                            var a = e.target.closest('a');
+                            if (!a) return;
+                            var href = a.getAttribute('href');
+                            if (!href) return;
+                            if (href.startsWith('#')) {
+                              e.preventDefault();
+                              var el = document.querySelector(href);
+                              if (el) el.scrollIntoView({ behavior: 'smooth' });
+                            } else if (href.startsWith('http')) {
+                              e.preventDefault();
+                              window.open(href, '_blank');
+                            }
+                          });
+                        <\/script></body>`
+                      )
+                    : '<p style="padding:2rem;color:#999">Sin contenido HTML</p>'
                 }
                 className="w-full h-full border-0"
                 title={previewBrief.title}
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts allow-same-origin allow-popups"
               />
             </div>
           </div>
