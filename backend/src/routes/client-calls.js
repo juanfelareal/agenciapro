@@ -44,7 +44,7 @@ router.post('/:clientId', async (req, res) => {
     const result = await db.run(`
       INSERT INTO client_calls (client_id, title, call_date, duration_minutes, summary, transcription, created_by, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [req.params.clientId, title, call_date || new Date().toISOString(), duration_minutes || null, summary || null, transcription || null, req.teamMember?.id || null, req.orgId]);
+    `, [req.params.clientId, title, call_date || new Date().toISOString(), (duration_minutes === '' ? null : duration_minutes) || null, summary || null, transcription || null, req.teamMember?.id || null, req.orgId]);
 
     const call = await db.get('SELECT * FROM client_calls WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(call);
@@ -64,6 +64,9 @@ router.put('/:clientId/:callId', async (req, res) => {
     );
     if (!existing) return res.status(404).json({ error: 'Call not found' });
 
+    // Sanitize duration_minutes: empty string → null so PostgreSQL doesn't choke on ""
+    const safeDuration = (duration_minutes === '' || duration_minutes === undefined) ? null : duration_minutes;
+
     await db.run(`
       UPDATE client_calls SET
         title = COALESCE(?, title),
@@ -73,7 +76,7 @@ router.put('/:clientId/:callId', async (req, res) => {
         transcription = COALESCE(?, transcription),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `, [title, call_date, duration_minutes, summary, transcription, req.params.callId, req.orgId]);
+    `, [title, call_date || null, safeDuration, summary, transcription, req.params.callId, req.orgId]);
 
     const call = await db.get('SELECT * FROM client_calls WHERE id = ?', [req.params.callId]);
     res.json(call);
