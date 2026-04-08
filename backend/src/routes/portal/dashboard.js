@@ -150,7 +150,7 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     const clientBriefs = await safeQuery(() => db.all(`
       SELECT id, title, html_content, updated_at
       FROM briefs
-      WHERE client_id = ? AND visible_to_client = 1
+      WHERE client_id = ? AND visible_to_client != 0
       ORDER BY updated_at DESC
     `, [clientId]), []);
 
