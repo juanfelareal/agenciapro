@@ -27,13 +27,13 @@ const CLIENT_DATA = [
 
   // Fee bien negociado — Rentable, buen crecimiento (no comisión)
   { match: ['Leonisa'], tipo: 'Fee bien negociado', estado: 'Rentable, buen crecimiento', valor: 2725000, comision: 0 },
-  { match: ['Solo con Once', 'Once'], tipo: 'Fee bien negociado', estado: 'Rentable, buen crecimiento', valor: 2970000, comision: 0 },
+  { match: ['Solo con Once', 'Solo Con Once', 'Once'], tipo: 'Fee bien negociado', estado: 'Rentable, buen crecimiento', valor: 2970000, comision: 0 },
   { match: ['Parchita', 'PARCHITA PACIFLORA'], tipo: 'Fee bien negociado', estado: 'Rentable, buen crecimiento', valor: 5450000, comision: 0 },
   { match: ['Cíclico', 'Ciclico', 'CICLICOL'], tipo: 'Fee bien negociado', estado: 'Rentable, buen crecimiento', valor: 2970250, comision: 0 },
 
   // Fee mensual — Rentable, busca crecimiento (no comisión)
   { match: ['IFW'], tipo: 'Fee mensual', estado: 'Rentable, busca crecimiento', valor: 2943000, comision: 0 },
-  { match: ['Caperuza', 'CAPERUZA Y EL LOBO'], tipo: 'Fee mensual', estado: 'No tan rentable, buen crecimiento', valor: 2750000, comision: 0 },
+  { match: ['Caperuza', 'CAPERUZA Y EL LOBO', 'Barba Roja'], tipo: 'Fee mensual', estado: 'No tan rentable, buen crecimiento', valor: 2750000, comision: 0 },
   { match: ['Pachha', 'Pachha cuidado'], tipo: 'Fee mensual', estado: 'Rentable, busca crecimiento', valor: 2930000, comision: 0 },
   { match: ['Ukelele', 'Ukelele tejidos'], tipo: 'Fee mensual', estado: 'Rentable, busca crecimiento', valor: 2872150, comision: 0 },
 
@@ -42,25 +42,15 @@ const CLIENT_DATA = [
 ];
 
 export async function seedPortfolioData() {
-  // Only run if there are clients without tipo_negociacion set
-  const unclassified = await db.get(
-    "SELECT COUNT(*) as cnt FROM clients WHERE tipo_negociacion IS NULL AND status = 'active'"
-  );
+  console.log('📊 Seeding portfolio data for clients...');
 
-  if (!unclassified || unclassified.cnt === 0) {
-    console.log('✅ Portfolio data already seeded — skipping');
-    return;
-  }
-
-  console.log(`📊 Seeding portfolio data for ${unclassified.cnt} unclassified clients...`);
-
-  const allClients = await db.all("SELECT id, name, company FROM clients WHERE status = 'active'");
+  const allClients = await db.all("SELECT id, name, company, nickname FROM clients WHERE status = 'active'");
   let updated = 0;
 
   for (const data of CLIENT_DATA) {
     // Find matching client by checking nickname, company, or name against match patterns
     const client = allClients.find(c => {
-      const fields = [c.name, c.company].filter(Boolean).map(f => f.toLowerCase());
+      const fields = [c.nickname, c.name, c.company].filter(Boolean).map(f => f.toLowerCase());
       return data.match.some(pattern =>
         fields.some(f => f.includes(pattern.toLowerCase()))
       );
