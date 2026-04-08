@@ -12,9 +12,11 @@ const DEFAULT_TIPOS = [
 
 const DEFAULT_ESTADOS = [
   'Comenzando',
-  'Rentable buen crecimiento',
-  'Poco rentable',
+  'Rentable, buen crecimiento',
+  'Poco rentable, poco crecimiento',
   'En la cuerda floja',
+  'Rentable, busca crecimiento',
+  'No tan rentable, buen crecimiento',
   'Rentable sin crecimiento',
   'Rentable bajo crecimiento',
 ];
@@ -29,9 +31,11 @@ const TIPO_COLORS = {
 
 const ESTADO_CONFIG = {
   'Comenzando': { color: '#3B82F6', bg: '#EFF6FF', icon: '🚀' },
-  'Rentable buen crecimiento': { color: '#10B981', bg: '#ECFDF5', icon: '📈' },
-  'Poco rentable': { color: '#F59E0B', bg: '#FFFBEB', icon: '⚠️' },
+  'Rentable, buen crecimiento': { color: '#10B981', bg: '#ECFDF5', icon: '📈' },
+  'Poco rentable, poco crecimiento': { color: '#EF4444', bg: '#FEF2F2', icon: '🔻' },
   'En la cuerda floja': { color: '#EF4444', bg: '#FEF2F2', icon: '🔥' },
+  'Rentable, busca crecimiento': { color: '#F59E0B', bg: '#FFFBEB', icon: '🔍' },
+  'No tan rentable, buen crecimiento': { color: '#F59E0B', bg: '#FFFBEB', icon: '⚠️' },
   'Rentable sin crecimiento': { color: '#8B5CF6', bg: '#F5F3FF', icon: '📊' },
   'Rentable bajo crecimiento': { color: '#6366F1', bg: '#EEF2FF', icon: '📉' },
 };
@@ -350,7 +354,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
   // Risk zone: clients with bad estado
   const riskClients = useMemo(() =>
     activeClients.filter(c =>
-      ['En la cuerda floja', 'Poco rentable'].includes(c.estado_actual)
+      ['En la cuerda floja', 'Poco rentable', 'Poco rentable, poco crecimiento', 'No tan rentable, buen crecimiento'].includes(c.estado_actual)
     ),
     [activeClients]
   );

@@ -8,6 +8,7 @@ import cors from 'cors';
 import cron from 'node-cron';
 import { initializeDatabase } from './src/config/database.js';
 import { migrate as runMultiTenancyMigration } from './src/migrations/001-multi-tenancy.js';
+import { seedPortfolioData } from './src/migrations/002-seed-portfolio-data.js';
 import { processRecurringInvoices } from './src/utils/recurringInvoices.js';
 
 // Import auth middleware
@@ -144,7 +145,10 @@ httpServer.listen(PORT, '0.0.0.0', () => {
       // Run multi-tenancy migration (idempotent — safe to run multiple times)
       try {
         await runMultiTenancyMigration();
-        console.log('✅ Multi-tenancy migration complete - Application fully operational');
+        console.log('✅ Multi-tenancy migration complete');
+        // Seed portfolio data (idempotent — only runs if clients are unclassified)
+        await seedPortfolioData();
+        console.log('✅ Application fully operational');
       } catch (migrationError) {
         console.error('⚠️  Multi-tenancy migration skipped or failed:', migrationError.message);
         console.log('✅ Application operational (migration may have already run)');
