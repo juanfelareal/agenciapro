@@ -1128,6 +1128,7 @@ export const initializeDatabase = async () => {
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
       // Client portal dashboard
       'client_priorities',
+      'growth_objectives', 'growth_palancas', 'growth_milestones', 'growth_banderas',
       // Note: 'client_commercial_dates' already has organization_id in its CREATE TABLE
       // Note: 'forms' and 'form_assignments' already have organization_id in their CREATE TABLE
     ];
@@ -1337,6 +1338,89 @@ export const initializeDatabase = async () => {
     } catch (e) {
       console.warn('Could not add unique index on client_commercial_dates:', e.message);
     }
+
+    // ========================================
+    // GROWTH DASHBOARD TABLES
+    // ========================================
+
+    // Add service_type and is_hidden_from_metrics to clients
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='service_type') THEN
+          ALTER TABLE clients ADD COLUMN service_type TEXT CHECK(service_type IN ('growth', 'fee')) DEFAULT NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='is_hidden_from_metrics') THEN
+          ALTER TABLE clients ADD COLUMN is_hidden_from_metrics INTEGER DEFAULT 0;
+        END IF;
+      END $$
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS growth_objectives (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        period TEXT NOT NULL,
+        metric TEXT NOT NULL,
+        conservador REAL DEFAULT 0,
+        base REAL DEFAULT 0,
+        optimista REAL DEFAULT 0,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS growth_palancas (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        period TEXT NOT NULL,
+        rank INTEGER DEFAULT 1,
+        nombre TEXT NOT NULL,
+        estado TEXT,
+        kpi_label TEXT,
+        kpi_valor TEXT,
+        impacto TEXT CHECK(impacto IN ('alto', 'medio', 'bajo')) DEFAULT 'medio',
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS growth_milestones (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        period TEXT NOT NULL,
+        nombre TEXT NOT NULL,
+        meta TEXT,
+        status TEXT CHECK(status IN ('done', 'progress', 'pending', 'blocked')) DEFAULT 'pending',
+        responsable TEXT CHECK(responsable IN ('lareal', 'cliente')) DEFAULT 'lareal',
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS growth_banderas (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        period TEXT NOT NULL,
+        nivel TEXT CHECK(nivel IN ('critica', 'alta', 'media')) DEFAULT 'media',
+        titulo TEXT NOT NULL,
+        descripcion TEXT,
+        is_active INTEGER DEFAULT 1,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_growth_objectives_client ON growth_objectives(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_growth_palancas_client ON growth_palancas(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_growth_milestones_client ON growth_milestones(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_growth_banderas_client ON growth_banderas(client_id)`);
 
     // Ad tag indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);

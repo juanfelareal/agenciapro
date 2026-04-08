@@ -79,6 +79,8 @@ import adTagRoutes from './src/routes/ad-tags.js';
 // Chat
 import chatRoutes from './src/routes/chat.js';
 import { setupChat } from './src/services/chatService.js';
+// Growth Dashboard
+import growthRoutes from './src/routes/growth.js';
 // AI Agents
 import agentRoutes from './src/routes/agents.js';
 import { setupAgentSocket } from './src/agents/socket.js';
@@ -187,6 +189,7 @@ app.use('/api/note-folders', teamAuthMiddleware, noteFolderRoutes);
 // Platform integrations (Facebook Ads & Shopify metrics)
 app.use('/api/platform-credentials', teamAuthMiddleware, platformCredentialsRoutes);
 app.use('/api/client-metrics', teamAuthMiddleware, clientMetricsRoutes);
+app.use('/api/growth', teamAuthMiddleware, growthRoutes);
 // Facebook OAuth: callback must be public (redirect from Facebook has no auth token)
 // The callback route uses state parameter for verification instead
 app.use('/api/oauth/facebook', (req, res, next) => {

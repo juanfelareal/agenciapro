@@ -198,6 +198,8 @@ router.get('/aggregate/all', async (req, res) => {
         c.name as client_name,
         c.company,
         c.nickname,
+        c.service_type,
+        COALESCE(c.is_hidden_from_metrics, 0) as is_hidden_from_metrics,
         COALESCE(ps.portal_revenue_metric, 'total') as portal_revenue_metric,
         SUM(m.shopify_revenue) as total_revenue,
         SUM(m.shopify_net_revenue) as net_revenue,

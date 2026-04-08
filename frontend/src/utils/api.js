@@ -315,6 +315,29 @@ export const clientMetricsAPI = {
     api.get(`/client-metrics/${clientId}/top-products`, { params: { start_date: startDate, end_date: endDate } }),
 };
 
+// Growth Dashboard API
+export const growthAPI = {
+  getClients: () => api.get('/growth/clients'),
+  hideClient: (clientId, isHidden) => api.put(`/growth/clients/${clientId}/hide`, { is_hidden: isHidden }),
+  setServiceType: (clientId, serviceType) => api.put(`/growth/clients/${clientId}/service-type`, { service_type: serviceType }),
+  getClientData: (clientId, period) => api.get(`/growth/${clientId}`, { params: { period } }),
+  // Objectives
+  createObjective: (clientId, data) => api.post(`/growth/${clientId}/objectives`, data),
+  updateObjective: (id, data) => api.put(`/growth/objectives/${id}`, data),
+  // Palancas
+  createPalanca: (clientId, data) => api.post(`/growth/${clientId}/palancas`, data),
+  updatePalanca: (id, data) => api.put(`/growth/palancas/${id}`, data),
+  deletePalanca: (id) => api.delete(`/growth/palancas/${id}`),
+  // Milestones
+  createMilestone: (clientId, data) => api.post(`/growth/${clientId}/milestones`, data),
+  updateMilestone: (id, data) => api.put(`/growth/milestones/${id}`, data),
+  deleteMilestone: (id) => api.delete(`/growth/milestones/${id}`),
+  // Banderas
+  createBandera: (clientId, data) => api.post(`/growth/${clientId}/banderas`, data),
+  updateBandera: (id, data) => api.put(`/growth/banderas/${id}`, data),
+  deleteBandera: (id) => api.delete(`/growth/banderas/${id}`),
+};
+
 // Facebook OAuth API
 export const facebookOAuthAPI = {
   getAuthUrl: (clientId) => api.get(`/oauth/facebook/url?client_id=${clientId}`),
