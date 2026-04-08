@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { clientsAPI } from '../utils/api';
-import { TrendingUp, DollarSign, Users, Award, Percent, ChevronDown, X, Save } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Percent, ChevronDown, Plus, Check } from 'lucide-react';
 
-const TIPOS_NEGOCIACION = [
+const DEFAULT_TIPOS = [
   'Growth',
   'Growth con potencial',
   'Growth mal negociado',
@@ -10,7 +10,7 @@ const TIPOS_NEGOCIACION = [
   'Fee mensual',
 ];
 
-const ESTADOS_ACTUAL = [
+const DEFAULT_ESTADOS = [
   'Comenzando',
   'Rentable buen crecimiento',
   'Poco rentable',
@@ -41,12 +41,244 @@ const formatCurrency = (val) => {
   return '$' + Number(val).toLocaleString('es-CO', { maximumFractionDigits: 0 });
 };
 
+// Inline dropdown component for clicking to change values
+const InlineDropdown = ({ value, options, colorMap, configMap, onSelect, placeholder = 'Sin clasificar', type = 'tipo' }) => {
+  const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newValue, setNewValue] = useState('');
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        setAdding(false);
+        setNewValue('');
+      }
+    };
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  useEffect(() => {
+    if (adding && inputRef.current) inputRef.current.focus();
+  }, [adding]);
+
+  const handleSelect = (val) => {
+    onSelect(val);
+    setOpen(false);
+    setAdding(false);
+    setNewValue('');
+  };
+
+  const handleAddNew = () => {
+    if (newValue.trim()) {
+      handleSelect(newValue.trim());
+    }
+  };
+
+  if (type === 'estado') {
+    const cfg = configMap?.[value] || { color: '#9CA3AF', bg: '#F3F4F6', icon: '❓' };
+    return (
+      <div className="relative" ref={ref}>
+        <button
+          onClick={() => setOpen(!open)}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer hover:ring-2 hover:ring-gray-200 transition-all"
+          style={{ backgroundColor: cfg.bg, color: cfg.color }}
+        >
+          {cfg.icon} {value || placeholder}
+          <ChevronDown size={12} className="opacity-50" />
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1 left-0 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[220px] max-h-64 overflow-y-auto">
+            <button
+              onClick={() => handleSelect('')}
+              className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50 flex items-center gap-2"
+            >
+              {!value && <Check size={12} />}
+              Sin clasificar
+            </button>
+            {options.map(opt => {
+              const optCfg = configMap?.[opt] || { color: '#9CA3AF', bg: '#F3F4F6', icon: '❓' };
+              return (
+                <button
+                  key={opt}
+                  onClick={() => handleSelect(opt)}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2"
+                  style={{ color: optCfg.color }}
+                >
+                  {value === opt && <Check size={12} />}
+                  <span className={value === opt ? '' : 'ml-5'}>{optCfg.icon} {opt}</span>
+                </button>
+              );
+            })}
+            {!adding ? (
+              <button
+                onClick={() => setAdding(true)}
+                className="w-full text-left px-3 py-2 text-xs text-blue-500 hover:bg-blue-50 flex items-center gap-1 border-t border-gray-50 mt-1"
+              >
+                <Plus size={12} /> Agregar nuevo
+              </button>
+            ) : (
+              <div className="px-2 py-2 border-t border-gray-50 mt-1 flex gap-1">
+                <input
+                  ref={inputRef}
+                  value={newValue}
+                  onChange={e => setNewValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddNew(); if (e.key === 'Escape') { setAdding(false); setNewValue(''); } }}
+                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                  placeholder="Nuevo estado..."
+                />
+                <button onClick={handleAddNew} className="p-1 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542]">
+                  <Check size={12} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // tipo variant
+  const color = colorMap?.[value] || '#9CA3AF';
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer hover:ring-2 hover:ring-gray-200 transition-all"
+        style={{ backgroundColor: color + '15', color }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+        {value || placeholder}
+        <ChevronDown size={12} className="opacity-50" />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 left-0 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[200px] max-h-64 overflow-y-auto">
+          <button
+            onClick={() => handleSelect('')}
+            className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50 flex items-center gap-2"
+          >
+            {!value && <Check size={12} />}
+            Sin clasificar
+          </button>
+          {options.map(opt => {
+            const optColor = colorMap?.[opt] || '#9CA3AF';
+            return (
+              <button
+                key={opt}
+                onClick={() => handleSelect(opt)}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2"
+                style={{ color: optColor }}
+              >
+                {value === opt && <Check size={12} />}
+                <span className={`flex items-center gap-1.5 ${value === opt ? '' : 'ml-5'}`}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: optColor }} />
+                  {opt}
+                </span>
+              </button>
+            );
+          })}
+          {!adding ? (
+            <button
+              onClick={() => setAdding(true)}
+              className="w-full text-left px-3 py-2 text-xs text-blue-500 hover:bg-blue-50 flex items-center gap-1 border-t border-gray-50 mt-1"
+            >
+              <Plus size={12} /> Agregar nuevo
+            </button>
+          ) : (
+            <div className="px-2 py-2 border-t border-gray-50 mt-1 flex gap-1">
+              <input
+                ref={inputRef}
+                value={newValue}
+                onChange={e => setNewValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddNew(); if (e.key === 'Escape') { setAdding(false); setNewValue(''); } }}
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                placeholder="Nuevo tipo..."
+              />
+              <button onClick={handleAddNew} className="p-1 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542]">
+                <Check size={12} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Inline editable currency value
+const InlineValue = ({ value, onSave }) => {
+  const [editing, setEditing] = useState(false);
+  const [localVal, setLocalVal] = useState(value || 0);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  const handleSave = () => {
+    const parsed = parseFloat(localVal) || 0;
+    if (parsed !== (value || 0)) onSave(parsed);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        value={localVal}
+        onChange={e => setLocalVal(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+        className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-32 text-right focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={() => { setLocalVal(value || 0); setEditing(true); }}
+      className="font-semibold text-[#1A1A2E] cursor-pointer hover:bg-gray-100 rounded-lg px-2 py-1 -mx-2 transition-colors"
+    >
+      {formatCurrency(value)}
+    </span>
+  );
+};
+
 const ClientPortfolio = ({ clients, onClientUpdated }) => {
-  const [editingClient, setEditingClient] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [saving, setSaving] = useState(false);
   const [filterTipo, setFilterTipo] = useState('all');
   const [filterEstado, setFilterEstado] = useState('all');
+
+  // Dynamic options: defaults + any custom values from DB
+  const allTipos = useMemo(() => {
+    const custom = clients
+      .map(c => c.tipo_negociacion)
+      .filter(t => t && !DEFAULT_TIPOS.includes(t));
+    return [...DEFAULT_TIPOS, ...new Set(custom)];
+  }, [clients]);
+
+  const allEstados = useMemo(() => {
+    const custom = clients
+      .map(c => c.estado_actual)
+      .filter(e => e && !DEFAULT_ESTADOS.includes(e));
+    return [...DEFAULT_ESTADOS, ...new Set(custom)];
+  }, [clients]);
+
+  // Quick update a single field on a client
+  const quickUpdate = async (clientId, field, value) => {
+    try {
+      await clientsAPI.update(clientId, { [field]: value });
+      onClientUpdated();
+    } catch (error) {
+      console.error('Error updating client:', error);
+    }
+  };
 
   const activeClients = useMemo(() =>
     clients.filter(c => c.status === 'active'),
@@ -122,29 +354,6 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
     ),
     [activeClients]
   );
-
-  const handleEditClient = (client) => {
-    setEditingClient(client.id);
-    setEditForm({
-      tipo_negociacion: client.tipo_negociacion || '',
-      estado_actual: client.estado_actual || '',
-      valor_contratado: client.valor_contratado || 0,
-      has_comision: client.has_comision ? true : false,
-    });
-  };
-
-  const handleSaveClient = async (clientId) => {
-    setSaving(true);
-    try {
-      await clientsAPI.update(clientId, editForm);
-      onClientUpdated();
-      setEditingClient(null);
-    } catch (error) {
-      console.error('Error updating client:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // Donut SVG
   const DonutChart = ({ data }) => {
@@ -285,7 +494,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
         >
           Todos ({activeClients.length})
         </button>
-        {TIPOS_NEGOCIACION.map(tipo => {
+        {allTipos.map(tipo => {
           const count = activeClients.filter(c => c.tipo_negociacion === tipo).length;
           if (count === 0) return null;
           return (
@@ -304,7 +513,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
           );
         })}
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        {ESTADOS_ACTUAL.map(estado => {
+        {allEstados.map(estado => {
           const count = activeClients.filter(c => c.estado_actual === estado).length;
           if (count === 0) return null;
           const cfg = ESTADO_CONFIG[estado];
@@ -414,117 +623,52 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado Actual</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor Contratado</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Comisión</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-20">Editar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredClients.map(client => {
-                const isEditing = editingClient === client.id;
-                const estadoCfg = ESTADO_CONFIG[client.estado_actual] || { color: '#9CA3AF', bg: '#F3F4F6', icon: '' };
-                return (
-                  <tr key={client.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-[#1A1A2E]">
-                      {client.nickname || client.company || client.name}
-                    </td>
-                    <td className="px-4 py-3">
-                      {isEditing ? (
-                        <select
-                          value={editForm.tipo_negociacion}
-                          onChange={e => setEditForm({ ...editForm, tipo_negociacion: e.target.value })}
-                          className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
-                        >
-                          <option value="">Sin clasificar</option>
-                          {TIPOS_NEGOCIACION.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
-                          style={{
-                            backgroundColor: (TIPO_COLORS[client.tipo_negociacion] || '#9CA3AF') + '15',
-                            color: TIPO_COLORS[client.tipo_negociacion] || '#9CA3AF',
-                          }}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: TIPO_COLORS[client.tipo_negociacion] || '#9CA3AF' }} />
-                          {client.tipo_negociacion || 'Sin clasificar'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {isEditing ? (
-                        <select
-                          value={editForm.estado_actual}
-                          onChange={e => setEditForm({ ...editForm, estado_actual: e.target.value })}
-                          className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
-                        >
-                          <option value="">Sin clasificar</option>
-                          {ESTADOS_ACTUAL.map(e => <option key={e} value={e}>{e}</option>)}
-                        </select>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
-                          style={{ backgroundColor: estadoCfg.bg, color: estadoCfg.color }}
-                        >
-                          {estadoCfg.icon} {client.estado_actual || 'Sin clasificar'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={editForm.valor_contratado}
-                          onChange={e => setEditForm({ ...editForm, valor_contratado: parseFloat(e.target.value) || 0 })}
-                          className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-32 text-right focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
-                        />
-                      ) : (
-                        <span className="font-semibold text-[#1A1A2E]">{formatCurrency(client.valor_contratado)}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {isEditing ? (
-                        <input
-                          type="checkbox"
-                          checked={editForm.has_comision}
-                          onChange={e => setEditForm({ ...editForm, has_comision: e.target.checked })}
-                          className="w-4 h-4"
-                        />
-                      ) : (
-                        client.has_comision ? (
-                          <span className="text-xs px-2 py-0.5 bg-[#BFFF00]/20 text-[#1A1A2E] rounded-lg font-medium">Sí</span>
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
-                        )
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {isEditing ? (
-                        <div className="flex items-center gap-1 justify-center">
-                          <button
-                            onClick={() => handleSaveClient(client.id)}
-                            disabled={saving}
-                            className="p-1.5 bg-[#10B981] text-white rounded-lg hover:bg-[#059669] disabled:opacity-50"
-                          >
-                            <Save size={14} />
-                          </button>
-                          <button
-                            onClick={() => setEditingClient(null)}
-                            className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleEditClient(client)}
-                          className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg transition-colors"
-                        >
-                          <ChevronDown size={16} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredClients.map(client => (
+                <tr key={client.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-[#1A1A2E]">
+                    {client.nickname || client.company || client.name}
+                  </td>
+                  <td className="px-4 py-3">
+                    <InlineDropdown
+                      value={client.tipo_negociacion}
+                      options={allTipos}
+                      colorMap={TIPO_COLORS}
+                      type="tipo"
+                      onSelect={(val) => quickUpdate(client.id, 'tipo_negociacion', val || null)}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <InlineDropdown
+                      value={client.estado_actual}
+                      options={allEstados}
+                      configMap={ESTADO_CONFIG}
+                      type="estado"
+                      onSelect={(val) => quickUpdate(client.id, 'estado_actual', val || null)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <InlineValue
+                      value={client.valor_contratado}
+                      onSave={(val) => quickUpdate(client.id, 'valor_contratado', val)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => quickUpdate(client.id, 'has_comision', client.has_comision ? 0 : 1)}
+                      className={`text-xs px-2.5 py-1 rounded-lg font-medium cursor-pointer transition-colors ${
+                        client.has_comision
+                          ? 'bg-[#BFFF00]/20 text-[#1A1A2E] hover:bg-[#BFFF00]/30'
+                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      }`}
+                    >
+                      {client.has_comision ? 'Sí' : 'No'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
