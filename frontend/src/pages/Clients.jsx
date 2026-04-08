@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3 } from 'lucide-react';
+import ClientPortfolio from './ClientPortfolio';
 
 const Clients = () => {
   const navigate = useNavigate();
@@ -34,6 +35,9 @@ const Clients = () => {
   const [searchingNit, setSearchingNit] = useState(false);
 
   const [copiedPortalId, setCopiedPortalId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode = searchParams.get('view') || 'lista';
+  const setViewMode = (mode) => setSearchParams({ view: mode });
   const [activeTab, setActiveTab] = useState('active');
 
   // Commercial dates
@@ -530,14 +534,47 @@ const Clients = () => {
           <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Clientes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de la base de datos de clientes</p>
         </div>
-        <button
-          onClick={handleNew}
-          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
-        >
-          <Plus size={20} />
-          Nuevo Cliente
-        </button>
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('lista')}
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
+                viewMode === 'lista'
+                  ? 'bg-white text-[#1A1A2E] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Lista
+            </button>
+            <button
+              onClick={() => setViewMode('portfolio')}
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
+                viewMode === 'portfolio'
+                  ? 'bg-white text-[#1A1A2E] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <BarChart3 size={16} />
+              Portfolio
+            </button>
+          </div>
+          {viewMode === 'lista' && (
+            <button
+              onClick={handleNew}
+              className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+            >
+              <Plus size={20} />
+              Nuevo Cliente
+            </button>
+          )}
+        </div>
       </div>
+
+      {viewMode === 'portfolio' ? (
+        <ClientPortfolio clients={clients} onClientUpdated={loadClients} />
+      ) : (
+      <>
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
@@ -1230,6 +1267,9 @@ const Clients = () => {
             </form>
           </div>
         </div>
+      )}
+
+      </>
       )}
 
     </div>

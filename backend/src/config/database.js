@@ -1352,6 +1352,18 @@ export const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='is_hidden_from_metrics') THEN
           ALTER TABLE clients ADD COLUMN is_hidden_from_metrics INTEGER DEFAULT 0;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='tipo_negociacion') THEN
+          ALTER TABLE clients ADD COLUMN tipo_negociacion TEXT DEFAULT NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='estado_actual') THEN
+          ALTER TABLE clients ADD COLUMN estado_actual TEXT DEFAULT NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='valor_contratado') THEN
+          ALTER TABLE clients ADD COLUMN valor_contratado REAL DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='has_comision') THEN
+          ALTER TABLE clients ADD COLUMN has_comision INTEGER DEFAULT 0;
+        END IF;
       END $$
     `);
 
