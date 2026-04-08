@@ -88,7 +88,7 @@ const Layout = ({ children }) => {
     { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
     { name: 'Chat', path: '/app/chat', icon: MessageCircle, permission: null },
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
-    { name: 'Briefs', path: '/app/briefs', icon: FileCode2, permission: 'briefs' },
+    { name: 'Briefs', path: '/app/briefs', icon: FileCode2, permission: null },
     { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
   ];
 

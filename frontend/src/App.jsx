@@ -384,14 +384,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="briefs"
-                  element={
-                    <ProtectedRoute permission="briefs">
-                      <Briefs />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="briefs" element={<Briefs />} />
                 <Route
                   path="plantillas-proyecto"
                   element={
