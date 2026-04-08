@@ -18,7 +18,10 @@ import {
   CalendarDays,
   StickyNote,
   ArrowLeft,
-  X
+  X,
+  FileCode2,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 export default function PortalDashboard() {
@@ -29,6 +32,8 @@ export default function PortalDashboard() {
   const [respondForm, setRespondForm] = useState({ will_participate: null, has_offer: false, offer_description: '', client_notes: '' });
   const [saving, setSaving] = useState(false);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [selectedBrief, setSelectedBrief] = useState(null);
+  const [briefFullscreen, setBriefFullscreen] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -194,6 +199,43 @@ export default function PortalDashboard() {
                 {note.content_plain && (
                   <p className="text-sm text-gray-500 line-clamp-2 whitespace-pre-line">{note.content_plain}</p>
                 )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Client Briefs */}
+      {data?.client_briefs?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center">
+              <FileCode2 className="w-5 h-5 text-violet-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-[#1A1A2E]">Briefs</h2>
+              <p className="text-sm text-gray-500">Documentos compartidos por tu equipo</p>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {data.client_briefs.map((brief) => (
+              <button
+                key={brief.id}
+                onClick={() => setSelectedBrief(brief)}
+                className="w-full text-left px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <FileCode2 className="w-4 h-4 text-violet-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-[#1A1A2E] truncate">{brief.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {new Date(brief.updated_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0 ml-3" />
               </button>
             ))}
           </div>
@@ -399,6 +441,54 @@ export default function PortalDashboard() {
       {/* Note Viewer — Full-screen overlay (portaled to body to escape stacking contexts) */}
       {selectedNote && createPortal(
         <NoteViewer note={selectedNote} onClose={() => setSelectedNote(null)} />,
+        document.body
+      )}
+
+      {/* Brief Viewer — Interactive HTML in iframe */}
+      {selectedBrief && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
+          <div
+            className={`bg-white shadow-xl flex flex-col ${
+              briefFullscreen ? 'w-full h-full' : 'rounded-2xl w-full max-w-5xl h-[85vh] mx-4'
+            }`}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileCode2 className="w-4 h-4 text-violet-600" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-[#1A1A2E] truncate">{selectedBrief.title}</h3>
+                  <p className="text-xs text-gray-400">
+                    {new Date(selectedBrief.updated_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => setBriefFullscreen(!briefFullscreen)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  {briefFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
+                <button
+                  onClick={() => { setSelectedBrief(null); setBriefFullscreen(false); }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                srcDoc={selectedBrief.html_content || '<p style="padding:2rem;color:#999">Sin contenido HTML</p>'}
+                className="w-full h-full border-0"
+                title={selectedBrief.title}
+                sandbox="allow-scripts allow-same-origin"
+              />
+            </div>
+          </div>
+        </div>,
         document.body
       )}
     </div>
