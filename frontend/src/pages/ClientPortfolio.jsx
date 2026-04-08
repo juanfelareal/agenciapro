@@ -255,6 +255,56 @@ const InlineValue = ({ value, onSave }) => {
   );
 };
 
+// Inline editable text field
+const InlineText = ({ value, onSave, placeholder = 'Agregar...', disabled = false }) => {
+  const [editing, setEditing] = useState(false);
+  const [localVal, setLocalVal] = useState(value || '');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editing]);
+
+  const handleSave = () => {
+    const trimmed = localVal.trim();
+    if (trimmed !== (value || '')) onSave(trimmed);
+    setEditing(false);
+  };
+
+  if (disabled && !value) {
+    return <span className="text-xs text-gray-300">—</span>;
+  }
+
+  if (editing) {
+    return (
+      <textarea
+        ref={inputRef}
+        value={localVal}
+        onChange={e => setLocalVal(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); } if (e.key === 'Escape') setEditing(false); }}
+        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-full min-w-[180px] focus:outline-none focus:ring-1 focus:ring-[#1A1A2E] resize-none"
+        rows={2}
+        placeholder={placeholder}
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={() => { setLocalVal(value || ''); setEditing(true); }}
+      className={`text-xs cursor-pointer hover:bg-gray-100 rounded-lg px-2 py-1 -mx-2 block transition-colors max-w-[220px] ${
+        value ? 'text-gray-700' : 'text-gray-300 italic'
+      }`}
+      title={value || placeholder}
+    >
+      {value || placeholder}
+    </span>
+  );
+};
+
 const ClientPortfolio = ({ clients, onClientUpdated }) => {
   const [filterTipo, setFilterTipo] = useState('all');
   const [filterEstado, setFilterEstado] = useState('all');
@@ -627,6 +677,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado Actual</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor Contratado</th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Comisión</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalle Comisión</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -670,6 +721,14 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
                     >
                       {client.has_comision ? 'Sí' : 'No'}
                     </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <InlineText
+                      value={client.comision_detalle}
+                      onSave={(val) => quickUpdate(client.id, 'comision_detalle', val || null)}
+                      placeholder={client.has_comision ? 'Ej: 10% de venta neta...' : '—'}
+                      disabled={!client.has_comision}
+                    />
                   </td>
                 </tr>
               ))}

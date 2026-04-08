@@ -245,7 +245,7 @@ router.post('/', async (req, res) => {
 // Update client (supports partial updates for bulk operations)
 router.put('/:id', async (req, res) => {
   try {
-    const { name, email, phone, company, nit, check_digit, address, city, nickname, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, tipo_negociacion, estado_actual, valor_contratado, has_comision } = req.body;
+    const { name, email, phone, company, nit, check_digit, address, city, nickname, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, tipo_negociacion, estado_actual, valor_contratado, has_comision, comision_detalle } = req.body;
 
     // Get current client to preserve existing values for partial updates (org-scoped)
     const currentClient = await db.prepare('SELECT * FROM clients WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
@@ -275,6 +275,7 @@ router.put('/:id', async (req, res) => {
     const updatedEstadoActual = estado_actual !== undefined ? estado_actual : currentClient.estado_actual;
     const updatedValorContratado = valor_contratado !== undefined ? valor_contratado : currentClient.valor_contratado;
     const updatedHasComision = has_comision !== undefined ? (has_comision ? 1 : 0) : currentClient.has_comision;
+    const updatedComisionDetalle = comision_detalle !== undefined ? comision_detalle : currentClient.comision_detalle;
 
     // Validate recurring billing fields only if recurring is being enabled
     if (updatedIsRecurring) {
@@ -291,13 +292,13 @@ router.put('/:id', async (req, res) => {
       SET name = ?, email = ?, phone = ?, company = ?, nit = ?, check_digit = ?, address = ?, city = ?, nickname = ?, status = ?,
           contract_value = ?, contract_start_date = ?, contract_end_date = ?,
           notes = ?, is_recurring = ?, billing_day = ?, recurring_amount = ?,
-          tipo_negociacion = ?, estado_actual = ?, valor_contratado = ?, has_comision = ?,
+          tipo_negociacion = ?, estado_actual = ?, valor_contratado = ?, has_comision = ?, comision_detalle = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `).run(updatedName, updatedEmail, updatedPhone, updatedCompany, updatedNit, updatedCheckDigit, updatedAddress, updatedCity, updatedNickname, updatedStatus,
            updatedContractValue, updatedContractStartDate, updatedContractEndDate,
            updatedNotes, updatedIsRecurring, updatedBillingDay, updatedRecurringAmount || 0,
-           updatedTipoNegociacion, updatedEstadoActual, updatedValorContratado || 0, updatedHasComision || 0,
+           updatedTipoNegociacion, updatedEstadoActual, updatedValorContratado || 0, updatedHasComision || 0, updatedComisionDetalle,
            req.params.id, req.orgId);
 
     const client = await db.prepare('SELECT * FROM clients WHERE id = ?').get(req.params.id);

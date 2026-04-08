@@ -1364,6 +1364,9 @@ export const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='has_comision') THEN
           ALTER TABLE clients ADD COLUMN has_comision INTEGER DEFAULT 0;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='comision_detalle') THEN
+          ALTER TABLE clients ADD COLUMN comision_detalle TEXT DEFAULT NULL;
+        END IF;
       END $$
     `);
 
