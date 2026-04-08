@@ -338,6 +338,15 @@ export const growthAPI = {
   deleteBandera: (id) => api.delete(`/growth/banderas/${id}`),
 };
 
+// Briefs API
+export const briefsAPI = {
+  getAll: (clientId) => api.get('/briefs', { params: clientId ? { client_id: clientId } : {} }),
+  getById: (id) => api.get(`/briefs/${id}`),
+  create: (data) => api.post('/briefs', data),
+  update: (id, data) => api.put(`/briefs/${id}`, data),
+  delete: (id) => api.delete(`/briefs/${id}`),
+};
+
 // Facebook OAuth API
 export const facebookOAuthAPI = {
   getAuthUrl: (clientId) => api.get(`/oauth/facebook/url?client_id=${clientId}`),

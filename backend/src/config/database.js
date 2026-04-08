@@ -1479,6 +1479,25 @@ export const initializeDatabase = async () => {
     }
 
     // ========================================
+    // BRIEFS TABLE
+    // ========================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS briefs (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        html_content TEXT,
+        visible_to_client INTEGER DEFAULT 0,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_by INTEGER REFERENCES team_members(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_briefs_client_id ON briefs(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_briefs_org_id ON briefs(organization_id)`);
+
+    // ========================================
     // COLLECTIONS / CARTERA TABLES
     // ========================================
 

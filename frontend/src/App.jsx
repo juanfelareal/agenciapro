@@ -42,6 +42,7 @@ import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
+import Briefs from './pages/Briefs';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -380,6 +381,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="sops">
                       <SOPs />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="briefs"
+                  element={
+                    <ProtectedRoute permission="briefs">
+                      <Briefs />
                     </ProtectedRoute>
                   }
                 />

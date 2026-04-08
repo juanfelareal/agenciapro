@@ -82,6 +82,8 @@ import chatRoutes from './src/routes/chat.js';
 import { setupChat } from './src/services/chatService.js';
 // Growth Dashboard
 import growthRoutes from './src/routes/growth.js';
+// Briefs
+import briefRoutes from './src/routes/briefs.js';
 // AI Agents
 import agentRoutes from './src/routes/agents.js';
 import { setupAgentSocket } from './src/agents/socket.js';
@@ -244,6 +246,8 @@ app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);
 app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 // Chat
 app.use('/api/chat', teamAuthMiddleware, chatRoutes);
+// Briefs
+app.use('/api/briefs', teamAuthMiddleware, briefRoutes);
 // AI Agents
 app.use('/api/agents', teamAuthMiddleware, agentRoutes);
 

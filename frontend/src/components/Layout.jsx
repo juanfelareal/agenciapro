@@ -25,6 +25,7 @@ import {
   Receipt,
   MessageCircle,
   Bot,
+  FileCode2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -87,6 +88,7 @@ const Layout = ({ children }) => {
     { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
     { name: 'Chat', path: '/app/chat', icon: MessageCircle, permission: null },
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
+    { name: 'Briefs', path: '/app/briefs', icon: FileCode2, permission: 'briefs' },
     { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
   ];
 
