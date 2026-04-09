@@ -193,7 +193,12 @@ const Notes = () => {
       setActiveNote(fullNote);
       setFormData({
         title: fullNote.title,
-        content: fullNote.content ? JSON.parse(fullNote.content) : null,
+        content: fullNote.content ? (() => {
+          let parsed = typeof fullNote.content === 'string' ? JSON.parse(fullNote.content) : fullNote.content;
+          // Handle double-encoded JSON
+          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+          return parsed;
+        })() : null,
         content_plain: fullNote.content_plain || '',
         color: fullNote.color || '#FFFFFF',
         category_id: fullNote.category_id,
