@@ -17,6 +17,7 @@ import {
   ListOrdered,
   Heading1,
   Heading2,
+  Heading3,
   CheckSquare,
   Highlighter,
   Code,
@@ -58,6 +59,13 @@ const EditorToolbar = ({ editor, onImageClick, onVideoClick }) => {
         title="Encabezado 2"
       >
         <Heading2 size={18} />
+      </MenuButton>
+      <MenuButton
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        isActive={editor.isActive('heading', { level: 3 })}
+        title="Encabezado 3"
+      >
+        <Heading3 size={18} />
       </MenuButton>
 
       <div className="w-px h-5 bg-slate-200 mx-1" />
@@ -202,7 +210,7 @@ const NoteEditor = ({
       // Collaborative mode - use Yjs
       baseExtensions.push(
         StarterKit.configure({
-          heading: { levels: [1, 2] },
+          heading: { levels: [1, 2, 3] },
           // Disable history in collaborative mode - Yjs handles it
           history: false,
         }),
@@ -223,7 +231,7 @@ const NoteEditor = ({
       // Non-collaborative mode
       baseExtensions.push(
         StarterKit.configure({
-          heading: { levels: [1, 2] },
+          heading: { levels: [1, 2, 3] },
         })
       );
     }
@@ -335,6 +343,12 @@ const NoteEditor = ({
             font-weight: 600;
             margin-top: 0.75rem;
             margin-bottom: 0.5rem;
+          }
+          .ProseMirror h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            margin-bottom: 0.25rem;
           }
           .ProseMirror ul[data-type="taskList"] {
             list-style: none;
