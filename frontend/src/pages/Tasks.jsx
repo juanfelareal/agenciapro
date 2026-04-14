@@ -344,6 +344,17 @@ const Tasks = () => {
     }
   };
 
+  const handleUpdateTask = async (taskId, updates) => {
+    try {
+      await tasksAPI.update(taskId, updates);
+      loadData();
+      return true;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      return false;
+    }
+  };
+
   const handleDeleteTask = async (taskId) => {
     try {
       await tasksAPI.delete(taskId);
@@ -505,6 +516,7 @@ const Tasks = () => {
             onTaskClick={handleTaskClick}
             onStatusChange={handleStatusChange}
             onDeleteTask={handleDeleteTask}
+            onUpdateTask={handleUpdateTask}
           />
         )}
         {viewMode === 'calendar' && (
