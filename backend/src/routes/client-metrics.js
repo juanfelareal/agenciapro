@@ -36,8 +36,13 @@ router.get('/:clientId', async (req, res) => {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
     }
 
-    // Verify client belongs to org
-    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    // Verify client belongs to org and get revenue metric setting
+    const client = await db.prepare(`
+      SELECT c.id, COALESCE(ps.portal_revenue_metric, 'total') as portal_revenue_metric
+      FROM clients c
+      LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
+      WHERE c.id = ? AND c.organization_id = ?
+    `).get(clientId, orgId);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
@@ -71,6 +76,8 @@ router.get('/:clientId', async (req, res) => {
     // Calculate derived metrics
     // Note: PostgreSQL SUM() returns BIGINT which pg driver sends as string — must parseFloat
     const totalRevenue = parseFloat(metrics.total_revenue) || 0;
+    const netRevenue = parseFloat(metrics.net_revenue) || 0;
+    const allOrdersRevenue = parseFloat(metrics.total_all_orders_revenue) || 0;
     const totalAdSpend = parseFloat(metrics.total_ad_spend) || 0;
     const totalOrders = parseFloat(metrics.total_orders) || 0;
     const totalImpressions = parseFloat(metrics.total_impressions) || 0;
@@ -79,17 +86,25 @@ router.get('/:clientId', async (req, res) => {
     const totalVideoThruplay = parseFloat(metrics.total_video_thruplay_views) || 0;
     const totalSessions = parseFloat(metrics.total_sessions) || 0;
 
+    // Pick revenue based on the client's portal_revenue_metric setting
+    let displayRevenue = allOrdersRevenue || totalRevenue; // default 'total'
+    if (client.portal_revenue_metric === 'confirmed') displayRevenue = totalRevenue;
+    else if (client.portal_revenue_metric === 'net_confirmed') displayRevenue = netRevenue;
+
     const result = {
       ...metrics,
       total_revenue: totalRevenue,
+      net_revenue: netRevenue,
       total_ad_spend: totalAdSpend,
       total_orders: totalOrders,
       total_impressions: totalImpressions,
       total_conversions: totalConversions,
-      roas: totalAdSpend > 0 ? totalRevenue / totalAdSpend : 0,
+      portal_revenue_metric: client.portal_revenue_metric,
+      display_revenue: displayRevenue,
+      roas: totalAdSpend > 0 ? displayRevenue / totalAdSpend : 0,
       cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
-      ad_spend_percentage: totalRevenue > 0 ? (totalAdSpend / totalRevenue) * 100 : 0,
-      ticket_promedio: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+      ad_spend_percentage: displayRevenue > 0 ? (totalAdSpend / displayRevenue) * 100 : 0,
+      ticket_promedio: totalOrders > 0 ? displayRevenue / totalOrders : 0,
       cpm: totalAdSpend > 0 && totalImpressions > 0 ? (totalAdSpend / totalImpressions) * 1000 : 0,
       cost_per_purchase: totalConversions > 0 ? totalAdSpend / totalConversions : 0,
       hook_rate: totalImpressions > 0 ? (totalVideo3sec / totalImpressions) * 100 : 0,
