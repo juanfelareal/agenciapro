@@ -44,14 +44,17 @@ const ProjectTemplates = () => {
 
   const loadTemplates = async () => {
     try {
-      const [templatesRes, teamRes, catsRes] = await Promise.all([
+      const [templatesRes, teamRes] = await Promise.all([
         projectTemplatesAPI.getAll(),
         teamAPI.getAll({ status: 'active' }),
-        projectTemplatesAPI.getCategories(),
       ]);
       setTemplates(templatesRes.data);
       setTeamMembers(teamRes.data);
-      setStandaloneCategories(catsRes.data || []);
+      // Fetch standalone categories separately so it doesn't block template loading
+      try {
+        const catsRes = await projectTemplatesAPI.getCategories();
+        setStandaloneCategories(catsRes.data || []);
+      } catch { /* table may not exist yet */ }
     } catch (error) {
       console.error('Error loading templates:', error);
     } finally {
