@@ -29,7 +29,7 @@ const SharedNoteView = () => {
   const [error, setError] = useState(null);
   const [noteData, setNoteData] = useState(null);
   const [comments, setComments] = useState([]);
-  const [authorName, setAuthorName] = useState(localStorage.getItem('shared_note_author') || '');
+  const [authorName, setAuthorName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedText, setSelectedText] = useState(null);
@@ -92,9 +92,11 @@ const SharedNoteView = () => {
 
         // Set editor content
         if (editor && data.note.content) {
-          const content = typeof data.note.content === 'string'
+          let content = typeof data.note.content === 'string'
             ? JSON.parse(data.note.content)
             : data.note.content;
+          // Handle double-encoded JSON
+          if (typeof content === 'string') content = JSON.parse(content);
           editor.commands.setContent(content);
           setOriginalContent(content);
         }
@@ -110,12 +112,6 @@ const SharedNoteView = () => {
     }
   }, [token, editor]);
 
-  // Save author name to localStorage
-  useEffect(() => {
-    if (authorName) {
-      localStorage.setItem('shared_note_author', authorName);
-    }
-  }, [authorName]);
 
   // Handle entering edit mode
   const handleStartEditing = () => {

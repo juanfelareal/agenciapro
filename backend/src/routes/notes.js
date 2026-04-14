@@ -252,7 +252,7 @@ router.post('/', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       title,
-      content ? JSON.stringify(content) : null,
+      content ? (typeof content === 'string' ? content : JSON.stringify(content)) : null,
       content_plain || '',
       color || '#FFFFFF',
       category_id || null,
@@ -313,7 +313,7 @@ router.put('/:id', async (req, res) => {
       WHERE id = ? AND organization_id = ?
     `).run(
       title,
-      content ? JSON.stringify(content) : null,
+      content ? (typeof content === 'string' ? content : JSON.stringify(content)) : null,
       content_plain || '',
       color || '#FFFFFF',
       category_id || null,

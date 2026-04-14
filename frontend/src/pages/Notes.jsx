@@ -243,9 +243,10 @@ const Notes = () => {
           const editContent = typeof edit.content_json === 'string' ? JSON.parse(edit.content_json) : edit.content_json;
           setFormData(prev => ({ ...prev, content: editContent }));
           // Save the note with the accepted content
+          // Note: backend does JSON.stringify on content, so pass the object directly
           await notesAPI.update(activeNote.id, {
             ...formData,
-            content: JSON.stringify(editContent),
+            content: editContent,
           });
         }
       }
