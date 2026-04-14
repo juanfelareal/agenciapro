@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { notesAPI, noteCategoriesAPI, noteFoldersAPI, clientsAPI, projectsAPI, teamAPI, noteShareAPI } from '../utils/api';
 import NoteEditor from '../components/NoteEditor';
+import TabbedNoteView from '../components/TabbedNoteView';
 import NoteShareModal from '../components/NoteShareModal';
 // import { useCollaboration } from '../hooks/useCollaboration'; // Disabled temporarily
 import { useAuth } from '../context/AuthContext';
@@ -44,7 +45,8 @@ import {
   Clock,
   UserCheck,
   History,
-  RotateCcw
+  RotateCcw,
+  LayoutDashboard
 } from 'lucide-react';
 
 const NOTE_COLORS = [
@@ -128,6 +130,7 @@ const Notes = () => {
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [previewVersion, setPreviewVersion] = useState(null);
   const [restoringVersion, setRestoringVersion] = useState(false);
+  const [tabbedView, setTabbedView] = useState(false);
 
   useEffect(() => {
     loadInitialData();
@@ -822,6 +825,14 @@ const Notes = () => {
                   </button>
                 )}
                 <button
+                  onClick={() => setTabbedView(!tabbedView)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${tabbedView ? 'bg-slate-200 text-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
+                  title="Vista con pestañas"
+                >
+                  <LayoutDashboard size={16} />
+                  Pestañas
+                </button>
+                <button
                   onClick={() => { setShowVersions(!showVersions); if (!showVersions) loadVersions(activeNote.id); }}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${showVersions ? 'bg-slate-200 text-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
                   title="Historial de versiones"
@@ -838,7 +849,7 @@ const Notes = () => {
                   Exportar PDF
                 </button>
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => { setIsEditing(true); setTabbedView(false); }}
                   className="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
                 >
                   <Edit3 size={16} />
@@ -995,7 +1006,6 @@ const Notes = () => {
           {/* Content */}
           <div className="prose prose-slate max-w-none">
             {isEditing ? (
-              // Standard editor for all notes (collaboration disabled temporarily)
               <NoteEditor
                 key={activeNote.id}
                 content={formData.content}
@@ -1007,6 +1017,8 @@ const Notes = () => {
                 placeholder="Escribe tu nota aquí..."
                 minHeight="400px"
               />
+            ) : tabbedView ? (
+              <TabbedNoteView content={formData.content} />
             ) : (
               <NoteEditor
                 content={formData.content}

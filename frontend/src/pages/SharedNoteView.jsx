@@ -10,6 +10,7 @@ import { ImagePaste } from '../extensions/ImagePaste';
 import { VideoEmbed } from '../extensions/VideoEmbed';
 import { ClientEditMark } from '../extensions/ClientEditMark';
 import NoteCommentsSidebar from '../components/NoteCommentsSidebar';
+import TabbedNoteView from '../components/TabbedNoteView';
 import {
   FileText,
   MessageSquare,
@@ -18,7 +19,8 @@ import {
   AlertCircle,
   Loader2,
   ChevronLeft,
-  X
+  X,
+  LayoutDashboard
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:3000';
@@ -31,6 +33,8 @@ const SharedNoteView = () => {
   const [comments, setComments] = useState([]);
   const [authorName, setAuthorName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [tabbedView, setTabbedView] = useState(false);
+  const [parsedContent, setParsedContent] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedText, setSelectedText] = useState(null);
   const [showComments, setShowComments] = useState(true);
@@ -99,6 +103,7 @@ const SharedNoteView = () => {
           if (typeof content === 'string') content = JSON.parse(content);
           editor.commands.setContent(content);
           setOriginalContent(content);
+          setParsedContent(content);
         }
       } catch (err) {
         setError(err.message);
@@ -279,6 +284,19 @@ const SharedNoteView = () => {
               <MessageSquare size={20} />
             </button>
 
+            {/* Tabbed view toggle */}
+            {!isEditing && (
+              <button
+                onClick={() => setTabbedView(!tabbedView)}
+                className={`p-2 rounded-lg transition-colors ${
+                  tabbedView ? 'bg-slate-200 text-slate-800' : 'text-slate-500 hover:bg-slate-100'
+                }`}
+                title="Vista con pestañas"
+              >
+                <LayoutDashboard size={20} />
+              </button>
+            )}
+
             {/* Edit controls */}
             {permissions?.allow_edits && (
               isEditing ? (
@@ -346,10 +364,16 @@ const SharedNoteView = () => {
 
             {/* Note content */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              {tabbedView && !isEditing && parsedContent ? (
+                <div className="p-6">
+                  <TabbedNoteView content={parsedContent} />
+                </div>
+              ) : (
               <EditorContent
                 editor={editor}
                 className="prose prose-sm max-w-none"
               />
+              )}
               <style>{`
                 .ProseMirror {
                   padding: 2rem;
