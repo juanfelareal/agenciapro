@@ -317,6 +317,26 @@ function ClientMetrics() {
         end = today;
         start = getColombiaDate(-29);
         break;
+      case 'thisWeek': {
+        // Monday to today (weeks Mon-Sun)
+        const todayDate = new Date(today + 'T12:00:00');
+        const dayOfWeek = todayDate.getDay(); // 0=Sun, 1=Mon...
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        start = getColombiaDate(-diffToMonday);
+        end = today;
+        break;
+      }
+      case 'lastWeek': {
+        // Previous Monday to Sunday
+        const todayDate2 = new Date(today + 'T12:00:00');
+        const dow = todayDate2.getDay();
+        const diffToThisMonday = dow === 0 ? 6 : dow - 1;
+        const lastSunday = getColombiaDate(-diffToThisMonday - 1);
+        const lastMonday = getColombiaDate(-diffToThisMonday - 7);
+        start = lastMonday;
+        end = lastSunday;
+        break;
+      }
       case 'thisMonth': {
         const [year, month] = today.split('-');
         start = `${year}-${month}-01`;
@@ -421,7 +441,7 @@ function ClientMetrics() {
             />
           </div>
           <div className="flex gap-2">
-            {['today', 'yesterday', 'last7', 'last30', 'thisMonth'].map((preset) => (
+            {['today', 'yesterday', 'thisWeek', 'lastWeek', 'last7', 'last30', 'thisMonth'].map((preset) => (
               <button
                 key={preset}
                 onClick={() => setPreset(preset)}
@@ -429,6 +449,8 @@ function ClientMetrics() {
               >
                 {preset === 'today' && 'Hoy'}
                 {preset === 'yesterday' && 'Ayer'}
+                {preset === 'thisWeek' && 'Esta semana'}
+                {preset === 'lastWeek' && 'Semana pasada'}
                 {preset === 'last7' && '7 días'}
                 {preset === 'last30' && '30 días'}
                 {preset === 'thisMonth' && 'Este mes'}
