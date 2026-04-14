@@ -23,7 +23,8 @@ import {
   ChevronDown,
   X,
   Check,
-  BarChart3
+  BarChart3,
+  ArrowLeftRight
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart, Cell,
@@ -50,6 +51,8 @@ function ClientMetrics() {
 
   const [client, setClient] = useState(null);
   const [metrics, setMetrics] = useState(null);
+  const [compareMetrics, setCompareMetrics] = useState(null);
+  const [compareMode, setCompareMode] = useState(false);
   const [dailyMetrics, setDailyMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -93,7 +96,7 @@ function ClientMetrics() {
     if (client) {
       loadMetrics();
     }
-  }, [dateRange, client]);
+  }, [dateRange, client, compareMode]);
 
   const loadClient = async () => {
     try {
@@ -216,17 +219,53 @@ function ClientMetrics() {
     }).sort((a, b) => b[analysisMetric] - a[analysisMetric]);
   }, [ads, analysisCategoryId, analysisMetric]);
 
+  // Calculate previous period of same length
+  const getPreviousPeriod = () => {
+    const startDate = new Date(dateRange.start + 'T12:00:00');
+    const endDate = new Date(dateRange.end + 'T12:00:00');
+    const days = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const prevEnd = new Date(startDate);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - days + 1);
+    return {
+      start: prevStart.toISOString().split('T')[0],
+      end: prevEnd.toISOString().split('T')[0],
+    };
+  };
+
+  // Calculate % change between current and previous value
+  const calcChange = (currentVal, prevVal) => {
+    if (prevVal === null || prevVal === undefined || prevVal === 0) return null;
+    if (currentVal === null || currentVal === undefined) return null;
+    return ((currentVal - prevVal) / Math.abs(prevVal)) * 100;
+  };
+
+  // Get comparison label
+  const compareLabel = useMemo(() => {
+    if (!compareMode) return '';
+    const prev = getPreviousPeriod();
+    return `vs ${prev.start} - ${prev.end}`;
+  }, [compareMode, dateRange]);
+
   const loadMetrics = async () => {
     try {
       setLoading(true);
       setAds(null);
       setTopProducts(null);
-      const [metricsRes, dailyRes] = await Promise.all([
+      const promises = [
         clientMetricsAPI.getMetrics(clientId, dateRange.start, dateRange.end),
         clientMetricsAPI.getDailyMetrics(clientId, dateRange.start, dateRange.end)
-      ]);
-      setMetrics(metricsRes.data);
-      setDailyMetrics(dailyRes.data);
+      ];
+      // Fetch comparison period if enabled
+      if (compareMode) {
+        const prev = getPreviousPeriod();
+        promises.push(clientMetricsAPI.getMetrics(clientId, prev.start, prev.end));
+      }
+      const results = await Promise.all(promises);
+      setMetrics(results[0].data);
+      setDailyMetrics(results[1].data);
+      setCompareMetrics(compareMode ? results[2].data : null);
     } catch (error) {
       console.error('Error loading metrics:', error);
     } finally {
@@ -396,8 +435,31 @@ function ClientMetrics() {
               </button>
             ))}
           </div>
+          <div className="ml-auto">
+            <button
+              onClick={() => setCompareMode(!compareMode)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors border ${
+                compareMode
+                  ? 'bg-[#1A1A2E] text-white border-[#1A1A2E]'
+                  : 'text-gray-600 hover:bg-gray-100 border-gray-200'
+              }`}
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              Comparar
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Compare period info */}
+      {compareMode && (
+        <div className="bg-[#1A1A2E]/5 border border-[#1A1A2E]/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+          <ArrowLeftRight className="w-4 h-4 text-[#1A1A2E]" />
+          <span className="text-sm text-[#1A1A2E]">
+            Comparando con periodo anterior: <strong>{getPreviousPeriod().start}</strong> a <strong>{getPreviousPeriod().end}</strong>
+          </span>
+        </div>
+      )}
 
       {/* Revenue Metrics - 3 types */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
@@ -410,6 +472,8 @@ function ClientMetrics() {
           iconColor="text-gray-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_all_orders_revenue, compareMetrics?.total_all_orders_revenue) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Venta Total Confirmada"
@@ -420,6 +484,8 @@ function ClientMetrics() {
           iconColor="text-green-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_revenue, compareMetrics?.total_revenue) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Venta Neta Confirmada"
@@ -430,6 +496,8 @@ function ClientMetrics() {
           iconColor="text-emerald-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.net_revenue, compareMetrics?.net_revenue) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
@@ -443,6 +511,8 @@ function ClientMetrics() {
           iconColor="text-orange-600"
           format="integer"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_orders, compareMetrics?.total_orders) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Pedidos Pendientes"
@@ -452,6 +522,8 @@ function ClientMetrics() {
           iconColor="text-yellow-600"
           format="integer"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_pending_orders, compareMetrics?.total_pending_orders) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Total Pedidos"
@@ -461,6 +533,8 @@ function ClientMetrics() {
           iconColor="text-gray-600"
           format="integer"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_all_orders_count, compareMetrics?.total_all_orders_count) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Ticket Promedio"
@@ -470,6 +544,8 @@ function ClientMetrics() {
           iconColor="text-yellow-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.ticket_promedio, compareMetrics?.ticket_promedio) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
@@ -482,6 +558,8 @@ function ClientMetrics() {
           iconColor="text-blue-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_ad_spend, compareMetrics?.total_ad_spend) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Inversion Por Pedido"
@@ -491,6 +569,8 @@ function ClientMetrics() {
           iconColor="text-indigo-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.cost_per_order, compareMetrics?.cost_per_order) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="ROAS"
@@ -500,6 +580,8 @@ function ClientMetrics() {
           iconColor="text-purple-600"
           format="decimal"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.roas, compareMetrics?.roas) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="% Inversion Publicidad"
@@ -509,6 +591,8 @@ function ClientMetrics() {
           iconColor="text-pink-600"
           format="percent"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.ad_spend_percentage, compareMetrics?.ad_spend_percentage) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
@@ -522,6 +606,8 @@ function ClientMetrics() {
           iconColor="text-sky-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.cpm, compareMetrics?.cpm) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Costo por Compra"
@@ -531,6 +617,8 @@ function ClientMetrics() {
           iconColor="text-rose-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.cost_per_purchase, compareMetrics?.cost_per_purchase) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
@@ -544,6 +632,8 @@ function ClientMetrics() {
           iconColor="text-cyan-600"
           format="integer"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_sessions, compareMetrics?.total_sessions) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Tasa de Conversión"
@@ -553,6 +643,8 @@ function ClientMetrics() {
           iconColor="text-teal-600"
           format="percent"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.conversion_rate, compareMetrics?.conversion_rate) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Pedidos Pendientes"
@@ -562,6 +654,8 @@ function ClientMetrics() {
           iconColor="text-red-600"
           format="integer"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_pending_orders, compareMetrics?.total_pending_orders) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Impuestos"
@@ -571,6 +665,8 @@ function ClientMetrics() {
           iconColor="text-gray-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_tax, compareMetrics?.total_tax) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
           title="Descuentos"
@@ -580,6 +676,8 @@ function ClientMetrics() {
           iconColor="text-lime-600"
           format="currency"
           loading={loading}
+          change={compareMode ? calcChange(metrics?.total_discounts, compareMetrics?.total_discounts) : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
