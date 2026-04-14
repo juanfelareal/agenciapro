@@ -279,7 +279,13 @@ export default function ListView({
       if (field === 'due_date') {
         return (
           <input
-            ref={editInputRef}
+            ref={(el) => {
+              editInputRef.current = el;
+              // Auto-open the date picker when entering edit mode
+              if (el) {
+                try { el.showPicker(); } catch {}
+              }
+            }}
             type="date"
             value={editValue}
             onChange={async (e) => {
@@ -292,7 +298,14 @@ export default function ListView({
               setEditingCell(null);
               setEditValue('');
             }}
-            onBlur={() => handleDelayedBlur(task)}
+            onBlur={() => {
+              // Longer delay for date picker — the native calendar steals focus
+              setTimeout(() => {
+                if (editingCell?.taskId === task.id && editingCell?.field === 'due_date') {
+                  saveEdit(task);
+                }
+              }, 300);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
                 setEditingCell(null);
