@@ -2,11 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { ImagePaste } from '../extensions/ImagePaste';
+import { ImagePaste, imageToBase64 } from '../extensions/ImagePaste';
 import { Bold, Italic, List, ListOrdered, Image as ImageIcon } from 'lucide-react';
-import { notesAPI } from '../utils/api';
-
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '');
 
 const TaskDescriptionEditor = ({ value, onChange, placeholder = 'Descripción...' }) => {
   const fileInputRef = useRef(null);
@@ -58,31 +55,10 @@ const TaskDescriptionEditor = ({ value, onChange, placeholder = 'Descripción...
     const file = e.target.files?.[0];
     if (!file || !editor) return;
     try {
-      const canvas = document.createElement('canvas');
-      const img = new window.Image();
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => resolve(ev.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = dataUrl;
-      });
-      const maxWidth = 1200;
-      const ratio = Math.min(maxWidth / img.width, 1);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-      const formData = new FormData();
-      formData.append('image', blob, 'image.jpg');
-      const res = await notesAPI.uploadImage(formData);
-      editor.chain().focus().setImage({ src: `${API_BASE}${res.data.url}` }).run();
+      const dataUrl = await imageToBase64(file);
+      editor.chain().focus().setImage({ src: dataUrl }).run();
     } catch (err) {
-      console.error('Error uploading image:', err);
+      console.error('Error processing image:', err);
     }
     e.target.value = '';
   };

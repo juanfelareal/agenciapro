@@ -522,10 +522,10 @@ const Tasks = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className={`bg-white shadow-xl flex flex-col transition-all duration-200 ${
             modalExpanded
-              ? 'w-full h-full rounded-none p-6'
-              : 'rounded-2xl p-6 w-full max-w-2xl max-h-[90vh]'
-          } overflow-y-auto`}>
-            <div className="flex justify-between items-center mb-6 flex-shrink-0">
+              ? 'w-full h-full rounded-none'
+              : 'rounded-2xl w-full max-w-2xl max-h-[90vh]'
+          }`}>
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 flex-shrink-0">
               <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingTask ? 'Editar Tarea' : 'Nueva Tarea'}
               </h2>
@@ -538,7 +538,9 @@ const Tasks = () => {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className={`flex-1 overflow-hidden flex ${modalExpanded ? 'flex-row' : 'flex-col'}`}>
+              {/* When expanded: left sidebar with fields, right side with description */}
+              <div className={`${modalExpanded ? 'w-[380px] flex-shrink-0 border-r border-gray-100 overflow-y-auto p-6' : 'p-6 overflow-y-auto'}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Título *</label>
@@ -723,14 +725,17 @@ const Tasks = () => {
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                   />
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Descripción</label>
-                  <TaskDescriptionEditor
-                    value={formData.description}
-                    onChange={(json) => setFormData({ ...formData, description: json })}
-                    placeholder="Descripción de la tarea... (puedes pegar imágenes)"
-                  />
-                </div>
+                {/* Description - inline when collapsed */}
+                {!modalExpanded && (
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Descripción</label>
+                    <TaskDescriptionEditor
+                      value={formData.description}
+                      onChange={(json) => setFormData({ ...formData, description: json })}
+                      placeholder="Descripción de la tarea... (puedes pegar imágenes)"
+                    />
+                  </div>
+                )}
 
                 {/* Delivery URL - Link de entrega */}
                 <div className="col-span-2">
@@ -885,7 +890,8 @@ const Tasks = () => {
                   )}
                 </div>
               </div>
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+              {/* Action buttons - inside sidebar when expanded */}
+              <div className={`flex justify-end gap-3 ${modalExpanded ? 'mt-4 pt-4' : 'mt-6 pt-4'} border-t border-gray-100`}>
                 {editingTask && (
                   <div className="flex gap-2 mr-auto">
                     <button
@@ -894,6 +900,7 @@ const Tasks = () => {
                         if (confirm('¿Está seguro de eliminar esta tarea?')) {
                           await tasksAPI.delete(editingTask.id);
                           setShowModal(false);
+                          setModalExpanded(false);
                           loadData();
                         }
                       }}
@@ -904,13 +911,11 @@ const Tasks = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        // Keep form data but switch to "create new" mode
                         setFormData({
                           ...formData,
                           title: `${formData.title} (Copia)`,
                         });
                         setEditingTask(null);
-                        // Keep selectedTagIds so tags are copied too
                         setSubtaskProgress({ total: 0, completed: 0, progress: 0 });
                       }}
                       className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 flex items-center gap-2 transition-colors"
@@ -935,6 +940,21 @@ const Tasks = () => {
                   Guardar
                 </button>
               </div>
+              </div>{/* close sidebar/fields wrapper */}
+
+              {/* Expanded description panel - takes up remaining space */}
+              {modalExpanded && (
+                <div className="flex-1 flex flex-col overflow-hidden p-6">
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Descripción</label>
+                  <div className="flex-1 overflow-y-auto rounded-xl [&_.task-desc-editor]:h-full [&_.task-desc-editor]:flex [&_.task-desc-editor]:flex-col [&_.task-desc-editor_.ProseMirror]:flex-1 [&_.task-desc-editor_.ProseMirror]:min-h-0 [&_.task-desc-editor_.ProseMirror]:overflow-y-auto">
+                    <TaskDescriptionEditor
+                      value={formData.description}
+                      onChange={(json) => setFormData({ ...formData, description: json })}
+                      placeholder="Descripción de la tarea... (puedes pegar imágenes)"
+                    />
+                  </div>
+                </div>
+              )}
             </form>
           </div>
         </div>
