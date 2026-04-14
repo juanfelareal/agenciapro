@@ -946,13 +946,19 @@ const Tasks = () => {
               {modalExpanded && (
                 <div className="flex-1 flex flex-col min-h-0 p-6">
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2 flex-shrink-0">Descripción</label>
-                  <div className="flex-1 min-h-0 rounded-xl [&_.task-desc-editor]:h-full [&_.task-desc-editor]:flex [&_.task-desc-editor]:flex-col [&_.task-desc-editor_.ProseMirror]:flex-1 [&_.task-desc-editor_.ProseMirror]:!max-h-none [&_.task-desc-editor_.ProseMirror]:!min-h-0 [&_.task-desc-editor_.ProseMirror]:overflow-y-auto">
+                  <div className="expanded-desc-panel flex-1 min-h-0">
                     <TaskDescriptionEditor
                       value={formData.description}
                       onChange={(json) => setFormData({ ...formData, description: json })}
                       placeholder="Descripción de la tarea... (puedes pegar imágenes)"
                     />
                   </div>
+                  <style>{`
+                    .expanded-desc-panel { display: flex; flex-direction: column; }
+                    .expanded-desc-panel .task-desc-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+                    .expanded-desc-panel .task-desc-editor > .prose { flex: 1; min-height: 0; overflow-y: auto; }
+                    .expanded-desc-panel .task-desc-editor .ProseMirror { max-height: none !important; min-height: 100% !important; }
+                  `}</style>
                 </div>
               )}
             </form>
