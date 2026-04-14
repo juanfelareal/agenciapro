@@ -281,10 +281,7 @@ export default function ListView({
           <input
             ref={(el) => {
               editInputRef.current = el;
-              // Auto-open the date picker when entering edit mode
-              if (el) {
-                try { el.showPicker(); } catch {}
-              }
+              if (el) el.focus();
             }}
             type="date"
             value={editValue}
