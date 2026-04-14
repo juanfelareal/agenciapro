@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
 import TaskDescriptionEditor from '../components/TaskDescriptionEditor';
@@ -22,6 +22,7 @@ const Tasks = () => {
   const [taskSubtaskProgress, setTaskSubtaskProgress] = useState({}); // { taskId: { total, completed, progress } }
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [modalExpanded, setModalExpanded] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [selectedTagIds, setSelectedTagIds] = useState([]);
   const [subtaskProgress, setSubtaskProgress] = useState({ total: 0, completed: 0, progress: 0 });
@@ -519,14 +520,23 @@ const Tasks = () => {
       {/* Task Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="flex justify-between items-center mb-6">
+          <div className={`bg-white shadow-xl flex flex-col transition-all duration-200 ${
+            modalExpanded
+              ? 'w-full h-full rounded-none p-6'
+              : 'rounded-2xl p-6 w-full max-w-2xl max-h-[90vh]'
+          } overflow-y-auto`}>
+            <div className="flex justify-between items-center mb-6 flex-shrink-0">
               <h2 className="text-xl font-semibold text-[#1A1A2E]">
                 {editingTask ? 'Editar Tarea' : 'Nueva Tarea'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <X size={20} className="text-gray-500" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setModalExpanded(!modalExpanded)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                  {modalExpanded ? <Minimize2 size={20} className="text-gray-500" /> : <Maximize2 size={20} className="text-gray-500" />}
+                </button>
+                <button onClick={() => { setShowModal(false); setModalExpanded(false); }} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4">
@@ -913,7 +923,7 @@ const Tasks = () => {
                 )}
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setModalExpanded(false); }}
                   className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
