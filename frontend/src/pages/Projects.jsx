@@ -580,7 +580,7 @@ const Projects = () => {
                     <option value="">Sin asignar</option>
                     {clients.map((client) => (
                       <option key={client.id} value={client.id}>
-                        {client.company || client.name}
+                        {client.nickname || client.company || client.name}
                       </option>
                     ))}
                   </select>
