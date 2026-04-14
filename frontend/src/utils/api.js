@@ -405,6 +405,10 @@ export const projectTemplatesAPI = {
   updateTask: (templateId, taskId, data) => api.put(`/project-templates/${templateId}/tasks/${taskId}`, data),
   deleteTask: (templateId, taskId) => api.delete(`/project-templates/${templateId}/tasks/${taskId}`),
   reorderTasks: (templateId, taskIds) => api.put(`/project-templates/${templateId}/tasks/reorder`, { taskIds }),
+  // Categories
+  getCategories: () => api.get('/project-templates/categories/all'),
+  createCategory: (name) => api.post('/project-templates/categories', { name }),
+  deleteCategory: (name) => api.delete(`/project-templates/categories/${encodeURIComponent(name)}`),
 };
 
 // Portal Admin API (manage client portal access)

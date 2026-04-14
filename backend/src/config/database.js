@@ -2116,6 +2116,17 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_chat_members_member ON chat_members(team_member_id)`);
 
 
+    // Project template categories (standalone, persist even without templates)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS project_template_categories (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(name, organization_id)
+      )
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

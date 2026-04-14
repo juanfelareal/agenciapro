@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { projectTemplatesAPI, teamAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, Tag } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, Tag, Check } from 'lucide-react';
 
 const ProjectTemplates = () => {
   const [templates, setTemplates] = useState([]);
@@ -10,6 +10,9 @@ const ProjectTemplates = () => {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [saving, setSaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [standaloneCategories, setStandaloneCategories] = useState([]);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCatInput, setNewCatInput] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -22,11 +25,12 @@ const ProjectTemplates = () => {
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // Derive categories from templates
+  // Derive categories from templates + standalone
   const categories = useMemo(() => {
-    const cats = [...new Set(templates.map(t => t.category).filter(Boolean))].sort();
+    const fromTemplates = templates.map(t => t.category).filter(Boolean);
+    const cats = [...new Set([...fromTemplates, ...standaloneCategories])].sort();
     return cats;
-  }, [templates]);
+  }, [templates, standaloneCategories]);
 
   const filteredTemplates = activeCategory === 'all'
     ? templates
@@ -40,12 +44,14 @@ const ProjectTemplates = () => {
 
   const loadTemplates = async () => {
     try {
-      const [templatesRes, teamRes] = await Promise.all([
+      const [templatesRes, teamRes, catsRes] = await Promise.all([
         projectTemplatesAPI.getAll(),
         teamAPI.getAll({ status: 'active' }),
+        projectTemplatesAPI.getCategories(),
       ]);
       setTemplates(templatesRes.data);
       setTeamMembers(teamRes.data);
+      setStandaloneCategories(catsRes.data || []);
     } catch (error) {
       console.error('Error loading templates:', error);
     } finally {
@@ -210,6 +216,39 @@ const ProjectTemplates = () => {
     }
   };
 
+  const handleAddCategory = async () => {
+    const name = newCatInput.trim();
+    if (!name) return;
+    if (categories.includes(name)) {
+      setAddingCategory(false);
+      setNewCatInput('');
+      return;
+    }
+    try {
+      await projectTemplatesAPI.createCategory(name);
+      setStandaloneCategories(prev => [...new Set([...prev, name])]);
+      setNewCatInput('');
+      setAddingCategory(false);
+    } catch (error) {
+      console.error('Error creating category:', error);
+    }
+  };
+
+  const handleDeleteCategory = async (catName) => {
+    const templatesInCat = templates.filter(t => t.category === catName);
+    const msg = templatesInCat.length > 0
+      ? `¿Eliminar la categoría "${catName}"? ${templatesInCat.length} plantilla(s) quedarán sin categoría.`
+      : `¿Eliminar la categoría "${catName}"?`;
+    if (!confirm(msg)) return;
+    try {
+      await projectTemplatesAPI.deleteCategory(catName);
+      if (activeCategory === catName) setActiveCategory('all');
+      loadTemplates();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Cargando...</div>;
   }
@@ -231,26 +270,25 @@ const ProjectTemplates = () => {
       </div>
 
       {/* Category Tabs */}
-      {categories.length > 0 && (
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl flex-wrap">
-          <button
-            onClick={() => setActiveCategory('all')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeCategory === 'all'
-                ? 'bg-white text-[#1A1A2E] shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Todas
-            <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
-              activeCategory === 'all' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-500'
-            }`}>
-              {templates.length}
-            </span>
-          </button>
-          {categories.map((cat) => (
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl flex-wrap items-center">
+        <button
+          onClick={() => setActiveCategory('all')}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            activeCategory === 'all'
+              ? 'bg-white text-[#1A1A2E] shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Todas
+          <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
+            activeCategory === 'all' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-500'
+          }`}>
+            {templates.length}
+          </span>
+        </button>
+        {categories.map((cat) => (
+          <div key={cat} className="group relative flex items-center">
             <button
-              key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeCategory === cat
@@ -265,26 +303,70 @@ const ProjectTemplates = () => {
                 {templates.filter(t => t.category === cat).length}
               </span>
             </button>
-          ))}
-          {templates.some(t => !t.category) && (
             <button
-              onClick={() => setActiveCategory('uncategorized')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeCategory === 'uncategorized'
-                  ? 'bg-white text-[#1A1A2E] shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat); }}
+              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+              title={`Eliminar categoría "${cat}"`}
             >
-              Sin categoría
-              <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
-                activeCategory === 'uncategorized' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-500'
-              }`}>
-                {templates.filter(t => !t.category).length}
-              </span>
+              <X size={10} />
             </button>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
+        {templates.some(t => !t.category) && (
+          <button
+            onClick={() => setActiveCategory('uncategorized')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              activeCategory === 'uncategorized'
+                ? 'bg-white text-[#1A1A2E] shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Sin categoría
+            <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-xs ${
+              activeCategory === 'uncategorized' ? 'bg-gray-200 text-gray-700' : 'bg-gray-200 text-gray-500'
+            }`}>
+              {templates.filter(t => !t.category).length}
+            </span>
+          </button>
+        )}
+        {/* Add category inline */}
+        {addingCategory ? (
+          <div className="flex items-center gap-1 ml-1">
+            <input
+              type="text"
+              className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+              placeholder="Nueva categoría..."
+              value={newCatInput}
+              onChange={(e) => setNewCatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddCategory();
+                if (e.key === 'Escape') { setAddingCategory(false); setNewCatInput(''); }
+              }}
+              autoFocus
+            />
+            <button
+              onClick={handleAddCategory}
+              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
+            >
+              <Check size={16} />
+            </button>
+            <button
+              onClick={() => { setAddingCategory(false); setNewCatInput(''); }}
+              className="p-1.5 text-gray-400 hover:bg-gray-200 rounded-lg"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAddingCategory(true)}
+            className="p-2 text-gray-400 hover:text-[#1A1A2E] hover:bg-white rounded-lg transition-colors ml-1"
+            title="Agregar categoría"
+          >
+            <Plus size={16} />
+          </button>
+        )}
+      </div>
 
       {/* Templates Grid */}
       {filteredTemplates.length === 0 ? (

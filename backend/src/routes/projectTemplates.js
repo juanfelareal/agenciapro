@@ -20,6 +20,69 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ============================================
+// CATEGORY ROUTES (must be before /:id)
+// ============================================
+
+// Get all categories (from dedicated table + derived from templates)
+router.get('/categories/all', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const standalone = await db.all(
+      'SELECT name FROM project_template_categories WHERE organization_id = ?',
+      [orgId]
+    );
+    const fromTemplates = await db.all(
+      "SELECT DISTINCT category as name FROM project_templates WHERE category IS NOT NULL AND category != '' AND organization_id = ?",
+      [orgId]
+    );
+    const allNames = [...new Set([
+      ...standalone.map(c => c.name),
+      ...fromTemplates.map(c => c.name),
+    ])].sort();
+    res.json(allNames);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create a standalone category
+router.post('/categories', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'El nombre es requerido' });
+    }
+    await db.run(
+      'INSERT INTO project_template_categories (name, organization_id) VALUES (?, ?) ON CONFLICT (name, organization_id) DO NOTHING',
+      [name.trim(), orgId]
+    );
+    res.status(201).json({ name: name.trim() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a category (remove from standalone table + clear from all templates)
+router.delete('/categories/:name', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const categoryName = decodeURIComponent(req.params.name);
+    await db.run(
+      'DELETE FROM project_template_categories WHERE name = ? AND organization_id = ?',
+      [categoryName, orgId]
+    );
+    await db.run(
+      'UPDATE project_templates SET category = NULL, updated_at = CURRENT_TIMESTAMP WHERE category = ? AND organization_id = ?',
+      [categoryName, orgId]
+    );
+    res.json({ message: 'Categoría eliminada' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get template by ID with tasks
 router.get('/:id', async (req, res) => {
   try {
