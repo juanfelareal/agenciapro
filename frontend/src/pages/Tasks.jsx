@@ -519,10 +519,10 @@ const Tasks = () => {
 
       {/* Task Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`bg-white shadow-xl flex flex-col transition-all duration-200 ${
+        <div className={`fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 ${modalExpanded ? 'p-0' : 'p-4'}`}>
+          <div className={`bg-white shadow-xl flex flex-col ${
             modalExpanded
-              ? 'w-full h-full rounded-none'
+              ? 'w-full h-full'
               : 'rounded-2xl w-full max-w-2xl max-h-[90vh]'
           }`}>
             <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 flex-shrink-0">
@@ -538,9 +538,9 @@ const Tasks = () => {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmit} className={`flex-1 overflow-hidden flex ${modalExpanded ? 'flex-row' : 'flex-col'}`}>
+            <form onSubmit={handleSubmit} className={`flex-1 min-h-0 flex ${modalExpanded ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'}`}>
               {/* When expanded: left sidebar with fields, right side with description */}
-              <div className={`${modalExpanded ? 'w-[380px] flex-shrink-0 border-r border-gray-100 overflow-y-auto p-6' : 'p-6 overflow-y-auto'}`}>
+              <div className={`${modalExpanded ? 'w-[400px] flex-shrink-0 border-r border-gray-100 overflow-y-auto p-6' : 'p-6'}`}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Título *</label>
