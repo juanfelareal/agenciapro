@@ -628,6 +628,36 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Note version history
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS note_versions (
+        id SERIAL PRIMARY KEY,
+        note_id INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+        content TEXT,
+        content_plain TEXT,
+        title TEXT,
+        edited_by INTEGER REFERENCES team_members(id),
+        edited_by_client TEXT,
+        change_source TEXT CHECK(change_source IN ('team', 'client_edit_accepted')) DEFAULT 'team',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        organization_id INTEGER REFERENCES organizations(id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_note_versions_note_id ON note_versions(note_id)`);
+
+    // Add last_edited_by to notes
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='last_edited_by') THEN
+          ALTER TABLE notes ADD COLUMN last_edited_by INTEGER REFERENCES team_members(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notes' AND column_name='last_edited_by_client') THEN
+          ALTER TABLE notes ADD COLUMN last_edited_by_client TEXT;
+        END IF;
+      END $$;
+    `);
+
     // Facebook credentials
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_facebook_credentials (
@@ -1129,6 +1159,7 @@ export const initializeDatabase = async () => {
       // Client portal dashboard
       'client_priorities',
       'growth_objectives', 'growth_palancas', 'growth_milestones', 'growth_banderas',
+      'note_versions',
       // Note: 'client_commercial_dates' already has organization_id in its CREATE TABLE
       // Note: 'forms' and 'form_assignments' already have organization_id in their CREATE TABLE
     ];

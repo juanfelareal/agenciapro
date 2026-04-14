@@ -252,7 +252,19 @@ const SharedNoteView = () => {
               <h1 className="font-semibold text-slate-800 line-clamp-1">
                 {note?.title || 'Sin título'}
               </h1>
-              <p className="text-xs text-slate-400">Compartido contigo</p>
+              <p className="text-xs text-slate-400">
+                Compartido contigo
+                {note?.updated_at && (
+                  <span className="ml-2 text-slate-300">
+                    · Última edición: {new Date(note.updated_at).toLocaleDateString('es-CO', {
+                      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    })}
+                    {note.last_edited_by_client && ` por ${note.last_edited_by_client}`}
+                    {note.last_editor_name && !note.last_edited_by_client && ` por ${note.last_editor_name}`}
+                    {note.last_editor_name && note.last_edited_by_client && ` (aprobada por ${note.last_editor_name})`}
+                  </span>
+                )}
+              </p>
             </div>
           </div>
 

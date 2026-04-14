@@ -260,6 +260,9 @@ export const notesAPI = {
   addLink: (id, data) => api.post(`/notes/${id}/links`, data),
   removeLink: (id, linkId) => api.delete(`/notes/${id}/links/${linkId}`),
   togglePortalVisibility: (id, linkId) => api.put(`/notes/${id}/links/${linkId}/portal`),
+  getVersions: (id) => api.get(`/notes/${id}/versions`),
+  getVersion: (id, versionId) => api.get(`/notes/${id}/versions/${versionId}`),
+  restoreVersion: (id, versionId) => api.post(`/notes/${id}/versions/${versionId}/restore`),
 };
 
 // Note Categories API

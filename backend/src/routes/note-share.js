@@ -230,11 +230,36 @@ router.put('/:id/edits/:editId', teamAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Action must be "accepted" or "rejected"' });
     }
 
+    const noteId = req.params.id;
+    const editId = req.params.editId;
+    const orgId = req.orgId;
+
     await db.run(`
       UPDATE note_client_edits
       SET status = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
       WHERE id = ? AND note_id = ? AND organization_id = ?
-    `, [action, req.teamMember.id, req.params.editId, req.params.id, req.orgId]);
+    `, [action, req.teamMember.id, editId, noteId, orgId]);
+
+    // When accepting, save current content as a version before the edit overwrites it
+    if (action === 'accepted') {
+      const edit = await db.get('SELECT * FROM note_client_edits WHERE id = ?', [editId]);
+      const currentNote = await db.get('SELECT * FROM notes WHERE id = ?', [noteId]);
+
+      if (currentNote && currentNote.content) {
+        await db.run(`
+          INSERT INTO note_versions (note_id, content, content_plain, title, edited_by, edited_by_client, change_source, organization_id)
+          VALUES (?, ?, ?, ?, ?, ?, 'client_edit_accepted', ?)
+        `, [noteId, currentNote.content, currentNote.content_plain, currentNote.title, req.teamMember.id, edit?.author_name, orgId]);
+      }
+
+      // Update last_edited_by_client on the note
+      if (edit) {
+        await db.run(`
+          UPDATE notes SET last_edited_by_client = ?, last_edited_by = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND organization_id = ?
+        `, [edit.author_name, req.teamMember.id, noteId, orgId]);
+      }
+    }
 
     res.json({ message: action === 'accepted' ? 'Edición aceptada' : 'Edición rechazada' });
   } catch (error) {
@@ -251,9 +276,12 @@ router.get('/public/:token', async (req, res) => {
   try {
     // Find the share token
     const shareToken = await db.get(`
-      SELECT nst.*, n.title, n.content, n.content_plain, n.color
+      SELECT nst.*, n.title, n.content, n.content_plain, n.color,
+        n.updated_at, n.last_edited_by, n.last_edited_by_client,
+        tm.name as last_editor_name
       FROM note_share_tokens nst
       JOIN notes n ON nst.note_id = n.id
+      LEFT JOIN team_members tm ON n.last_edited_by = tm.id
       WHERE nst.token = ? AND nst.status = 'active'
     `, [req.params.token]);
 
@@ -286,7 +314,10 @@ router.get('/public/:token', async (req, res) => {
         title: shareToken.title,
         content: shareToken.content,
         content_plain: shareToken.content_plain,
-        color: shareToken.color
+        color: shareToken.color,
+        updated_at: shareToken.updated_at,
+        last_editor_name: shareToken.last_editor_name,
+        last_edited_by_client: shareToken.last_edited_by_client
       },
       permissions: {
         allow_comments: shareToken.allow_comments === 1,

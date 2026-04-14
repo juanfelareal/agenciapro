@@ -133,10 +133,12 @@ router.get('/:id', async (req, res) => {
       SELECT n.*,
         nc.name as category_name,
         nc.color as category_color,
-        tm.name as creator_name
+        tm.name as creator_name,
+        tm2.name as last_editor_name
       FROM notes n
       LEFT JOIN note_categories nc ON n.category_id = nc.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
+      LEFT JOIN team_members tm2 ON n.last_edited_by = tm2.id
       WHERE n.id = ? AND n.organization_id = ?
     `).get(req.params.id, req.orgId);
 
@@ -306,20 +308,32 @@ router.put('/:id', async (req, res) => {
       ? visibility
       : existingNote.visibility || 'organization';
 
+    const contentStr = content ? (typeof content === 'string' ? content : JSON.stringify(content)) : null;
+
+    // Save version snapshot before updating (only if content changed)
+    if (existingNote.content && contentStr && existingNote.content !== contentStr) {
+      await db.prepare(`
+        INSERT INTO note_versions (note_id, content, content_plain, title, edited_by, change_source, organization_id)
+        VALUES (?, ?, ?, ?, ?, 'team', ?)
+      `).run(req.params.id, existingNote.content, existingNote.content_plain, existingNote.title, req.teamMember.id, req.orgId);
+    }
+
     await db.prepare(`
       UPDATE notes
       SET title = ?, content = ?, content_plain = ?, color = ?,
-          category_id = ?, folder_id = ?, is_pinned = ?, visibility = ?, updated_at = CURRENT_TIMESTAMP
+          category_id = ?, folder_id = ?, is_pinned = ?, visibility = ?,
+          last_edited_by = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `).run(
       title,
-      content ? (typeof content === 'string' ? content : JSON.stringify(content)) : null,
+      contentStr,
       content_plain || '',
       color || '#FFFFFF',
       category_id || null,
       folder_id || null,
       is_pinned ? 1 : 0,
       newVisibility,
+      req.teamMember.id,
       req.params.id,
       req.orgId
     );
@@ -533,6 +547,81 @@ router.delete('/:id', async (req, res) => {
 
     await db.prepare('DELETE FROM notes WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
     res.json({ message: 'Note deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get version history for a note
+router.get('/:id/versions', async (req, res) => {
+  try {
+    const versions = await db.prepare(`
+      SELECT nv.id, nv.title, nv.content_plain, nv.edited_by, nv.edited_by_client,
+        nv.change_source, nv.created_at,
+        tm.name as editor_name
+      FROM note_versions nv
+      LEFT JOIN team_members tm ON nv.edited_by = tm.id
+      WHERE nv.note_id = ? AND nv.organization_id = ?
+      ORDER BY nv.created_at DESC
+      LIMIT 50
+    `).all(req.params.id, req.orgId);
+
+    res.json(versions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get a specific version content
+router.get('/:id/versions/:versionId', async (req, res) => {
+  try {
+    const version = await db.prepare(`
+      SELECT nv.*, tm.name as editor_name
+      FROM note_versions nv
+      LEFT JOIN team_members tm ON nv.edited_by = tm.id
+      WHERE nv.id = ? AND nv.note_id = ? AND nv.organization_id = ?
+    `).get(req.params.versionId, req.params.id, req.orgId);
+
+    if (!version) {
+      return res.status(404).json({ error: 'Versión no encontrada' });
+    }
+
+    res.json(version);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Restore a version
+router.post('/:id/versions/:versionId/restore', async (req, res) => {
+  try {
+    const version = await db.prepare(`
+      SELECT * FROM note_versions
+      WHERE id = ? AND note_id = ? AND organization_id = ?
+    `).get(req.params.versionId, req.params.id, req.orgId);
+
+    if (!version) {
+      return res.status(404).json({ error: 'Versión no encontrada' });
+    }
+
+    // Save current content as a new version before restoring
+    const currentNote = await db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+    if (currentNote && currentNote.content) {
+      await db.prepare(`
+        INSERT INTO note_versions (note_id, content, content_plain, title, edited_by, change_source, organization_id)
+        VALUES (?, ?, ?, ?, ?, 'team', ?)
+      `).run(req.params.id, currentNote.content, currentNote.content_plain, currentNote.title, req.teamMember.id, req.orgId);
+    }
+
+    // Restore the version
+    await db.prepare(`
+      UPDATE notes
+      SET content = ?, content_plain = ?, title = ?, last_edited_by = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND organization_id = ?
+    `).run(version.content, version.content_plain, version.title, req.teamMember.id, req.params.id, req.orgId);
+
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+    res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

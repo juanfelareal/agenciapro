@@ -42,7 +42,9 @@ import {
   XCircle,
   Loader2,
   Clock,
-  UserCheck
+  UserCheck,
+  History,
+  RotateCcw
 } from 'lucide-react';
 
 const NOTE_COLORS = [
@@ -121,6 +123,11 @@ const Notes = () => {
   const [loadingEdits, setLoadingEdits] = useState(false);
   const [expandedEditId, setExpandedEditId] = useState(null);
   const [reviewingEditId, setReviewingEditId] = useState(null);
+  const [versions, setVersions] = useState([]);
+  const [showVersions, setShowVersions] = useState(false);
+  const [loadingVersions, setLoadingVersions] = useState(false);
+  const [previewVersion, setPreviewVersion] = useState(null);
+  const [restoringVersion, setRestoringVersion] = useState(false);
 
   useEffect(() => {
     loadInitialData();
@@ -211,6 +218,8 @@ const Notes = () => {
       setClientEdits([]);
       setExpandedEditId(null);
       loadClientEdits(note.id);
+      setShowVersions(false);
+      setPreviewVersion(null);
     } catch (error) {
       console.error('Error loading note:', error);
     }
@@ -227,6 +236,59 @@ const Notes = () => {
       setClientEdits([]);
     } finally {
       setLoadingEdits(false);
+    }
+  };
+
+  // Load version history
+  const loadVersions = async (noteId) => {
+    setLoadingVersions(true);
+    try {
+      const res = await notesAPI.getVersions(noteId);
+      setVersions(res.data || []);
+    } catch (error) {
+      setVersions([]);
+    } finally {
+      setLoadingVersions(false);
+    }
+  };
+
+  // Preview a version
+  const handlePreviewVersion = async (versionId) => {
+    try {
+      const res = await notesAPI.getVersion(activeNote.id, versionId);
+      const version = res.data;
+      let content = version.content;
+      if (typeof content === 'string') {
+        try { content = JSON.parse(content); } catch {}
+        if (typeof content === 'string') try { content = JSON.parse(content); } catch {}
+      }
+      setPreviewVersion({ ...version, parsedContent: content });
+    } catch (error) {
+      console.error('Error loading version:', error);
+    }
+  };
+
+  // Restore a version
+  const handleRestoreVersion = async (versionId) => {
+    if (!confirm('¿Restaurar esta versión? El contenido actual se guardará en el historial.')) return;
+    setRestoringVersion(true);
+    try {
+      const res = await notesAPI.restoreVersion(activeNote.id, versionId);
+      const note = res.data;
+      let content = note.content;
+      if (typeof content === 'string') {
+        try { content = JSON.parse(content); } catch {}
+        if (typeof content === 'string') try { content = JSON.parse(content); } catch {}
+      }
+      setFormData(prev => ({ ...prev, content, title: note.title }));
+      setPreviewVersion(null);
+      setShowVersions(false);
+      loadVersions(activeNote.id);
+    } catch (error) {
+      console.error('Error restoring version:', error);
+      alert('Error al restaurar la versión');
+    } finally {
+      setRestoringVersion(false);
     }
   };
 
@@ -760,6 +822,14 @@ const Notes = () => {
                   </button>
                 )}
                 <button
+                  onClick={() => { setShowVersions(!showVersions); if (!showVersions) loadVersions(activeNote.id); }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${showVersions ? 'bg-slate-200 text-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
+                  title="Historial de versiones"
+                >
+                  <History size={16} />
+                  Historial
+                </button>
+                <button
                   onClick={handleExportPDF}
                   className="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
                   title="Exportar a PDF"
@@ -894,26 +964,33 @@ const Notes = () => {
             </div>
           )}
 
-          {/* Last accepted client edit banner */}
-          {!isEditing && (() => {
-            const lastAccepted = clientEdits.find(e => e.status === 'accepted');
-            if (!lastAccepted) return null;
-            return (
-              <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-sm">
-                <UserCheck size={16} className="text-green-600 flex-shrink-0" />
-                <div className="text-slate-600">
-                  <span className="font-medium text-slate-700">Última edición de cliente:</span>{' '}
-                  enviada por <span className="font-semibold text-slate-800">{lastAccepted.author_name}</span>
-                  {' · '}
-                  aprobada por <span className="font-semibold text-slate-800">{lastAccepted.reviewed_by_name || 'equipo'}</span>
-                  {' · '}
-                  {new Date(lastAccepted.reviewed_at || lastAccepted.created_at).toLocaleDateString('es-CO', {
+          {/* Last edit info banner */}
+          {!isEditing && activeNote?.updated_at && (
+            <div className="mb-4 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3 text-xs text-slate-500">
+              <Clock size={14} className="text-slate-400 flex-shrink-0" />
+              <div>
+                <span>Última actualización: </span>
+                <span className="font-medium text-slate-700">
+                  {new Date(activeNote.updated_at).toLocaleDateString('es-CO', {
                     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                   })}
-                </div>
+                </span>
+                {activeNote.last_edited_by_client && (
+                  <>
+                    {' · '}Enviada por <span className="font-medium text-slate-700">{activeNote.last_edited_by_client}</span>
+                    {activeNote.last_editor_name && (
+                      <> · Aprobada por <span className="font-medium text-slate-700">{activeNote.last_editor_name}</span></>
+                    )}
+                  </>
+                )}
+                {!activeNote.last_edited_by_client && activeNote.last_editor_name && (
+                  <>
+                    {' · '}Editada por <span className="font-medium text-slate-700">{activeNote.last_editor_name}</span>
+                  </>
+                )}
               </div>
-            );
-          })()}
+            </div>
+          )}
 
           {/* Content */}
           <div className="prose prose-slate max-w-none">
@@ -1066,6 +1143,100 @@ const Notes = () => {
                     <entity.icon size={14} />
                     {entity.name}
                   </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Version history panel */}
+          {showVersions && !isEditing && activeNote?.id !== 'new' && (
+            <div className="mt-8 pt-6 border-t border-slate-200/50">
+              <div className="flex items-center gap-2 mb-4">
+                <History size={16} className="text-slate-500" />
+                <span className="text-sm font-medium text-slate-700">
+                  Historial de versiones
+                </span>
+                {loadingVersions && <Loader2 size={14} className="animate-spin text-slate-400" />}
+              </div>
+
+              {versions.length === 0 && !loadingVersions && (
+                <p className="text-sm text-slate-400 italic">No hay versiones anteriores guardadas.</p>
+              )}
+
+              <div className="space-y-2">
+                {/* Current version */}
+                <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Versión actual</p>
+                        <p className="text-xs text-slate-400">
+                          {activeNote?.updated_at && new Date(activeNote.updated_at).toLocaleDateString('es-CO', {
+                            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                          })}
+                          {activeNote?.last_editor_name && ` · ${activeNote.last_editor_name}`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {versions.map(version => (
+                  <div key={version.id} className={`border rounded-xl overflow-hidden transition-colors ${
+                    previewVersion?.id === version.id ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200 bg-white'
+                  }`}>
+                    <div className="px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${version.change_source === 'client_edit_accepted' ? 'bg-amber-400' : 'bg-slate-300'}`}></div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">
+                            {version.change_source === 'client_edit_accepted'
+                              ? `Antes de edición de ${version.edited_by_client || 'cliente'}`
+                              : `Editada por ${version.editor_name || 'equipo'}`
+                            }
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(version.created_at).toLocaleDateString('es-CO', {
+                              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                            {version.content_plain && ` · ${version.content_plain.substring(0, 60)}...`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => previewVersion?.id === version.id ? setPreviewVersion(null) : handlePreviewVersion(version.id)}
+                          className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                        >
+                          {previewVersion?.id === version.id ? 'Ocultar' : 'Ver'}
+                        </button>
+                        <button
+                          onClick={() => handleRestoreVersion(version.id)}
+                          disabled={restoringVersion}
+                          className="px-3 py-1.5 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {restoringVersion ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                          Restaurar
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Preview content */}
+                    {previewVersion?.id === version.id && previewVersion?.parsedContent && (
+                      <div className="px-4 pb-4 border-t border-slate-200/50">
+                        <div className="mt-3 prose prose-slate prose-sm max-w-none bg-white rounded-lg p-4 border border-slate-100">
+                          <NoteEditor
+                            content={previewVersion.parsedContent}
+                            onChange={() => {}}
+                            placeholder=""
+                            minHeight="100px"
+                            readOnly
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
