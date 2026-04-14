@@ -13,6 +13,8 @@ function MetricCard({
   iconColor = 'text-[#65A30D]',
   change = null,
   changeLabel = '',
+  compareValue = null,
+  invertChange = false,
   format = 'number',
   prefix = '',
   suffix = '',
@@ -45,11 +47,34 @@ function MetricCard({
     }
   };
 
-  // Determine if change is positive or negative
-  const isPositive = change !== null && change >= 0;
-  const changeColor = isPositive ? 'text-[#10B981]' : 'text-[#F97316]';
-  const changeBgColor = isPositive ? 'bg-[#10B981]/10' : 'bg-[#F97316]/10';
-  const ChangeTrendIcon = isPositive ? TrendingUp : TrendingDown;
+  // Format compare value compactly
+  const formatCompact = (val) => {
+    if (val === null || val === undefined) return '';
+    switch (format) {
+      case 'currency': {
+        const abs = Math.abs(val);
+        if (abs >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
+        if (abs >= 1000) return `$${(val / 1000).toFixed(0)}K`;
+        return `$${Math.round(val)}`;
+      }
+      case 'percent':
+        return `${Number(val).toFixed(1)}%`;
+      case 'decimal':
+        return Number(val).toFixed(2);
+      case 'integer':
+        return new Intl.NumberFormat('es-CO').format(Math.round(val));
+      default:
+        return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(val);
+    }
+  };
+
+  // Determine if change is positive or negative, considering inversion
+  const isUp = change !== null && change >= 0;
+  // For inverted metrics (costs), going up is bad; going down is good
+  const isGood = invertChange ? !isUp : isUp;
+  const changeColor = isGood ? 'text-[#10B981]' : 'text-[#EF4444]';
+  const changeBgColor = isGood ? 'bg-[#10B981]/10' : 'bg-[#EF4444]/10';
+  const ChangeTrendIcon = isUp ? TrendingUp : TrendingDown;
 
   if (loading) {
     return (
@@ -88,8 +113,11 @@ function MetricCard({
         <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ${changeBgColor}`}>
           <ChangeTrendIcon className={`w-3.5 h-3.5 ${changeColor}`} />
           <span className={`text-xs font-medium ${changeColor}`}>
-            {isPositive ? '+' : ''}{Number(change).toFixed(1)}%
+            {isUp ? '+' : ''}{Number(change).toFixed(1)}%
           </span>
+          {compareValue !== null && compareValue !== undefined && (
+            <span className="text-xs text-gray-400">({formatCompact(compareValue)})</span>
+          )}
           {changeLabel && (
             <span className="text-xs text-gray-400">{changeLabel}</span>
           )}

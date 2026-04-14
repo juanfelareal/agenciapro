@@ -461,7 +461,7 @@ function ClientMetrics() {
         </div>
       )}
 
-      {/* Revenue Metrics - 3 types */}
+      {/* Revenue Metrics - 3 types — higher is better */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <MetricCard
           title="Venta Total"
@@ -473,6 +473,7 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
           change={compareMode ? calcChange(metrics?.total_all_orders_revenue, compareMetrics?.total_all_orders_revenue) : null}
+          compareValue={compareMode ? compareMetrics?.total_all_orders_revenue : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -485,6 +486,7 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
           change={compareMode ? calcChange(metrics?.total_revenue, compareMetrics?.total_revenue) : null}
+          compareValue={compareMode ? compareMetrics?.total_revenue : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -497,11 +499,12 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
           change={compareMode ? calcChange(metrics?.net_revenue, compareMetrics?.net_revenue) : null}
+          compareValue={compareMode ? compareMetrics?.net_revenue : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
-      {/* Other Metric Cards */}
+      {/* Orders — higher is better, except Pendientes (lower is better) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Pedidos Confirmados"
@@ -512,6 +515,7 @@ function ClientMetrics() {
           format="integer"
           loading={loading}
           change={compareMode ? calcChange(metrics?.total_orders, compareMetrics?.total_orders) : null}
+          compareValue={compareMode ? compareMetrics?.total_orders : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -522,7 +526,9 @@ function ClientMetrics() {
           iconColor="text-yellow-600"
           format="integer"
           loading={loading}
+          invertChange
           change={compareMode ? calcChange(metrics?.total_pending_orders, compareMetrics?.total_pending_orders) : null}
+          compareValue={compareMode ? compareMetrics?.total_pending_orders : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -534,6 +540,7 @@ function ClientMetrics() {
           format="integer"
           loading={loading}
           change={compareMode ? calcChange(metrics?.total_all_orders_count, compareMetrics?.total_all_orders_count) : null}
+          compareValue={compareMode ? compareMetrics?.total_all_orders_count : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -545,10 +552,12 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
           change={compareMode ? calcChange(metrics?.ticket_promedio, compareMetrics?.ticket_promedio) : null}
+          compareValue={compareMode ? compareMetrics?.ticket_promedio : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
+      {/* Ad spend & efficiency — costs: lower is better; ROAS: higher is better */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Inversion Publicidad"
@@ -558,7 +567,9 @@ function ClientMetrics() {
           iconColor="text-blue-600"
           format="currency"
           loading={loading}
+          invertChange
           change={compareMode ? calcChange(metrics?.total_ad_spend, compareMetrics?.total_ad_spend) : null}
+          compareValue={compareMode ? compareMetrics?.total_ad_spend : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -569,7 +580,9 @@ function ClientMetrics() {
           iconColor="text-indigo-600"
           format="currency"
           loading={loading}
+          invertChange
           change={compareMode ? calcChange(metrics?.cost_per_order, compareMetrics?.cost_per_order) : null}
+          compareValue={compareMode ? compareMetrics?.cost_per_order : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -581,6 +594,7 @@ function ClientMetrics() {
           format="decimal"
           loading={loading}
           change={compareMode ? calcChange(metrics?.roas, compareMetrics?.roas) : null}
+          compareValue={compareMode ? compareMetrics?.roas : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -591,12 +605,14 @@ function ClientMetrics() {
           iconColor="text-pink-600"
           format="percent"
           loading={loading}
+          invertChange
           change={compareMode ? calcChange(metrics?.ad_spend_percentage, compareMetrics?.ad_spend_percentage) : null}
+          compareValue={compareMode ? compareMetrics?.ad_spend_percentage : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
-      {/* New Metrics Row: Facebook Expanded */}
+      {/* Facebook costs — lower is better */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="CPM"
@@ -606,7 +622,9 @@ function ClientMetrics() {
           iconColor="text-sky-600"
           format="currency"
           loading={loading}
+          invertChange
           change={compareMode ? calcChange(metrics?.cpm, compareMetrics?.cpm) : null}
+          compareValue={compareMode ? compareMetrics?.cpm : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -617,12 +635,14 @@ function ClientMetrics() {
           iconColor="text-rose-600"
           format="currency"
           loading={loading}
+          invertChange
           change={compareMode ? calcChange(metrics?.cost_per_purchase, compareMetrics?.cost_per_purchase) : null}
+          compareValue={compareMode ? compareMetrics?.cost_per_purchase : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
 
-      {/* New Metrics Row: Shopify Expanded */}
+      {/* Shopify expanded — sessions & conversion higher is better; pendientes lower is better */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           title="Sesiones"
@@ -633,6 +653,7 @@ function ClientMetrics() {
           format="integer"
           loading={loading}
           change={compareMode ? calcChange(metrics?.total_sessions, compareMetrics?.total_sessions) : null}
+          compareValue={compareMode ? compareMetrics?.total_sessions : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -644,6 +665,7 @@ function ClientMetrics() {
           format="percent"
           loading={loading}
           change={compareMode ? calcChange(metrics?.conversion_rate, compareMetrics?.conversion_rate) : null}
+          compareValue={compareMode ? compareMetrics?.conversion_rate : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -654,7 +676,9 @@ function ClientMetrics() {
           iconColor="text-red-600"
           format="integer"
           loading={loading}
+          invertChange
           change={compareMode ? calcChange(metrics?.total_pending_orders, compareMetrics?.total_pending_orders) : null}
+          compareValue={compareMode ? compareMetrics?.total_pending_orders : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -666,6 +690,7 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
           change={compareMode ? calcChange(metrics?.total_tax, compareMetrics?.total_tax) : null}
+          compareValue={compareMode ? compareMetrics?.total_tax : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
@@ -677,6 +702,7 @@ function ClientMetrics() {
           format="currency"
           loading={loading}
           change={compareMode ? calcChange(metrics?.total_discounts, compareMetrics?.total_discounts) : null}
+          compareValue={compareMode ? compareMetrics?.total_discounts : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
