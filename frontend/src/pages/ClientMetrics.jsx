@@ -73,6 +73,7 @@ function ClientMetrics() {
     start: getColombiaDate(-7),
     end: getColombiaDate()
   });
+  const [activePreset, setActivePreset] = useState(null);
 
   useEffect(() => {
     loadClient();
@@ -219,10 +220,36 @@ function ClientMetrics() {
     }).sort((a, b) => b[analysisMetric] - a[analysisMetric]);
   }, [ads, analysisCategoryId, analysisMetric]);
 
-  // Calculate previous period of same length
+  // Calculate previous period for comparison
   const getPreviousPeriod = () => {
     const startDate = new Date(dateRange.start + 'T12:00:00');
     const endDate = new Date(dateRange.end + 'T12:00:00');
+
+    // For week-based presets, shift by exactly 7 days (same weekdays)
+    if (activePreset === 'thisWeek' || activePreset === 'lastWeek') {
+      const prevStart = new Date(startDate);
+      prevStart.setDate(prevStart.getDate() - 7);
+      const prevEnd = new Date(endDate);
+      prevEnd.setDate(prevEnd.getDate() - 7);
+      return {
+        start: prevStart.toISOString().split('T')[0],
+        end: prevEnd.toISOString().split('T')[0],
+      };
+    }
+
+    // For month preset, compare with same days of previous month
+    if (activePreset === 'thisMonth') {
+      const prevStart = new Date(startDate);
+      prevStart.setMonth(prevStart.getMonth() - 1);
+      const prevEnd = new Date(endDate);
+      prevEnd.setMonth(prevEnd.getMonth() - 1);
+      return {
+        start: prevStart.toISOString().split('T')[0],
+        end: prevEnd.toISOString().split('T')[0],
+      };
+    }
+
+    // Default: previous period of same length
     const days = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
     const prevEnd = new Date(startDate);
     prevEnd.setDate(prevEnd.getDate() - 1);
@@ -347,6 +374,7 @@ function ClientMetrics() {
         return;
     }
 
+    setActivePreset(preset);
     setDateRange({ start, end });
   };
 
@@ -429,14 +457,14 @@ function ClientMetrics() {
             <input
               type="date"
               value={dateRange.start}
-              onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value }))}
+              onChange={(e) => { setActivePreset(null); setDateRange((prev) => ({ ...prev, start: e.target.value })); }}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
             <span className="text-gray-400">-</span>
             <input
               type="date"
               value={dateRange.end}
-              onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value }))}
+              onChange={(e) => { setActivePreset(null); setDateRange((prev) => ({ ...prev, end: e.target.value })); }}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
           </div>
