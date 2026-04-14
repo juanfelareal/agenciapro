@@ -239,10 +239,19 @@ const ProjectTemplates = () => {
 
   const handleDeleteCategory = async (catName) => {
     const templatesInCat = templates.filter(t => t.category === catName);
-    const msg = templatesInCat.length > 0
+    // First confirmation
+    const msg1 = templatesInCat.length > 0
       ? `¿Eliminar la categoría "${catName}"? ${templatesInCat.length} plantilla(s) quedarán sin categoría.`
       : `¿Eliminar la categoría "${catName}"?`;
-    if (!confirm(msg)) return;
+    if (!confirm(msg1)) return;
+    // Second confirmation
+    if (!confirm(`¿Estás seguro? Esta acción no se puede deshacer.`)) return;
+    // Third confirmation: type the name
+    const typed = prompt(`Para confirmar, escribe el nombre de la categoría: "${catName}"`);
+    if (typed === null || typed.trim() !== catName) {
+      alert('El nombre no coincide. No se eliminó la categoría.');
+      return;
+    }
     try {
       await projectTemplatesAPI.deleteCategory(catName);
       if (activeCategory === catName) setActiveCategory('all');
