@@ -2116,6 +2116,16 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_chat_members_member ON chat_members(team_member_id)`);
 
 
+    // Add subcategory to project_templates
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='project_templates' AND column_name='subcategory') THEN
+          ALTER TABLE project_templates ADD COLUMN subcategory TEXT;
+        END IF;
+      END $$
+    `);
+
     // Project template categories (standalone, persist even without templates)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS project_template_categories (

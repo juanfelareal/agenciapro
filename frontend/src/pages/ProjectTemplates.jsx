@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { projectTemplatesAPI, teamAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, Tag, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, ChevronUp, ChevronDown, Tag, Check, Layers } from 'lucide-react';
 
 const ProjectTemplates = () => {
   const [templates, setTemplates] = useState([]);
@@ -19,11 +19,14 @@ const ProjectTemplates = () => {
     name: '',
     description: '',
     category: '',
+    subcategory: '',
   });
   const [tasks, setTasks] = useState([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [showNewSubcategory, setShowNewSubcategory] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
 
   // Derive categories from templates + standalone
   const categories = useMemo(() => {
@@ -32,11 +35,45 @@ const ProjectTemplates = () => {
     return cats;
   }, [templates, standaloneCategories]);
 
+  // Derive subcategories for the selected category in the form
+  const subcategoriesForFormCategory = useMemo(() => {
+    const cat = showNewCategory ? newCategoryName.trim() : formData.category;
+    if (!cat) return [];
+    return [...new Set(templates.filter(t => t.category === cat && t.subcategory).map(t => t.subcategory))].sort();
+  }, [templates, formData.category, showNewCategory, newCategoryName]);
+
   const filteredTemplates = activeCategory === 'all'
     ? templates
     : activeCategory === 'uncategorized'
       ? templates.filter(t => !t.category)
       : templates.filter(t => t.category === activeCategory);
+
+  // Group filtered templates by subcategory
+  const groupedTemplates = useMemo(() => {
+    const hasSubcategories = filteredTemplates.some(t => t.subcategory);
+    if (!hasSubcategories) return [{ subcategory: null, templates: filteredTemplates }];
+
+    const groups = {};
+    filteredTemplates.forEach(t => {
+      const key = t.subcategory || '__none__';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    });
+
+    // Sort: named subcategories first (sorted), then ungrouped at the end
+    const sorted = Object.entries(groups)
+      .sort(([a], [b]) => {
+        if (a === '__none__') return 1;
+        if (b === '__none__') return -1;
+        return a.localeCompare(b);
+      })
+      .map(([key, temps]) => ({
+        subcategory: key === '__none__' ? null : key,
+        templates: temps,
+      }));
+
+    return sorted;
+  }, [filteredTemplates]);
 
   useEffect(() => {
     loadTemplates();
@@ -50,7 +87,6 @@ const ProjectTemplates = () => {
       ]);
       setTemplates(templatesRes.data);
       setTeamMembers(teamRes.data);
-      // Fetch standalone categories separately so it doesn't block template loading
       try {
         const catsRes = await projectTemplatesAPI.getCategories();
         setStandaloneCategories(catsRes.data || []);
@@ -64,11 +100,18 @@ const ProjectTemplates = () => {
 
   const handleNew = () => {
     setEditingTemplate(null);
-    setFormData({ name: '', description: '', category: activeCategory !== 'all' && activeCategory !== 'uncategorized' ? activeCategory : '' });
+    setFormData({
+      name: '',
+      description: '',
+      category: activeCategory !== 'all' && activeCategory !== 'uncategorized' ? activeCategory : '',
+      subcategory: '',
+    });
     setTasks([]);
     setNewTaskTitle('');
     setShowNewCategory(false);
     setNewCategoryName('');
+    setShowNewSubcategory(false);
+    setNewSubcategoryName('');
     setShowModal(true);
   };
 
@@ -80,11 +123,14 @@ const ProjectTemplates = () => {
         name: response.data.name,
         description: response.data.description || '',
         category: response.data.category || '',
+        subcategory: response.data.subcategory || '',
       });
       setTasks(response.data.tasks || []);
       setNewTaskTitle('');
       setShowNewCategory(false);
       setNewCategoryName('');
+      setShowNewSubcategory(false);
+      setNewSubcategoryName('');
       setShowModal(true);
     } catch (error) {
       console.error('Error loading template:', error);
@@ -111,10 +157,11 @@ const ProjectTemplates = () => {
     }
 
     const categoryToSave = showNewCategory ? newCategoryName.trim() : formData.category;
+    const subcategoryToSave = showNewSubcategory ? newSubcategoryName.trim() : formData.subcategory;
 
     setSaving(true);
     try {
-      const payload = { ...formData, category: categoryToSave || null };
+      const payload = { ...formData, category: categoryToSave || null, subcategory: subcategoryToSave || null };
       if (editingTemplate) {
         await projectTemplatesAPI.update(editingTemplate.id, payload);
       } else {
@@ -239,14 +286,11 @@ const ProjectTemplates = () => {
 
   const handleDeleteCategory = async (catName) => {
     const templatesInCat = templates.filter(t => t.category === catName);
-    // First confirmation
     const msg1 = templatesInCat.length > 0
       ? `¿Eliminar la categoría "${catName}"? ${templatesInCat.length} plantilla(s) quedarán sin categoría.`
       : `¿Eliminar la categoría "${catName}"?`;
     if (!confirm(msg1)) return;
-    // Second confirmation
     if (!confirm(`¿Estás seguro? Esta acción no se puede deshacer.`)) return;
-    // Third confirmation: type the name
     const typed = prompt(`Para confirmar, escribe el nombre de la categoría: "${catName}"`);
     if (typed === null || typed.trim() !== catName) {
       alert('El nombre no coincide. No se eliminó la categoría.');
@@ -264,6 +308,61 @@ const ProjectTemplates = () => {
   if (loading) {
     return <div className="text-center py-8">Cargando...</div>;
   }
+
+  // Render a template card
+  const renderTemplateCard = (template) => (
+    <div
+      key={template.id}
+      className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-5"
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+            <FileText size={20} className="text-[#1A1A2E]" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800">{template.name}</h3>
+            <span className="text-sm text-gray-500">
+              {template.task_count || 0} tarea{(template.task_count || 0) !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={() => handleEdit(template)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+            title="Editar"
+          >
+            <Edit size={18} />
+          </button>
+          <button
+            onClick={() => handleDelete(template.id)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+            title="Eliminar"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {template.category && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#1A1A2E]/5 text-[#1A1A2E]">
+            <Tag size={11} />
+            {template.category}
+          </span>
+        )}
+        {template.subcategory && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#10B981]/10 text-[#10B981]">
+            <Layers size={11} />
+            {template.subcategory}
+          </span>
+        )}
+      </div>
+      {template.description && (
+        <p className="text-sm text-gray-600 line-clamp-2">{template.description}</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -380,7 +479,7 @@ const ProjectTemplates = () => {
         )}
       </div>
 
-      {/* Templates Grid */}
+      {/* Templates Grid — grouped by subcategory */}
       {filteredTemplates.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <FileText size={48} className="mx-auto text-gray-300 mb-4" />
@@ -400,52 +499,33 @@ const ProjectTemplates = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTemplates.map((template) => (
-            <div
-              key={template.id}
-              className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-5"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <FileText size={20} className="text-[#1A1A2E]" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{template.name}</h3>
-                    <span className="text-sm text-gray-500">
-                      {template.task_count || 0} tarea{(template.task_count || 0) !== 1 ? 's' : ''}
-                    </span>
-                  </div>
+        <div className="space-y-6">
+          {groupedTemplates.map((group) => (
+            <div key={group.subcategory || '__none__'}>
+              {/* Subcategory header — only show if there are subcategories in the view */}
+              {groupedTemplates.length > 1 || group.subcategory ? (
+                <div className="flex items-center gap-3 mb-3">
+                  {group.subcategory ? (
+                    <>
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#10B981]/10 rounded-lg">
+                        <Layers size={14} className="text-[#10B981]" />
+                        <span className="text-sm font-semibold text-[#10B981]">{group.subcategory}</span>
+                      </div>
+                      <div className="flex-1 h-px bg-[#10B981]/20" />
+                      <span className="text-xs text-gray-400">{group.templates.length} plantilla{group.templates.length !== 1 ? 's' : ''}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm font-medium text-gray-400">Sin etapa</span>
+                      <div className="flex-1 h-px bg-gray-200" />
+                      <span className="text-xs text-gray-400">{group.templates.length}</span>
+                    </>
+                  )}
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => handleEdit(template)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                    title="Editar"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(template.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+              ) : null}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {group.templates.map(renderTemplateCard)}
               </div>
-              {template.category && (
-                <div className="mb-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#1A1A2E]/5 text-[#1A1A2E]">
-                    <Tag size={11} />
-                    {template.category}
-                  </span>
-                </div>
-              )}
-              {template.description && (
-                <p className="text-sm text-gray-600 line-clamp-2">{template.description}</p>
-              )}
             </div>
           ))}
         </div>
@@ -487,7 +567,7 @@ const ProjectTemplates = () => {
                       <select
                         className="flex-1 border rounded-lg px-3 py-2"
                         value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '' })}
                       >
                         <option value="">Sin categoría</option>
                         {categories.map((cat) => (
@@ -522,6 +602,54 @@ const ProjectTemplates = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Subcategory / Etapa */}
+                {(formData.category || showNewCategory) && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Etapa <span className="text-gray-400 font-normal">(opcional)</span>
+                    </label>
+                    {!showNewSubcategory ? (
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 border rounded-lg px-3 py-2"
+                          value={formData.subcategory}
+                          onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                        >
+                          <option value="">Sin etapa</option>
+                          {subcategoriesForFormCategory.map((sub) => (
+                            <option key={sub} value={sub}>{sub}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewSubcategory(true)}
+                          className="px-3 py-2 border rounded-lg text-sm text-[#10B981] hover:bg-green-50 whitespace-nowrap"
+                        >
+                          + Nueva etapa
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="flex-1 border rounded-lg px-3 py-2"
+                          placeholder="Ej: Etapa 1 - Puesta a punto, Etapa 2 - Gestión mensual..."
+                          value={newSubcategoryName}
+                          onChange={(e) => setNewSubcategoryName(e.target.value)}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { setShowNewSubcategory(false); setNewSubcategoryName(''); }}
+                          className="px-3 py-2 border rounded-lg text-sm text-gray-500 hover:bg-gray-50"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>
