@@ -893,6 +893,27 @@ const Notes = () => {
             </div>
           )}
 
+          {/* Last accepted client edit banner */}
+          {!isEditing && (() => {
+            const lastAccepted = clientEdits.find(e => e.status === 'accepted');
+            if (!lastAccepted) return null;
+            return (
+              <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-sm">
+                <UserCheck size={16} className="text-green-600 flex-shrink-0" />
+                <div className="text-slate-600">
+                  <span className="font-medium text-slate-700">Última edición de cliente:</span>{' '}
+                  enviada por <span className="font-semibold text-slate-800">{lastAccepted.author_name}</span>
+                  {' · '}
+                  aprobada por <span className="font-semibold text-slate-800">{lastAccepted.reviewed_by_name || 'equipo'}</span>
+                  {' · '}
+                  {new Date(lastAccepted.reviewed_at || lastAccepted.created_at).toLocaleDateString('es-CO', {
+                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Content */}
           <div className="prose prose-slate max-w-none">
             {isEditing ? (
