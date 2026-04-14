@@ -37,10 +37,8 @@ const ProjectTemplates = () => {
 
   // Derive subcategories for the selected category in the form
   const subcategoriesForFormCategory = useMemo(() => {
-    const cat = showNewCategory ? newCategoryName.trim() : formData.category;
-    if (!cat) return [];
-    return [...new Set(templates.filter(t => t.category === cat && t.subcategory).map(t => t.subcategory))].sort();
-  }, [templates, formData.category, showNewCategory, newCategoryName]);
+    return [...new Set(templates.filter(t => t.subcategory).map(t => t.subcategory))].sort();
+  }, [templates]);
 
   const filteredTemplates = activeCategory === 'all'
     ? templates
