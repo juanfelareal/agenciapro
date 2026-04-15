@@ -636,6 +636,78 @@ function NoteViewer({ note, onClose }) {
     return () => document.removeEventListener('mouseup', handleMouseUp);
   }, []);
 
+  // Highlight quoted text in the document when a comment is clicked
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (!contentEl) return;
+
+    // Clear previous highlights
+    contentEl.querySelectorAll('.portal-note-comment-highlight').forEach(el => {
+      const parent = el.parentNode;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    });
+
+    if (!activeCommentId) return;
+
+    const comment = comments.find(c => c.id === activeCommentId);
+    if (!comment?.quoted_text) return;
+
+    const searchText = comment.quoted_text;
+
+    // Walk text nodes to find the quoted text
+    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT);
+    let node;
+    let found = false;
+
+    // Try to find an exact match within a single text node first
+    while ((node = walker.nextNode())) {
+      const idx = node.textContent.indexOf(searchText);
+      if (idx !== -1) {
+        const range = document.createRange();
+        range.setStart(node, idx);
+        range.setEnd(node, idx + searchText.length);
+        const highlight = document.createElement('span');
+        highlight.className = 'portal-note-comment-highlight active';
+        range.surroundContents(highlight);
+        highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        found = true;
+        break;
+      }
+    }
+
+    // If not found in a single node, try across nodes
+    if (!found) {
+      const allText = [];
+      const walker2 = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT);
+      while ((node = walker2.nextNode())) {
+        allText.push({ node, start: allText.length > 0 ? allText[allText.length - 1].end : 0, end: 0 });
+        allText[allText.length - 1].end = allText[allText.length - 1].start + node.textContent.length;
+      }
+      const fullText = allText.map(t => t.node.textContent).join('');
+      const idx = fullText.indexOf(searchText);
+      if (idx !== -1) {
+        // Find the first node that contains the start of the match and highlight partially
+        for (const t of allText) {
+          if (t.end > idx && t.start < idx + searchText.length) {
+            const nodeStart = Math.max(0, idx - t.start);
+            const nodeEnd = Math.min(t.node.textContent.length, idx + searchText.length - t.start);
+            const range = document.createRange();
+            range.setStart(t.node, nodeStart);
+            range.setEnd(t.node, nodeEnd);
+            const highlight = document.createElement('span');
+            highlight.className = 'portal-note-comment-highlight active';
+            try { range.surroundContents(highlight); } catch { break; }
+            if (!found) {
+              highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              found = true;
+            }
+          }
+        }
+      }
+    }
+  }, [activeCommentId, comments]);
+
   // Start new inline comment from selection
   const startInlineComment = () => {
     if (!selectionInfo) return;
