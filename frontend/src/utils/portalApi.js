@@ -242,6 +242,14 @@ export const portalNotesAPI = {
     const response = await portalApi.post(`/notes/${noteId}/comments`, data);
     return response.data;
   },
+  updateComment: async (noteId, commentId, content) => {
+    const response = await portalApi.put(`/notes/${noteId}/comments/${commentId}`, { content });
+    return response.data;
+  },
+  deleteComment: async (noteId, commentId) => {
+    const response = await portalApi.delete(`/notes/${noteId}/comments/${commentId}`);
+    return response.data;
+  },
 };
 
 export default portalApi;

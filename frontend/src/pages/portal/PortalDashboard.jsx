@@ -550,12 +550,14 @@ function NoteViewer({ note, onClose }) {
   const [tabbedView, setTabbedView] = useState(true);
   const [comments, setComments] = useState([]);
   const [authorName, setAuthorName] = useState('');
+  const [nameConfirmed, setNameConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [activeTabContext, setActiveTabContext] = useState('');
   // Inline comment state
   const [selectionInfo, setSelectionInfo] = useState(null); // { text, top }
   const [newCommentState, setNewCommentState] = useState(null); // { quotedText, top, text }
   const [activeCommentId, setActiveCommentId] = useState(null);
+  const [editingComment, setEditingComment] = useState(null); // { id, text }
   const contentRef = useRef(null);
 
   // Stable callback to prevent re-render loop
@@ -674,6 +676,35 @@ function NoteViewer({ note, onClose }) {
     });
   };
 
+  const handleEditComment = async (commentId) => {
+    if (!editingComment || editingComment.id !== commentId) return;
+    if (!editingComment.text.trim()) return;
+    setSubmitting(true);
+    try {
+      const updated = await portalNotesAPI.updateComment(note.id, commentId, editingComment.text);
+      setComments(prev => prev.map(c => c.id === commentId ? updated : c));
+      setEditingComment(null);
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await portalNotesAPI.deleteComment(note.id, commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      setActiveCommentId(null);
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  };
+
+  const confirmName = () => {
+    if (authorName.trim()) setNameConfirmed(true);
+  };
+
   const pendingCount = comments.length;
 
   return (
@@ -731,18 +762,25 @@ function NoteViewer({ note, onClose }) {
       </header>
 
       {/* Instruction banner */}
-      {!authorName && (
+      {!nameConfirmed && (
         <div className="bg-amber-50 border-b border-amber-100 px-4 py-2">
           <div className="max-w-7xl mx-auto flex items-center gap-3">
-            <span className="text-sm text-amber-700">Para comentar, primero ingresa tu nombre:</span>
+            <span className="text-sm text-amber-700">Para comentar, ingresa tu nombre:</span>
             <input
               type="text"
               value={authorName}
               onChange={e => setAuthorName(e.target.value)}
-              placeholder="Tu nombre"
+              placeholder="Tu nombre completo"
               className="px-3 py-1 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
-              onKeyDown={e => e.key === 'Enter' && authorName.trim() && e.target.blur()}
+              onKeyDown={e => e.key === 'Enter' && confirmName()}
             />
+            <button
+              onClick={confirmName}
+              disabled={!authorName.trim()}
+              className="px-3 py-1 text-sm bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+            >
+              Confirmar
+            </button>
           </div>
         </div>
       )}
@@ -761,7 +799,7 @@ function NoteViewer({ note, onClose }) {
             </div>
 
             {/* Floating selection tooltip */}
-            {selectionInfo && authorName && (
+            {selectionInfo && nameConfirmed && (
               <div
                 className="absolute z-50 animate-in fade-in"
                 style={{ top: selectionInfo.top - 40, right: -12 }}
@@ -788,7 +826,7 @@ function NoteViewer({ note, onClose }) {
                       "{newCommentState.quotedText}"
                     </div>
                   )}
-                  {!authorName ? (
+                  {!nameConfirmed ? (
                     <p className="text-xs text-slate-400 text-center py-2">Ingresa tu nombre arriba para comentar</p>
                   ) : (
                     <>
@@ -797,7 +835,7 @@ function NoteViewer({ note, onClose }) {
                           {authorName.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-xs font-medium text-slate-600">{authorName}</span>
-                        <button onClick={() => setAuthorName('')} className="text-[10px] text-slate-400 hover:text-slate-600 ml-auto">cambiar</button>
+                        <button onClick={() => { setNameConfirmed(false); }} className="text-[10px] text-slate-400 hover:text-slate-600 ml-auto">cambiar</button>
                       </div>
                       <textarea
                         autoFocus
@@ -859,7 +897,38 @@ function NoteViewer({ note, onClose }) {
                       {comment.author_type === 'team' ? 'Equipo' : 'Cliente'}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-600 whitespace-pre-line">{comment.content}</p>
+
+                  {/* Edit mode */}
+                  {editingComment?.id === comment.id ? (
+                    <div onClick={e => e.stopPropagation()}>
+                      <textarea
+                        autoFocus
+                        value={editingComment.text}
+                        onChange={e => setEditingComment(prev => ({ ...prev, text: e.target.value }))}
+                        className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                        rows={2}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEditComment(comment.id); }
+                          if (e.key === 'Escape') setEditingComment(null);
+                        }}
+                      />
+                      <div className="flex justify-end gap-1.5 mt-1.5">
+                        <button onClick={(e) => { e.stopPropagation(); setEditingComment(null); }} className="px-2 py-0.5 text-[11px] text-slate-500 hover:bg-slate-100 rounded">
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEditComment(comment.id); }}
+                          disabled={!editingComment.text.trim() || submitting}
+                          className="px-2 py-0.5 text-[11px] bg-[#1A1A2E] text-white rounded hover:bg-[#252542] disabled:opacity-50"
+                        >
+                          Guardar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600 whitespace-pre-line">{comment.content}</p>
+                  )}
+
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-[10px] text-slate-400">
                       {new Date(comment.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -868,6 +937,24 @@ function NoteViewer({ note, onClose }) {
                       <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{comment.tab_context}</span>
                     )}
                   </div>
+
+                  {/* Actions for client comments */}
+                  {activeCommentId === comment.id && comment.author_type === 'client' && editingComment?.id !== comment.id && (
+                    <div className="flex gap-2 mt-2 pt-2 border-t border-slate-100" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => setEditingComment({ id: comment.id, text: comment.content })}
+                        className="px-2 py-0.5 text-[11px] text-slate-500 hover:bg-slate-100 rounded transition-colors"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => { if (window.confirm('¿Eliminar este comentario?')) handleDeleteComment(comment.id); }}
+                        className="px-2 py-0.5 text-[11px] text-red-500 hover:bg-red-50 rounded transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
 

@@ -83,4 +83,86 @@ router.post('/:noteId/comments', clientAuthMiddleware, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/portal/notes/:noteId/comments/:commentId
+ * Edit a comment (only client-authored comments)
+ */
+router.put('/:noteId/comments/:commentId', clientAuthMiddleware, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { noteId, commentId } = req.params;
+    const { content } = req.body;
+
+    if (!content?.trim()) {
+      return res.status(400).json({ error: 'El comentario no puede estar vacío' });
+    }
+
+    // Verify note belongs to client
+    const note = await db.get(`
+      SELECT n.id FROM notes n
+      INNER JOIN note_links nl ON n.id = nl.note_id
+      WHERE n.id = ? AND nl.client_id = ? AND nl.visible_in_portal = 1
+    `, [noteId, clientId]);
+
+    if (!note) {
+      return res.status(404).json({ error: 'Nota no encontrada' });
+    }
+
+    // Verify comment exists, belongs to this note, and is client-authored
+    const comment = await db.get(
+      `SELECT id FROM note_comments WHERE id = ? AND note_id = ? AND author_type = 'client'`,
+      [commentId, noteId]
+    );
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comentario no encontrado' });
+    }
+
+    await db.run('UPDATE note_comments SET content = ? WHERE id = ?', [content.trim(), commentId]);
+    const updated = await db.get('SELECT * FROM note_comments WHERE id = ?', [commentId]);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating portal comment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/portal/notes/:noteId/comments/:commentId
+ * Delete a comment (only client-authored comments)
+ */
+router.delete('/:noteId/comments/:commentId', clientAuthMiddleware, async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { noteId, commentId } = req.params;
+
+    // Verify note belongs to client
+    const note = await db.get(`
+      SELECT n.id FROM notes n
+      INNER JOIN note_links nl ON n.id = nl.note_id
+      WHERE n.id = ? AND nl.client_id = ? AND nl.visible_in_portal = 1
+    `, [noteId, clientId]);
+
+    if (!note) {
+      return res.status(404).json({ error: 'Nota no encontrada' });
+    }
+
+    // Verify comment exists, belongs to this note, and is client-authored
+    const comment = await db.get(
+      `SELECT id FROM note_comments WHERE id = ? AND note_id = ? AND author_type = 'client'`,
+      [commentId, noteId]
+    );
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comentario no encontrado' });
+    }
+
+    await db.run('DELETE FROM note_comments WHERE id = ?', [commentId]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting portal comment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
