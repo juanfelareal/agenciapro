@@ -8,6 +8,7 @@ import metricsRoutes from './metrics.js';
 import notificationsRoutes from './notifications.js';
 import formsRoutes from './forms.js';
 import callsRoutes from './calls.js';
+import notesRoutes from './notes.js';
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.use('/metrics', metricsRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/forms', formsRoutes);
 router.use('/calls', callsRoutes);
+router.use('/notes', notesRoutes);
 
 export default router;

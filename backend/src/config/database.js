@@ -609,6 +609,9 @@ export const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='note_comments' AND column_name='parent_id') THEN
           ALTER TABLE note_comments ADD COLUMN parent_id INTEGER REFERENCES note_comments(id) ON DELETE CASCADE;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='note_comments' AND column_name='tab_context') THEN
+          ALTER TABLE note_comments ADD COLUMN tab_context TEXT;
+        END IF;
       END $$;
     `);
 

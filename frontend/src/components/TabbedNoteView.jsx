@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import NoteEditor from './NoteEditor';
 import { ChevronRight } from 'lucide-react';
 
@@ -10,7 +10,7 @@ import { ChevronRight } from 'lucide-react';
  * H3 headings → sub-sub-tabs within each sub-tab
  * Content between headings → tab content
  */
-function TabbedNoteView({ content }) {
+function TabbedNoteView({ content, onTabChange }) {
   const [activeTab, setActiveTab] = useState(0);
   const [activeSubTab, setActiveSubTab] = useState(0);
   const [activeSubSubTab, setActiveSubSubTab] = useState(0);
@@ -101,6 +101,15 @@ function TabbedNoteView({ content }) {
   const currentSubSubTabData = hasSubSubTabs
     ? (activeSubSubTab === -1 ? null : currentSubTabData.subTabs[activeSubSubTab] || currentSubTabData.subTabs[0])
     : null;
+
+  // Notify parent of tab context changes
+  useEffect(() => {
+    if (!onTabChange) return;
+    const parts = [currentTab?.title];
+    if (currentSubTabData) parts.push(currentSubTabData.title);
+    if (currentSubSubTabData) parts.push(currentSubSubTabData.title);
+    onTabChange(parts.filter(Boolean).join(' > '));
+  }, [activeTab, activeSubTab, activeSubSubTab, currentTab, currentSubTabData, currentSubSubTabData, onTabChange]);
 
   // Build content for active selection
   const activeContent = useMemo(() => {

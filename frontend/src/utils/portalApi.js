@@ -233,4 +233,15 @@ export const portalCallsAPI = {
   },
 };
 
+export const portalNotesAPI = {
+  getNote: async (noteId) => {
+    const response = await portalApi.get(`/notes/${noteId}`);
+    return response.data;
+  },
+  addComment: async (noteId, data) => {
+    const response = await portalApi.post(`/notes/${noteId}/comments`, data);
+    return response.data;
+  },
+};
+
 export default portalApi;

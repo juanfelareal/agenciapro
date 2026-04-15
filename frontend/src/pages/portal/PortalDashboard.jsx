@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { usePortal } from '../../context/PortalContext';
-import { portalDashboardAPI } from '../../utils/portalApi';
+import { portalDashboardAPI, portalNotesAPI } from '../../utils/portalApi';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
@@ -21,8 +21,12 @@ import {
   X,
   FileCode2,
   Maximize2,
-  Minimize2
+  Minimize2,
+  MessageSquare,
+  Send,
+  LayoutDashboard
 } from 'lucide-react';
+import TabbedNoteView from '../../components/TabbedNoteView';
 
 export default function PortalDashboard() {
   const { client, welcomeMessage } = usePortal();
@@ -540,8 +544,27 @@ const noteViewerStyles = `
 `;
 
 function NoteViewer({ note, onClose }) {
+  const [tabbedView, setTabbedView] = useState(true);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [authorName, setAuthorName] = useState('');
+  const [showComments, setShowComments] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [activeTabContext, setActiveTabContext] = useState('');
+
+  // Parse content
+  const parsedContent = useMemo(() => {
+    if (!note.content) return null;
+    try {
+      let c = typeof note.content === 'string' ? JSON.parse(note.content) : note.content;
+      if (typeof c === 'string') c = JSON.parse(c);
+      return c;
+    } catch { return null; }
+  }, [note.content]);
+
+  // TipTap editor for non-tabbed view
   const extensions = useMemo(() => [
-    StarterKit.configure({ heading: { levels: [1, 2] } }),
+    StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
     Highlight.configure({ multicolor: false }),
     TaskList,
     TaskItem.configure({ nested: true }),
@@ -549,9 +572,42 @@ function NoteViewer({ note, onClose }) {
 
   const editor = useEditor({
     extensions,
-    content: note.content ? JSON.parse(note.content) : `<p>${note.content_plain || ''}</p>`,
+    content: parsedContent || `<p>${note.content_plain || ''}</p>`,
     editable: false,
   });
+
+  // Load comments
+  useEffect(() => {
+    portalNotesAPI.getNote(note.id).then(data => {
+      setComments(data.comments || []);
+    }).catch(() => {});
+  }, [note.id]);
+
+  // Filter comments by tab context
+  const filteredComments = useMemo(() => {
+    if (!activeTabContext) return comments;
+    return comments.filter(c => !c.tab_context || c.tab_context === activeTabContext);
+  }, [comments, activeTabContext]);
+
+  const handleSubmitComment = async () => {
+    if (!commentText.trim() || !authorName.trim()) return;
+    setSubmitting(true);
+    try {
+      const newComment = await portalNotesAPI.addComment(note.id, {
+        author_name: authorName,
+        content: commentText,
+        tab_context: activeTabContext || null,
+      });
+      setComments(prev => [...prev, newComment]);
+      setCommentText('');
+    } catch (error) {
+      console.error('Error posting comment:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const pendingCount = comments.length;
 
   return (
     <div className="fixed inset-0 bg-slate-50 z-[100] flex flex-col overflow-hidden">
@@ -559,12 +615,9 @@ function NoteViewer({ note, onClose }) {
 
       {/* Header */}
       <header className="bg-white border-b border-slate-200 flex-shrink-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4 min-w-0">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-xl transition-colors flex-shrink-0"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors flex-shrink-0">
               <ArrowLeft className="w-5 h-5 text-slate-500" />
             </button>
             <div className="min-w-0">
@@ -575,34 +628,145 @@ function NoteViewer({ note, onClose }) {
                     {note.category_name}
                   </span>
                 )}
-                <span className="text-xs text-slate-400">Solo lectura</span>
+                {note.updated_at && (
+                  <span className="text-xs text-slate-400">
+                    Actualizado {new Date(note.updated_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          <img
-            src="/logo-lareal.png"
-            alt="LA REAL"
-            className="h-8 sm:h-10 opacity-80 flex-shrink-0"
-          />
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTabbedView(!tabbedView)}
+              className={`p-2 rounded-lg transition-colors ${tabbedView ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:bg-slate-100'}`}
+              title="Vista con pestañas"
+            >
+              <LayoutDashboard className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className={`p-2 rounded-lg transition-colors relative ${showComments ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:bg-slate-100'}`}
+              title="Comentarios"
+            >
+              <MessageSquare className="w-5 h-5" />
+              {pendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+            <img src="/logo-lareal.png" alt="LA REAL" className="h-8 opacity-80 flex-shrink-0 hidden sm:block" />
+          </div>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto py-6 sm:py-10 px-4 sm:px-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden portal-note">
-            <EditorContent editor={editor} />
+      {/* Content + Comments */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto py-6 sm:py-8 px-4 sm:px-6">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden portal-note p-6 sm:p-8">
+              {tabbedView && parsedContent ? (
+                <TabbedNoteView content={parsedContent} onTabChange={(ctx) => setActiveTabContext(ctx)} />
+              ) : (
+                <EditorContent editor={editor} />
+              )}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-3 text-center flex-shrink-0">
-        <div className="flex items-center justify-center gap-2">
-          <img src="/logo-lareal.png" alt="" className="h-4 opacity-40" />
-          <span className="text-xs text-slate-400">Compartido por LA REAL</span>
-        </div>
-      </footer>
+        {/* Comments sidebar */}
+        {showComments && (
+          <aside className="w-80 lg:w-96 border-l border-slate-200 bg-white flex flex-col overflow-hidden flex-shrink-0">
+            <div className="px-4 py-3 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  Comentarios
+                  {activeTabContext && <span className="text-xs text-slate-400 font-normal truncate max-w-[120px]">· {activeTabContext}</span>}
+                </h3>
+                <button onClick={() => setShowComments(false)} className="p-1 hover:bg-slate-100 rounded-lg md:hidden">
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Comments list */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {filteredComments.length === 0 && (
+                <p className="text-sm text-slate-400 text-center py-8">No hay comentarios aún. Sé el primero en comentar.</p>
+              )}
+              {filteredComments.map(comment => (
+                <div key={comment.id} className="bg-slate-50 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                      {comment.author_name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{comment.author_name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                      comment.author_type === 'team' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {comment.author_type === 'team' ? 'Equipo' : 'Cliente'}
+                    </span>
+                    <span className="text-[10px] text-slate-400 ml-auto">
+                      {new Date(comment.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  {comment.tab_context && (
+                    <p className="text-[10px] text-slate-400 mb-1">En: {comment.tab_context}</p>
+                  )}
+                  <p className="text-sm text-slate-600 whitespace-pre-line">{comment.content}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Comment input */}
+            <div className="border-t border-slate-200 p-4 space-y-2">
+              {!authorName ? (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1.5">Tu nombre para comentar:</p>
+                  <input
+                    type="text"
+                    value={authorName}
+                    onChange={e => setAuthorName(e.target.value)}
+                    placeholder="Tu nombre"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                    onKeyDown={e => e.key === 'Enter' && authorName.trim() && e.target.blur()}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">Comentando como <strong>{authorName}</strong></span>
+                    <button onClick={() => setAuthorName('')} className="text-[10px] text-slate-400 hover:text-slate-600">cambiar</button>
+                  </div>
+                  <div className="flex gap-2">
+                    <textarea
+                      value={commentText}
+                      onChange={e => setCommentText(e.target.value)}
+                      placeholder="Escribe un comentario..."
+                      className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                      rows={2}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitComment(); }
+                      }}
+                    />
+                    <button
+                      onClick={handleSubmitComment}
+                      disabled={!commentText.trim() || submitting}
+                      className="p-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] disabled:opacity-50 self-end"
+                    >
+                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </aside>
+        )}
+      </div>
     </div>
   );
 }
