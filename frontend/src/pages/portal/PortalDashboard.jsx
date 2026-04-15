@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { usePortal } from '../../context/PortalContext';
 import { portalDashboardAPI, portalNotesAPI } from '../../utils/portalApi';
@@ -541,16 +541,25 @@ const noteViewerStyles = `
   .portal-note .ProseMirror mark { background: #fef08a; padding: 0.1em 0.2em; border-radius: 0.15rem; }
   .portal-note .ProseMirror img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; }
   .portal-note .ProseMirror hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
+  .portal-note-comment-highlight { background: #fef08a; border-radius: 2px; cursor: pointer; }
+  .portal-note-comment-highlight:hover { background: #fde047; }
+  .portal-note-comment-highlight.active { background: #fde047; box-shadow: 0 0 0 2px #facc15; }
 `;
 
 function NoteViewer({ note, onClose }) {
   const [tabbedView, setTabbedView] = useState(true);
   const [comments, setComments] = useState([]);
-  const [commentText, setCommentText] = useState('');
   const [authorName, setAuthorName] = useState('');
-  const [showComments, setShowComments] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [activeTabContext, setActiveTabContext] = useState('');
+  // Inline comment state
+  const [selectionInfo, setSelectionInfo] = useState(null); // { text, top }
+  const [newCommentState, setNewCommentState] = useState(null); // { quotedText, top, text }
+  const [activeCommentId, setActiveCommentId] = useState(null);
+  const contentRef = useRef(null);
+
+  // Stable callback to prevent re-render loop
+  const handleTabChange = useCallback((ctx) => setActiveTabContext(ctx), []);
 
   // Parse content
   const parsedContent = useMemo(() => {
@@ -589,22 +598,80 @@ function NoteViewer({ note, onClose }) {
     return comments.filter(c => !c.tab_context || c.tab_context === activeTabContext);
   }, [comments, activeTabContext]);
 
+  // Detect text selection in the content area
+  useEffect(() => {
+    const handleMouseUp = () => {
+      // Small delay to let browser finalize selection
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+          setSelectionInfo(null);
+          return;
+        }
+
+        // Check if selection is within our content area
+        const contentEl = contentRef.current;
+        if (!contentEl) return;
+        const anchorNode = selection.anchorNode;
+        if (!contentEl.contains(anchorNode)) {
+          setSelectionInfo(null);
+          return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const containerRect = contentEl.getBoundingClientRect();
+        const top = rect.top - containerRect.top + contentEl.scrollTop;
+
+        setSelectionInfo({
+          text: selection.toString().trim().substring(0, 200),
+          top,
+        });
+      }, 10);
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => document.removeEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  // Start new inline comment from selection
+  const startInlineComment = () => {
+    if (!selectionInfo) return;
+    setNewCommentState({
+      quotedText: selectionInfo.text,
+      top: selectionInfo.top,
+      text: '',
+    });
+    setSelectionInfo(null);
+    window.getSelection()?.removeAllRanges();
+  };
+
   const handleSubmitComment = async () => {
-    if (!commentText.trim() || !authorName.trim()) return;
+    const commentText = newCommentState?.text;
+    if (!commentText?.trim() || !authorName.trim()) return;
     setSubmitting(true);
     try {
       const newComment = await portalNotesAPI.addComment(note.id, {
         author_name: authorName,
         content: commentText,
         tab_context: activeTabContext || null,
+        quoted_text: newCommentState.quotedText || null,
       });
       setComments(prev => [...prev, newComment]);
-      setCommentText('');
+      setNewCommentState(null);
     } catch (error) {
       console.error('Error posting comment:', error);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAddGeneralComment = () => {
+    setNewCommentState({
+      quotedText: null,
+      top: null,
+      text: '',
+    });
   };
 
   const pendingCount = comments.length;
@@ -646,13 +713,14 @@ function NoteViewer({ note, onClose }) {
               <LayoutDashboard className="w-5 h-5" />
             </button>
             <button
-              onClick={() => setShowComments(!showComments)}
-              className={`p-2 rounded-lg transition-colors relative ${showComments ? 'bg-slate-200 text-slate-800' : 'text-slate-400 hover:bg-slate-100'}`}
-              title="Comentarios"
+              onClick={handleAddGeneralComment}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+              title="Agregar comentario general"
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Comentar</span>
               {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                <span className="w-5 h-5 bg-indigo-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                   {pendingCount}
                 </span>
               )}
@@ -662,110 +730,172 @@ function NoteViewer({ note, onClose }) {
         </div>
       </header>
 
-      {/* Content + Comments */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto py-6 sm:py-8 px-4 sm:px-6">
+      {/* Instruction banner */}
+      {!authorName && (
+        <div className="bg-amber-50 border-b border-amber-100 px-4 py-2">
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            <span className="text-sm text-amber-700">Para comentar, primero ingresa tu nombre:</span>
+            <input
+              type="text"
+              value={authorName}
+              onChange={e => setAuthorName(e.target.value)}
+              placeholder="Tu nombre"
+              className="px-3 py-1 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white"
+              onKeyDown={e => e.key === 'Enter' && authorName.trim() && e.target.blur()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Content + Comment margin */}
+      <div className="flex-1 overflow-y-auto" ref={contentRef}>
+        <div className="max-w-6xl mx-auto flex py-6 sm:py-8 px-4 sm:px-6 gap-6">
+          {/* Main content */}
+          <div className="flex-1 min-w-0 max-w-3xl relative">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden portal-note p-6 sm:p-8">
               {tabbedView && parsedContent ? (
-                <TabbedNoteView content={parsedContent} onTabChange={(ctx) => setActiveTabContext(ctx)} />
+                <TabbedNoteView content={parsedContent} onTabChange={handleTabChange} />
               ) : (
                 <EditorContent editor={editor} />
               )}
             </div>
-          </div>
-        </main>
 
-        {/* Comments sidebar */}
-        {showComments && (
-          <aside className="w-80 lg:w-96 border-l border-slate-200 bg-white flex flex-col overflow-hidden flex-shrink-0">
-            <div className="px-4 py-3 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  Comentarios
-                  {activeTabContext && <span className="text-xs text-slate-400 font-normal truncate max-w-[120px]">· {activeTabContext}</span>}
-                </h3>
-                <button onClick={() => setShowComments(false)} className="p-1 hover:bg-slate-100 rounded-lg md:hidden">
-                  <X className="w-4 h-4 text-slate-400" />
+            {/* Floating selection tooltip */}
+            {selectionInfo && authorName && (
+              <div
+                className="absolute z-50 animate-in fade-in"
+                style={{ top: selectionInfo.top - 40, right: -12 }}
+              >
+                <button
+                  onClick={startInlineComment}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A1A2E] text-white rounded-lg shadow-lg text-xs font-medium hover:bg-[#252542] transition-colors"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Comentar
                 </button>
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Comments list */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {filteredComments.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-8">No hay comentarios aún. Sé el primero en comentar.</p>
+          {/* Right margin — comments */}
+          <div className="w-72 lg:w-80 flex-shrink-0 hidden md:block">
+            <div className="space-y-3">
+              {/* New comment form (inline) */}
+              {newCommentState && (
+                <div className="bg-white rounded-xl border-2 border-indigo-200 shadow-lg p-3 animate-in slide-in-from-left">
+                  {newCommentState.quotedText && (
+                    <div className="mb-2 px-2 py-1.5 bg-amber-50 border-l-2 border-amber-300 rounded text-xs text-slate-600 italic line-clamp-3">
+                      "{newCommentState.quotedText}"
+                    </div>
+                  )}
+                  {!authorName ? (
+                    <p className="text-xs text-slate-400 text-center py-2">Ingresa tu nombre arriba para comentar</p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[9px] font-bold text-indigo-600">
+                          {authorName.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-xs font-medium text-slate-600">{authorName}</span>
+                        <button onClick={() => setAuthorName('')} className="text-[10px] text-slate-400 hover:text-slate-600 ml-auto">cambiar</button>
+                      </div>
+                      <textarea
+                        autoFocus
+                        value={newCommentState.text}
+                        onChange={e => setNewCommentState(prev => ({ ...prev, text: e.target.value }))}
+                        placeholder="Escribe tu comentario..."
+                        className="w-full px-2.5 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                        rows={3}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitComment(); }
+                          if (e.key === 'Escape') setNewCommentState(null);
+                        }}
+                      />
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          onClick={() => setNewCommentState(null)}
+                          className="px-3 py-1 text-xs text-slate-500 hover:bg-slate-100 rounded-lg"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleSubmitComment}
+                          disabled={!newCommentState.text.trim() || submitting}
+                          className="px-3 py-1 text-xs bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                          Comentar
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
+
+              {/* Existing comments */}
               {filteredComments.map(comment => (
-                <div key={comment.id} className="bg-slate-50 rounded-xl p-3">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                <div
+                  key={comment.id}
+                  onClick={() => setActiveCommentId(activeCommentId === comment.id ? null : comment.id)}
+                  className={`bg-white rounded-xl border shadow-sm p-3 cursor-pointer transition-all hover:shadow-md ${
+                    activeCommentId === comment.id ? 'border-indigo-300 shadow-md' : 'border-slate-200'
+                  }`}
+                >
+                  {comment.quoted_text && (
+                    <div className="mb-2 px-2 py-1 bg-amber-50 border-l-2 border-amber-300 rounded text-[11px] text-slate-500 italic line-clamp-2">
+                      "{comment.quoted_text}"
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                      comment.author_type === 'team' ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'
+                    }`}>
                       {comment.author_name?.charAt(0)?.toUpperCase() || '?'}
                     </div>
-                    <span className="text-sm font-medium text-slate-700">{comment.author_name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                    <span className="text-xs font-medium text-slate-700">{comment.author_name}</span>
+                    <span className={`text-[9px] px-1 py-0.5 rounded-full font-medium ${
                       comment.author_type === 'team' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
                     }`}>
                       {comment.author_type === 'team' ? 'Equipo' : 'Cliente'}
                     </span>
-                    <span className="text-[10px] text-slate-400 ml-auto">
+                  </div>
+                  <p className="text-sm text-slate-600 whitespace-pre-line">{comment.content}</p>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-[10px] text-slate-400">
                       {new Date(comment.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </span>
+                    {comment.tab_context && (
+                      <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{comment.tab_context}</span>
+                    )}
                   </div>
-                  {comment.tab_context && (
-                    <p className="text-[10px] text-slate-400 mb-1">En: {comment.tab_context}</p>
-                  )}
-                  <p className="text-sm text-slate-600 whitespace-pre-line">{comment.content}</p>
                 </div>
               ))}
-            </div>
 
-            {/* Comment input */}
-            <div className="border-t border-slate-200 p-4 space-y-2">
-              {!authorName ? (
-                <div>
-                  <p className="text-xs text-slate-500 mb-1.5">Tu nombre para comentar:</p>
-                  <input
-                    type="text"
-                    value={authorName}
-                    onChange={e => setAuthorName(e.target.value)}
-                    placeholder="Tu nombre"
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                    onKeyDown={e => e.key === 'Enter' && authorName.trim() && e.target.blur()}
-                  />
+              {filteredComments.length === 0 && !newCommentState && (
+                <div className="text-center py-12">
+                  <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-400">No hay comentarios aún</p>
+                  <p className="text-xs text-slate-300 mt-1">Selecciona texto en el documento para comentar</p>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500">Comentando como <strong>{authorName}</strong></span>
-                    <button onClick={() => setAuthorName('')} className="text-[10px] text-slate-400 hover:text-slate-600">cambiar</button>
-                  </div>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={commentText}
-                      onChange={e => setCommentText(e.target.value)}
-                      placeholder="Escribe un comentario..."
-                      className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                      rows={2}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmitComment(); }
-                      }}
-                    />
-                    <button
-                      onClick={handleSubmitComment}
-                      disabled={!commentText.trim() || submitting}
-                      className="p-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] disabled:opacity-50 self-end"
-                    >
-                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </>
               )}
             </div>
-          </aside>
-        )}
+          </div>
+        </div>
+
+        {/* Mobile: floating comment button + sheet */}
+        <div className="md:hidden fixed bottom-4 right-4 z-50">
+          {pendingCount > 0 && (
+            <button
+              onClick={handleAddGeneralComment}
+              className="w-12 h-12 bg-[#1A1A2E] text-white rounded-full shadow-lg flex items-center justify-center relative"
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                {pendingCount}
+              </span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
