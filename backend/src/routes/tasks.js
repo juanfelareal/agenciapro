@@ -11,6 +11,7 @@ router.get('/', async (req, res) => {
     const { status, project_id, assigned_to, client_id } = req.query;
     let query = `
       SELECT t.*, p.name as project_name, p.client_id,
+             COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) as client_name,
              tm.name as assigned_to_name,
              cb.name as created_by_name,
              (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name))
@@ -19,6 +20,7 @@ router.get('/', async (req, res) => {
               WHERE ta.task_id = t.id) as assignees
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN clients c ON p.client_id = c.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
       WHERE t.organization_id = ?
@@ -60,7 +62,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const task = await db.get(`
-      SELECT t.*, p.name as project_name,
+      SELECT t.*, p.name as project_name, p.client_id,
+             COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) as client_name,
              tm.name as assigned_to_name,
              cb.name as created_by_name,
              (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name))
@@ -69,6 +72,7 @@ router.get('/:id', async (req, res) => {
               WHERE ta.task_id = t.id) as assignees
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN clients c ON p.client_id = c.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
       WHERE t.id = ? AND t.organization_id = ?

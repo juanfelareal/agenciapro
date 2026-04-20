@@ -92,6 +92,11 @@ export default function ListView({
         bValue = b.assignees?.[0]?.name || b.assigned_to_name || '';
       }
 
+      if (sortConfig.key === 'client_name') {
+        aValue = (a.client_name || '').toLowerCase();
+        bValue = (b.client_name || '').toLowerCase();
+      }
+
       if (aValue == null) aValue = '';
       if (bValue == null) bValue = '';
 
@@ -551,6 +556,15 @@ export default function ListView({
               </th>
               <th
                 className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('client_name')}
+              >
+                <div className="flex items-center gap-1">
+                  Cliente
+                  <SortIcon columnKey="client_name" />
+                </div>
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('assigned_to_name')}
               >
                 <div className="flex items-center gap-1">
@@ -640,6 +654,17 @@ export default function ListView({
                       </div>
                     )}
                   </div>
+                </td>
+
+                {/* Client - read only (set via project) */}
+                <td className="px-4 py-3">
+                  {task.client_name ? (
+                    <span className="text-sm text-gray-700 truncate block max-w-[160px]" title={task.client_name}>
+                      {task.client_name}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-300">—</span>
+                  )}
                 </td>
 
                 {/* Assignee - inline dropdown */}
@@ -776,7 +801,7 @@ export default function ListView({
 
             {/* Quick add row */}
             <tr className="bg-gray-50/50">
-              <td colSpan={7} className="px-4 py-2">
+              <td colSpan={8} className="px-4 py-2">
                 {isAddingTask ? (
                   <div className="flex items-center gap-2">
                     <Plus size={16} className="text-gray-400" />
