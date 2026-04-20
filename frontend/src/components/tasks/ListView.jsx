@@ -52,6 +52,66 @@ export default function ListView({
   const editInputRef = useRef(null);
   const assigneeDropdownRef = useRef(null);
 
+  // Resizable columns — widths persisted in localStorage
+  const DEFAULT_WIDTHS = {
+    checkbox: 40,
+    title: 320,
+    client: 180,
+    assignee: 180,
+    priority: 120,
+    due_date: 130,
+    status: 140,
+    created_by: 160,
+    actions: 80,
+  };
+  const [columnWidths, setColumnWidths] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tasks_listview_column_widths');
+      return saved ? { ...DEFAULT_WIDTHS, ...JSON.parse(saved) } : DEFAULT_WIDTHS;
+    } catch {
+      return DEFAULT_WIDTHS;
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem('tasks_listview_column_widths', JSON.stringify(columnWidths));
+  }, [columnWidths]);
+  const totalWidth = Object.values(columnWidths).reduce((a, b) => a + b, 0);
+
+  const startResize = (e, key) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = columnWidths[key];
+    const onMove = (ev) => {
+      const delta = ev.clientX - startX;
+      const newWidth = Math.max(60, startWidth + delta);
+      setColumnWidths((prev) => ({ ...prev, [key]: newWidth }));
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  const ResizeHandle = ({ columnKey }) => (
+    <div
+      onMouseDown={(e) => startResize(e, columnKey)}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        setColumnWidths((prev) => ({ ...prev, [columnKey]: DEFAULT_WIDTHS[columnKey] }));
+      }}
+      className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-[#163B3B]/40 active:bg-[#163B3B]/60 z-10"
+      title="Arrastra para redimensionar (doble click para restablecer)"
+    />
+  );
+
   // Focus input when editing starts
   useEffect(() => {
     if (editingCell && editInputRef.current) {
@@ -95,6 +155,11 @@ export default function ListView({
       if (sortConfig.key === 'client_name') {
         aValue = (a.client_name || '').toLowerCase();
         bValue = (b.client_name || '').toLowerCase();
+      }
+
+      if (sortConfig.key === 'created_by_name') {
+        aValue = (a.created_by_name || '').toLowerCase();
+        bValue = (b.created_by_name || '').toLowerCase();
       }
 
       if (aValue == null) aValue = '';
@@ -535,71 +600,99 @@ export default function ListView({
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table style={{ tableLayout: 'fixed', width: totalWidth, minWidth: '100%' }}>
+          <colgroup>
+            <col style={{ width: columnWidths.checkbox }} />
+            <col style={{ width: columnWidths.title }} />
+            <col style={{ width: columnWidths.client }} />
+            <col style={{ width: columnWidths.assignee }} />
+            <col style={{ width: columnWidths.priority }} />
+            <col style={{ width: columnWidths.due_date }} />
+            <col style={{ width: columnWidths.status }} />
+            <col style={{ width: columnWidths.created_by }} />
+            <col style={{ width: columnWidths.actions }} />
+          </colgroup>
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-3 py-3 text-center w-10">
+              <th className="relative px-3 py-3 text-center">
                 <button onClick={toggleSelectAll} className="text-gray-400 hover:text-[#163B3B]">
                   {isAllSelected ? <CheckSquare size={16} className="text-[#163B3B]" /> :
                    isSomeSelected ? <MinusSquare size={16} className="text-[#163B3B]" /> :
                    <Square size={16} />}
                 </button>
+                <ResizeHandle columnKey="checkbox" />
               </th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="relative px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('title')}
               >
                 <div className="flex items-center gap-1">
                   Tarea
                   <SortIcon columnKey="title" />
                 </div>
+                <ResizeHandle columnKey="title" />
               </th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="relative px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('client_name')}
               >
                 <div className="flex items-center gap-1">
                   Cliente
                   <SortIcon columnKey="client_name" />
                 </div>
+                <ResizeHandle columnKey="client" />
               </th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="relative px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('assigned_to_name')}
               >
                 <div className="flex items-center gap-1">
                   Responsable
                   <SortIcon columnKey="assigned_to_name" />
                 </div>
+                <ResizeHandle columnKey="assignee" />
               </th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="relative px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('priority')}
               >
                 <div className="flex items-center gap-1">
                   Prioridad
                   <SortIcon columnKey="priority" />
                 </div>
+                <ResizeHandle columnKey="priority" />
               </th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="relative px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('due_date')}
               >
                 <div className="flex items-center gap-1">
                   Fecha
                   <SortIcon columnKey="due_date" />
                 </div>
+                <ResizeHandle columnKey="due_date" />
               </th>
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="relative px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('status')}
               >
                 <div className="flex items-center gap-1">
                   Estado
                   <SortIcon columnKey="status" />
                 </div>
+                <ResizeHandle columnKey="status" />
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+              <th
+                className="relative px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('created_by_name')}
+              >
+                <div className="flex items-center gap-1">
+                  Creado por
+                  <SortIcon columnKey="created_by_name" />
+                </div>
+                <ResizeHandle columnKey="created_by" />
+              </th>
+              <th className="relative px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
 
               </th>
             </tr>
@@ -617,13 +710,13 @@ export default function ListView({
                   </button>
                 </td>
                 {/* Title - editable */}
-                <td className="px-4 py-3">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
+                <td className="px-4 py-3 overflow-hidden">
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       {renderEditableCell(
                         task,
                         'title',
-                        <span className="font-medium text-[#163B3B]">{task.title}</span>
+                        <span className="font-medium text-[#163B3B] truncate block" title={task.title}>{task.title}</span>
                       )}
                       {!!task.is_recurring && (
                         <span className="text-[#E8C4B8] text-sm" title="Tarea Recurrente">🔄</span>
@@ -786,6 +879,22 @@ export default function ListView({
                   )}
                 </td>
 
+                {/* Created by - read only */}
+                <td className="px-4 py-3">
+                  {task.created_by_name ? (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-medium flex-shrink-0">
+                        {task.created_by_name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm text-gray-600 truncate" title={task.created_by_name}>
+                        {task.created_by_name}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-300">—</span>
+                  )}
+                </td>
+
                 {/* Actions */}
                 <td className="px-4 py-3 text-right">
                   <button
@@ -801,7 +910,7 @@ export default function ListView({
 
             {/* Quick add row */}
             <tr className="bg-gray-50/50">
-              <td colSpan={8} className="px-4 py-2">
+              <td colSpan={9} className="px-4 py-2">
                 {isAddingTask ? (
                   <div className="flex items-center gap-2">
                     <Plus size={16} className="text-gray-400" />
