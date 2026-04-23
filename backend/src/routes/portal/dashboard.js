@@ -21,7 +21,7 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
     // only when it has tasks AND all of them are done; everything else,
     // including projects with no tasks yet, counts as "en curso").
     const allProjectsRaw = await safeQuery(() => db.all(`
-      SELECT p.id, p.name, p.due_date, p.updated_at,
+      SELECT p.id, p.name, p.end_date, p.updated_at,
         (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1) as task_count,
         (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1 AND status = 'done') as completed_count
       FROM projects p
@@ -82,16 +82,19 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       GROUP BY t.status
     `, [clientId]), []);
 
+    // Tareas con fecha de entrega futura — sin tope arbitrario de 14 días.
+    // El frontend pagina/recorta a 5 en el card "Próximas entregas".
     const upcomingDeadlines = await safeQuery(() => db.all(`
-      SELECT t.id, t.title, t.due_date, t.status, p.name as project_name, tm.name as assigned_to_name
+      SELECT t.id, t.title, t.due_date::text as due_date, t.status, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
       JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE p.client_id = ? AND t.visible_to_client = 1
-        AND t.due_date IS NOT NULL AND t.due_date >= CURRENT_DATE
-        AND t.due_date <= CURRENT_DATE + INTERVAL '14 days'
+        AND t.due_date IS NOT NULL
+        AND t.due_date >= CURRENT_DATE
+        AND t.status != 'done'
       ORDER BY t.due_date ASC
-      LIMIT 8
+      LIMIT 12
     `, [clientId]), []);
 
     const recentTasks = await safeQuery(() => db.all(`
