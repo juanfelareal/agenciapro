@@ -30,7 +30,9 @@ import {
   Clock,
   Receipt,
   Building2,
-  ThumbsUp
+  ThumbsUp,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TabbedNoteView from '../../components/TabbedNoteView';
@@ -45,6 +47,7 @@ export default function PortalDashboard() {
   const [selectedNote, setSelectedNote] = useState(null);
   const [selectedBrief, setSelectedBrief] = useState(null);
   const [briefFullscreen, setBriefFullscreen] = useState(false);
+  const [commercialDatesOpen, setCommercialDatesOpen] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -495,14 +498,23 @@ export default function PortalDashboard() {
       {/* Commercial Dates */}
       {data?.commercial_dates?.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => setCommercialDatesOpen((v) => !v)}
+            className="w-full px-6 py-4 border-b border-gray-100 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+          >
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
               <CalendarDays className="w-5 h-5 text-amber-600" />
             </div>
-            <div>
+            <div className="flex-1 text-left">
               <h2 className="font-semibold text-[#1A1A2E]">Fechas comerciales para {client?.nickname || client?.name}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{data.commercial_dates.length} {data.commercial_dates.length === 1 ? 'fecha' : 'fechas'}</p>
             </div>
-          </div>
+            {commercialDatesOpen
+              ? <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />}
+          </button>
+          {commercialDatesOpen && (
           <div className="divide-y divide-gray-50">
             {data.commercial_dates.map((cd) => {
               const days = daysUntil(cd.date);
@@ -549,6 +561,7 @@ export default function PortalDashboard() {
               );
             })}
           </div>
+          )}
         </div>
       )}
 
