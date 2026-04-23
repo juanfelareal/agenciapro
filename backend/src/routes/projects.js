@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
 // Create new project (client is optional)
 router.post('/', async (req, res) => {
   try {
-    const { name, description, client_id, status, budget, start_date, end_date, stage_id } = req.body;
+    const { name, description, client_id, start_date, end_date, stage_id } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -99,9 +99,9 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.run(`
-      INSERT INTO projects (name, description, client_id, status, budget, spent, start_date, end_date, stage_id, organization_id)
-      VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
-    `, [name, description || null, client_id || null, status || 'planning', budget || 0, start_date || null, end_date || null, stage_id || null, req.orgId]);
+      INSERT INTO projects (name, description, client_id, start_date, end_date, stage_id, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [name, description || null, client_id || null, start_date || null, end_date || null, stage_id || null, req.orgId]);
 
     const project = await db.get('SELECT * FROM projects WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(project);
@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
 // Update project
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description, client_id, status, budget, spent, start_date, end_date, stage_id } = req.body;
+    const { name, description, client_id, start_date, end_date, stage_id } = req.body;
 
     // Verify project belongs to this organization
     const existing = await db.get(
@@ -148,12 +148,12 @@ router.put('/:id', async (req, res) => {
 
     await db.run(`
       UPDATE projects
-      SET name = ?, description = ?, client_id = ?, status = ?,
-          budget = ?, spent = ?, start_date = ?, end_date = ?,
+      SET name = ?, description = ?, client_id = ?,
+          start_date = ?, end_date = ?,
           stage_id = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `, [name, description || null, client_id || null, status, budget, spent, start_date || null, end_date || null, stage_id || null, req.params.id, req.orgId]);
+    `, [name, description || null, client_id || null, start_date || null, end_date || null, stage_id || null, req.params.id, req.orgId]);
 
     const project = await db.get('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     res.json(project);

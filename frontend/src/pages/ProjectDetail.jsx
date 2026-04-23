@@ -10,14 +10,14 @@ import {
   CheckCircle2,
   Clock,
   Users,
-  DollarSign,
   Calendar,
   LayoutGrid,
   Table,
   List,
   Plus,
   Eye,
-  EyeOff
+  EyeOff,
+  X
 } from 'lucide-react';
 import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
@@ -73,8 +73,6 @@ const ProjectDetail = () => {
     name: '',
     description: '',
     client_id: '',
-    status: 'planning',
-    budget: 0,
     start_date: '',
     end_date: '',
   });
@@ -94,6 +92,18 @@ const ProjectDetail = () => {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  // Close open modals with the Escape key
+  useEffect(() => {
+    if (!showModal && !showProjectEditModal) return;
+    const handleKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (showModal) setShowModal(false);
+      else if (showProjectEditModal) setShowProjectEditModal(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showModal, showProjectEditModal]);
 
   const loadData = async () => {
     try {
@@ -314,8 +324,6 @@ const ProjectDetail = () => {
       name: project.name || '',
       description: project.description || '',
       client_id: project.client_id || '',
-      status: project.status || 'planning',
-      budget: project.budget || 0,
       start_date: project.start_date || '',
       end_date: project.end_date || '',
     });
@@ -438,7 +446,7 @@ const ProjectDetail = () => {
         </div>
 
         {/* Metrics cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex items-center gap-2 text-gray-500 mb-1">
               <CheckCircle2 size={16} />
@@ -473,13 +481,6 @@ const ProjectDetail = () => {
             <p className="text-2xl font-bold text-[#163B3B]">{metrics.teamCount}</p>
           </div>
 
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-gray-500 mb-1">
-              <DollarSign size={16} />
-              <span className="text-xs uppercase tracking-wide">Presupuesto</span>
-            </div>
-            <p className="text-xl font-bold text-[#163B3B]">{formatCurrency(project.budget)}</p>
-          </div>
         </div>
 
         {/* Progress bar */}
@@ -599,10 +600,24 @@ const ProjectDetail = () => {
 
       {/* Project Edit Modal */}
       {showProjectEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowProjectEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-[#163B3B]">Editar proyecto</h2>
+              <button
+                type="button"
+                onClick={() => setShowProjectEditModal(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[#163B3B] transition-colors"
+                aria-label="Cerrar"
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <form onSubmit={handleSaveProject} className="p-6 space-y-4">
@@ -639,36 +654,6 @@ const ProjectDetail = () => {
                     <option key={c.id} value={c.id}>{c.company || c.name}</option>
                   ))}
                 </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                  <select
-                    value={projectFormData.status}
-                    onChange={(e) => setProjectFormData({ ...projectFormData, status: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
-                  >
-                    <option value="planning">Planeación</option>
-                    <option value="layout">Layout</option>
-                    <option value="diseno_3d">Diseño 3D</option>
-                    <option value="materializacion">Materialización</option>
-                    <option value="presupuesto">Presupuesto</option>
-                    <option value="cierre">Cierre</option>
-                    <option value="postventas">Postventas</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto</label>
-                  <input
-                    type="number"
-                    value={projectFormData.budget}
-                    onChange={(e) => setProjectFormData({ ...projectFormData, budget: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
-                    min="0"
-                  />
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -716,12 +701,26 @@ const ProjectDetail = () => {
 
       {/* Task Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-[#163B3B]">
                 {editingTask ? 'Editar tarea' : 'Nueva tarea'}
               </h2>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[#163B3B] transition-colors"
+                aria-label="Cerrar"
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">

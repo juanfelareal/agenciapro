@@ -15,9 +15,7 @@ const Projects = () => {
     name: '',
     description: '',
     client_id: '',
-    status: 'planning',
     stage_id: '',
-    budget: 0,
     start_date: '',
     end_date: '',
   });
@@ -53,8 +51,9 @@ const Projects = () => {
   const [moveTargetId, setMoveTargetId] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  // Quick add-task modal state (scoped to a specific project)
+  // Task quick modal state (create or edit), scoped to a specific project
   const [quickTaskProject, setQuickTaskProject] = useState(null);
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [quickTaskForm, setQuickTaskForm] = useState({
     title: '',
     due_date: '',
@@ -63,9 +62,11 @@ const Projects = () => {
     assignee_ids: [],
   });
   const [creatingTask, setCreatingTask] = useState(false);
+  const [deletingTaskInline, setDeletingTaskInline] = useState(false);
 
   const openQuickTask = (project) => {
     setQuickTaskProject(project);
+    setEditingTaskId(null);
     setQuickTaskForm({
       title: '',
       due_date: '',
@@ -75,8 +76,21 @@ const Projects = () => {
     });
   };
 
+  const openEditTask = (project, task) => {
+    setQuickTaskProject(project);
+    setEditingTaskId(task.id);
+    setQuickTaskForm({
+      title: task.title || '',
+      due_date: task.due_date ? task.due_date.slice(0, 10) : '',
+      status: task.status || 'todo',
+      priority: task.priority || 'medium',
+      assignee_ids: (task.assignees || []).map((a) => a.id),
+    });
+  };
+
   const closeQuickTask = () => {
     setQuickTaskProject(null);
+    setEditingTaskId(null);
   };
 
   const submitQuickTask = async (e) => {
@@ -84,25 +98,52 @@ const Projects = () => {
     if (!quickTaskProject || !quickTaskForm.title.trim()) return;
     setCreatingTask(true);
     try {
-      await tasksAPI.create({
+      const payload = {
         title: quickTaskForm.title.trim(),
-        project_id: quickTaskProject.id,
         status: quickTaskForm.status,
         priority: quickTaskForm.priority,
         due_date: quickTaskForm.due_date || null,
         assignee_ids: quickTaskForm.assignee_ids,
-      });
-      // Keep the row expanded so the user sees the new task
+      };
+      if (editingTaskId) {
+        await tasksAPI.update(editingTaskId, payload);
+      } else {
+        await tasksAPI.create({ ...payload, project_id: quickTaskProject.id });
+      }
       setExpandedIds((prev) => new Set(prev).add(quickTaskProject.id));
       closeQuickTask();
       loadData();
     } catch (error) {
-      console.error('Error creating task:', error);
-      alert(error.response?.data?.error || 'Error al crear la tarea');
+      console.error('Error saving task:', error);
+      alert(error.response?.data?.error || 'Error al guardar la tarea');
     } finally {
       setCreatingTask(false);
     }
   };
+
+  const deleteTaskInline = async () => {
+    if (!editingTaskId) return;
+    if (!confirm('¿Eliminar esta tarea? Esta acción no se puede deshacer.')) return;
+    setDeletingTaskInline(true);
+    try {
+      await tasksAPI.delete(editingTaskId);
+      closeQuickTask();
+      loadData();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert(error.response?.data?.error || 'Error al eliminar la tarea');
+    } finally {
+      setDeletingTaskInline(false);
+    }
+  };
+
+  // Close the quick task modal with Escape
+  useEffect(() => {
+    if (!quickTaskProject) return;
+    const handler = (e) => { if (e.key === 'Escape') closeQuickTask(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [quickTaskProject]);
 
   const toggleExpand = (id) => {
     setExpandedIds((prev) => {
@@ -254,9 +295,7 @@ const Projects = () => {
       name: project.name,
       description: project.description || '',
       client_id: project.client_id || '',
-      status: project.status,
       stage_id: project.stage_id || '',
-      budget: project.budget,
       start_date: project.start_date || '',
       end_date: project.end_date || '',
     });
@@ -303,9 +342,7 @@ const Projects = () => {
       name: '',
       description: '',
       client_id: '',
-      status: 'planning',
       stage_id: '',
-      budget: 0,
       start_date: '',
       end_date: '',
     });
@@ -337,22 +374,6 @@ const Projects = () => {
       console.error('Error creating stage:', error);
       alert(error.response?.data?.error || 'Error al crear la etapa');
     }
-  };
-
-  const statusColors = {
-    planning: 'bg-gray-100 text-gray-600',
-    in_progress: 'bg-blue-100 text-blue-700',
-    on_hold: 'bg-amber-100 text-amber-700',
-    completed: 'bg-[#10B981]/10 text-[#10B981]',
-    cancelled: 'bg-red-100 text-red-600',
-  };
-
-  const statusLabels = {
-    planning: 'Planeación',
-    in_progress: 'En Progreso',
-    on_hold: 'En Espera',
-    completed: 'Completado',
-    cancelled: 'Cancelado',
   };
 
   const taskStatusLabels = {
@@ -393,29 +414,6 @@ const Projects = () => {
 
   const clearSelection = () => {
     setSelectedIds(new Set());
-  };
-
-  // Bulk actions
-  const handleBulkStatusChange = async (newStatus) => {
-    if (selectedIds.size === 0) return;
-
-    const statusText = statusLabels[newStatus];
-    if (!confirm(`¿Cambiar ${selectedIds.size} proyecto(s) a "${statusText}"?`)) return;
-
-    setBulkUpdating(true);
-    try {
-      const promises = Array.from(selectedIds).map(id =>
-        projectsAPI.update(id, { status: newStatus })
-      );
-      await Promise.all(promises);
-      clearSelection();
-      loadData();
-    } catch (error) {
-      console.error('Error updating projects:', error);
-      alert('Error al actualizar algunos proyectos');
-    } finally {
-      setBulkUpdating(false);
-    }
   };
 
   const handleBulkDelete = async () => {
@@ -502,38 +500,6 @@ const Projects = () => {
             </span>
           </div>
           <div className="h-6 w-px bg-[#1A1A2E]/20" />
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-[#1A1A2E]/70">Estado:</span>
-            <button
-              onClick={() => handleBulkStatusChange('planning')}
-              disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-            >
-              Planeación
-            </button>
-            <button
-              onClick={() => handleBulkStatusChange('in_progress')}
-              disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50"
-            >
-              En Progreso
-            </button>
-            <button
-              onClick={() => handleBulkStatusChange('completed')}
-              disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-[#10B981]/10 text-[#10B981] rounded-lg hover:bg-[#10B981]/20 disabled:opacity-50"
-            >
-              Completado
-            </button>
-            <button
-              onClick={() => handleBulkStatusChange('on_hold')}
-              disabled={bulkUpdating}
-              className="px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 disabled:opacity-50"
-            >
-              En Espera
-            </button>
-          </div>
-          <div className="h-6 w-px bg-[#1A1A2E]/20" />
           <div className="flex items-center gap-2">
             <span className="text-sm text-[#1A1A2E]/70">Cliente:</span>
             <select
@@ -598,13 +564,10 @@ const Projects = () => {
                 Etapa
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Estado
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Tareas
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Gastado
+                Progreso
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Acciones
@@ -669,11 +632,6 @@ const Projects = () => {
                     <span className="text-xs text-gray-400">—</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[project.status]}`}>
-                    {statusLabels[project.status]}
-                  </span>
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">
                   <button
                     onClick={() => toggleExpand(project.id)}
@@ -684,8 +642,25 @@ const Projects = () => {
                     <span className="text-sm">{projectTasks.length}</span>
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap font-bold text-[#F97316]">
-                  ${project.spent?.toLocaleString('es-CO')}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {(() => {
+                    const total = projectTasks.length;
+                    const done = projectTasks.filter((t) => t.status === 'done').length;
+                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                    return (
+                      <div className="flex items-center gap-2 min-w-[120px]">
+                        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#10B981] transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-gray-600 tabular-nums w-10 text-right">
+                          {pct}%
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
@@ -711,7 +686,7 @@ const Projects = () => {
               </tr>
               {isExpanded && (
                 <tr className="bg-gray-50/50">
-                  <td colSpan={8} className="px-6 py-4">
+                  <td colSpan={7} className="px-6 py-4">
                     <div className="pl-8 pr-2">
                       {projectTasks.length === 0 ? (
                         <p className="text-sm text-gray-400 mb-3">Sin tareas en este proyecto.</p>
@@ -730,7 +705,8 @@ const Projects = () => {
                               <tr
                                 key={task.id}
                                 className="border-t border-gray-100 hover:bg-white cursor-pointer"
-                                onClick={() => navigate(`/app/projects/${project.id}`)}
+                                onClick={() => openEditTask(project, task)}
+                                title="Editar tarea"
                               >
                                 <td className="py-2 text-[#1A1A2E]">{task.title}</td>
                                 <td className="py-2 text-gray-500">
@@ -877,10 +853,18 @@ const Projects = () => {
       })()}
 
       {quickTaskProject && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={closeQuickTask}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">Nueva tarea</h2>
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+                {editingTaskId ? 'Editar tarea' : 'Nueva tarea'}
+              </h2>
               <button onClick={closeQuickTask} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                 <X size={20} className="text-gray-500" />
               </button>
@@ -973,23 +957,36 @@ const Projects = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeQuickTask}
-                  disabled={creatingTask}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingTask || !quickTaskForm.title.trim()}
-                  className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
-                >
-                  {creatingTask && <Loader2 size={16} className="animate-spin" />}
-                  Crear tarea
-                </button>
+              <div className="flex items-center gap-3 pt-2">
+                {editingTaskId && (
+                  <button
+                    type="button"
+                    onClick={deleteTaskInline}
+                    disabled={creatingTask || deletingTaskInline}
+                    className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    {deletingTaskInline ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    Eliminar
+                  </button>
+                )}
+                <div className="flex justify-end gap-3 ml-auto">
+                  <button
+                    type="button"
+                    onClick={closeQuickTask}
+                    disabled={creatingTask}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingTask || !quickTaskForm.title.trim()}
+                    className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                  >
+                    {creatingTask && <Loader2 size={16} className="animate-spin" />}
+                    {editingTaskId ? 'Guardar cambios' : 'Crear tarea'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1035,20 +1032,6 @@ const Projects = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Estado</label>
-                  <select
-                    className="w-full border rounded-lg px-3 py-2"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  >
-                    <option value="planning">Planeación</option>
-                    <option value="in_progress">En Progreso</option>
-                    <option value="on_hold">En Espera</option>
-                    <option value="completed">Completado</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
-                </div>
-                <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-sm font-medium">Etapa</label>
                     <button
@@ -1069,17 +1052,6 @@ const Projects = () => {
                       <option key={stage.id} value={stage.id}>{stage.name}</option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Presupuesto</label>
-                  <input
-                    type="number"
-                    className="w-full border rounded-lg px-3 py-2"
-                    value={formData.budget}
-                    onChange={(e) =>
-                      setFormData({ ...formData, budget: parseFloat(e.target.value) || 0 })
-                    }
-                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Fecha Inicio</label>
