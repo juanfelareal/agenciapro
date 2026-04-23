@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI } from '../utils/api';
 import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +29,10 @@ const Tasks = () => {
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
+
+  // Confirmación al marcar tarea como Completada: ¿necesita aprobación del cliente?
+  const [doneApprovalPrompt, setDoneApprovalPrompt] = useState(false);
+  const pendingSubmitRef = useRef(null);
 
   // View and filter state
   const [viewMode, setViewMode] = useState('kanban');
@@ -62,6 +66,7 @@ const Tasks = () => {
     delivery_url: '',
     linked_form_id: '',
     visible_to_client: false,
+    requires_client_approval: false,
     is_recurring: false,
     recurrence_pattern: {
       type: 'weekly',
@@ -202,20 +207,37 @@ const Tasks = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Si la tarea acaba de pasar a Completada y aún no se está pidiendo aprobación,
+    // y la tarea está vinculada a un cliente, pregunta si necesita aprobación.
+    const justMarkedDone =
+      formData.status === 'done' &&
+      (!editingTask || editingTask.status !== 'done');
+    if (
+      justMarkedDone &&
+      !formData.requires_client_approval &&
+      formData.client_id
+    ) {
+      pendingSubmitRef.current = formData;
+      setDoneApprovalPrompt(true);
+      return;
+    }
+    await persistTask(formData);
+  };
+
+  const persistTask = async (data) => {
     try {
       let taskId;
-      // Prepare data for API - ensure proper types
-      const { assignee_ids, ...restFormData } = formData;
+      const { assignee_ids, ...restFormData } = data;
       const apiData = {
         ...restFormData,
         assignee_ids: assignee_ids.map(Number),
-        project_id: formData.project_id || null,
-        due_date: formData.due_date || null,
-        delivery_url: formData.delivery_url || null,
-        timeline_start: formData.timeline_start || null,
-        timeline_end: formData.timeline_end || null,
-        color: formData.color || null,
-        estimated_hours: formData.estimated_hours || null,
+        project_id: data.project_id || null,
+        due_date: data.due_date || null,
+        delivery_url: data.delivery_url || null,
+        timeline_start: data.timeline_start || null,
+        timeline_end: data.timeline_end || null,
+        color: data.color || null,
+        estimated_hours: data.estimated_hours || null,
       };
 
       if (editingTask) {
@@ -243,6 +265,22 @@ const Tasks = () => {
     }
   };
 
+  const confirmDoneWithApproval = async () => {
+    setDoneApprovalPrompt(false);
+    const base = pendingSubmitRef.current || formData;
+    pendingSubmitRef.current = null;
+    const updated = { ...base, visible_to_client: true, requires_client_approval: true };
+    setFormData(updated);
+    await persistTask(updated);
+  };
+
+  const confirmDoneWithoutApproval = async () => {
+    setDoneApprovalPrompt(false);
+    const base = pendingSubmitRef.current || formData;
+    pendingSubmitRef.current = null;
+    await persistTask(base);
+  };
+
   const resetForm = () => {
     setFormData({
       title: '',
@@ -256,6 +294,7 @@ const Tasks = () => {
       delivery_url: '',
       linked_form_id: '',
       visible_to_client: false,
+      requires_client_approval: false,
       is_recurring: false,
       recurrence_pattern: {
         type: 'weekly',
@@ -393,6 +432,7 @@ const Tasks = () => {
       delivery_url: task.delivery_url || '',
       linked_form_id: task.linked_form_id || '',
       visible_to_client: task.visible_to_client ? true : false,
+      requires_client_approval: !!task.requires_client_approval,
     });
     // Load task tags
     const tags = taskTags[task.id] || [];
@@ -824,21 +864,71 @@ const Tasks = () => {
                   </div>
                 )}
 
-                {/* Visible to Client Toggle */}
+                {/* Visible to Client Toggle + Client Approval */}
                 {formData.client_id && (
-                  <div className="col-span-2 border-t pt-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.visible_to_client}
-                        onChange={(e) =>
-                          setFormData({ ...formData, visible_to_client: e.target.checked })
-                        }
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm font-medium">👁 Visible en el portal del cliente</span>
-                    </label>
-                    <p className="text-xs text-gray-400 mt-1 ml-6">Si está activo, el cliente podrá ver esta tarea en su dashboard</p>
+                  <div className="col-span-2 border-t pt-4 space-y-3">
+                    <div>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.visible_to_client}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              visible_to_client: e.target.checked,
+                              // Si se oculta, también desactiva la aprobación
+                              requires_client_approval: e.target.checked ? formData.requires_client_approval : false,
+                            })
+                          }
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm font-medium">👁 Visible en el portal del cliente</span>
+                      </label>
+                      <p className="text-xs text-gray-400 mt-1 ml-6">Si está activo, el cliente podrá ver esta tarea en su dashboard</p>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.requires_client_approval}
+                          disabled={!formData.visible_to_client}
+                          onChange={(e) =>
+                            setFormData({ ...formData, requires_client_approval: e.target.checked })
+                          }
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm font-medium">✋ Pedir aprobación al cliente</span>
+                      </label>
+                      <p className="text-xs text-gray-400 mt-1 ml-6">El cliente verá botones para Aprobar / Solicitar cambios / Rechazar.</p>
+                    </div>
+
+                    {/* Approval status banner — read-only when client has acted */}
+                    {editingTask?.requires_client_approval && editingTask?.client_approval_status && (() => {
+                      const status = editingTask.client_approval_status;
+                      const cfg =
+                        status === 'approved' ? { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-800', label: 'Cliente aprobó' } :
+                        status === 'rejected' ? { bg: 'bg-red-50 border-red-200', text: 'text-red-800', label: 'Cliente rechazó' } :
+                        status === 'changes_requested' ? { bg: 'bg-orange-50 border-orange-200', text: 'text-orange-800', label: 'Cliente solicitó cambios' } :
+                        { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800', label: 'Esperando aprobación del cliente' };
+                      return (
+                        <div className={`border rounded-xl p-3 ${cfg.bg}`}>
+                          <p className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</p>
+                          {editingTask.client_approval_date && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {new Date(editingTask.client_approval_date).toLocaleDateString('es-CO', {
+                                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </p>
+                          )}
+                          {editingTask.client_approval_notes && (
+                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-line">
+                              <span className="font-medium">Notas: </span>{editingTask.client_approval_notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -974,6 +1064,36 @@ const Tasks = () => {
                 </div>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Approval prompt — shown when marking a client task as Completada */}
+      {doneApprovalPrompt && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-2">
+              ¿Necesita aprobación del cliente?
+            </h3>
+            <p className="text-sm text-gray-600 mb-5">
+              Estás marcando esta tarea como <span className="font-medium">Completada</span>. Si el cliente debe revisarla y aprobarla antes de cerrar, activamos la aprobación y la dejamos visible en su portal.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={confirmDoneWithoutApproval}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                No, marcar completada
+              </button>
+              <button
+                type="button"
+                onClick={confirmDoneWithApproval}
+                className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors"
+              >
+                Sí, pedir aprobación al cliente
+              </button>
+            </div>
           </div>
         </div>
       )}

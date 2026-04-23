@@ -69,6 +69,9 @@ const Projects = () => {
   const [creatingTask, setCreatingTask] = useState(false);
   const [deletingTaskInline, setDeletingTaskInline] = useState(false);
 
+  // Confirmación al marcar tarea como Completada: ¿necesita aprobación del cliente?
+  const [doneApprovalPrompt, setDoneApprovalPrompt] = useState(false);
+
   // Aprobación + comentarios para el modal de tarea editable
   const [editingTaskFull, setEditingTaskFull] = useState(null); // datos crudos del task (incluye client_approval_status, _notes, _date)
   const [taskComments, setTaskComments] = useState([]);
@@ -157,20 +160,32 @@ const Projects = () => {
   const submitQuickTask = async (e) => {
     e.preventDefault();
     if (!quickTaskProject || !quickTaskForm.title.trim()) return;
+    // Si pasa a Completada y no se está pidiendo aprobación, preguntar.
+    const justMarkedDone =
+      quickTaskForm.status === 'done' &&
+      (!editingTaskFull || editingTaskFull.status !== 'done');
+    if (justMarkedDone && !quickTaskForm.requires_client_approval) {
+      setDoneApprovalPrompt(true);
+      return;
+    }
+    await persistQuickTask(quickTaskForm);
+  };
+
+  const persistQuickTask = async (data) => {
     setCreatingTask(true);
     try {
-      const targetProjectId = quickTaskForm.project_id
-        ? Number(quickTaskForm.project_id)
+      const targetProjectId = data.project_id
+        ? Number(data.project_id)
         : quickTaskProject.id;
       const payload = {
-        title: quickTaskForm.title.trim(),
+        title: data.title.trim(),
         project_id: targetProjectId,
-        status: quickTaskForm.status,
-        priority: quickTaskForm.priority,
-        due_date: quickTaskForm.due_date || null,
-        assignee_ids: quickTaskForm.assignee_ids,
-        visible_to_client: quickTaskForm.visible_to_client,
-        requires_client_approval: quickTaskForm.requires_client_approval,
+        status: data.status,
+        priority: data.priority,
+        due_date: data.due_date || null,
+        assignee_ids: data.assignee_ids,
+        visible_to_client: data.visible_to_client,
+        requires_client_approval: data.requires_client_approval,
       };
       if (editingTaskId) {
         await tasksAPI.update(editingTaskId, payload);
@@ -186,6 +201,18 @@ const Projects = () => {
     } finally {
       setCreatingTask(false);
     }
+  };
+
+  const confirmDoneWithApproval = async () => {
+    setDoneApprovalPrompt(false);
+    const updated = { ...quickTaskForm, visible_to_client: true, requires_client_approval: true };
+    setQuickTaskForm(updated);
+    await persistQuickTask(updated);
+  };
+
+  const confirmDoneWithoutApproval = async () => {
+    setDoneApprovalPrompt(false);
+    await persistQuickTask(quickTaskForm);
   };
 
   const deleteTaskInline = async () => {
@@ -1464,6 +1491,36 @@ const Projects = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Approval prompt — shown when marking a task as Completada from quick modal */}
+      {doneApprovalPrompt && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-2">
+              ¿Necesita aprobación del cliente?
+            </h3>
+            <p className="text-sm text-gray-600 mb-5">
+              Estás marcando esta tarea como <span className="font-medium">Completada</span>. Si el cliente debe revisarla y aprobarla antes de cerrar, activamos la aprobación y la dejamos visible en su portal.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={confirmDoneWithoutApproval}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                No, marcar completada
+              </button>
+              <button
+                type="button"
+                onClick={confirmDoneWithApproval}
+                className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors"
+              >
+                Sí, pedir aprobación al cliente
+              </button>
+            </div>
           </div>
         </div>
       )}

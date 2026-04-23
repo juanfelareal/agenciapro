@@ -19,7 +19,9 @@ import {
   ThumbsDown,
   RotateCcw,
   ClipboardList,
-  ExternalLink
+  ExternalLink,
+  Paperclip,
+  Download
 } from 'lucide-react';
 
 export default function PortalTaskDetail() {
@@ -243,6 +245,83 @@ export default function PortalTaskDetail() {
           </div>
         </div>
       )}
+
+      {/* Deliverable Section — what the team delivered for the client to review */}
+      {(task.delivery_url || (task.files && task.files.length > 0)) && (() => {
+        const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+        const fileUrl = (fp) => (fp?.startsWith('http') ? fp : `${apiBase}${fp?.startsWith('/') ? '' : '/'}${fp}`);
+        const isImage = (type) => type?.startsWith('image/');
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+              <Paperclip className="w-5 h-5 text-gray-400" />
+              <h2 className="font-semibold text-[#1A1A2E]">Entregable</h2>
+              <span className="text-sm text-gray-500">
+                {(task.files?.length || 0) + (task.delivery_url ? 1 : 0)}
+              </span>
+            </div>
+            <div className="p-6 space-y-4">
+              {task.delivery_url && (
+                <a
+                  href={task.delivery_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-3 p-4 border border-gray-200 rounded-xl hover:border-[#1A1A2E] transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                      <ExternalLink className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[#1A1A2E] truncate">Link de entrega</p>
+                      <p className="text-xs text-gray-500 truncate">{task.delivery_url}</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                </a>
+              )}
+
+              {task.files && task.files.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {task.files.map((f) => (
+                    <div key={f.id} className="border border-gray-200 rounded-xl overflow-hidden">
+                      {isImage(f.file_type) ? (
+                        <a href={fileUrl(f.file_path)} target="_blank" rel="noopener noreferrer" className="block">
+                          <img
+                            src={fileUrl(f.file_path)}
+                            alt={f.file_name}
+                            className="w-full h-40 object-cover bg-gray-100"
+                            loading="lazy"
+                          />
+                        </a>
+                      ) : (
+                        <div className="h-40 bg-gray-50 flex items-center justify-center">
+                          <Paperclip className="w-10 h-10 text-gray-300" />
+                        </div>
+                      )}
+                      <div className="p-3 flex items-center justify-between gap-2">
+                        <p className="text-xs font-medium text-[#1A1A2E] truncate flex-1" title={f.file_name}>
+                          {f.file_name}
+                        </p>
+                        <a
+                          href={fileUrl(f.file_path)}
+                          download={f.file_name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                          title="Descargar"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Approval Section */}
       {!!task.requires_client_approval && hasPermission('can_approve_tasks') && (
