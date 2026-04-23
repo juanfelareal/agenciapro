@@ -112,7 +112,8 @@ router.post('/', async (req, res) => {
       created_by,
       order_index,
       linked_form_id,
-      visible_to_client
+      visible_to_client,
+      requires_client_approval
     } = req.body;
 
     if (!title) {
@@ -153,9 +154,10 @@ router.post('/', async (req, res) => {
       INSERT INTO tasks (
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
-        progress, color, estimated_hours, delivery_url, created_by, order_index, linked_form_id, visible_to_client, organization_id
+        progress, color, estimated_hours, delivery_url, created_by, order_index, linked_form_id,
+        visible_to_client, requires_client_approval, client_approval_status, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       title,
       description || null,
@@ -176,6 +178,8 @@ router.post('/', async (req, res) => {
       order_index != null ? order_index : null,
       linked_form_id || null,
       visible_to_client ? 1 : 0,
+      requires_client_approval ? 1 : 0,
+      requires_client_approval ? 'pending' : null,
       req.orgId
     ]);
 
@@ -252,7 +256,8 @@ router.put('/:id', async (req, res) => {
       estimated_hours,
       delivery_url,
       linked_form_id,
-      visible_to_client
+      visible_to_client,
+      requires_client_approval
     } = req.body;
 
     // Get old task data and verify it belongs to this org
@@ -348,6 +353,21 @@ router.put('/:id', async (req, res) => {
     if (delivery_url !== undefined) fields.delivery_url = delivery_url || null;
     if (linked_form_id !== undefined) fields.linked_form_id = linked_form_id || null;
     if (visible_to_client !== undefined) fields.visible_to_client = visible_to_client ? 1 : 0;
+    if (requires_client_approval !== undefined) {
+      fields.requires_client_approval = requires_client_approval ? 1 : 0;
+      // Cuando recién se activa la aprobación, dejar el estado en 'pending'
+      // para que aparezca en el dashboard del cliente. Si se desactiva,
+      // limpia el flujo previo.
+      if (requires_client_approval && !oldTask.requires_client_approval) {
+        fields.client_approval_status = 'pending';
+        fields.client_approval_date = null;
+        fields.client_approval_notes = null;
+      } else if (!requires_client_approval) {
+        fields.client_approval_status = null;
+        fields.client_approval_date = null;
+        fields.client_approval_notes = null;
+      }
+    }
 
     const setClauses = Object.keys(fields).map((k) => `${k} = ?`);
     setClauses.push('updated_at = CURRENT_TIMESTAMP');

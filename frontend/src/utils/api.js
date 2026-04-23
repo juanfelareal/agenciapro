@@ -178,6 +178,15 @@ export const taskCommentsAPI = {
 export const taskFilesAPI = {
   getByTask: (taskId) => api.get(`/task-files/task/${taskId}`),
   create: (data) => api.post('/task-files', data),
+  upload: (taskId, file, uploadedBy) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('task_id', taskId);
+    if (uploadedBy != null) fd.append('uploaded_by', uploadedBy);
+    return api.post('/task-files/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   delete: (id) => api.delete(`/task-files/${id}`),
 };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2 } from 'lucide-react';
+import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI } from '../utils/api';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
 import TaskDescriptionEditor from '../components/TaskDescriptionEditor';
@@ -33,6 +33,12 @@ const Tasks = () => {
   // Confirmación al marcar tarea como Completada: ¿necesita aprobación del cliente?
   const [doneApprovalPrompt, setDoneApprovalPrompt] = useState(false);
   const pendingSubmitRef = useRef(null);
+
+  // Segundo paso: pedir entregable (link o archivo) tras confirmar aprobación
+  const [deliverablePrompt, setDeliverablePrompt] = useState(false);
+  const [deliverableLink, setDeliverableLink] = useState('');
+  const [deliverableFile, setDeliverableFile] = useState(null);
+  const [submittingDeliverable, setSubmittingDeliverable] = useState(false);
 
   // View and filter state
   const [viewMode, setViewMode] = useState('kanban');
@@ -265,13 +271,11 @@ const Tasks = () => {
     }
   };
 
-  const confirmDoneWithApproval = async () => {
+  const confirmDoneWithApproval = () => {
     setDoneApprovalPrompt(false);
-    const base = pendingSubmitRef.current || formData;
-    pendingSubmitRef.current = null;
-    const updated = { ...base, visible_to_client: true, requires_client_approval: true };
-    setFormData(updated);
-    await persistTask(updated);
+    setDeliverableLink(formData.delivery_url || '');
+    setDeliverableFile(null);
+    setDeliverablePrompt(true);
   };
 
   const confirmDoneWithoutApproval = async () => {
@@ -279,6 +283,70 @@ const Tasks = () => {
     const base = pendingSubmitRef.current || formData;
     pendingSubmitRef.current = null;
     await persistTask(base);
+  };
+
+  const cancelDeliverablePrompt = () => {
+    setDeliverablePrompt(false);
+    setDeliverableLink('');
+    setDeliverableFile(null);
+    pendingSubmitRef.current = null;
+  };
+
+  const submitDeliverableAndApprove = async () => {
+    if (!deliverableLink && !deliverableFile) {
+      alert('Agrega un link o un archivo para que el cliente pueda revisarlo.');
+      return;
+    }
+    setSubmittingDeliverable(true);
+    try {
+      const base = pendingSubmitRef.current || formData;
+      const updated = {
+        ...base,
+        visible_to_client: true,
+        requires_client_approval: true,
+        delivery_url: deliverableLink || base.delivery_url || null,
+      };
+      // Persist task first to obtain the id (when creating)
+      const { assignee_ids, ...rest } = updated;
+      const apiData = {
+        ...rest,
+        assignee_ids: assignee_ids.map(Number),
+        project_id: updated.project_id || null,
+        due_date: updated.due_date || null,
+        delivery_url: updated.delivery_url || null,
+        timeline_start: updated.timeline_start || null,
+        timeline_end: updated.timeline_end || null,
+        color: updated.color || null,
+        estimated_hours: updated.estimated_hours || null,
+      };
+      let taskId;
+      if (editingTask) {
+        await tasksAPI.update(editingTask.id, apiData);
+        taskId = editingTask.id;
+      } else {
+        const response = await tasksAPI.create(apiData);
+        taskId = response.data.id;
+      }
+      // Upload deliverable file if any
+      if (deliverableFile && taskId) {
+        await taskFilesAPI.upload(taskId, deliverableFile, user?.id);
+      }
+      // Save tags
+      if (taskId) {
+        await tagsAPI.setTaskTags(taskId, selectedTagIds);
+      }
+
+      setShowModal(false);
+      setEditingTask(null);
+      resetForm();
+      cancelDeliverablePrompt();
+      loadData();
+    } catch (error) {
+      console.error('Error sending deliverable:', error);
+      alert(error.response?.data?.error || 'Error al guardar el entregable');
+    } finally {
+      setSubmittingDeliverable(false);
+    }
   };
 
   const resetForm = () => {
@@ -1064,6 +1132,73 @@ const Tasks = () => {
                 </div>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Deliverable prompt — second step after confirming approval */}
+      {deliverablePrompt && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-1">
+              Entregable para el cliente
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Adjunta lo que el cliente debe revisar. Las imágenes se mostrarán como preview en su portal y los links serán clickeables.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">Link (opcional)</label>
+                <input
+                  type="url"
+                  value={deliverableLink}
+                  onChange={(e) => setDeliverableLink(e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">Archivo (opcional)</label>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf,video/*"
+                  onChange={(e) => setDeliverableFile(e.target.files?.[0] || null)}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#1A1A2E] file:text-white file:text-sm hover:file:bg-[#1A1A2E]/90 cursor-pointer"
+                />
+                {deliverableFile && deliverableFile.type?.startsWith('image/') && (
+                  <img
+                    src={URL.createObjectURL(deliverableFile)}
+                    alt="preview"
+                    className="mt-3 max-h-48 rounded-lg border border-gray-200 object-contain bg-gray-50"
+                  />
+                )}
+                {deliverableFile && !deliverableFile.type?.startsWith('image/') && (
+                  <p className="mt-2 text-xs text-gray-500">{deliverableFile.name}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end mt-6">
+              <button
+                type="button"
+                onClick={cancelDeliverablePrompt}
+                disabled={submittingDeliverable}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={submitDeliverableAndApprove}
+                disabled={submittingDeliverable || (!deliverableLink && !deliverableFile)}
+                className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {submittingDeliverable && <Loader2 className="w-4 h-4 animate-spin" />}
+                Enviar al cliente
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI, projectStagesAPI, taskCommentsAPI } from '../utils/api';
+import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI, projectStagesAPI, taskCommentsAPI, taskFilesAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 
@@ -71,6 +71,10 @@ const Projects = () => {
 
   // Confirmación al marcar tarea como Completada: ¿necesita aprobación del cliente?
   const [doneApprovalPrompt, setDoneApprovalPrompt] = useState(false);
+  const [deliverablePrompt, setDeliverablePrompt] = useState(false);
+  const [deliverableLink, setDeliverableLink] = useState('');
+  const [deliverableFile, setDeliverableFile] = useState(null);
+  const [submittingDeliverable, setSubmittingDeliverable] = useState(false);
 
   // Aprobación + comentarios para el modal de tarea editable
   const [editingTaskFull, setEditingTaskFull] = useState(null); // datos crudos del task (incluye client_approval_status, _notes, _date)
@@ -203,16 +207,66 @@ const Projects = () => {
     }
   };
 
-  const confirmDoneWithApproval = async () => {
+  const confirmDoneWithApproval = () => {
     setDoneApprovalPrompt(false);
-    const updated = { ...quickTaskForm, visible_to_client: true, requires_client_approval: true };
-    setQuickTaskForm(updated);
-    await persistQuickTask(updated);
+    setDeliverableLink('');
+    setDeliverableFile(null);
+    setDeliverablePrompt(true);
   };
 
   const confirmDoneWithoutApproval = async () => {
     setDoneApprovalPrompt(false);
     await persistQuickTask(quickTaskForm);
+  };
+
+  const cancelDeliverablePrompt = () => {
+    setDeliverablePrompt(false);
+    setDeliverableLink('');
+    setDeliverableFile(null);
+  };
+
+  const submitDeliverableAndApprove = async () => {
+    if (!deliverableLink && !deliverableFile) {
+      alert('Agrega un link o un archivo para que el cliente pueda revisarlo.');
+      return;
+    }
+    setSubmittingDeliverable(true);
+    try {
+      const targetProjectId = quickTaskForm.project_id
+        ? Number(quickTaskForm.project_id)
+        : quickTaskProject.id;
+      const payload = {
+        title: quickTaskForm.title.trim(),
+        project_id: targetProjectId,
+        status: quickTaskForm.status,
+        priority: quickTaskForm.priority,
+        due_date: quickTaskForm.due_date || null,
+        assignee_ids: quickTaskForm.assignee_ids,
+        visible_to_client: true,
+        requires_client_approval: true,
+        delivery_url: deliverableLink || null,
+      };
+      let taskId;
+      if (editingTaskId) {
+        await tasksAPI.update(editingTaskId, payload);
+        taskId = editingTaskId;
+      } else {
+        const res = await tasksAPI.create(payload);
+        taskId = res.data?.id;
+      }
+      if (deliverableFile && taskId) {
+        await taskFilesAPI.upload(taskId, deliverableFile, user?.id);
+      }
+      setExpandedIds((prev) => new Set(prev).add(targetProjectId));
+      cancelDeliverablePrompt();
+      closeQuickTask();
+      loadData();
+    } catch (error) {
+      console.error('Error sending deliverable:', error);
+      alert(error.response?.data?.error || 'Error al guardar el entregable');
+    } finally {
+      setSubmittingDeliverable(false);
+    }
   };
 
   const deleteTaskInline = async () => {
@@ -1491,6 +1545,71 @@ const Projects = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Deliverable prompt — second step after confirming approval */}
+      {deliverablePrompt && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-1">Entregable para el cliente</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Adjunta lo que el cliente debe revisar. Las imágenes se mostrarán como preview en su portal y los links serán clickeables.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">Link (opcional)</label>
+                <input
+                  type="url"
+                  value={deliverableLink}
+                  onChange={(e) => setDeliverableLink(e.target.value)}
+                  placeholder="https://drive.google.com/..."
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">Archivo (opcional)</label>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf,video/*"
+                  onChange={(e) => setDeliverableFile(e.target.files?.[0] || null)}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#1A1A2E] file:text-white file:text-sm hover:file:bg-[#1A1A2E]/90 cursor-pointer"
+                />
+                {deliverableFile && deliverableFile.type?.startsWith('image/') && (
+                  <img
+                    src={URL.createObjectURL(deliverableFile)}
+                    alt="preview"
+                    className="mt-3 max-h-48 rounded-lg border border-gray-200 object-contain bg-gray-50"
+                  />
+                )}
+                {deliverableFile && !deliverableFile.type?.startsWith('image/') && (
+                  <p className="mt-2 text-xs text-gray-500">{deliverableFile.name}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end mt-6">
+              <button
+                type="button"
+                onClick={cancelDeliverablePrompt}
+                disabled={submittingDeliverable}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={submitDeliverableAndApprove}
+                disabled={submittingDeliverable || (!deliverableLink && !deliverableFile)}
+                className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {submittingDeliverable && <Loader2 className="w-4 h-4 animate-spin" />}
+                Enviar al cliente
+              </button>
+            </div>
           </div>
         </div>
       )}
