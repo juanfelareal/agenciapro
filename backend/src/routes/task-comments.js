@@ -17,15 +17,29 @@ router.get('/task/:taskId', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    const comments = await db.all(`
-      SELECT tc.*, tm.name as user_name, tm.email as user_email
+    const teamComments = await db.all(`
+      SELECT tc.id, tc.task_id, tc.comment, tc.created_at, tc.updated_at,
+             tc.user_id, tm.name as user_name, tm.email as user_email,
+             'team' as author_type
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
       WHERE tc.task_id = ?
-      ORDER BY tc.created_at DESC
     `, [req.params.taskId]);
 
-    res.json(comments);
+    // Comentarios del cliente sobre la tarea (si los hay)
+    const clientComments = await db.all(`
+      SELECT cc.id, cc.task_id, cc.comment, cc.created_at, cc.updated_at,
+             cc.client_id, c.name as user_name, c.email as user_email,
+             'client' as author_type
+      FROM client_comments cc
+      JOIN clients c ON cc.client_id = c.id
+      WHERE cc.task_id = ?
+    `, [req.params.taskId]);
+
+    const combined = [...teamComments, ...clientComments]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json(combined);
   } catch (error) {
     console.error('Error getting comments:', error);
     res.status(500).json({ error: error.message });

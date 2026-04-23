@@ -1,10 +1,12 @@
 import { useEffect, useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI, projectStagesAPI } from '../utils/api';
+import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI, projectStagesAPI, taskCommentsAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 
 const Projects = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -61,13 +63,25 @@ const Projects = () => {
     status: 'todo',
     priority: 'medium',
     assignee_ids: [],
+    visible_to_client: true,
+    requires_client_approval: false,
   });
   const [creatingTask, setCreatingTask] = useState(false);
   const [deletingTaskInline, setDeletingTaskInline] = useState(false);
 
+  // Aprobación + comentarios para el modal de tarea editable
+  const [editingTaskFull, setEditingTaskFull] = useState(null); // datos crudos del task (incluye client_approval_status, _notes, _date)
+  const [taskComments, setTaskComments] = useState([]);
+  const [loadingTaskComments, setLoadingTaskComments] = useState(false);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
+
   const openQuickTask = (project) => {
     setQuickTaskProject(project);
     setEditingTaskId(null);
+    setEditingTaskFull(null);
+    setTaskComments([]);
+    setNewCommentText('');
     setQuickTaskForm({
       title: '',
       project_id: project.id,
@@ -75,12 +89,16 @@ const Projects = () => {
       status: 'todo',
       priority: 'medium',
       assignee_ids: [],
+      visible_to_client: true,
+      requires_client_approval: false,
     });
   };
 
-  const openEditTask = (project, task) => {
+  const openEditTask = async (project, task) => {
     setQuickTaskProject(project);
     setEditingTaskId(task.id);
+    setEditingTaskFull(task);
+    setNewCommentText('');
     setQuickTaskForm({
       title: task.title || '',
       project_id: task.project_id || project.id,
@@ -88,12 +106,52 @@ const Projects = () => {
       status: task.status || 'todo',
       priority: task.priority || 'medium',
       assignee_ids: (task.assignees || []).map((a) => a.id),
+      visible_to_client: task.visible_to_client === undefined ? true : !!task.visible_to_client,
+      requires_client_approval: !!task.requires_client_approval,
     });
+    // Fetch full task (for fresh approval state) + comments
+    setLoadingTaskComments(true);
+    try {
+      const [fullRes, commentsRes] = await Promise.all([
+        tasksAPI.getById(task.id),
+        taskCommentsAPI.getByTask(task.id),
+      ]);
+      setEditingTaskFull(fullRes.data);
+      setTaskComments(commentsRes.data || []);
+    } catch (error) {
+      console.error('Error loading task detail:', error);
+    } finally {
+      setLoadingTaskComments(false);
+    }
   };
 
   const closeQuickTask = () => {
     setQuickTaskProject(null);
     setEditingTaskId(null);
+    setEditingTaskFull(null);
+    setTaskComments([]);
+    setNewCommentText('');
+  };
+
+  const submitTaskComment = async (e) => {
+    e.preventDefault();
+    if (!editingTaskId || !newCommentText.trim() || !user?.id) return;
+    setPostingComment(true);
+    try {
+      await taskCommentsAPI.create({
+        task_id: editingTaskId,
+        user_id: user.id,
+        comment: newCommentText.trim(),
+      });
+      const refreshed = await taskCommentsAPI.getByTask(editingTaskId);
+      setTaskComments(refreshed.data || []);
+      setNewCommentText('');
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      alert(error.response?.data?.error || 'Error al publicar el comentario');
+    } finally {
+      setPostingComment(false);
+    }
   };
 
   const submitQuickTask = async (e) => {
@@ -111,6 +169,8 @@ const Projects = () => {
         priority: quickTaskForm.priority,
         due_date: quickTaskForm.due_date || null,
         assignee_ids: quickTaskForm.assignee_ids,
+        visible_to_client: quickTaskForm.visible_to_client,
+        requires_client_approval: quickTaskForm.requires_client_approval,
       };
       if (editingTaskId) {
         await tasksAPI.update(editingTaskId, payload);
@@ -865,7 +925,7 @@ const Projects = () => {
           onClick={closeQuickTask}
         >
           <div
-            className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl"
+            className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -973,6 +1033,118 @@ const Projects = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Visibility + approval toggles */}
+              <div className="border-t border-gray-100 pt-4 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={!!quickTaskForm.visible_to_client}
+                    onChange={(e) => setQuickTaskForm({ ...quickTaskForm, visible_to_client: e.target.checked })}
+                    className="w-4 h-4 rounded"
+                  />
+                  Visible para el cliente
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={!!quickTaskForm.requires_client_approval}
+                    onChange={(e) => setQuickTaskForm({ ...quickTaskForm, requires_client_approval: e.target.checked })}
+                    disabled={!quickTaskForm.visible_to_client}
+                    className="w-4 h-4 rounded"
+                  />
+                  Pedir aprobación al cliente
+                </label>
+                {quickTaskForm.requires_client_approval && !quickTaskForm.visible_to_client && (
+                  <p className="text-xs text-amber-600 pl-6">
+                    Para pedir aprobación, la tarea debe ser visible para el cliente.
+                  </p>
+                )}
+              </div>
+
+              {/* Approval status banner — only when editing and client has acted */}
+              {editingTaskId && editingTaskFull?.requires_client_approval && editingTaskFull?.client_approval_status && (() => {
+                const status = editingTaskFull.client_approval_status;
+                const cfg =
+                  status === 'approved' ? { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-800', label: 'Cliente aprobó' } :
+                  status === 'rejected' ? { bg: 'bg-red-50 border-red-200', text: 'text-red-800', label: 'Cliente rechazó' } :
+                  status === 'changes_requested' ? { bg: 'bg-orange-50 border-orange-200', text: 'text-orange-800', label: 'Cliente solicitó cambios' } :
+                  { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800', label: 'Esperando aprobación del cliente' };
+                return (
+                  <div className={`border rounded-xl p-3 ${cfg.bg}`}>
+                    <p className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</p>
+                    {editingTaskFull.client_approval_date && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {new Date(editingTaskFull.client_approval_date).toLocaleDateString('es-CO', {
+                          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </p>
+                    )}
+                    {editingTaskFull.client_approval_notes && (
+                      <p className="text-sm text-gray-700 mt-2 whitespace-pre-line">
+                        <span className="font-medium">Notas: </span>{editingTaskFull.client_approval_notes}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Comments section — only when editing */}
+              {editingTaskId && (
+                <div className="border-t border-gray-100 pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-[#1A1A2E]">Comentarios</h3>
+                    <span className="text-xs text-gray-400">{taskComments.length}</span>
+                  </div>
+                  {loadingTaskComments ? (
+                    <p className="text-xs text-gray-400">Cargando…</p>
+                  ) : taskComments.length === 0 ? (
+                    <p className="text-xs text-gray-400">Sin comentarios todavía.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {taskComments.map((c) => (
+                        <div
+                          key={`${c.author_type}-${c.id}`}
+                          className={`p-3 rounded-xl border text-sm ${
+                            c.author_type === 'client'
+                              ? 'bg-blue-50 border-blue-100'
+                              : 'bg-gray-50 border-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-[#1A1A2E] text-xs">{c.user_name || 'Anónimo'}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              c.author_type === 'client' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+                            }`}>
+                              {c.author_type === 'client' ? 'Cliente' : 'Equipo'}
+                            </span>
+                            <span className="text-[10px] text-gray-400 ml-auto">
+                              {new Date(c.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 whitespace-pre-line">{c.comment}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <form onSubmit={submitTaskComment} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCommentText}
+                      onChange={(e) => setNewCommentText(e.target.value)}
+                      placeholder="Escribe un comentario para el cliente o el equipo…"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                    />
+                    <button
+                      type="submit"
+                      disabled={postingComment || !newCommentText.trim()}
+                      className="px-3 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50"
+                    >
+                      {postingComment ? '…' : 'Enviar'}
+                    </button>
+                  </form>
+                </div>
+              )}
 
               <div className="flex items-center gap-3 pt-2">
                 {editingTaskId && (
