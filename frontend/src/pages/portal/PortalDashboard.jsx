@@ -306,22 +306,21 @@ export default function PortalDashboard() {
               {allDeadlines.slice(0, 5).map((item) => {
                 const days = daysUntil(item.date);
                 const dayPill =
+                  days < 0 ? { text: `Atrasada · ${formatShortDate(item.date)}`, cls: 'bg-red-50 text-red-700' } :
                   days === 0 ? { text: 'Hoy', cls: 'bg-red-50 text-red-700' } :
                   days === 1 ? { text: 'Mañana', cls: 'bg-orange-50 text-orange-700' } :
-                  days <= 7 ? { text: `${days}d`, cls: 'bg-amber-50 text-amber-700' } :
+                  days <= 7 ? { text: `En ${days} días`, cls: 'bg-amber-50 text-amber-700' } :
                   { text: formatShortDate(item.date), cls: 'bg-gray-100 text-gray-600' };
                 return (
                   <div key={item.id} className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      item.kind === 'task' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {item.kind === 'task' ? <CheckCircle2 className="w-4 h-4" /> : <CalendarDays className="w-4 h-4" />}
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-50 text-blue-600">
+                      <CheckCircle2 className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#1A1A2E] truncate">{item.title}</p>
                       <p className="text-xs text-gray-400 truncate">{item.subtitle}</p>
                     </div>
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0 ${dayPill.cls}`}>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap ${dayPill.cls}`}>
                       {dayPill.text}
                     </span>
                   </div>

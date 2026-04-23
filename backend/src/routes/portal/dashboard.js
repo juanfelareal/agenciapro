@@ -82,8 +82,9 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       GROUP BY t.status
     `, [clientId]), []);
 
-    // Tareas con fecha de entrega futura — sin tope arbitrario de 14 días.
-    // El frontend pagina/recorta a 5 en el card "Próximas entregas".
+    // Tareas no completadas con fecha de entrega — incluye atrasadas para
+    // que el cliente las vea (el frontend marca las vencidas como 'Atrasada').
+    // Orden: futuras primero por proximidad, luego atrasadas más recientes.
     const upcomingDeadlines = await safeQuery(() => db.all(`
       SELECT t.id, t.title, t.due_date::text as due_date, t.status, p.name as project_name, tm.name as assigned_to_name
       FROM tasks t
@@ -91,9 +92,11 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE p.client_id = ? AND t.visible_to_client = 1
         AND t.due_date IS NOT NULL
-        AND t.due_date >= CURRENT_DATE
         AND t.status != 'done'
-      ORDER BY t.due_date ASC
+      ORDER BY
+        CASE WHEN t.due_date::date >= CURRENT_DATE THEN 0 ELSE 1 END,
+        CASE WHEN t.due_date::date >= CURRENT_DATE THEN t.due_date::date END ASC NULLS LAST,
+        t.due_date::date DESC
       LIMIT 12
     `, [clientId]), []);
 
