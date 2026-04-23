@@ -6,7 +6,6 @@ import {
   Building2,
   LayoutDashboard,
   FolderKanban,
-  CheckSquare,
   FileText,
   BarChart3,
   ClipboardList,
@@ -51,7 +50,6 @@ export default function PortalHeader() {
   const navItems = [
     { path: '/portal', icon: LayoutDashboard, label: 'Dashboard', permission: null },
     { path: '/portal/projects', icon: FolderKanban, label: 'Proyectos', permission: 'can_view_projects' },
-    { path: '/portal/tasks', icon: CheckSquare, label: 'Tareas', permission: 'can_view_tasks' },
     // { path: '/portal/invoices', icon: FileText, label: 'Facturas', permission: 'can_view_invoices' }, // Hidden temporarily while Siigo integration is fixed
     { path: '/portal/metrics', icon: BarChart3, label: 'Métricas', permission: 'can_view_metrics' },
     { path: '/portal/calls', icon: Phone, label: 'Llamadas', permission: null },

@@ -52,7 +52,6 @@ import PortalLogin from './pages/portal/PortalLogin';
 import PortalDashboard from './pages/portal/PortalDashboard';
 import PortalProjects from './pages/portal/PortalProjects';
 import PortalProjectDetail from './pages/portal/PortalProjectDetail';
-import PortalTasks from './pages/portal/PortalTasks';
 import PortalTaskDetail from './pages/portal/PortalTaskDetail';
 import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalMetrics from './pages/portal/PortalMetrics';
@@ -116,14 +115,6 @@ function App() {
             element={
               <PortalProtectedRoute permission="can_view_projects">
                 <PortalProjectDetail />
-              </PortalProtectedRoute>
-            }
-          />
-          <Route
-            path="tasks"
-            element={
-              <PortalProtectedRoute permission="can_view_tasks">
-                <PortalTasks />
               </PortalProtectedRoute>
             }
           />

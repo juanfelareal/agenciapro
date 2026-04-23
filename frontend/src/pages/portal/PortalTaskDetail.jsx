@@ -160,8 +160,8 @@ export default function PortalTaskDetail() {
         </div>
         <h2 className="text-xl font-semibold text-[#1A1A2E]">Tarea no encontrada</h2>
         <p className="text-gray-500 mt-2 mb-4">Esta tarea no existe o no tienes acceso.</p>
-        <Link to="/portal/tasks" className="text-[#1A1A2E] hover:underline">
-          Volver a tareas
+        <Link to="/portal/projects" className="text-[#1A1A2E] hover:underline">
+          Volver a proyectos
         </Link>
       </div>
     );
@@ -174,11 +174,11 @@ export default function PortalTaskDetail() {
     <div className="space-y-6">
       {/* Back Link */}
       <Link
-        to="/portal/tasks"
+        to={task.project_id ? `/portal/projects/${task.project_id}` : '/portal/projects'}
         className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>Volver a tareas</span>
+        <span>{task.project_name ? `Volver a ${task.project_name}` : 'Volver al proyecto'}</span>
       </Link>
 
       {/* Task Header */}
