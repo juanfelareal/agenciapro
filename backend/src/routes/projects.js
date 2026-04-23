@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const { status, client_id } = req.query;
     let query = `
-      SELECT p.*, c.name as client_name
+      SELECT p.*, COALESCE(NULLIF(c.company, ''), c.name) as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
       WHERE p.organization_id = ?
@@ -38,7 +38,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const project = await db.get(`
-      SELECT p.*, c.name as client_name
+      SELECT p.*, COALESCE(NULLIF(c.company, ''), c.name) as client_name
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
       WHERE p.id = ? AND p.organization_id = ?

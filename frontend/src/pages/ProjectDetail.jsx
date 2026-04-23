@@ -97,7 +97,6 @@ const ProjectDetail = () => {
 
   const loadData = async () => {
     try {
-      setLoading(true);
       const [projectRes, tasksRes, teamRes, tagsRes, formsRes] = await Promise.all([
         projectsAPI.getById(id),
         tasksAPI.getAll({ project_id: id }),
@@ -342,7 +341,7 @@ const ProjectDetail = () => {
     }
   };
 
-  if (loading) {
+  if (loading && !project) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#163B3B]" />
@@ -879,7 +878,12 @@ const ProjectDetail = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Subtareas</label>
                   <SubtaskList
                     taskId={editingTask.id}
-                    onProgressChange={() => loadData()}
+                    onProgressChange={(progress) =>
+                      setTaskSubtaskProgress((prev) => ({
+                        ...prev,
+                        [editingTask.id]: progress,
+                      }))
+                    }
                   />
                 </div>
               )}

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -39,22 +39,43 @@ const Projects = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
+  // Expandable rows state — show tasks for each project
+  const [tasksByProject, setTasksByProject] = useState({});
+  const [expandedIds, setExpandedIds] = useState(new Set());
+
+  const toggleExpand = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     try {
-      const [projectsRes, clientsRes, teamRes, templatesRes] = await Promise.all([
+      const [projectsRes, clientsRes, teamRes, templatesRes, tasksRes] = await Promise.all([
         projectsAPI.getAll(),
         clientsAPI.getAll('active'),
         teamAPI.getAll({ status: 'active' }),
         projectTemplatesAPI.getAll(),
+        tasksAPI.getAll(),
       ]);
       setProjects(projectsRes.data);
       setClients(clientsRes.data);
       setTeamMembers(teamRes.data);
       setTemplates(templatesRes.data);
+
+      const grouped = {};
+      for (const t of tasksRes.data || []) {
+        if (!t.project_id) continue;
+        (grouped[t.project_id] ||= []).push(t);
+      }
+      setTasksByProject(grouped);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -228,6 +249,20 @@ const Projects = () => {
     on_hold: 'En Espera',
     completed: 'Completado',
     cancelled: 'Cancelado',
+  };
+
+  const taskStatusLabels = {
+    todo: 'Por hacer',
+    in_progress: 'En progreso',
+    review: 'En revisión',
+    done: 'Completado',
+  };
+
+  const taskStatusColors = {
+    todo: 'bg-gray-100 text-gray-600',
+    in_progress: 'bg-blue-100 text-blue-700',
+    review: 'bg-amber-100 text-amber-700',
+    done: 'bg-[#10B981]/10 text-[#10B981]',
   };
 
   // Bulk selection helpers
@@ -459,7 +494,7 @@ const Projects = () => {
                 Estado
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Presupuesto
+                Tareas
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Gastado
@@ -474,9 +509,12 @@ const Projects = () => {
               if (!clientFilter) return true;
               if (clientFilter === 'none') return !p.client_id;
               return p.client_id === Number(clientFilter);
-            }).map((project) => (
+            }).map((project) => {
+              const projectTasks = tasksByProject[project.id] || [];
+              const isExpanded = expandedIds.has(project.id);
+              return (
+              <Fragment key={project.id}>
               <tr
-                key={project.id}
                 className={`hover:bg-gray-50 ${selectedIds.has(project.id) ? 'bg-[#BFFF00]/10' : ''}`}
               >
                 <td className="px-3 py-4 text-center">
@@ -491,11 +529,22 @@ const Projects = () => {
                     )}
                   </button>
                 </td>
-                <td
-                  className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E] cursor-pointer hover:text-[#F97316] transition-colors"
-                  onClick={() => navigate(`/app/projects/${project.id}`)}
-                >
-                  {project.name}
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleExpand(project.id)}
+                      className="text-gray-400 hover:text-[#1A1A2E] p-0.5 rounded transition-colors"
+                      title={isExpanded ? 'Colapsar' : 'Desglosar tareas'}
+                    >
+                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </button>
+                    <span
+                      className="cursor-pointer hover:text-[#F97316] transition-colors"
+                      onClick={() => navigate(`/app/projects/${project.id}`)}
+                    >
+                      {project.name}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-500">{project.client_name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -504,7 +553,14 @@ const Projects = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">
-                  ${project.budget?.toLocaleString('es-CO')}
+                  <button
+                    onClick={() => toggleExpand(project.id)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                    title="Ver tareas"
+                  >
+                    <ListTodo size={14} className="text-gray-500" />
+                    <span className="text-sm">{projectTasks.length}</span>
+                  </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-bold text-[#F97316]">
                   ${project.spent?.toLocaleString('es-CO')}
@@ -531,7 +587,61 @@ const Projects = () => {
                   </button>
                 </td>
               </tr>
-            ))}
+              {isExpanded && (
+                <tr className="bg-gray-50/50">
+                  <td colSpan={7} className="px-6 py-4">
+                    {projectTasks.length === 0 ? (
+                      <p className="text-sm text-gray-400 pl-8">Sin tareas en este proyecto.</p>
+                    ) : (
+                      <div className="pl-8 pr-2">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-xs text-gray-400 uppercase tracking-wider">
+                              <th className="text-left py-2 font-medium">Tarea</th>
+                              <th className="text-left py-2 font-medium w-40">Fecha de entrega</th>
+                              <th className="text-left py-2 font-medium w-36">Estado</th>
+                              <th className="text-left py-2 font-medium w-64">Responsable</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {projectTasks.map((task) => (
+                              <tr
+                                key={task.id}
+                                className="border-t border-gray-100 hover:bg-white cursor-pointer"
+                                onClick={() => navigate(`/app/projects/${project.id}`)}
+                              >
+                                <td className="py-2 text-[#1A1A2E]">{task.title}</td>
+                                <td className="py-2 text-gray-500">
+                                  {task.due_date
+                                    ? new Date(task.due_date).toLocaleDateString('es-CO', {
+                                        day: '2-digit',
+                                        month: 'short',
+                                        year: 'numeric',
+                                      })
+                                    : '-'}
+                                </td>
+                                <td className="py-2">
+                                  <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${taskStatusColors[task.status] || 'bg-gray-100 text-gray-600'}`}>
+                                    {taskStatusLabels[task.status] || task.status}
+                                  </span>
+                                </td>
+                                <td className="py-2 text-gray-600">
+                                  {task.assignees && task.assignees.length > 0
+                                    ? task.assignees.map((a) => a.name).join(', ')
+                                    : '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )}
+              </Fragment>
+            );
+            })}
           </tbody>
         </table>
       </div>
