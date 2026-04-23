@@ -56,6 +56,7 @@ const Projects = () => {
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [quickTaskForm, setQuickTaskForm] = useState({
     title: '',
+    project_id: '',
     due_date: '',
     status: 'todo',
     priority: 'medium',
@@ -69,6 +70,7 @@ const Projects = () => {
     setEditingTaskId(null);
     setQuickTaskForm({
       title: '',
+      project_id: project.id,
       due_date: '',
       status: 'todo',
       priority: 'medium',
@@ -81,6 +83,7 @@ const Projects = () => {
     setEditingTaskId(task.id);
     setQuickTaskForm({
       title: task.title || '',
+      project_id: task.project_id || project.id,
       due_date: task.due_date ? task.due_date.slice(0, 10) : '',
       status: task.status || 'todo',
       priority: task.priority || 'medium',
@@ -98,8 +101,12 @@ const Projects = () => {
     if (!quickTaskProject || !quickTaskForm.title.trim()) return;
     setCreatingTask(true);
     try {
+      const targetProjectId = quickTaskForm.project_id
+        ? Number(quickTaskForm.project_id)
+        : quickTaskProject.id;
       const payload = {
         title: quickTaskForm.title.trim(),
+        project_id: targetProjectId,
         status: quickTaskForm.status,
         priority: quickTaskForm.priority,
         due_date: quickTaskForm.due_date || null,
@@ -108,9 +115,9 @@ const Projects = () => {
       if (editingTaskId) {
         await tasksAPI.update(editingTaskId, payload);
       } else {
-        await tasksAPI.create({ ...payload, project_id: quickTaskProject.id });
+        await tasksAPI.create(payload);
       }
-      setExpandedIds((prev) => new Set(prev).add(quickTaskProject.id));
+      setExpandedIds((prev) => new Set(prev).add(targetProjectId));
       closeQuickTask();
       loadData();
     } catch (error) {
@@ -870,19 +877,6 @@ const Projects = () => {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-4 text-xs">
-              {quickTaskProject.client_name && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full">
-                  <span className="text-gray-500">Cliente:</span>
-                  <span className="font-medium">{quickTaskProject.client_name}</span>
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1A1A2E]/5 text-[#1A1A2E] rounded-full">
-                <span className="text-[#1A1A2E]/60">Proyecto:</span>
-                <span className="font-medium">{quickTaskProject.name}</span>
-              </span>
-            </div>
-
             <form onSubmit={submitQuickTask} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
@@ -896,6 +890,29 @@ const Projects = () => {
                   placeholder="Ej. Diseñar landing"
                 />
               </div>
+
+              {(() => {
+                const selectedProject = projects.find((p) => p.id === Number(quickTaskForm.project_id));
+                return (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Proyecto</label>
+                    <select
+                      value={quickTaskForm.project_id || ''}
+                      onChange={(e) => setQuickTaskForm({ ...quickTaskForm, project_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                    >
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{p.client_name ? ` — ${p.client_name}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Cliente: <span className="font-medium text-gray-700">{selectedProject?.client_name || 'Sin cliente'}</span>
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
