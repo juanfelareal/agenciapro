@@ -65,7 +65,10 @@ const Projects = () => {
     assignee_ids: [],
     visible_to_client: true,
     requires_client_approval: false,
+    delivery_url: '',
   });
+  // Si la tarea requiere aprobación y no hay entregable, exigir override consciente.
+  const [noFilesIntended, setNoFilesIntended] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
   const [deletingTaskInline, setDeletingTaskInline] = useState(false);
 
@@ -136,6 +139,7 @@ const Projects = () => {
     setEditingTaskFull(null);
     setTaskComments([]);
     setNewCommentText('');
+    setNoFilesIntended(false);
     setQuickTaskForm({
       title: '',
       project_id: project.id,
@@ -145,6 +149,7 @@ const Projects = () => {
       assignee_ids: [],
       visible_to_client: true,
       requires_client_approval: false,
+      delivery_url: '',
     });
   };
 
@@ -154,6 +159,7 @@ const Projects = () => {
     setEditingTaskFull(task);
     setNewCommentText('');
     setTaskFilesList([]);
+    setNoFilesIntended(false);
     setQuickTaskForm({
       title: task.title || '',
       project_id: task.project_id || project.id,
@@ -163,6 +169,7 @@ const Projects = () => {
       assignee_ids: (task.assignees || []).map((a) => a.id),
       visible_to_client: task.visible_to_client === undefined ? true : !!task.visible_to_client,
       requires_client_approval: !!task.requires_client_approval,
+      delivery_url: task.delivery_url || '',
     });
     // Fetch full task (for fresh approval state) + comments + files
     setLoadingTaskComments(true);
@@ -188,6 +195,18 @@ const Projects = () => {
     setTaskComments([]);
     setNewCommentText('');
     setTaskFilesList([]);
+    setNoFilesIntended(false);
+  };
+
+  const validateApprovalDeliverable = () => {
+    if (!quickTaskForm.requires_client_approval) return true;
+    const hasFile = taskFilesList.length > 0;
+    const hasLink = (quickTaskForm.delivery_url || '').trim().length > 0;
+    if (hasFile || hasLink || noFilesIntended) return true;
+    alert(
+      'Esta tarea requiere aprobación del cliente.\n\nAntes de guardar, sube al menos un archivo, agrega un link de entrega, o marca "Sin archivos" para confirmar que el cliente revisará por otro medio.'
+    );
+    return false;
   };
 
   const submitTaskComment = async (e) => {
@@ -214,6 +233,7 @@ const Projects = () => {
   const submitQuickTask = async (e) => {
     e.preventDefault();
     if (!quickTaskProject || !quickTaskForm.title.trim()) return;
+    if (!validateApprovalDeliverable()) return;
     // Si pasa a Completada y no se está pidiendo aprobación, preguntar.
     const justMarkedDone =
       quickTaskForm.status === 'done' &&
@@ -240,6 +260,7 @@ const Projects = () => {
         assignee_ids: data.assignee_ids,
         visible_to_client: data.visible_to_client,
         requires_client_approval: data.requires_client_approval,
+        delivery_url: (data.delivery_url || '').trim() || null,
       };
       if (editingTaskId) {
         await tasksAPI.update(editingTaskId, payload);
@@ -1180,7 +1201,11 @@ const Projects = () => {
                   <input
                     type="checkbox"
                     checked={!!quickTaskForm.requires_client_approval}
-                    onChange={(e) => setQuickTaskForm({ ...quickTaskForm, requires_client_approval: e.target.checked })}
+                    onChange={(e) => {
+                      const v = e.target.checked;
+                      setQuickTaskForm({ ...quickTaskForm, requires_client_approval: v });
+                      if (!v) setNoFilesIntended(false);
+                    }}
                     disabled={!quickTaskForm.visible_to_client}
                     className="w-4 h-4 rounded"
                   />
@@ -1190,6 +1215,43 @@ const Projects = () => {
                   <p className="text-xs text-amber-600 pl-6">
                     Para pedir aprobación, la tarea debe ser visible para el cliente.
                   </p>
+                )}
+
+                {/* Warning panel + delivery URL when approval is required */}
+                {quickTaskForm.requires_client_approval && quickTaskForm.visible_to_client && (
+                  <div className="ml-6 space-y-2">
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 mb-1">
+                        Link de entrega (Drive, Figma, etc.)
+                      </label>
+                      <input
+                        type="url"
+                        value={quickTaskForm.delivery_url}
+                        onChange={(e) => setQuickTaskForm({ ...quickTaskForm, delivery_url: e.target.value })}
+                        placeholder="https://drive.google.com/..."
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                      />
+                    </div>
+                    {taskFilesList.length === 0 && !(quickTaskForm.delivery_url || '').trim() && (
+                      <div className="border border-amber-200 bg-amber-50 rounded-xl p-3">
+                        <p className="text-sm font-medium text-amber-800">⚠️ Falta el entregable</p>
+                        <p className="text-xs text-amber-700 mt-1">
+                          Sube un archivo en la sección <strong>Archivos para el cliente</strong>, agrega un link arriba, o marca abajo que no requiere archivos.
+                        </p>
+                        <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={noFilesIntended}
+                            onChange={(e) => setNoFilesIntended(e.target.checked)}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-xs text-amber-800">
+                            Sin archivos — el cliente revisará por otro medio
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 

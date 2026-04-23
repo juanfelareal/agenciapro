@@ -44,6 +44,9 @@ const Tasks = () => {
   const [taskFilesList, setTaskFilesList] = useState([]);
   const [loadingTaskFiles, setLoadingTaskFiles] = useState(false);
   const [uploadingTaskFile, setUploadingTaskFile] = useState(false);
+  // Si la tarea requiere aprobación del cliente y no hay archivos ni link,
+  // exigir que el usuario marque conscientemente "Sin archivos" antes de guardar.
+  const [noFilesIntended, setNoFilesIntended] = useState(false);
   const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
   const fileUrl = (fp) => (fp?.startsWith('http') ? fp : `${apiBase}${fp?.startsWith('/') ? '' : '/'}${fp}`);
 
@@ -220,6 +223,8 @@ const Tasks = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Bloquea guardar si la tarea pide aprobación pero no hay entregable ni override explícito.
+    if (!validateApprovalDeliverable()) return;
     // Si la tarea acaba de pasar a Completada y aún no se está pidiendo aprobación,
     // y la tarea está vinculada a un cliente, pregunta si necesita aprobación.
     const justMarkedDone =
@@ -386,6 +391,18 @@ const Tasks = () => {
     setShowNewProject(false);
     setNewProjectName('');
     setTaskFilesList([]);
+    setNoFilesIntended(false);
+  };
+
+  const validateApprovalDeliverable = () => {
+    if (!formData.requires_client_approval) return true;
+    const hasFile = taskFilesList.length > 0;
+    const hasLink = (formData.delivery_url || '').trim().length > 0;
+    if (hasFile || hasLink || noFilesIntended) return true;
+    alert(
+      'Esta tarea requiere aprobación del cliente.\n\nAntes de guardar, sube al menos un archivo, agrega un link de entrega, o marca "Sin archivos" para confirmar que el cliente revisará por otro medio.'
+    );
+    return false;
   };
 
   const loadTaskFiles = async (taskId) => {
@@ -470,6 +487,19 @@ const Tasks = () => {
   };
 
   const handleStatusChange = async (task, newStatus) => {
+    // Si la tarea requiere aprobación del cliente y no tiene entregable,
+    // forzar al usuario a abrir la tarea y subir archivos/link primero.
+    if (task.requires_client_approval) {
+      const hasFile = (task.files?.length || 0) > 0;
+      const hasLink = (task.delivery_url || '').trim().length > 0;
+      if (!hasFile && !hasLink) {
+        alert(
+          'Esta tarea requiere aprobación del cliente y no tiene entregable.\n\nÁbrela y sube los archivos o agrega un link antes de cambiar el estado.'
+        );
+        handleTaskClick(task);
+        return;
+      }
+    }
     try {
       // Only send necessary fields, not computed ones like project_name, assigned_to_name
       const updateData = {
@@ -1088,14 +1118,38 @@ const Tasks = () => {
                           type="checkbox"
                           checked={formData.requires_client_approval}
                           disabled={!formData.visible_to_client}
-                          onChange={(e) =>
-                            setFormData({ ...formData, requires_client_approval: e.target.checked })
-                          }
+                          onChange={(e) => {
+                            setFormData({ ...formData, requires_client_approval: e.target.checked });
+                            if (!e.target.checked) setNoFilesIntended(false);
+                          }}
                           className="w-4 h-4"
                         />
                         <span className="text-sm font-medium">✋ Pedir aprobación al cliente</span>
                       </label>
                       <p className="text-xs text-gray-400 mt-1 ml-6">El cliente verá botones para Aprobar / Solicitar cambios / Rechazar.</p>
+
+                      {/* Bloqueador: si pide aprobación pero no hay entregable, exigir override */}
+                      {formData.requires_client_approval &&
+                        taskFilesList.length === 0 &&
+                        !(formData.delivery_url || '').trim() && (
+                          <div className="mt-2 ml-6 border border-amber-200 bg-amber-50 rounded-xl p-3">
+                            <p className="text-sm font-medium text-amber-800">⚠️ Falta el entregable</p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              Sube un archivo en la sección <strong>Archivos para el cliente</strong>, agrega un <strong>Link de entrega</strong> arriba, o marca abajo que no requiere archivos.
+                            </p>
+                            <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={noFilesIntended}
+                                onChange={(e) => setNoFilesIntended(e.target.checked)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-xs text-amber-800">
+                                Sin archivos — el cliente revisará por otro medio
+                              </span>
+                            </label>
+                          </div>
+                        )}
                     </div>
 
                     {/* Approval status banner — read-only when client has acted */}
