@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2 } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Upload, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
 import TaskDescriptionEditor from '../components/TaskDescriptionEditor';
@@ -39,6 +39,13 @@ const Tasks = () => {
   const [deliverableLink, setDeliverableLink] = useState('');
   const [deliverableFile, setDeliverableFile] = useState(null);
   const [submittingDeliverable, setSubmittingDeliverable] = useState(false);
+
+  // Archivos persistentes de la tarea (visibles para el cliente desde su portal)
+  const [taskFilesList, setTaskFilesList] = useState([]);
+  const [loadingTaskFiles, setLoadingTaskFiles] = useState(false);
+  const [uploadingTaskFile, setUploadingTaskFile] = useState(false);
+  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
+  const fileUrl = (fp) => (fp?.startsWith('http') ? fp : `${apiBase}${fp?.startsWith('/') ? '' : '/'}${fp}`);
 
   // View and filter state
   const [viewMode, setViewMode] = useState('kanban');
@@ -378,6 +385,47 @@ const Tasks = () => {
     setSubtaskProgress({ total: 0, completed: 0, progress: 0 });
     setShowNewProject(false);
     setNewProjectName('');
+    setTaskFilesList([]);
+  };
+
+  const loadTaskFiles = async (taskId) => {
+    if (!taskId) return;
+    setLoadingTaskFiles(true);
+    try {
+      const res = await taskFilesAPI.getByTask(taskId);
+      setTaskFilesList(res.data || []);
+    } catch (error) {
+      console.error('Error loading task files:', error);
+      setTaskFilesList([]);
+    } finally {
+      setLoadingTaskFiles(false);
+    }
+  };
+
+  const handleUploadTaskFile = async (file) => {
+    if (!file || !editingTask?.id) return;
+    setUploadingTaskFile(true);
+    try {
+      await taskFilesAPI.upload(editingTask.id, file, user?.id);
+      await loadTaskFiles(editingTask.id);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert(error.response?.data?.error || 'Error al subir el archivo');
+    } finally {
+      setUploadingTaskFile(false);
+    }
+  };
+
+  const handleDeleteTaskFile = async (fileId) => {
+    if (!fileId) return;
+    if (!confirm('¿Eliminar este archivo? El cliente dejará de verlo.')) return;
+    try {
+      await taskFilesAPI.delete(fileId);
+      await loadTaskFiles(editingTask.id);
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert(error.response?.data?.error || 'Error al eliminar el archivo');
+    }
   };
 
   // Projects filtered by selected client
@@ -508,6 +556,7 @@ const Tasks = () => {
     // Load subtask progress
     setSubtaskProgress(taskSubtaskProgress[task.id] || { total: 0, completed: 0, progress: 0 });
     setShowModal(true);
+    loadTaskFiles(task.id);
   };
 
   if (loading) {
@@ -929,6 +978,84 @@ const Tasks = () => {
                       taskId={editingTask.id}
                       onProgressChange={setSubtaskProgress}
                     />
+                  </div>
+                )}
+
+                {/* Files / Deliverables — only when editing (need a taskId to upload) */}
+                {editingTask && (
+                  <div className="col-span-2 border-t border-gray-100 pt-4">
+                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                      <Paperclip size={14} />
+                      Archivos para el cliente
+                    </label>
+                    {loadingTaskFiles ? (
+                      <p className="text-xs text-gray-400">Cargando archivos…</p>
+                    ) : taskFilesList.length === 0 ? (
+                      <p className="text-xs text-gray-400 mb-2">Aún no hay archivos. Sube piezas gráficas, PDFs o videos para que el cliente los revise.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        {taskFilesList.map((f) => {
+                          const isImage = f.file_type?.startsWith('image/');
+                          return (
+                            <div key={f.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                              {isImage ? (
+                                <a href={fileUrl(f.file_path)} target="_blank" rel="noopener noreferrer" className="block">
+                                  <img
+                                    src={fileUrl(f.file_path)}
+                                    alt={f.file_name}
+                                    className="w-full h-32 object-cover bg-gray-100"
+                                    loading="lazy"
+                                  />
+                                </a>
+                              ) : (
+                                <div className="h-32 bg-gray-50 flex items-center justify-center">
+                                  <Paperclip className="w-8 h-8 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="p-2 flex items-center justify-between gap-1">
+                                <p className="text-xs font-medium text-[#1A1A2E] truncate flex-1" title={f.file_name}>
+                                  {f.file_name}
+                                </p>
+                                <a
+                                  href={fileUrl(f.file_path)}
+                                  download={f.file_name}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                                  title="Descargar"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTaskFile(f.id)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <label className="inline-flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:border-[#1A1A2E] hover:text-[#1A1A2E] cursor-pointer transition-colors">
+                      {uploadingTaskFile ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                      {uploadingTaskFile ? 'Subiendo…' : 'Subir archivo'}
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf,video/*"
+                        className="hidden"
+                        disabled={uploadingTaskFile}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadTaskFile(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-400 mt-1.5">Hasta 25MB por archivo. Las imágenes se mostrarán como preview en el portal del cliente.</p>
                   </div>
                 )}
 

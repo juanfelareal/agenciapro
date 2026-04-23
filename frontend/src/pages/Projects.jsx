@@ -2,7 +2,7 @@ import { useEffect, useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI, projectStagesAPI, taskCommentsAPI, taskFilesAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2, ChevronRight, ChevronDown, Paperclip, Upload, Download } from 'lucide-react';
 
 const Projects = () => {
   const navigate = useNavigate();
@@ -83,6 +83,53 @@ const Projects = () => {
   const [newCommentText, setNewCommentText] = useState('');
   const [postingComment, setPostingComment] = useState(false);
 
+  // Archivos persistentes de la tarea (modal de edición rápida)
+  const [taskFilesList, setTaskFilesList] = useState([]);
+  const [loadingTaskFiles, setLoadingTaskFiles] = useState(false);
+  const [uploadingTaskFile, setUploadingTaskFile] = useState(false);
+  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
+  const fileUrl = (fp) => (fp?.startsWith('http') ? fp : `${apiBase}${fp?.startsWith('/') ? '' : '/'}${fp}`);
+
+  const loadTaskFiles = async (taskId) => {
+    if (!taskId) return;
+    setLoadingTaskFiles(true);
+    try {
+      const res = await taskFilesAPI.getByTask(taskId);
+      setTaskFilesList(res.data || []);
+    } catch (error) {
+      console.error('Error loading task files:', error);
+      setTaskFilesList([]);
+    } finally {
+      setLoadingTaskFiles(false);
+    }
+  };
+
+  const handleUploadTaskFile = async (file) => {
+    if (!file || !editingTaskId) return;
+    setUploadingTaskFile(true);
+    try {
+      await taskFilesAPI.upload(editingTaskId, file, user?.id);
+      await loadTaskFiles(editingTaskId);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert(error.response?.data?.error || 'Error al subir el archivo');
+    } finally {
+      setUploadingTaskFile(false);
+    }
+  };
+
+  const handleDeleteTaskFile = async (fileId) => {
+    if (!fileId || !editingTaskId) return;
+    if (!confirm('¿Eliminar este archivo? El cliente dejará de verlo.')) return;
+    try {
+      await taskFilesAPI.delete(fileId);
+      await loadTaskFiles(editingTaskId);
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert(error.response?.data?.error || 'Error al eliminar el archivo');
+    }
+  };
+
   const openQuickTask = (project) => {
     setQuickTaskProject(project);
     setEditingTaskId(null);
@@ -106,6 +153,7 @@ const Projects = () => {
     setEditingTaskId(task.id);
     setEditingTaskFull(task);
     setNewCommentText('');
+    setTaskFilesList([]);
     setQuickTaskForm({
       title: task.title || '',
       project_id: task.project_id || project.id,
@@ -116,12 +164,13 @@ const Projects = () => {
       visible_to_client: task.visible_to_client === undefined ? true : !!task.visible_to_client,
       requires_client_approval: !!task.requires_client_approval,
     });
-    // Fetch full task (for fresh approval state) + comments
+    // Fetch full task (for fresh approval state) + comments + files
     setLoadingTaskComments(true);
     try {
       const [fullRes, commentsRes] = await Promise.all([
         tasksAPI.getById(task.id),
         taskCommentsAPI.getByTask(task.id),
+        loadTaskFiles(task.id),
       ]);
       setEditingTaskFull(fullRes.data);
       setTaskComments(commentsRes.data || []);
@@ -138,6 +187,7 @@ const Projects = () => {
     setEditingTaskFull(null);
     setTaskComments([]);
     setNewCommentText('');
+    setTaskFilesList([]);
   };
 
   const submitTaskComment = async (e) => {
@@ -1169,6 +1219,84 @@ const Projects = () => {
                   </div>
                 );
               })()}
+
+              {/* Files / Deliverables — only when editing */}
+              {editingTaskId && (
+                <div className="border-t border-gray-100 pt-4">
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
+                    <Paperclip size={14} />
+                    Archivos para el cliente
+                  </label>
+                  {loadingTaskFiles ? (
+                    <p className="text-xs text-gray-400">Cargando archivos…</p>
+                  ) : taskFilesList.length === 0 ? (
+                    <p className="text-xs text-gray-400 mb-2">Aún no hay archivos. Sube piezas gráficas, PDFs o videos para que el cliente los revise.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      {taskFilesList.map((f) => {
+                        const isImage = f.file_type?.startsWith('image/');
+                        return (
+                          <div key={f.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                            {isImage ? (
+                              <a href={fileUrl(f.file_path)} target="_blank" rel="noopener noreferrer" className="block">
+                                <img
+                                  src={fileUrl(f.file_path)}
+                                  alt={f.file_name}
+                                  className="w-full h-32 object-cover bg-gray-100"
+                                  loading="lazy"
+                                />
+                              </a>
+                            ) : (
+                              <div className="h-32 bg-gray-50 flex items-center justify-center">
+                                <Paperclip className="w-8 h-8 text-gray-300" />
+                              </div>
+                            )}
+                            <div className="p-2 flex items-center justify-between gap-1">
+                              <p className="text-xs font-medium text-[#1A1A2E] truncate flex-1" title={f.file_name}>
+                                {f.file_name}
+                              </p>
+                              <a
+                                href={fileUrl(f.file_path)}
+                                download={f.file_name}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                                title="Descargar"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTaskFile(f.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <label className="inline-flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:border-[#1A1A2E] hover:text-[#1A1A2E] cursor-pointer transition-colors">
+                    {uploadingTaskFile ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {uploadingTaskFile ? 'Subiendo…' : 'Subir archivo'}
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf,video/*"
+                      className="hidden"
+                      disabled={uploadingTaskFile}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUploadTaskFile(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  <p className="text-xs text-gray-400 mt-1.5">Hasta 25MB por archivo. Las imágenes se mostrarán como preview en el portal del cliente.</p>
+                </div>
+              )}
 
               {/* Comments section — only when editing */}
               {editingTaskId && (

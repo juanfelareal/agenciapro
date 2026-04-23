@@ -21,7 +21,9 @@ import {
   ClipboardList,
   ExternalLink,
   Paperclip,
-  Download
+  Download,
+  Plus,
+  X
 } from 'lucide-react';
 
 export default function PortalTaskDetail() {
@@ -35,6 +37,7 @@ export default function PortalTaskDetail() {
   const [approvalNotes, setApprovalNotes] = useState('');
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalAction, setApprovalAction] = useState(null);
+  const [stagedChanges, setStagedChanges] = useState([]); // change requests acumuladas antes de enviar
 
   useEffect(() => {
     loadTask();
@@ -70,19 +73,45 @@ export default function PortalTaskDetail() {
 
   const handleApproval = async (action) => {
     setApprovalAction(action);
+    setStagedChanges([]);
+    setApprovalNotes('');
     setShowApprovalModal(true);
+  };
+
+  const closeApprovalModal = () => {
+    setShowApprovalModal(false);
+    setApprovalNotes('');
+    setStagedChanges([]);
+  };
+
+  const stageAnotherChange = () => {
+    const trimmed = approvalNotes.trim();
+    if (!trimmed) return;
+    setStagedChanges((prev) => [...prev, trimmed]);
+    setApprovalNotes('');
+  };
+
+  const removeStagedChange = (index) => {
+    setStagedChanges((prev) => prev.filter((_, i) => i !== index));
   };
 
   const submitApproval = async () => {
     setSubmitting(true);
     try {
+      let notes = approvalNotes.trim();
+      if (approvalAction === 'changes_requested') {
+        const all = [...stagedChanges];
+        if (notes) all.push(notes);
+        notes = all.length > 1
+          ? all.map((c, i) => `${i + 1}. ${c}`).join('\n')
+          : (all[0] || '');
+      }
       await portalTasksAPI.submitApproval(id, {
         action: approvalAction,
-        notes: approvalNotes.trim()
+        notes,
       });
       await loadTask();
-      setShowApprovalModal(false);
-      setApprovalNotes('');
+      closeApprovalModal();
     } catch (error) {
       console.error('Error submitting approval:', error);
     } finally {
@@ -498,12 +527,46 @@ export default function PortalTaskDetail() {
                 : 'Describe los cambios que necesitas.'}
             </p>
 
+            {/* Staged changes — only when action is changes_requested and there are some */}
+            {approvalAction === 'changes_requested' && stagedChanges.length > 0 && (
+              <div className="mb-3 space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Cambios solicitados ({stagedChanges.length})
+                </p>
+                <ol className="space-y-2">
+                  {stagedChanges.map((change, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 p-3 bg-orange-50 border border-orange-100 rounded-xl"
+                    >
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                        {i + 1}
+                      </span>
+                      <p className="flex-1 text-sm text-gray-700 whitespace-pre-line">{change}</p>
+                      <button
+                        type="button"
+                        onClick={() => removeStagedChange(i)}
+                        className="flex-shrink-0 p-1 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-colors"
+                        title="Eliminar"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
             <textarea
               value={approvalNotes}
               onChange={(e) => setApprovalNotes(e.target.value)}
               placeholder={
                 approvalAction === 'approved'
                   ? 'Notas adicionales (opcional)...'
+                  : approvalAction === 'changes_requested'
+                  ? (stagedChanges.length > 0
+                      ? `Describe el cambio #${stagedChanges.length + 1}...`
+                      : 'Describe el motivo o los cambios necesarios...')
                   : 'Describe el motivo o los cambios necesarios...'
               }
               rows={4}
@@ -512,29 +575,45 @@ export default function PortalTaskDetail() {
                        resize-none"
             />
 
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => {
-                  setShowApprovalModal(false);
-                  setApprovalNotes('');
-                }}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
-                         hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={submitApproval}
-                disabled={submitting || (approvalAction !== 'approved' && !approvalNotes.trim())}
-                className={`flex-1 px-4 py-2.5 text-white rounded-xl font-medium
-                          disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                  approvalAction === 'approved' ? 'bg-green-600 hover:bg-green-700' :
-                  approvalAction === 'rejected' ? 'bg-red-500 hover:bg-red-600' :
-                  'bg-orange-500 hover:bg-orange-600'
-                }`}
-              >
-                {submitting ? 'Enviando...' : 'Confirmar'}
-              </button>
+            {/* Action buttons */}
+            <div className="flex flex-col gap-2 mt-4">
+              {approvalAction === 'changes_requested' && (
+                <button
+                  onClick={stageAnotherChange}
+                  disabled={submitting || !approvalNotes.trim()}
+                  className="w-full px-4 py-2.5 border border-orange-300 text-orange-700 rounded-xl
+                           hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed
+                           transition-colors font-medium inline-flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar este cambio y escribir otro
+                </button>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={closeApprovalModal}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
+                           hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={submitApproval}
+                  disabled={
+                    submitting ||
+                    (approvalAction === 'rejected' && !approvalNotes.trim()) ||
+                    (approvalAction === 'changes_requested' && stagedChanges.length === 0 && !approvalNotes.trim())
+                  }
+                  className={`flex-1 px-4 py-2.5 text-white rounded-xl font-medium
+                            disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                    approvalAction === 'approved' ? 'bg-green-600 hover:bg-green-700' :
+                    approvalAction === 'rejected' ? 'bg-red-500 hover:bg-red-600' :
+                    'bg-orange-500 hover:bg-orange-600'
+                  }`}
+                >
+                  {submitting ? 'Enviando...' : 'Confirmar'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
