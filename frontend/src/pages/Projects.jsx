@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI } from '../utils/api';
+import { projectsAPI, clientsAPI, tasksAPI, teamAPI, projectTemplatesAPI, projectStagesAPI } from '../utils/api';
 import { Plus, Edit, Trash2, X, FolderKanban, Copy, ListTodo, FileText, CheckSquare, Square, MinusSquare, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 
 const Projects = () => {
@@ -16,10 +16,14 @@ const Projects = () => {
     description: '',
     client_id: '',
     status: 'planning',
+    stage_id: '',
     budget: 0,
     start_date: '',
     end_date: '',
   });
+
+  // Project stages
+  const [stages, setStages] = useState([]);
 
   // Template feature state
   const [useTemplate, setUseTemplate] = useState(false);
@@ -43,6 +47,63 @@ const Projects = () => {
   const [tasksByProject, setTasksByProject] = useState({});
   const [expandedIds, setExpandedIds] = useState(new Set());
 
+  // Delete project modal state
+  const [deletingProject, setDeletingProject] = useState(null);
+  const [deleteAction, setDeleteAction] = useState('delete'); // 'delete' | 'move'
+  const [moveTargetId, setMoveTargetId] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Quick add-task modal state (scoped to a specific project)
+  const [quickTaskProject, setQuickTaskProject] = useState(null);
+  const [quickTaskForm, setQuickTaskForm] = useState({
+    title: '',
+    due_date: '',
+    status: 'todo',
+    priority: 'medium',
+    assignee_ids: [],
+  });
+  const [creatingTask, setCreatingTask] = useState(false);
+
+  const openQuickTask = (project) => {
+    setQuickTaskProject(project);
+    setQuickTaskForm({
+      title: '',
+      due_date: '',
+      status: 'todo',
+      priority: 'medium',
+      assignee_ids: [],
+    });
+  };
+
+  const closeQuickTask = () => {
+    setQuickTaskProject(null);
+  };
+
+  const submitQuickTask = async (e) => {
+    e.preventDefault();
+    if (!quickTaskProject || !quickTaskForm.title.trim()) return;
+    setCreatingTask(true);
+    try {
+      await tasksAPI.create({
+        title: quickTaskForm.title.trim(),
+        project_id: quickTaskProject.id,
+        status: quickTaskForm.status,
+        priority: quickTaskForm.priority,
+        due_date: quickTaskForm.due_date || null,
+        assignee_ids: quickTaskForm.assignee_ids,
+      });
+      // Keep the row expanded so the user sees the new task
+      setExpandedIds((prev) => new Set(prev).add(quickTaskProject.id));
+      closeQuickTask();
+      loadData();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      alert(error.response?.data?.error || 'Error al crear la tarea');
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
   const toggleExpand = (id) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -58,17 +119,19 @@ const Projects = () => {
 
   const loadData = async () => {
     try {
-      const [projectsRes, clientsRes, teamRes, templatesRes, tasksRes] = await Promise.all([
+      const [projectsRes, clientsRes, teamRes, templatesRes, tasksRes, stagesRes] = await Promise.all([
         projectsAPI.getAll(),
         clientsAPI.getAll('active'),
         teamAPI.getAll({ status: 'active' }),
         projectTemplatesAPI.getAll(),
         tasksAPI.getAll(),
+        projectStagesAPI.getAll(),
       ]);
       setProjects(projectsRes.data);
       setClients(clientsRes.data);
       setTeamMembers(teamRes.data);
       setTemplates(templatesRes.data);
+      setStages(stagesRes.data || []);
 
       const grouped = {};
       for (const t of tasksRes.data || []) {
@@ -192,6 +255,7 @@ const Projects = () => {
       description: project.description || '',
       client_id: project.client_id || '',
       status: project.status,
+      stage_id: project.stage_id || '',
       budget: project.budget,
       start_date: project.start_date || '',
       end_date: project.end_date || '',
@@ -199,13 +263,38 @@ const Projects = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Está seguro de eliminar este proyecto?')) return;
+  const handleDelete = (project) => {
+    const taskCount = (tasksByProject[project.id] || []).length;
+    setDeletingProject(project);
+    setDeleteAction(taskCount > 0 ? 'move' : 'delete');
+    setMoveTargetId('');
+  };
+
+  const closeDeleteModal = () => {
+    setDeletingProject(null);
+    setDeleteAction('delete');
+    setMoveTargetId('');
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingProject) return;
+    if (deleteAction === 'move' && !moveTargetId) {
+      alert('Selecciona el proyecto destino para las tareas');
+      return;
+    }
+    setDeleting(true);
     try {
-      await projectsAPI.delete(id);
+      await projectsAPI.delete(
+        deletingProject.id,
+        deleteAction === 'move' ? { moveTasksTo: moveTargetId } : {}
+      );
+      closeDeleteModal();
       loadData();
     } catch (error) {
       console.error('Error deleting project:', error);
+      alert(error.response?.data?.error || 'Error al eliminar el proyecto');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -215,6 +304,7 @@ const Projects = () => {
       description: '',
       client_id: '',
       status: 'planning',
+      stage_id: '',
       budget: 0,
       start_date: '',
       end_date: '',
@@ -233,6 +323,20 @@ const Projects = () => {
     resetForm();
     setEditingProject(null);
     setShowModal(true);
+  };
+
+  const handleCreateStage = async () => {
+    const name = window.prompt('Nombre de la nueva etapa');
+    if (!name || !name.trim()) return;
+    try {
+      const response = await projectStagesAPI.create({ name: name.trim() });
+      const newStage = response.data;
+      setStages((prev) => [...prev, newStage]);
+      setFormData((prev) => ({ ...prev, stage_id: newStage.id }));
+    } catch (error) {
+      console.error('Error creating stage:', error);
+      alert(error.response?.data?.error || 'Error al crear la etapa');
+    }
   };
 
   const statusColors = {
@@ -491,6 +595,9 @@ const Projects = () => {
                 Cliente
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Etapa
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Estado
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -548,6 +655,21 @@ const Projects = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-500">{project.client_name || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  {project.stage_name ? (
+                    <span
+                      className="px-2 py-1 rounded-lg text-xs font-medium"
+                      style={{
+                        backgroundColor: `${project.stage_color || '#6366F1'}1A`,
+                        color: project.stage_color || '#6366F1',
+                      }}
+                    >
+                      {project.stage_name}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[project.status]}`}>
                     {statusLabels[project.status]}
                   </span>
@@ -580,7 +702,7 @@ const Projects = () => {
                     <Edit size={18} />
                   </button>
                   <button
-                    onClick={() => handleDelete(project.id)}
+                    onClick={() => handleDelete(project)}
                     className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
                   >
                     <Trash2 size={18} />
@@ -589,12 +711,12 @@ const Projects = () => {
               </tr>
               {isExpanded && (
                 <tr className="bg-gray-50/50">
-                  <td colSpan={7} className="px-6 py-4">
-                    {projectTasks.length === 0 ? (
-                      <p className="text-sm text-gray-400 pl-8">Sin tareas en este proyecto.</p>
-                    ) : (
-                      <div className="pl-8 pr-2">
-                        <table className="w-full text-sm">
+                  <td colSpan={8} className="px-6 py-4">
+                    <div className="pl-8 pr-2">
+                      {projectTasks.length === 0 ? (
+                        <p className="text-sm text-gray-400 mb-3">Sin tareas en este proyecto.</p>
+                      ) : (
+                        <table className="w-full text-sm mb-3">
                           <thead>
                             <tr className="text-xs text-gray-400 uppercase tracking-wider">
                               <th className="text-left py-2 font-medium">Tarea</th>
@@ -634,8 +756,15 @@ const Projects = () => {
                             ))}
                           </tbody>
                         </table>
-                      </div>
-                    )}
+                      )}
+                      <button
+                        onClick={() => openQuickTask(project)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#1A1A2E] bg-white border border-gray-200 rounded-lg hover:border-[#1A1A2E] hover:bg-gray-50 transition-colors"
+                      >
+                        <Plus size={14} />
+                        Nueva tarea
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -656,6 +785,216 @@ const Projects = () => {
           animation: fadeIn 0.2s ease-out forwards;
         }
       `}</style>
+
+      {deletingProject && (() => {
+        const taskCount = (tasksByProject[deletingProject.id] || []).length;
+        const otherProjects = projects.filter(p => p.id !== deletingProject.id);
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-[#1A1A2E]">Eliminar proyecto</h2>
+                <button onClick={closeDeleteModal} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Vas a eliminar <span className="font-semibold text-[#1A1A2E]">{deletingProject.name}</span>.
+                {taskCount > 0
+                  ? ` Tiene ${taskCount} tarea${taskCount === 1 ? '' : 's'}. ¿Qué quieres hacer con ${taskCount === 1 ? 'ella' : 'ellas'}?`
+                  : ' Este proyecto no tiene tareas asociadas.'}
+              </p>
+
+              {taskCount > 0 && (
+                <div className="space-y-3 mb-6">
+                  <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="deleteAction"
+                      value="move"
+                      checked={deleteAction === 'move'}
+                      onChange={() => setDeleteAction('move')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-[#1A1A2E]">Mover las tareas a otro proyecto</div>
+                      <div className="text-xs text-gray-500 mb-2">Se conservan todas las tareas, solo cambian de proyecto.</div>
+                      {deleteAction === 'move' && (
+                        <select
+                          value={moveTargetId}
+                          onChange={(e) => setMoveTargetId(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                        >
+                          <option value="">Selecciona un proyecto destino…</option>
+                          {otherProjects.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}{p.client_name ? ` — ${p.client_name}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="deleteAction"
+                      value="delete"
+                      checked={deleteAction === 'delete'}
+                      onChange={() => setDeleteAction('delete')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-red-600">Eliminar las tareas también</div>
+                      <div className="text-xs text-gray-500">Esta acción no se puede deshacer.</div>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={closeDeleteModal}
+                  disabled={deleting}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleting || (deleteAction === 'move' && !moveTargetId)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {deleting && <Loader2 size={16} className="animate-spin" />}
+                  Eliminar proyecto
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {quickTaskProject && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-[#1A1A2E]">Nueva tarea</h2>
+              <button onClick={closeQuickTask} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-4 text-xs">
+              {quickTaskProject.client_name && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full">
+                  <span className="text-gray-500">Cliente:</span>
+                  <span className="font-medium">{quickTaskProject.client_name}</span>
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1A1A2E]/5 text-[#1A1A2E] rounded-full">
+                <span className="text-[#1A1A2E]/60">Proyecto:</span>
+                <span className="font-medium">{quickTaskProject.name}</span>
+              </span>
+            </div>
+
+            <form onSubmit={submitQuickTask} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+                <input
+                  type="text"
+                  value={quickTaskForm.title}
+                  onChange={(e) => setQuickTaskForm({ ...quickTaskForm, title: e.target.value })}
+                  required
+                  autoFocus
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                  placeholder="Ej. Diseñar landing"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de entrega</label>
+                  <input
+                    type="date"
+                    value={quickTaskForm.due_date}
+                    onChange={(e) => setQuickTaskForm({ ...quickTaskForm, due_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+                  <select
+                    value={quickTaskForm.priority}
+                    onChange={(e) => setQuickTaskForm({ ...quickTaskForm, priority: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                  >
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                    <option value="urgent">Urgente</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <select
+                    value={quickTaskForm.status}
+                    onChange={(e) => setQuickTaskForm({ ...quickTaskForm, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                  >
+                    <option value="todo">Por hacer</option>
+                    <option value="in_progress">En progreso</option>
+                    <option value="review">En revisión</option>
+                    <option value="done">Completado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+                  <select
+                    value={quickTaskForm.assignee_ids[0] || ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setQuickTaskForm({
+                        ...quickTaskForm,
+                        assignee_ids: v ? [Number(v)] : [],
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                  >
+                    <option value="">Sin asignar</option>
+                    {teamMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeQuickTask}
+                  disabled={creatingTask}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingTask || !quickTaskForm.title.trim()}
+                  className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {creatingTask && <Loader2 size={16} className="animate-spin" />}
+                  Crear tarea
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
@@ -707,6 +1046,28 @@ const Projects = () => {
                     <option value="on_hold">En Espera</option>
                     <option value="completed">Completado</option>
                     <option value="cancelled">Cancelado</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium">Etapa</label>
+                    <button
+                      type="button"
+                      onClick={handleCreateStage}
+                      className="text-xs text-[#1A1A2E] hover:underline"
+                    >
+                      + Nueva etapa
+                    </button>
+                  </div>
+                  <select
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={formData.stage_id}
+                    onChange={(e) => setFormData({ ...formData, stage_id: e.target.value })}
+                  >
+                    <option value="">Sin etapa</option>
+                    {stages.map((stage) => (
+                      <option key={stage.id} value={stage.id}>{stage.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>

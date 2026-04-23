@@ -274,12 +274,12 @@ const ProjectDetail = () => {
       if (editingTask) {
         await tasksAPI.update(editingTask.id, taskData);
         // Update tags
-        await tagsAPI.setForTask(editingTask.id, selectedTagIds);
+        await tagsAPI.setTaskTags(editingTask.id, selectedTagIds);
       } else {
         const res = await tasksAPI.create(taskData);
         // Set tags for new task
         if (res.data?.id) {
-          await tagsAPI.setForTask(res.data.id, selectedTagIds);
+          await tagsAPI.setTaskTags(res.data.id, selectedTagIds);
         }
       }
 

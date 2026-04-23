@@ -8,9 +8,11 @@ router.get('/', async (req, res) => {
   try {
     const { status, client_id } = req.query;
     let query = `
-      SELECT p.*, COALESCE(NULLIF(c.company, ''), c.name) as client_name
+      SELECT p.*, COALESCE(NULLIF(c.company, ''), c.name) as client_name,
+             s.name as stage_name, s.color as stage_color
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
+      LEFT JOIN project_stages s ON p.stage_id = s.id
       WHERE p.organization_id = ?
     `;
     const params = [req.orgId];
@@ -38,9 +40,11 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const project = await db.get(`
-      SELECT p.*, COALESCE(NULLIF(c.company, ''), c.name) as client_name
+      SELECT p.*, COALESCE(NULLIF(c.company, ''), c.name) as client_name,
+             s.name as stage_name, s.color as stage_color
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
+      LEFT JOIN project_stages s ON p.stage_id = s.id
       WHERE p.id = ? AND p.organization_id = ?
     `, [req.params.id, req.orgId]);
 
@@ -67,7 +71,7 @@ router.get('/:id', async (req, res) => {
 // Create new project (client is optional)
 router.post('/', async (req, res) => {
   try {
-    const { name, description, client_id, status, budget, start_date, end_date } = req.body;
+    const { name, description, client_id, status, budget, start_date, end_date, stage_id } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -84,10 +88,20 @@ router.post('/', async (req, res) => {
       }
     }
 
+    if (stage_id) {
+      const stage = await db.get(
+        'SELECT id FROM project_stages WHERE id = ? AND organization_id = ?',
+        [stage_id, req.orgId]
+      );
+      if (!stage) {
+        return res.status(400).json({ error: 'Stage not found in your organization' });
+      }
+    }
+
     const result = await db.run(`
-      INSERT INTO projects (name, description, client_id, status, budget, spent, start_date, end_date, organization_id)
-      VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
-    `, [name, description || null, client_id || null, status || 'planning', budget || 0, start_date || null, end_date || null, req.orgId]);
+      INSERT INTO projects (name, description, client_id, status, budget, spent, start_date, end_date, stage_id, organization_id)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+    `, [name, description || null, client_id || null, status || 'planning', budget || 0, start_date || null, end_date || null, stage_id || null, req.orgId]);
 
     const project = await db.get('SELECT * FROM projects WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(project);
@@ -100,7 +114,7 @@ router.post('/', async (req, res) => {
 // Update project
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description, client_id, status, budget, spent, start_date, end_date } = req.body;
+    const { name, description, client_id, status, budget, spent, start_date, end_date, stage_id } = req.body;
 
     // Verify project belongs to this organization
     const existing = await db.get(
@@ -122,13 +136,24 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    if (stage_id) {
+      const stage = await db.get(
+        'SELECT id FROM project_stages WHERE id = ? AND organization_id = ?',
+        [stage_id, req.orgId]
+      );
+      if (!stage) {
+        return res.status(400).json({ error: 'Stage not found in your organization' });
+      }
+    }
+
     await db.run(`
       UPDATE projects
       SET name = ?, description = ?, client_id = ?, status = ?,
           budget = ?, spent = ?, start_date = ?, end_date = ?,
+          stage_id = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `, [name, description || null, client_id || null, status, budget, spent, start_date || null, end_date || null, req.params.id, req.orgId]);
+    `, [name, description || null, client_id || null, status, budget, spent, start_date || null, end_date || null, stage_id || null, req.params.id, req.orgId]);
 
     const project = await db.get('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     res.json(project);
@@ -195,9 +220,29 @@ router.delete('/:id/team/:team_member_id', async (req, res) => {
   }
 });
 
-// Delete project
+// Delete project. Optional ?move_tasks_to=<projectId> reassigns tasks to
+// another project before deleting; otherwise tasks cascade-delete.
 router.delete('/:id', async (req, res) => {
   try {
+    const moveTasksTo = req.query.move_tasks_to;
+
+    if (moveTasksTo) {
+      if (String(moveTasksTo) === String(req.params.id)) {
+        return res.status(400).json({ error: 'Cannot move tasks to the same project being deleted' });
+      }
+      const target = await db.get(
+        'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
+        [moveTasksTo, req.orgId]
+      );
+      if (!target) {
+        return res.status(400).json({ error: 'Target project not found' });
+      }
+      await db.run(
+        'UPDATE tasks SET project_id = ? WHERE project_id = ?',
+        [moveTasksTo, req.params.id]
+      );
+    }
+
     const result = await db.run('DELETE FROM projects WHERE id = ? AND organization_id = ?',
       [req.params.id, req.orgId]);
 

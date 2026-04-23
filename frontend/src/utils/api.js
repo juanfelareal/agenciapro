@@ -28,12 +28,21 @@ export const clientDocumentsAPI = {
 };
 
 // Projects API
+export const projectStagesAPI = {
+  getAll: () => api.get('/project-stages'),
+  create: (data) => api.post('/project-stages', data),
+  update: (id, data) => api.put(`/project-stages/${id}`, data),
+  delete: (id) => api.delete(`/project-stages/${id}`),
+};
+
 export const projectsAPI = {
   getAll: (filters) => api.get('/projects', { params: filters }),
   getById: (id) => api.get(`/projects/${id}`),
   create: (data) => api.post('/projects', data),
   update: (id, data) => api.put(`/projects/${id}`, data),
-  delete: (id) => api.delete(`/projects/${id}`),
+  delete: (id, options = {}) => api.delete(`/projects/${id}`, {
+    params: options.moveTasksTo ? { move_tasks_to: options.moveTasksTo } : {},
+  }),
   assignTeam: (id, data) => api.post(`/projects/${id}/team`, data),
   removeTeam: (id, memberId) => api.delete(`/projects/${id}/team/${memberId}`),
 };

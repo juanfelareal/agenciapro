@@ -1057,6 +1057,45 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Project stages (Puesta a punto, Gestión mensual, etc.) — per organization
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS project_stages (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        color TEXT,
+        order_index INTEGER DEFAULT 0,
+        organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (organization_id, name)
+      )
+    `);
+
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='stage_id') THEN
+          ALTER TABLE projects ADD COLUMN stage_id INTEGER REFERENCES project_stages(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+
+    // Seed default stages per organization that has none
+    await pool.query(`
+      INSERT INTO project_stages (name, color, order_index, organization_id)
+      SELECT 'Puesta a punto', '#F59E0B', 0, o.id
+      FROM organizations o
+      WHERE NOT EXISTS (SELECT 1 FROM project_stages s WHERE s.organization_id = o.id)
+    `);
+    await pool.query(`
+      INSERT INTO project_stages (name, color, order_index, organization_id)
+      SELECT 'Gestión mensual', '#10B981', 1, o.id
+      FROM organizations o
+      WHERE NOT EXISTS (
+        SELECT 1 FROM project_stages s
+        WHERE s.organization_id = o.id AND s.name = 'Gestión mensual'
+      )
+    `);
+
     // Add pin_hash column to team_members for authentication (if not exists)
     await pool.query(`
       DO $$

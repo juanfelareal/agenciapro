@@ -18,6 +18,7 @@ import { teamAuthMiddleware } from './src/middleware/teamAuth.js';
 import authRoutes from './src/routes/auth.js';
 import clientRoutes from './src/routes/clients.js';
 import projectRoutes from './src/routes/projects.js';
+import projectStagesRoutes from './src/routes/project-stages.js';
 import taskRoutes from './src/routes/tasks.js';
 import teamRoutes from './src/routes/team.js';
 import invoiceRoutes from './src/routes/invoices.js';
@@ -171,6 +172,7 @@ app.use('/api/team', teamRoutes);
 // All internal routes — protected by teamAuthMiddleware
 app.use('/api/clients', teamAuthMiddleware, clientRoutes);
 app.use('/api/projects', teamAuthMiddleware, projectRoutes);
+app.use('/api/project-stages', teamAuthMiddleware, projectStagesRoutes);
 app.use('/api/tasks', teamAuthMiddleware, taskRoutes);
 app.use('/api/invoices', teamAuthMiddleware, invoiceRoutes);
 app.use('/api/expenses', teamAuthMiddleware, expenseRoutes);
