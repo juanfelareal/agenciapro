@@ -15,9 +15,12 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_projects
     const projects = await db.all(`
       SELECT
         p.*,
+        s.name as stage_name,
+        s.color as stage_color,
         (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1) as task_count,
         (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1 AND status = 'done') as completed_task_count
       FROM projects p
+      LEFT JOIN project_stages s ON p.stage_id = s.id
       WHERE p.client_id = ?
       ORDER BY p.created_at DESC
     `, [clientId]);
@@ -57,13 +60,19 @@ router.get('/:id', clientAuthMiddleware, requirePortalPermission('can_view_proje
     const tasks = await db.all(`
       SELECT
         t.*,
-        tm.name as assigned_to_name
+        tm.name as assigned_to_name,
+        (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name))
+         FROM task_assignees ta
+         JOIN team_members tm2 ON ta.team_member_id = tm2.id
+         WHERE ta.task_id = t.id) as assignees
       FROM tasks t
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE t.project_id = ?
         AND t.visible_to_client = 1
       ORDER BY t.order_index ASC NULLS LAST, t.created_at ASC
     `, [id]);
+
+    tasks.forEach(t => { t.assignees = t.assignees || []; });
 
     // Strip descriptions (private to the agency)
     tasks.forEach(t => delete t.description);

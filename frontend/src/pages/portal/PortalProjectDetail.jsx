@@ -233,9 +233,27 @@ export default function PortalProjectDetail() {
                   </div>
                   <div>
                     <p className="font-medium text-[#1A1A2E]">{task.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-gray-500">
                       {getTaskStatusBadge(task.status)}
-                      {task.requires_client_approval && getApprovalBadge(task.client_approval_status)}
+                      {!!task.requires_client_approval && getApprovalBadge(task.client_approval_status)}
+                      {(task.assignees?.length > 0 || task.assigned_to_name) && (
+                        <span className="inline-flex items-center gap-1">
+                          <User className="w-3.5 h-3.5" />
+                          {task.assignees?.length > 0
+                            ? task.assignees.map((a) => a.name).join(', ')
+                            : task.assigned_to_name}
+                        </span>
+                      )}
+                      {task.due_date && (
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          {new Date(task.due_date).toLocaleDateString('es-CO', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

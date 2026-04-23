@@ -245,7 +245,7 @@ export default function PortalTaskDetail() {
       )}
 
       {/* Approval Section */}
-      {task.requires_client_approval && hasPermission('can_approve_tasks') && (
+      {!!task.requires_client_approval && hasPermission('can_approve_tasks') && (
         <div className={`rounded-2xl border p-6 ${
           task.client_approval_status === 'pending' ? 'bg-amber-50 border-amber-200' :
           task.client_approval_status === 'approved' ? 'bg-green-50 border-green-200' :

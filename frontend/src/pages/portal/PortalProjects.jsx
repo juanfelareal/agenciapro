@@ -57,10 +57,21 @@ export default function PortalProjects() {
       className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6
                hover:shadow-md hover:border-gray-200 transition-all group"
     >
-      <div className="mb-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
           <FolderKanban className="w-6 h-6 text-[#1A1A2E]" />
         </div>
+        {project.stage_name && (
+          <span
+            className="px-2.5 py-1 rounded-full text-xs font-medium"
+            style={{
+              backgroundColor: `${project.stage_color || '#6366F1'}1A`,
+              color: project.stage_color || '#6366F1',
+            }}
+          >
+            {project.stage_name}
+          </span>
+        )}
       </div>
 
       <h3 className="font-semibold text-[#1A1A2E] mb-2 group-hover:text-[#1A1A2E] transition-colors">
