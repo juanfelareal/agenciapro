@@ -37,37 +37,6 @@ export default function PortalProjectDetail() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      planning: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Planificación' },
-      in_progress: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'En Progreso' },
-      review: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Revisión' },
-      completed: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completado' },
-      on_hold: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Pausado' }
-    };
-    const style = styles[status] || styles.planning;
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
-        {style.label}
-      </span>
-    );
-  };
-
-  const getTaskStatusBadge = (status) => {
-    const styles = {
-      todo: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Pendiente' },
-      in_progress: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'En Progreso' },
-      review: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'En Revisión' },
-      done: { bg: 'bg-green-100', text: 'text-green-700', label: 'Completada' }
-    };
-    const style = styles[status] || styles.todo;
-    return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
-        {style.label}
-      </span>
-    );
-  };
-
   const getApprovalBadge = (status) => {
     if (!status) return null;
     const styles = {
@@ -132,7 +101,17 @@ export default function PortalProjectDetail() {
             <div>
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{project.name}</h1>
-                {getStatusBadge(project.status)}
+                {project.stage_name && (
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-medium"
+                    style={{
+                      backgroundColor: `${project.stage_color || '#6366F1'}1A`,
+                      color: project.stage_color || '#6366F1',
+                    }}
+                  >
+                    {project.stage_name}
+                  </span>
+                )}
               </div>
               {project.description && (
                 <p className="text-gray-500 mt-2">{project.description}</p>
@@ -234,7 +213,6 @@ export default function PortalProjectDetail() {
                   <div>
                     <p className="font-medium text-[#1A1A2E]">{task.title}</p>
                     <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-gray-500">
-                      {getTaskStatusBadge(task.status)}
                       {!!task.requires_client_approval && getApprovalBadge(task.client_approval_status)}
                       {(task.assignees?.length > 0 || task.assigned_to_name) && (
                         <span className="inline-flex items-center gap-1">

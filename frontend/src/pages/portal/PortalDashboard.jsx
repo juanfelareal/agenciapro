@@ -24,7 +24,12 @@ import {
   Minimize2,
   MessageSquare,
   Send,
-  LayoutDashboard
+  LayoutDashboard,
+  TrendingUp,
+  FolderKanban,
+  Clock,
+  Receipt,
+  Building2
 } from 'lucide-react';
 import TabbedNoteView from '../../components/TabbedNoteView';
 
@@ -105,22 +110,218 @@ export default function PortalDashboard() {
     return Math.ceil((d - now) / 86400000);
   };
 
+  // ─── Derived metrics for KPI strip and summary cards ───
+  const projectsTotal = data?.projects?.total || 0;
+  const projectsInProgress = data?.projects?.in_progress || 0;
+  const projectsCompleted = data?.projects?.completed || 0;
+  const tasksTotal = data?.tasks?.total || 0;
+  const tasksCompleted = data?.tasks?.completed || 0;
+  const tasksPending = Math.max(0, tasksTotal - tasksCompleted);
+  const healthScore = data?.health_score ?? 0;
+
+  const allDeadlines = [
+    ...(data?.priorities || [])
+      .filter((p) => p.due_date)
+      .map((p) => ({
+        kind: 'task',
+        id: `task-${p.id}`,
+        title: p.title,
+        subtitle: p.project_name,
+        date: p.due_date,
+      })),
+    ...(data?.commercial_dates || []).map((cd) => ({
+      kind: 'date',
+      id: `cd-${cd.id}`,
+      title: cd.title,
+      subtitle: 'Fecha comercial',
+      date: cd.date,
+    })),
+  ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const nextDeadline = allDeadlines[0];
+
+  const invoicesPaid = data?.invoices?.paid_amount || 0;
+  const invoicesPending = data?.invoices?.pending_amount || 0;
+  const invoicesTotal = invoicesPaid + invoicesPending;
+  const invoicesPaidPct = invoicesTotal > 0 ? Math.round((invoicesPaid / invoicesTotal) * 100) : 0;
+  const showInvoices = invoicesTotal > 0;
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+
+  const formatShortDate = (dateStr) => {
+    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
+    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  };
+
+  const projectDetails = (data?.project_details || []).slice(0, 6);
+
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#1A1A2E] via-[#16213e] to-[#0f3460] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,222,128,0.1),transparent_60%)]" />
-        <div className="relative">
-          <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">Panel de Control</p>
-          <h1 className="text-2xl sm:text-3xl font-bold mt-1 tracking-tight">
-            Hola, {client?.nickname || client?.name?.split(' ')[0]}
-          </h1>
-          {welcomeMessage ? (
-            <p className="mt-2 text-gray-300 max-w-xl">{welcomeMessage}</p>
+      {/* ─── Header card ─── */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-soft p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1A1A2E] to-[#3a3a5e] text-white flex items-center justify-center flex-shrink-0">
+          <Building2 className="w-8 h-8" strokeWidth={1.5} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#1A1A2E]">
+              {client?.nickname || client?.name || 'Cliente'}
+            </h1>
+            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Cuenta activa
+            </span>
+          </div>
+          <p className="text-sm text-gray-500">
+            {welcomeMessage || `Hola, ${client?.nickname || client?.name?.split(' ')[0] || 'cliente'}. Aquí tienes el pulso de lo que estamos trabajando para ti.`}
+          </p>
+        </div>
+      </div>
+
+      {/* ─── KPI strip ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          icon={TrendingUp}
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
+          label="Avance global"
+          value={`${healthScore}%`}
+          sub={`${tasksCompleted} de ${tasksTotal} tareas`}
+        />
+        <KpiCard
+          icon={FolderKanban}
+          iconBg="bg-blue-50"
+          iconColor="text-blue-600"
+          label="Proyectos activos"
+          value={projectsInProgress}
+          sub={`${projectsCompleted} completados · ${projectsTotal} totales`}
+        />
+        <KpiCard
+          icon={ClipboardList}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+          label="Tareas pendientes"
+          value={tasksPending}
+          sub={data?.tasks?.pending_approval ? `${data.tasks.pending_approval} esperan tu aprobación` : 'Sin pendientes urgentes'}
+        />
+        <KpiCard
+          icon={Calendar}
+          iconBg="bg-violet-50"
+          iconColor="text-violet-600"
+          label="Próxima entrega"
+          value={nextDeadline ? formatShortDate(nextDeadline.date) : '—'}
+          sub={nextDeadline ? nextDeadline.title : 'No hay entregas programadas'}
+        />
+      </div>
+
+      {/* ─── Summary row: avance por proyecto / estado de cuenta / próximas entregas ─── */}
+      <div className={`grid gap-4 ${showInvoices ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+        {/* Avance por proyecto */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6 lg:col-span-1">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-semibold text-[#1A1A2E]">Avance por proyecto</h2>
+              <p className="text-xs text-gray-400">{projectDetails.length} de {projectsTotal} proyectos</p>
+            </div>
+            <FolderKanban className="w-5 h-5 text-gray-300" />
+          </div>
+          {projectDetails.length > 0 ? (
+            <div className="space-y-3">
+              {projectDetails.map((p) => (
+                <div key={p.id}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-gray-700 truncate pr-3">{p.name}</span>
+                    <span className="font-semibold text-[#1A1A2E] tabular-nums flex-shrink-0">{p.progress || 0}%</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all"
+                      style={{ width: `${p.progress || 0}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {p.completed_count || 0}/{p.task_count || 0} tareas
+                  </p>
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="mt-2 text-gray-300 max-w-xl">
-              Aquí tienes un resumen de lo que estamos trabajando para ti.
+            <p className="text-sm text-gray-400 py-6 text-center">Aún no hay proyectos activos.</p>
+          )}
+        </div>
+
+        {/* Estado de cuenta — only if there's invoice data */}
+        {showInvoices && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-[#1A1A2E]">Estado de cuenta</h2>
+              <Receipt className="w-5 h-5 text-gray-300" />
+            </div>
+            <div className="flex items-center gap-5">
+              <DonutGauge value={invoicesPaidPct} />
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <div className="flex-1">
+                    <p className="text-[11px] text-gray-400 uppercase tracking-wide">Pagado</p>
+                    <p className="text-sm font-semibold text-[#1A1A2E]">{formatCurrency(invoicesPaid)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <div className="flex-1">
+                    <p className="text-[11px] text-gray-400 uppercase tracking-wide">Por pagar</p>
+                    <p className="text-sm font-semibold text-[#1A1A2E]">{formatCurrency(invoicesPending)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-4 text-center">
+              {data?.invoices?.paid_count || 0} pagadas · {data?.invoices?.pending_count || 0} pendientes
             </p>
+          </div>
+        )}
+
+        {/* Próximas entregas */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-[#1A1A2E]">Próximas entregas</h2>
+            <Clock className="w-5 h-5 text-gray-300" />
+          </div>
+          {allDeadlines.length > 0 ? (
+            <div className="space-y-3">
+              {allDeadlines.slice(0, 5).map((item) => {
+                const days = daysUntil(item.date);
+                const dayPill =
+                  days === 0 ? { text: 'Hoy', cls: 'bg-red-50 text-red-700' } :
+                  days === 1 ? { text: 'Mañana', cls: 'bg-orange-50 text-orange-700' } :
+                  days <= 7 ? { text: `${days}d`, cls: 'bg-amber-50 text-amber-700' } :
+                  { text: formatShortDate(item.date), cls: 'bg-gray-100 text-gray-600' };
+                return (
+                  <div key={item.id} className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      item.kind === 'task' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      {item.kind === 'task' ? <CheckCircle2 className="w-4 h-4" /> : <CalendarDays className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#1A1A2E] truncate">{item.title}</p>
+                      <p className="text-xs text-gray-400 truncate">{item.subtitle}</p>
+                    </div>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0 ${dayPill.cls}`}>
+                      {dayPill.text}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 py-6 text-center">No hay entregas programadas.</p>
           )}
         </div>
       </div>
@@ -517,6 +718,50 @@ export default function PortalDashboard() {
         </div>,
         document.body
       )}
+    </div>
+  );
+}
+
+/* ─── Dashboard primitives ─── */
+
+function KpiCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
+          <Icon className={`w-4 h-4 ${iconColor}`} />
+        </div>
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="text-2xl font-bold text-[#1A1A2E] tracking-tight">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-1 truncate">{sub}</p>}
+    </div>
+  );
+}
+
+function DonutGauge({ value }) {
+  const safe = Math.max(0, Math.min(100, Number(value) || 0));
+  const radius = 32;
+  const circumference = 2 * Math.PI * radius;
+  const dash = (safe / 100) * circumference;
+  return (
+    <div className="relative w-20 h-20 flex-shrink-0">
+      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="8" />
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          fill="none"
+          stroke="#10B981"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference}`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-sm font-bold text-[#1A1A2E] tabular-nums">{safe}%</span>
+      </div>
     </div>
   );
 }
