@@ -119,24 +119,32 @@ export default function PortalDashboard() {
   const tasksPending = Math.max(0, tasksTotal - tasksCompleted);
   const healthScore = data?.health_score ?? 0;
 
-  const allDeadlines = [
-    ...(data?.priorities || [])
-      .filter((p) => p.due_date)
-      .map((p) => ({
+  // Próximas entregas = SOLO tareas con fecha de entrega (no fechas comerciales).
+  // Backend devuelve `upcoming_deadlines` (tareas con due_date <= hoy+14d) y
+  // `priorities` (tareas priorizadas). Usamos un mapa para deduplicar por id.
+  const taskDeadlinesMap = new Map();
+  for (const t of data?.upcoming_deadlines || []) {
+    if (t.due_date) taskDeadlinesMap.set(t.id, {
+      kind: 'task',
+      id: `task-${t.id}`,
+      title: t.title,
+      subtitle: t.project_name,
+      date: t.due_date,
+    });
+  }
+  for (const t of data?.priorities || []) {
+    if (t.due_date && !taskDeadlinesMap.has(t.id)) {
+      taskDeadlinesMap.set(t.id, {
         kind: 'task',
-        id: `task-${p.id}`,
-        title: p.title,
-        subtitle: p.project_name,
-        date: p.due_date,
-      })),
-    ...(data?.commercial_dates || []).map((cd) => ({
-      kind: 'date',
-      id: `cd-${cd.id}`,
-      title: cd.title,
-      subtitle: 'Fecha comercial',
-      date: cd.date,
-    })),
-  ].sort((a, b) => new Date(a.date) - new Date(b.date));
+        id: `task-${t.id}`,
+        title: t.title,
+        subtitle: t.project_name,
+        date: t.due_date,
+      });
+    }
+  }
+  const allDeadlines = Array.from(taskDeadlinesMap.values())
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const nextDeadline = allDeadlines[0];
 
@@ -178,7 +186,7 @@ export default function PortalDashboard() {
             </span>
           </div>
           <p className="text-sm text-gray-500">
-            {welcomeMessage || `Hola, ${client?.nickname || client?.name?.split(' ')[0] || 'cliente'}. Aquí tienes el pulso de lo que estamos trabajando para ti.`}
+            {welcomeMessage || 'Aquí podrás consultar siempre el estado de tus proyectos y tareas.'}
           </p>
         </div>
       </div>
@@ -226,7 +234,7 @@ export default function PortalDashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-semibold text-[#1A1A2E]">Avance por proyecto</h2>
-              <p className="text-xs text-gray-400">{projectDetails.length} de {projectsTotal} proyectos</p>
+              <p className="text-xs text-gray-400">{projectDetails.length} {projectDetails.length === 1 ? 'proyecto activo' : 'proyectos activos'}</p>
             </div>
             <FolderKanban className="w-5 h-5 text-gray-300" />
           </div>

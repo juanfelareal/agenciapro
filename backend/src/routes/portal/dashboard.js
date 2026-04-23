@@ -17,14 +17,37 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       try { return await fn(); } catch (e) { console.error('Dashboard query error:', e.message); return defaultVal; }
     };
 
-    const projectsSummary = await safeQuery(() => db.get(`
-      SELECT
-        COUNT(*) as total,
-        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
-      FROM projects
-      WHERE client_id = ?
-    `, [clientId]), { total: 0, in_progress: 0, completed: 0 });
+    // Aggregate project state from task progress (a project is "completado"
+    // only when it has tasks AND all of them are done; everything else,
+    // including projects with no tasks yet, counts as "en curso").
+    const allProjectsRaw = await safeQuery(() => db.all(`
+      SELECT p.id, p.name, p.due_date, p.updated_at,
+        (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1) as task_count,
+        (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1 AND status = 'done') as completed_count
+      FROM projects p
+      WHERE p.client_id = ?
+      ORDER BY p.updated_at DESC
+    `, [clientId]), []);
+
+    const allProjects = allProjectsRaw.map((p) => {
+      const taskCount = parseInt(p.task_count) || 0;
+      const completedCount = parseInt(p.completed_count) || 0;
+      return {
+        ...p,
+        task_count: taskCount,
+        completed_count: completedCount,
+        progress: taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0,
+        is_completed: taskCount > 0 && completedCount === taskCount,
+      };
+    });
+
+    const projectsCompleted = allProjects.filter((p) => p.is_completed).length;
+    const projectsActive = allProjects.length - projectsCompleted;
+    const projectsSummary = {
+      total: allProjects.length,
+      in_progress: projectsActive,
+      completed: projectsCompleted,
+    };
 
     const tasksSummary = await safeQuery(() => db.get(`
       SELECT
@@ -48,15 +71,8 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       WHERE client_id = ?
     `, [clientId]), { total: 0, paid_amount: 0, pending_amount: 0, paid_count: 0, pending_count: 0 });
 
-    const projectDetails = await safeQuery(() => db.all(`
-      SELECT p.id, p.name, p.status, p.due_date,
-        (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1) as task_count,
-        (SELECT COUNT(*) FROM tasks WHERE project_id = p.id AND visible_to_client = 1 AND status = 'done') as completed_count
-      FROM projects p
-      WHERE p.client_id = ? AND p.status != 'completed'
-      ORDER BY p.updated_at DESC
-      LIMIT 5
-    `, [clientId]), []);
+    // Show active (not all-tasks-done) projects in the dashboard summary card
+    const projectDetails = allProjects.filter((p) => !p.is_completed).slice(0, 6);
 
     const tasksByStatus = await safeQuery(() => db.all(`
       SELECT t.status, COUNT(*) as count
@@ -177,12 +193,7 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
         paid_count: parseInt(invoicesSummary.paid_count) || 0,
         pending_count: parseInt(invoicesSummary.pending_count) || 0
       },
-      project_details: projectDetails.map(p => ({
-        ...p,
-        task_count: parseInt(p.task_count) || 0,
-        completed_count: parseInt(p.completed_count) || 0,
-        progress: parseInt(p.task_count) > 0 ? Math.round((parseInt(p.completed_count) / parseInt(p.task_count)) * 100) : 0
-      })),
+      project_details: projectDetails,
       tasks_by_status: tasksByStatus,
       upcoming_deadlines: upcomingDeadlines,
       health_score: healthScore,
