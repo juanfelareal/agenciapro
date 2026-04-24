@@ -105,7 +105,7 @@ router.get('/task/:taskId', async (req, res) => {
 // Add file reference (actual upload would be handled separately)
 router.post('/', async (req, res) => {
   try {
-    const { task_id, file_name, file_path, file_size, file_type, uploaded_by } = req.body;
+    const { task_id, file_name, file_path, file_size, file_type, description, uploaded_by } = req.body;
 
     if (!task_id || !file_name || !file_path) {
       return res.status(400).json({ error: 'Task ID, file name and file path are required' });
@@ -122,9 +122,9 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.run(`
-      INSERT INTO task_files (task_id, file_name, file_path, file_size, file_type, uploaded_by, organization_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [task_id, file_name, file_path, file_size, file_type, uploaded_by, req.orgId]);
+      INSERT INTO task_files (task_id, file_name, file_path, file_size, file_type, description, uploaded_by, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [task_id, file_name, file_path, file_size, file_type, description || null, uploaded_by, req.orgId]);
 
     const file = await db.get(`
       SELECT tf.*, tm.name as uploaded_by_name
@@ -136,6 +136,41 @@ router.post('/', async (req, res) => {
     res.status(201).json(file);
   } catch (error) {
     console.error('Error creating file:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update an existing task file (title/description, useful for embeds)
+router.patch('/:id', async (req, res) => {
+  try {
+    const { file_name, description } = req.body;
+    const file = await db.get(`
+      SELECT tf.* FROM task_files tf
+      JOIN tasks t ON tf.task_id = t.id
+      WHERE tf.id = ? AND t.organization_id = ?
+    `, [req.params.id, req.orgId]);
+
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    await db.run(`
+      UPDATE task_files
+      SET file_name = COALESCE(?, file_name),
+          description = ?
+      WHERE id = ? AND organization_id = ?
+    `, [file_name ?? file.file_name, description ?? null, req.params.id, req.orgId]);
+
+    const updated = await db.get(`
+      SELECT tf.*, tm.name as uploaded_by_name
+      FROM task_files tf
+      LEFT JOIN team_members tm ON tf.uploaded_by = tm.id
+      WHERE tf.id = ?
+    `, [req.params.id]);
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating file:', error);
     res.status(500).json({ error: error.message });
   }
 });

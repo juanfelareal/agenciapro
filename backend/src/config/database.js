@@ -384,9 +384,20 @@ export const initializeDatabase = async () => {
         file_path TEXT NOT NULL,
         file_size INTEGER,
         file_type TEXT,
+        description TEXT,
         uploaded_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add description column for embed deliverables (existing DBs)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='task_files' AND column_name='description') THEN
+          ALTER TABLE task_files ADD COLUMN description TEXT;
+        END IF;
+      END $$;
     `);
 
     // Subtasks

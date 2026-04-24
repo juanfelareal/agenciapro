@@ -189,13 +189,18 @@ export const taskFilesAPI = {
   },
   // Agrega un link/embed (Drive, Loom, Figma, etc.) como entregable.
   // Reusa la tabla task_files: file_path = URL absoluta, file_type = 'embed'.
-  addLink: (taskId, url, uploadedBy, fileName) => api.post('/task-files', {
+  addLink: (taskId, url, uploadedBy, { title, description } = {}) => api.post('/task-files', {
     task_id: taskId,
-    file_name: fileName || url,
+    file_name: title || url,
     file_path: url,
     file_type: 'embed',
     file_size: 0,
+    description: description || null,
     uploaded_by: uploadedBy ?? null,
+  }),
+  update: (id, { title, description } = {}) => api.patch(`/task-files/${id}`, {
+    file_name: title,
+    description,
   }),
   delete: (id) => api.delete(`/task-files/${id}`),
 };

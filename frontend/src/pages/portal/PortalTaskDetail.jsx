@@ -307,14 +307,18 @@ export default function PortalTaskDetail() {
                 const embed = getEmbed(f.file_path);
                 if (!embed) return null;
 
+                const customTitle = f.file_name && f.file_name !== f.file_path ? f.file_name : null;
                 return (
-                  <div key={f.id} className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
+                  <div key={f.id} className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{embed.label}</p>
-                        <p className="text-sm font-medium text-[#1A1A2E] truncate" title={f.file_name}>
-                          {f.file_name && f.file_name !== f.file_path ? f.file_name : embed.label}
+                        <p className="text-base font-semibold text-[#1A1A2E]" title={customTitle || embed.label}>
+                          {customTitle || embed.label}
                         </p>
+                        {f.description && (
+                          <p className="text-sm text-gray-600 mt-1 whitespace-pre-line">{f.description}</p>
+                        )}
                       </div>
                       <a
                         href={f.file_path}

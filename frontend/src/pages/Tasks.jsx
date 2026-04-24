@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2 } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2, Edit2, Check } from 'lucide-react';
 import { getEmbed } from '../utils/embedUrl';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
@@ -45,7 +45,14 @@ const Tasks = () => {
   const [taskFilesList, setTaskFilesList] = useState([]);
   const [loadingTaskFiles, setLoadingTaskFiles] = useState(false);
   const [newDeliverableUrl, setNewDeliverableUrl] = useState('');
+  const [newDeliverableTitle, setNewDeliverableTitle] = useState('');
+  const [newDeliverableDescription, setNewDeliverableDescription] = useState('');
   const [addingLink, setAddingLink] = useState(false);
+  // Edición inline de un entregable existente (título y descripción)
+  const [editingFileId, setEditingFileId] = useState(null);
+  const [editingFileTitle, setEditingFileTitle] = useState('');
+  const [editingFileDescription, setEditingFileDescription] = useState('');
+  const [savingFileEdit, setSavingFileEdit] = useState(false);
   // Si la tarea requiere aprobación del cliente y no hay archivos ni link,
   // exigir que el usuario marque conscientemente "Sin archivos" antes de guardar.
   const [noFilesIntended, setNoFilesIntended] = useState(false);
@@ -389,6 +396,10 @@ const Tasks = () => {
     setNewProjectName('');
     setTaskFilesList([]);
     setNoFilesIntended(false);
+    setNewDeliverableUrl('');
+    setNewDeliverableTitle('');
+    setNewDeliverableDescription('');
+    setEditingFileId(null);
   };
 
   const validateApprovalDeliverable = () => {
@@ -427,14 +438,49 @@ const Tasks = () => {
     }
     setAddingLink(true);
     try {
-      await taskFilesAPI.addLink(editingTask.id, url, user?.id);
+      await taskFilesAPI.addLink(editingTask.id, url, user?.id, {
+        title: newDeliverableTitle.trim() || undefined,
+        description: newDeliverableDescription.trim() || undefined,
+      });
       setNewDeliverableUrl('');
+      setNewDeliverableTitle('');
+      setNewDeliverableDescription('');
       await loadTaskFiles(editingTask.id);
     } catch (error) {
       console.error('Error adding link:', error);
       alert(error.response?.data?.error || 'Error al agregar el link');
     } finally {
       setAddingLink(false);
+    }
+  };
+
+  const startEditFile = (f) => {
+    setEditingFileId(f.id);
+    setEditingFileTitle(f.file_name && f.file_name !== f.file_path ? f.file_name : '');
+    setEditingFileDescription(f.description || '');
+  };
+
+  const cancelEditFile = () => {
+    setEditingFileId(null);
+    setEditingFileTitle('');
+    setEditingFileDescription('');
+  };
+
+  const saveEditFile = async () => {
+    if (!editingFileId) return;
+    setSavingFileEdit(true);
+    try {
+      await taskFilesAPI.update(editingFileId, {
+        title: editingFileTitle.trim() || null,
+        description: editingFileDescription.trim() || null,
+      });
+      await loadTaskFiles(editingTask.id);
+      cancelEditFile();
+    } catch (error) {
+      console.error('Error updating file:', error);
+      alert(error.response?.data?.error || 'Error al guardar');
+    } finally {
+      setSavingFileEdit(false);
     }
   };
 
@@ -1032,9 +1078,51 @@ const Tasks = () => {
                         {taskFilesList.map((f) => {
                           const isLegacyFile = !f.file_path?.startsWith('http');
                           const embed = isLegacyFile ? null : getEmbed(f.file_path);
+                          const isEditing = editingFileId === f.id;
+                          const customTitle = f.file_name && f.file_name !== f.file_path ? f.file_name : null;
+                          if (isEditing) {
+                            return (
+                              <div key={f.id} className="p-3 border border-[#1A1A2E] rounded-xl bg-white space-y-2">
+                                <input
+                                  type="text"
+                                  value={editingFileTitle}
+                                  onChange={(e) => setEditingFileTitle(e.target.value)}
+                                  placeholder="Título (ej: Pieza para correo de bienvenida)"
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                                  autoFocus
+                                />
+                                <textarea
+                                  value={editingFileDescription}
+                                  onChange={(e) => setEditingFileDescription(e.target.value)}
+                                  placeholder="Descripción para el cliente (opcional)"
+                                  rows={2}
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent resize-none"
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={cancelEditFile}
+                                    disabled={savingFileEdit}
+                                    className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={saveEditFile}
+                                    disabled={savingFileEdit}
+                                    className="px-3 py-1.5 text-xs bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E]/90 disabled:opacity-50 inline-flex items-center gap-1"
+                                  >
+                                    {savingFileEdit ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                    Guardar
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          }
                           return (
-                            <div key={f.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-white">
-                              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
+                            <div key={f.id} className="flex items-start gap-3 p-3 border border-gray-200 rounded-xl bg-white">
+                              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mt-0.5">
                                 <Link className="w-4 h-4 text-gray-400" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -1043,17 +1131,34 @@ const Tasks = () => {
                                 ) : (
                                   <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{embed?.label || 'Link'}</p>
                                 )}
-                                <a
-                                  href={isLegacyFile ? '#' : f.file_path}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => isLegacyFile && e.preventDefault()}
-                                  className={`block text-sm truncate ${isLegacyFile ? 'text-gray-400 cursor-not-allowed' : 'text-[#1A1A2E] hover:underline'}`}
-                                  title={f.file_path}
-                                >
-                                  {f.file_name || f.file_path}
-                                </a>
+                                <p className={`text-sm font-medium ${isLegacyFile ? 'text-gray-400' : 'text-[#1A1A2E]'}`}>
+                                  {customTitle || (isLegacyFile ? f.file_name : (embed?.label || 'Link'))}
+                                </p>
+                                {f.description && (
+                                  <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-line">{f.description}</p>
+                                )}
+                                {!isLegacyFile && (
+                                  <a
+                                    href={f.file_path}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-gray-400 hover:underline truncate block mt-0.5"
+                                    title={f.file_path}
+                                  >
+                                    {f.file_path}
+                                  </a>
+                                )}
                               </div>
+                              {!isLegacyFile && (
+                                <button
+                                  type="button"
+                                  onClick={() => startEditFile(f)}
+                                  className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                                  title="Editar título y descripción"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                              )}
                               {!isLegacyFile && (
                                 <a
                                   href={f.file_path}
@@ -1078,30 +1183,49 @@ const Tasks = () => {
                         })}
                       </div>
                     )}
-                    <div className="flex gap-2">
+                    {/* Add new deliverable */}
+                    <div className="space-y-2 p-3 border border-dashed border-gray-300 rounded-xl">
                       <input
-                        type="url"
-                        value={newDeliverableUrl}
-                        onChange={(e) => setNewDeliverableUrl(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddDeliverableLink();
-                          }
-                        }}
-                        placeholder="https://drive.google.com/file/d/... o link de Figma, Loom, YouTube…"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                        type="text"
+                        value={newDeliverableTitle}
+                        onChange={(e) => setNewDeliverableTitle(e.target.value)}
+                        placeholder="Título (ej: Pieza para correo de bienvenida)"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
                         disabled={addingLink}
                       />
-                      <button
-                        type="button"
-                        onClick={handleAddDeliverableLink}
-                        disabled={addingLink || !newDeliverableUrl.trim()}
-                        className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 disabled:opacity-50 inline-flex items-center gap-1.5"
-                      >
-                        {addingLink ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                        Agregar
-                      </button>
+                      <textarea
+                        value={newDeliverableDescription}
+                        onChange={(e) => setNewDeliverableDescription(e.target.value)}
+                        placeholder="Descripción para el cliente (opcional)"
+                        rows={2}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent resize-none"
+                        disabled={addingLink}
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={newDeliverableUrl}
+                          onChange={(e) => setNewDeliverableUrl(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddDeliverableLink();
+                            }
+                          }}
+                          placeholder="https://drive.google.com/file/d/... o link de Figma, Loom, YouTube…"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                          disabled={addingLink}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddDeliverableLink}
+                          disabled={addingLink || !newDeliverableUrl.trim()}
+                          className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 disabled:opacity-50 inline-flex items-center gap-1.5"
+                        >
+                          {addingLink ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                          Agregar
+                        </button>
+                      </div>
                     </div>
                     <p className="text-xs text-gray-400 mt-1.5">El cliente verá la previsualización embebida (Drive, Figma, Loom, YouTube, etc.). Para Drive, deja "cualquier persona con el enlace puede ver".</p>
                   </div>
