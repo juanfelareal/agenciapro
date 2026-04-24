@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePortal } from '../../context/PortalContext';
 import { portalTasksAPI } from '../../utils/portalApi';
+import { getEmbed } from '../../utils/embedUrl';
 import {
   ArrowLeft,
   CheckSquare,
@@ -21,7 +22,6 @@ import {
   ClipboardList,
   ExternalLink,
   Paperclip,
-  Download,
   Plus,
   X
 } from 'lucide-react';
@@ -275,78 +275,111 @@ export default function PortalTaskDetail() {
         </div>
       )}
 
-      {/* Deliverable Section — what the team delivered for the client to review */}
-      {(task.delivery_url || (task.files && task.files.length > 0)) && (() => {
-        const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
-        const fileUrl = (fp) => (fp?.startsWith('http') ? fp : `${apiBase}${fp?.startsWith('/') ? '' : '/'}${fp}`);
-        const isImage = (type) => type?.startsWith('image/');
+      {/* Deliverable Section — links/embeds (Drive, Figma, Loom, etc.) */}
+      {(() => {
+        const allDeliverables = [];
+        if (task.delivery_url) {
+          allDeliverables.push({ id: 'legacy-url', file_path: task.delivery_url, file_name: 'Link de entrega' });
+        }
+        (task.files || []).forEach((f) => allDeliverables.push(f));
+        if (allDeliverables.length === 0) return null;
+
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
               <Paperclip className="w-5 h-5 text-gray-400" />
               <h2 className="font-semibold text-[#1A1A2E]">Entregable</h2>
-              <span className="text-sm text-gray-500">
-                {(task.files?.length || 0) + (task.delivery_url ? 1 : 0)}
-              </span>
+              <span className="text-sm text-gray-500">{allDeliverables.length}</span>
             </div>
-            <div className="p-6 space-y-4">
-              {task.delivery_url && (
-                <a
-                  href={task.delivery_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-3 p-4 border border-gray-200 rounded-xl hover:border-[#1A1A2E] transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                      <ExternalLink className="w-5 h-5 text-blue-600" />
+            <div className="p-6 space-y-6">
+              {allDeliverables.map((f) => {
+                const isUrl = f.file_path?.startsWith('http');
+                if (!isUrl) {
+                  return (
+                    <div key={f.id} className="p-4 border border-amber-200 bg-amber-50 rounded-xl">
+                      <p className="text-sm font-medium text-amber-800">Archivo no disponible</p>
+                      <p className="text-xs text-amber-700 mt-1">
+                        Este entregable se subió antes de que migráramos al sistema de embeds. Pídele al equipo que lo vuelva a compartir como link.
+                      </p>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#1A1A2E] truncate">Link de entrega</p>
-                      <p className="text-xs text-gray-500 truncate">{task.delivery_url}</p>
-                    </div>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                </a>
-              )}
+                  );
+                }
+                const embed = getEmbed(f.file_path);
+                if (!embed) return null;
 
-              {task.files && task.files.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {task.files.map((f) => (
-                    <div key={f.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                      {isImage(f.file_type) ? (
-                        <a href={fileUrl(f.file_path)} target="_blank" rel="noopener noreferrer" className="block">
-                          <img
-                            src={fileUrl(f.file_path)}
-                            alt={f.file_name}
-                            className="w-full h-40 object-cover bg-gray-100"
-                            loading="lazy"
-                          />
-                        </a>
-                      ) : (
-                        <div className="h-40 bg-gray-50 flex items-center justify-center">
-                          <Paperclip className="w-10 h-10 text-gray-300" />
-                        </div>
-                      )}
-                      <div className="p-3 flex items-center justify-between gap-2">
-                        <p className="text-xs font-medium text-[#1A1A2E] truncate flex-1" title={f.file_name}>
-                          {f.file_name}
+                return (
+                  <div key={f.id} className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{embed.label}</p>
+                        <p className="text-sm font-medium text-[#1A1A2E] truncate" title={f.file_name}>
+                          {f.file_name && f.file_name !== f.file_path ? f.file_name : embed.label}
                         </p>
-                        <a
-                          href={fileUrl(f.file_path)}
-                          download={f.file_name}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                          title="Descargar"
-                        >
-                          <Download className="w-4 h-4" />
-                        </a>
                       </div>
+                      <a
+                        href={f.file_path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Abrir
+                      </a>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    {embed.kind === 'iframe' && (
+                      <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                        <iframe
+                          src={embed.src}
+                          title={f.file_name || embed.label}
+                          className="w-full h-[480px]"
+                          allow="autoplay; encrypted-media; picture-in-picture"
+                          allowFullScreen
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+
+                    {embed.kind === 'image' && (
+                      <a href={f.file_path} target="_blank" rel="noopener noreferrer" className="block rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                        <img
+                          src={embed.src}
+                          alt={f.file_name || 'Entregable'}
+                          className="w-full max-h-[480px] object-contain bg-gray-100"
+                          loading="lazy"
+                        />
+                      </a>
+                    )}
+
+                    {embed.kind === 'video' && (
+                      <div className="rounded-xl overflow-hidden border border-gray-200 bg-black">
+                        <video
+                          src={embed.src}
+                          controls
+                          className="w-full max-h-[480px]"
+                        />
+                      </div>
+                    )}
+
+                    {embed.kind === 'link' && (
+                      <a
+                        href={f.file_path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-[#1A1A2E] transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <ExternalLink className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-[#1A1A2E] truncate">{embed.label}</p>
+                          <p className="text-xs text-gray-500 truncate">{f.file_path}</p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

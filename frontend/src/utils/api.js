@@ -187,6 +187,16 @@ export const taskFilesAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  // Agrega un link/embed (Drive, Loom, Figma, etc.) como entregable.
+  // Reusa la tabla task_files: file_path = URL absoluta, file_type = 'embed'.
+  addLink: (taskId, url, uploadedBy, fileName) => api.post('/task-files', {
+    task_id: taskId,
+    file_name: fileName || url,
+    file_path: url,
+    file_type: 'embed',
+    file_size: 0,
+    uploaded_by: uploadedBy ?? null,
+  }),
   delete: (id) => api.delete(`/task-files/${id}`),
 };
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Upload, Download, Trash2 } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2 } from 'lucide-react';
+import { getEmbed } from '../utils/embedUrl';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
 import TaskDescriptionEditor from '../components/TaskDescriptionEditor';
@@ -37,18 +38,17 @@ const Tasks = () => {
   // Segundo paso: pedir entregable (link o archivo) tras confirmar aprobación
   const [deliverablePrompt, setDeliverablePrompt] = useState(false);
   const [deliverableLink, setDeliverableLink] = useState('');
-  const [deliverableFile, setDeliverableFile] = useState(null);
   const [submittingDeliverable, setSubmittingDeliverable] = useState(false);
 
-  // Archivos persistentes de la tarea (visibles para el cliente desde su portal)
+  // Entregables (links/embeds) de la tarea, visibles para el cliente desde su portal.
+  // Reusan la tabla task_files con file_path = URL absoluta.
   const [taskFilesList, setTaskFilesList] = useState([]);
   const [loadingTaskFiles, setLoadingTaskFiles] = useState(false);
-  const [uploadingTaskFile, setUploadingTaskFile] = useState(false);
+  const [newDeliverableUrl, setNewDeliverableUrl] = useState('');
+  const [addingLink, setAddingLink] = useState(false);
   // Si la tarea requiere aprobación del cliente y no hay archivos ni link,
   // exigir que el usuario marque conscientemente "Sin archivos" antes de guardar.
   const [noFilesIntended, setNoFilesIntended] = useState(false);
-  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api$/, '');
-  const fileUrl = (fp) => (fp?.startsWith('http') ? fp : `${apiBase}${fp?.startsWith('/') ? '' : '/'}${fp}`);
 
   // View and filter state
   const [viewMode, setViewMode] = useState('kanban');
@@ -285,8 +285,7 @@ const Tasks = () => {
 
   const confirmDoneWithApproval = () => {
     setDoneApprovalPrompt(false);
-    setDeliverableLink(formData.delivery_url || '');
-    setDeliverableFile(null);
+    setDeliverableLink('');
     setDeliverablePrompt(true);
   };
 
@@ -300,13 +299,17 @@ const Tasks = () => {
   const cancelDeliverablePrompt = () => {
     setDeliverablePrompt(false);
     setDeliverableLink('');
-    setDeliverableFile(null);
     pendingSubmitRef.current = null;
   };
 
   const submitDeliverableAndApprove = async () => {
-    if (!deliverableLink && !deliverableFile) {
-      alert('Agrega un link o un archivo para que el cliente pueda revisarlo.');
+    const link = deliverableLink.trim();
+    if (!link) {
+      alert('Pega un link (Drive, Figma, Loom, etc.) para que el cliente lo revise.');
+      return;
+    }
+    try { new URL(link); } catch {
+      alert('El link no parece válido. Asegúrate de incluir https://');
       return;
     }
     setSubmittingDeliverable(true);
@@ -316,9 +319,7 @@ const Tasks = () => {
         ...base,
         visible_to_client: true,
         requires_client_approval: true,
-        delivery_url: deliverableLink || base.delivery_url || null,
       };
-      // Persist task first to obtain the id (when creating)
       const { assignee_ids, ...rest } = updated;
       const apiData = {
         ...rest,
@@ -339,12 +340,8 @@ const Tasks = () => {
         const response = await tasksAPI.create(apiData);
         taskId = response.data.id;
       }
-      // Upload deliverable file if any
-      if (deliverableFile && taskId) {
-        await taskFilesAPI.upload(taskId, deliverableFile, user?.id);
-      }
-      // Save tags
       if (taskId) {
+        await taskFilesAPI.addLink(taskId, link, user?.id);
         await tagsAPI.setTaskTags(taskId, selectedTagIds);
       }
 
@@ -419,17 +416,25 @@ const Tasks = () => {
     }
   };
 
-  const handleUploadTaskFile = async (file) => {
-    if (!file || !editingTask?.id) return;
-    setUploadingTaskFile(true);
+  const handleAddDeliverableLink = async () => {
+    const url = newDeliverableUrl.trim();
+    if (!url || !editingTask?.id) return;
     try {
-      await taskFilesAPI.upload(editingTask.id, file, user?.id);
+      new URL(url);
+    } catch {
+      alert('El link no parece válido. Asegúrate de incluir https://');
+      return;
+    }
+    setAddingLink(true);
+    try {
+      await taskFilesAPI.addLink(editingTask.id, url, user?.id);
+      setNewDeliverableUrl('');
       await loadTaskFiles(editingTask.id);
     } catch (error) {
-      console.error('Error uploading file:', error);
-      alert(error.response?.data?.error || 'Error al subir el archivo');
+      console.error('Error adding link:', error);
+      alert(error.response?.data?.error || 'Error al agregar el link');
     } finally {
-      setUploadingTaskFile(false);
+      setAddingLink(false);
     }
   };
 
@@ -1011,81 +1016,94 @@ const Tasks = () => {
                   </div>
                 )}
 
-                {/* Files / Deliverables — only when editing (need a taskId to upload) */}
+                {/* Entregables — links/embeds (Drive, Loom, Figma, etc.). Solo al editar (requiere taskId). */}
                 {editingTask && (
                   <div className="col-span-2 border-t border-gray-100 pt-4">
                     <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
                       <Paperclip size={14} />
-                      Archivos para el cliente
+                      Entregables para el cliente
                     </label>
                     {loadingTaskFiles ? (
-                      <p className="text-xs text-gray-400">Cargando archivos…</p>
+                      <p className="text-xs text-gray-400">Cargando…</p>
                     ) : taskFilesList.length === 0 ? (
-                      <p className="text-xs text-gray-400 mb-2">Aún no hay archivos. Sube piezas gráficas, PDFs o videos para que el cliente los revise.</p>
+                      <p className="text-xs text-gray-400 mb-2">Aún no hay entregables. Pega un link de Drive, Figma, Loom o cualquier URL pública.</p>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div className="space-y-2 mb-3">
                         {taskFilesList.map((f) => {
-                          const isImage = f.file_type?.startsWith('image/');
+                          const isLegacyFile = !f.file_path?.startsWith('http');
+                          const embed = isLegacyFile ? null : getEmbed(f.file_path);
                           return (
-                            <div key={f.id} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                              {isImage ? (
-                                <a href={fileUrl(f.file_path)} target="_blank" rel="noopener noreferrer" className="block">
-                                  <img
-                                    src={fileUrl(f.file_path)}
-                                    alt={f.file_name}
-                                    className="w-full h-32 object-cover bg-gray-100"
-                                    loading="lazy"
-                                  />
-                                </a>
-                              ) : (
-                                <div className="h-32 bg-gray-50 flex items-center justify-center">
-                                  <Paperclip className="w-8 h-8 text-gray-300" />
-                                </div>
-                              )}
-                              <div className="p-2 flex items-center justify-between gap-1">
-                                <p className="text-xs font-medium text-[#1A1A2E] truncate flex-1" title={f.file_name}>
-                                  {f.file_name}
-                                </p>
+                            <div key={f.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl bg-white">
+                              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
+                                <Link className="w-4 h-4 text-gray-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                {isLegacyFile ? (
+                                  <p className="text-sm text-amber-700 font-medium">Archivo no disponible</p>
+                                ) : (
+                                  <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{embed?.label || 'Link'}</p>
+                                )}
                                 <a
-                                  href={fileUrl(f.file_path)}
-                                  download={f.file_name}
+                                  href={isLegacyFile ? '#' : f.file_path}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => isLegacyFile && e.preventDefault()}
+                                  className={`block text-sm truncate ${isLegacyFile ? 'text-gray-400 cursor-not-allowed' : 'text-[#1A1A2E] hover:underline'}`}
+                                  title={f.file_path}
+                                >
+                                  {f.file_name || f.file_path}
+                                </a>
+                              </div>
+                              {!isLegacyFile && (
+                                <a
+                                  href={f.file_path}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                                  title="Descargar"
+                                  title="Abrir"
                                 >
-                                  <Download className="w-4 h-4" />
+                                  <ExternalLink className="w-4 h-4" />
                                 </a>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteTaskFile(f.id)}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                                  title="Eliminar"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTaskFile(f.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           );
                         })}
                       </div>
                     )}
-                    <label className="inline-flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:border-[#1A1A2E] hover:text-[#1A1A2E] cursor-pointer transition-colors">
-                      {uploadingTaskFile ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                      {uploadingTaskFile ? 'Subiendo…' : 'Subir archivo'}
+                    <div className="flex gap-2">
                       <input
-                        type="file"
-                        accept="image/*,application/pdf,video/*"
-                        className="hidden"
-                        disabled={uploadingTaskFile}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleUploadTaskFile(file);
-                          e.target.value = '';
+                        type="url"
+                        value={newDeliverableUrl}
+                        onChange={(e) => setNewDeliverableUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddDeliverableLink();
+                          }
                         }}
+                        placeholder="https://drive.google.com/file/d/... o link de Figma, Loom, YouTube…"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                        disabled={addingLink}
                       />
-                    </label>
-                    <p className="text-xs text-gray-400 mt-1.5">Hasta 25MB por archivo. Las imágenes se mostrarán como preview en el portal del cliente.</p>
+                      <button
+                        type="button"
+                        onClick={handleAddDeliverableLink}
+                        disabled={addingLink || !newDeliverableUrl.trim()}
+                        className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 disabled:opacity-50 inline-flex items-center gap-1.5"
+                      >
+                        {addingLink ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                        Agregar
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1.5">El cliente verá la previsualización embebida (Drive, Figma, Loom, YouTube, etc.). Para Drive, deja "cualquier persona con el enlace puede ver".</p>
                   </div>
                 )}
 
@@ -1325,40 +1343,20 @@ const Tasks = () => {
               Entregable para el cliente
             </h3>
             <p className="text-sm text-gray-500 mb-5">
-              Adjunta lo que el cliente debe revisar. Las imágenes se mostrarán como preview en su portal y los links serán clickeables.
+              Pega el link del entregable (Drive, Figma, Loom, YouTube, etc.). El cliente verá la previsualización embebida en su portal.
             </p>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">Link (opcional)</label>
-                <input
-                  type="url"
-                  value={deliverableLink}
-                  onChange={(e) => setDeliverableLink(e.target.value)}
-                  placeholder="https://drive.google.com/..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">Archivo (opcional)</label>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf,video/*"
-                  onChange={(e) => setDeliverableFile(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-[#1A1A2E] file:text-white file:text-sm hover:file:bg-[#1A1A2E]/90 cursor-pointer"
-                />
-                {deliverableFile && deliverableFile.type?.startsWith('image/') && (
-                  <img
-                    src={URL.createObjectURL(deliverableFile)}
-                    alt="preview"
-                    className="mt-3 max-h-48 rounded-lg border border-gray-200 object-contain bg-gray-50"
-                  />
-                )}
-                {deliverableFile && !deliverableFile.type?.startsWith('image/') && (
-                  <p className="mt-2 text-xs text-gray-500">{deliverableFile.name}</p>
-                )}
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">Link del entregable</label>
+              <input
+                type="url"
+                value={deliverableLink}
+                onChange={(e) => setDeliverableLink(e.target.value)}
+                placeholder="https://drive.google.com/file/d/..."
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent text-sm"
+                autoFocus
+              />
+              <p className="text-xs text-gray-400 mt-1.5">Tip: en Drive, asegúrate de poner "cualquier persona con el enlace puede ver".</p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end mt-6">
@@ -1373,7 +1371,7 @@ const Tasks = () => {
               <button
                 type="button"
                 onClick={submitDeliverableAndApprove}
-                disabled={submittingDeliverable || (!deliverableLink && !deliverableFile)}
+                disabled={submittingDeliverable || !deliverableLink.trim()}
                 className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {submittingDeliverable && <Loader2 className="w-4 h-4 animate-spin" />}
