@@ -28,7 +28,6 @@ import {
   TrendingUp,
   FolderKanban,
   Clock,
-  Receipt,
   Building2,
   ThumbsUp,
   ChevronDown,
@@ -153,19 +152,6 @@ export default function PortalDashboard() {
 
   const nextDeadline = allDeadlines[0];
 
-  const invoicesPaid = data?.invoices?.paid_amount || 0;
-  const invoicesPending = data?.invoices?.pending_amount || 0;
-  const invoicesTotal = invoicesPaid + invoicesPending;
-  const invoicesPaidPct = invoicesTotal > 0 ? Math.round((invoicesPaid / invoicesTotal) * 100) : 0;
-  const showInvoices = invoicesTotal > 0;
-
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0,
-    }).format(amount || 0);
-
   const formatShortDate = (dateStr) => {
     const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T12:00:00');
     return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
@@ -269,7 +255,7 @@ export default function PortalDashboard() {
       </div>
 
       {/* ─── Summary row: avance por proyecto / estado de cuenta / próximas entregas ─── */}
-      <div className={`grid gap-4 ${showInvoices ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Avance por proyecto */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
@@ -303,38 +289,6 @@ export default function PortalDashboard() {
             <p className="text-sm text-gray-400 py-6 text-center">Aún no hay proyectos activos.</p>
           )}
         </div>
-
-        {/* Estado de cuenta — only if there's invoice data */}
-        {showInvoices && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-[#1A1A2E]">Estado de cuenta</h2>
-              <Receipt className="w-5 h-5 text-gray-300" />
-            </div>
-            <div className="flex items-center gap-5">
-              <DonutGauge value={invoicesPaidPct} />
-              <div className="flex-1 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <div className="flex-1">
-                    <p className="text-[11px] text-gray-400 uppercase tracking-wide">Pagado</p>
-                    <p className="text-sm font-semibold text-[#1A1A2E]">{formatCurrency(invoicesPaid)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  <div className="flex-1">
-                    <p className="text-[11px] text-gray-400 uppercase tracking-wide">Por pagar</p>
-                    <p className="text-sm font-semibold text-[#1A1A2E]">{formatCurrency(invoicesPending)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 mt-4 text-center">
-              {data?.invoices?.paid_count || 0} pagadas · {data?.invoices?.pending_count || 0} pendientes
-            </p>
-          </div>
-        )}
 
         {/* Próximas entregas */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
@@ -793,33 +747,6 @@ function KpiCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
       </div>
       <p className="text-2xl font-bold text-[#1A1A2E] tracking-tight">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1 truncate">{sub}</p>}
-    </div>
-  );
-}
-
-function DonutGauge({ value }) {
-  const safe = Math.max(0, Math.min(100, Number(value) || 0));
-  const radius = 32;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (safe / 100) * circumference;
-  return (
-    <div className="relative w-20 h-20 flex-shrink-0">
-      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r={radius} fill="none" stroke="#F3F4F6" strokeWidth="8" />
-        <circle
-          cx="40"
-          cy="40"
-          r={radius}
-          fill="none"
-          stroke="#10B981"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference}`}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-sm font-bold text-[#1A1A2E] tabular-nums">{safe}%</span>
-      </div>
     </div>
   );
 }
