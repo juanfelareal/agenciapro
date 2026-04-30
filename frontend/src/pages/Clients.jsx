@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye } from 'lucide-react';
 import ClientPortfolio from './ClientPortfolio';
 
 const Clients = () => {
@@ -502,24 +502,44 @@ const Clients = () => {
     }
   };
 
+  const getOrCreatePortalLink = async (client) => {
+    const tokensRes = await portalAdminAPI.getAccess(client.id);
+    const tokens = Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []);
+    let activeInvite = tokens.find(t => t.token_type === 'invite' && t.status === 'active');
+
+    // Auto-generate invite if none exists
+    if (!activeInvite) {
+      const response = await portalAdminAPI.generateInvite(client.id);
+      activeInvite = { token: response.invite_code };
+    }
+
+    return `${window.location.origin}/portal/login?code=${activeInvite.token}`;
+  };
+
   const handleQuickCopyPortalLink = async (client) => {
     try {
-      const tokensRes = await portalAdminAPI.getAccess(client.id);
-      const tokens = Array.isArray(tokensRes) ? tokensRes : (tokensRes.tokens || []);
-      let activeInvite = tokens.find(t => t.token_type === 'invite' && t.status === 'active');
-
-      // Auto-generate invite if none exists
-      if (!activeInvite) {
-        const response = await portalAdminAPI.generateInvite(client.id);
-        activeInvite = { token: response.invite_code };
-      }
-
-      const link = `${window.location.origin}/portal/login?code=${activeInvite.token}`;
+      const link = await getOrCreatePortalLink(client);
       await navigator.clipboard.writeText(link);
       setCopiedPortalId(client.id);
       setTimeout(() => setCopiedPortalId(null), 2000);
     } catch (error) {
       console.error('Error copying portal link:', error);
+    }
+  };
+
+  const handleOpenDashboard = async (client) => {
+    // Open a blank tab synchronously to avoid popup blockers, then redirect once the link is ready
+    const newTab = window.open('about:blank', '_blank');
+    try {
+      const link = await getOrCreatePortalLink(client);
+      if (newTab) {
+        newTab.location.href = link;
+      } else {
+        window.location.href = link;
+      }
+    } catch (error) {
+      console.error('Error opening dashboard:', error);
+      if (newTab) newTab.close();
     }
   };
 
@@ -788,6 +808,13 @@ const Clients = () => {
                     title={copiedPortalId === client.id ? 'Link copiado!' : 'Copiar link del portal'}
                   >
                     {copiedPortalId === client.id ? <Check size={18} /> : <Link2 size={18} />}
+                  </button>
+                  <button
+                    onClick={() => handleOpenDashboard(client)}
+                    className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    title="Abrir dashboard del cliente"
+                  >
+                    <Eye size={18} />
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/plataformas`)}

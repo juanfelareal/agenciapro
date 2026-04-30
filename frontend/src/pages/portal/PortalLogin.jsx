@@ -11,13 +11,23 @@ export default function PortalLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Check for code in URL on mount
+  // Check for code in URL on mount and auto-login if present
   useEffect(() => {
     const urlCode = searchParams.get('code');
     if (urlCode) {
       // Clear any existing session so the new code can be used
       localStorage.removeItem('portalToken');
       setCode(urlCode);
+      (async () => {
+        setLoading(true);
+        const result = await login(urlCode.trim());
+        if (result.success) {
+          navigate('/portal');
+        } else {
+          setError(result.error);
+          setLoading(false);
+        }
+      })();
     } else if (isAuthenticated) {
       navigate('/portal');
     }
