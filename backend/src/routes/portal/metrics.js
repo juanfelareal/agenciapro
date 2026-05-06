@@ -421,6 +421,55 @@ router.get('/ads', clientAuthMiddleware, requirePortalPermission('can_view_metri
 });
 
 /**
+ * GET /api/portal/metrics/ads/:adId/preview
+ * Get embeddable HTML preview for a Facebook ad
+ */
+const ALLOWED_PREVIEW_FORMATS = new Set([
+  'MOBILE_FEED_STANDARD',
+  'DESKTOP_FEED_STANDARD',
+  'INSTAGRAM_STANDARD',
+  'INSTAGRAM_STORY',
+  'INSTAGRAM_REELS',
+  'FACEBOOK_REELS_MOBILE',
+  'FACEBOOK_STORY_MOBILE'
+]);
+
+router.get('/ads/:adId/preview', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { adId } = req.params;
+    const format = ALLOWED_PREVIEW_FORMATS.has(req.query.format)
+      ? req.query.format
+      : 'MOBILE_FEED_STANDARD';
+
+    const fbCred = await db.get(
+      'SELECT access_token, ad_account_id FROM client_facebook_credentials WHERE client_id = ?',
+      [clientId]
+    );
+    if (!fbCred || !fbCred.ad_account_id) {
+      return res.status(404).json({ error: 'Sin conexión Facebook' });
+    }
+
+    const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+    if (!accessToken) {
+      return res.status(404).json({ error: 'Sin token de acceso Facebook' });
+    }
+
+    const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
+    const html = await fb.getAdPreview(adId, format);
+
+    if (!html) {
+      return res.status(404).json({ error: 'Vista previa no disponible para este formato' });
+    }
+
+    res.json({ html, format });
+  } catch (error) {
+    console.error('Error fetching ad preview:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar vista previa' });
+  }
+});
+
+/**
  * GET /api/portal/metrics/insight
  * Get latest AI insight for the client
  */

@@ -413,6 +413,23 @@ class FacebookAdsIntegration {
   }
 
   /**
+   * Get an embeddable HTML preview for an ad
+   * @param {string} adId - Facebook ad ID
+   * @param {string} format - Ad format (e.g. MOBILE_FEED_STANDARD, DESKTOP_FEED_STANDARD, INSTAGRAM_STANDARD)
+   * @returns {Promise<string>} - HTML iframe markup
+   */
+  async getAdPreview(adId, format = 'MOBILE_FEED_STANDARD') {
+    const response = await axios.get(`${FB_GRAPH_API_URL}/${adId}/previews`, {
+      params: {
+        ad_format: format,
+        access_token: this.accessToken
+      }
+    });
+    const previews = response.data?.data || [];
+    return previews[0]?.body || null;
+  }
+
+  /**
    * Get aggregated metrics for a date range
    * @param {string} startDate - Start date in YYYY-MM-DD format
    * @param {string} endDate - End date in YYYY-MM-DD format

@@ -31,7 +31,11 @@ import {
   UserCircle,
   MapPin,
   ChevronRight,
-  Tag
+  Tag,
+  X,
+  Smartphone,
+  Monitor,
+  Instagram
 } from 'lucide-react';
 
 export default function PortalMetrics() {
@@ -56,6 +60,11 @@ export default function PortalMetrics() {
   const [channelsLoading, setChannelsLoading] = useState(false);
   const [analysisCategoryId, setAnalysisCategoryId] = useState(null);
   const [analysisMetric, setAnalysisMetric] = useState('roas');
+  const [previewAd, setPreviewAd] = useState(null);
+  const [previewFormat, setPreviewFormat] = useState('MOBILE_FEED_STANDARD');
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
 
   // Extract unique tag categories from loaded ads
   const portalTagCategories = useMemo(() => {
@@ -144,6 +153,40 @@ export default function PortalMetrics() {
       loadMetrics();
     }
   }, [compareDates.start, compareDates.end]);
+
+  // Load ad preview when modal opens or format changes
+  useEffect(() => {
+    if (!previewAd) {
+      setPreviewHtml('');
+      setPreviewError('');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setPreviewLoading(true);
+      setPreviewError('');
+      try {
+        const res = await portalMetricsAPI.getAdPreview(previewAd.ad_id, previewFormat);
+        if (!cancelled) setPreviewHtml(res.html || '');
+      } catch (err) {
+        if (!cancelled) {
+          setPreviewHtml('');
+          setPreviewError(err.response?.data?.error || 'No se pudo cargar la vista previa');
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [previewAd, previewFormat]);
+
+  // Close modal on Escape
+  useEffect(() => {
+    if (!previewAd) return;
+    const onKey = (e) => { if (e.key === 'Escape') setPreviewAd(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [previewAd]);
 
   const resolveDateRange = () => {
     const fmt = (d) => d.toISOString().split('T')[0];
@@ -1711,7 +1754,12 @@ export default function PortalMetrics() {
                   {ads.map((ad) => (
                     <tr key={ad.ad_id} className="border-b border-gray-50 hover:bg-gray-50/50">
                       <td className="py-3 px-3 max-w-[200px] truncate" title={ad.ad_name}>
-                        {ad.ad_name}
+                        <button
+                          onClick={() => { setPreviewFormat('MOBILE_FEED_STANDARD'); setPreviewAd(ad); }}
+                          className="text-left text-[#1A1A2E] hover:text-blue-600 hover:underline truncate w-full"
+                        >
+                          {ad.ad_name}
+                        </button>
                       </td>
                       <td className="py-3 px-3 max-w-[160px] truncate text-gray-500" title={ad.campaign_name}>
                         {ad.campaign_name}
@@ -1917,6 +1965,106 @@ export default function PortalMetrics() {
           </p>
         </div>
       </div>
+
+      {/* Ad Preview Modal */}
+      {previewAd && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          onClick={() => setPreviewAd(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold text-[#1A1A2E] truncate" title={previewAd.ad_name}>
+                  {previewAd.ad_name}
+                </h3>
+                <p className="text-xs text-gray-500 truncate" title={previewAd.campaign_name}>
+                  {previewAd.campaign_name}
+                </p>
+              </div>
+              <button
+                onClick={() => setPreviewAd(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-2 flex-wrap">
+              {[
+                { key: 'MOBILE_FEED_STANDARD', label: 'Móvil', iconEl: <Smartphone className="w-3.5 h-3.5" /> },
+                { key: 'DESKTOP_FEED_STANDARD', label: 'Escritorio', iconEl: <Monitor className="w-3.5 h-3.5" /> },
+                { key: 'INSTAGRAM_STANDARD', label: 'Instagram', iconEl: <Instagram className="w-3.5 h-3.5" /> },
+                { key: 'INSTAGRAM_STORY', label: 'Story', iconEl: <Instagram className="w-3.5 h-3.5" /> },
+                { key: 'INSTAGRAM_REELS', label: 'Reels', iconEl: <Video className="w-3.5 h-3.5" /> },
+              ].map(({ key, label, iconEl }) => (
+                <button
+                  key={key}
+                  onClick={() => setPreviewFormat(key)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    previewFormat === key
+                      ? 'bg-[#1A1A2E] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {iconEl}
+                  {label}
+                </button>
+              ))}
+              {previewAd.preview_url && (
+                <a
+                  href={previewAd.preview_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Abrir en Facebook
+                </a>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto bg-gray-50">
+              <div className="flex items-center justify-center min-h-[400px] p-6">
+                {previewLoading && <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />}
+                {!previewLoading && previewError && (
+                  <p className="text-sm text-gray-500">{previewError}</p>
+                )}
+                {!previewLoading && !previewError && previewHtml && (
+                  <div
+                    className="ad-preview-frame"
+                    dangerouslySetInnerHTML={{ __html: previewHtml }}
+                  />
+                )}
+              </div>
+
+              <div className="px-6 pb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Inversión', value: formatCurrency(previewAd.spend) },
+                    { label: 'CPM', value: formatCurrency(previewAd.cpm) },
+                    { label: 'CTR único', value: formatPercent(previewAd.unique_ctr) },
+                    { label: 'Clics enlace', value: formatNumber(previewAd.link_clicks) },
+                    { label: 'CPC', value: formatCurrency(previewAd.cpc) },
+                    { label: 'Resultados', value: formatNumber(previewAd.conversions) },
+                    { label: 'ROAS', value: `${(previewAd.roas || 0).toFixed(2)}x` },
+                    { label: 'Frecuencia', value: (previewAd.frequency || 0).toFixed(2) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="bg-white rounded-xl border border-gray-100 p-3">
+                      <p className="text-[11px] text-gray-400 uppercase tracking-wide">{label}</p>
+                      <p className="text-sm font-semibold text-[#1A1A2E] mt-0.5">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
