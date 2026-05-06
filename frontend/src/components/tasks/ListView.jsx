@@ -701,7 +701,8 @@ export default function ListView({
             {sortedTasks.map((task) => (
               <tr
                 key={task.id}
-                className={`hover:bg-gray-50 transition-colors group ${selectedIds.has(task.id) ? 'bg-[#163B3B]/5' : ''}`}
+                onClick={() => onTaskClick && onTaskClick(task)}
+                className={`hover:bg-gray-50 transition-colors group cursor-pointer ${selectedIds.has(task.id) ? 'bg-[#163B3B]/5' : ''}`}
               >
                 {/* Checkbox */}
                 <td className="px-3 py-3 text-center">
