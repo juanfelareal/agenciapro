@@ -27,6 +27,8 @@ const NoteCommentsSidebar = ({
   isPublicView = false,
   isTeamMember = false,
   allowComments = true,
+  activeCommentId = null,
+  onSelectComment,
 }) => {
   const [newComment, setNewComment] = useState('');
   const [showResolved, setShowResolved] = useState(false);
@@ -148,13 +150,24 @@ const NoteCommentsSidebar = ({
   const CommentCard = ({ comment }) => {
     const hasReplies = comment.replies && comment.replies.length > 0;
     const isExpanded = expandedReplies[comment.id] !== false; // Default to expanded
+    const isActive = activeCommentId === comment.id;
+    const isClickable = !!onSelectComment && !!comment.quoted_text;
 
     return (
       <div
+        onClick={isClickable ? (e) => {
+          // Don't trigger when clicking on inner interactive elements
+          if (e.target.closest('button, a, input, textarea')) return;
+          onSelectComment(isActive ? null : comment.id);
+        } : undefined}
         className={`p-3 rounded-lg border transition-all ${
-          comment.is_resolved
-            ? 'bg-slate-50 border-slate-200 opacity-60'
-            : 'bg-white border-slate-200 hover:border-slate-300'
+          isClickable ? 'cursor-pointer' : ''
+        } ${
+          isActive
+            ? 'bg-amber-50 border-amber-300 shadow-md ring-1 ring-amber-200'
+            : comment.is_resolved
+              ? 'bg-slate-50 border-slate-200 opacity-60 hover:opacity-100'
+              : 'bg-white border-slate-200 hover:border-slate-300'
         }`}
       >
         {/* Main comment */}

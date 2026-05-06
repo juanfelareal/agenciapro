@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -39,6 +39,8 @@ const SharedNoteView = () => {
   const [selectedText, setSelectedText] = useState(null);
   const [showComments, setShowComments] = useState(true);
   const [originalContent, setOriginalContent] = useState(null);
+  const [activeCommentId, setActiveCommentId] = useState(null);
+  const contentRef = useRef(null);
 
   // Build extensions
   const extensions = useMemo(() => [
@@ -116,6 +118,80 @@ const SharedNoteView = () => {
       fetchNote();
     }
   }, [token, editor]);
+
+  // Highlight quoted text in the document when a comment is clicked (Drive-style)
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (!contentEl) return;
+
+    // Clear previous highlights
+    contentEl.querySelectorAll('.shared-note-comment-highlight').forEach(el => {
+      const parent = el.parentNode;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+      parent.normalize?.();
+    });
+
+    if (!activeCommentId) return;
+
+    const comment = comments.find(c => c.id === activeCommentId);
+    if (!comment?.quoted_text) return;
+
+    const searchText = comment.quoted_text;
+
+    // Walk text nodes to find the quoted text
+    const walker = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT);
+    let node;
+    let found = false;
+
+    // Try to find an exact match within a single text node first
+    while ((node = walker.nextNode())) {
+      const idx = node.textContent.indexOf(searchText);
+      if (idx !== -1) {
+        const range = document.createRange();
+        range.setStart(node, idx);
+        range.setEnd(node, idx + searchText.length);
+        const highlight = document.createElement('span');
+        highlight.className = 'shared-note-comment-highlight active';
+        try {
+          range.surroundContents(highlight);
+          highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          found = true;
+        } catch { /* range crosses element boundary — fall through */ }
+        break;
+      }
+    }
+
+    // If not found in a single node, try across nodes
+    if (!found) {
+      const allText = [];
+      const walker2 = document.createTreeWalker(contentEl, NodeFilter.SHOW_TEXT);
+      while ((node = walker2.nextNode())) {
+        const start = allText.length > 0 ? allText[allText.length - 1].end : 0;
+        allText.push({ node, start, end: start + node.textContent.length });
+      }
+      const fullText = allText.map(t => t.node.textContent).join('');
+      const idx = fullText.indexOf(searchText);
+      if (idx !== -1) {
+        for (const t of allText) {
+          if (t.end > idx && t.start < idx + searchText.length) {
+            const nodeStart = Math.max(0, idx - t.start);
+            const nodeEnd = Math.min(t.node.textContent.length, idx + searchText.length - t.start);
+            const range = document.createRange();
+            range.setStart(t.node, nodeStart);
+            range.setEnd(t.node, nodeEnd);
+            const highlight = document.createElement('span');
+            highlight.className = 'shared-note-comment-highlight active';
+            try { range.surroundContents(highlight); } catch { break; }
+            if (!found) {
+              highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              found = true;
+            }
+          }
+        }
+      }
+    }
+  }, [activeCommentId, comments, tabbedView]);
 
 
   // Handle entering edit mode
@@ -363,7 +439,7 @@ const SharedNoteView = () => {
             )}
 
             {/* Note content */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div ref={contentRef} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
               {tabbedView && !isEditing && parsedContent ? (
                 <div className="p-6">
                   <TabbedNoteView content={parsedContent} />
@@ -479,6 +555,15 @@ const SharedNoteView = () => {
                   border-radius: 2px;
                   padding: 0 2px;
                 }
+                /* Comment-quoted text highlight when a comment is selected */
+                .shared-note-comment-highlight {
+                  background: #fef08a;
+                  border-radius: 2px;
+                }
+                .shared-note-comment-highlight.active {
+                  background: #fde047;
+                  box-shadow: 0 0 0 2px #facc15;
+                }
               `}</style>
             </div>
           </div>
@@ -495,6 +580,8 @@ const SharedNoteView = () => {
               onAuthorNameChange={setAuthorName}
               isPublicView={true}
               allowComments={permissions?.allow_comments}
+              activeCommentId={activeCommentId}
+              onSelectComment={setActiveCommentId}
             />
           </div>
         )}
@@ -517,6 +604,8 @@ const SharedNoteView = () => {
                 onAuthorNameChange={setAuthorName}
                 isPublicView={true}
                 allowComments={permissions?.allow_comments}
+                activeCommentId={activeCommentId}
+                onSelectComment={setActiveCommentId}
               />
             </div>
           </div>
