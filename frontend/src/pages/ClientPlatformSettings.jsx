@@ -216,7 +216,10 @@ function ClientPlatformSettings() {
   const testFacebookAccount = async (credentialId) => {
     try {
       setTesting((prev) => ({ ...prev, [credentialId]: true }));
-      await platformCredentialsAPI.testFacebook(credentialId);
+      const res = await platformCredentialsAPI.testFacebook(credentialId);
+      if (res?.data?.success === false) {
+        alert('La conexión falló:\n\n' + (res.data.error || 'Error desconocido'));
+      }
       loadData();
     } catch (error) {
       alert('Error al probar conexión: ' + (error.response?.data?.error || error.message));
@@ -458,41 +461,49 @@ function ClientPlatformSettings() {
                 {credentials.facebook.map((account) => (
                   <div
                     key={account.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="p-3 bg-gray-50 rounded-lg space-y-2"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <Facebook className="w-4 h-4 text-white" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                          <Facebook className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {account.ad_account_name || account.ad_account_id}
+                          </p>
+                          <p className="text-xs text-gray-500">ID: {account.ad_account_id}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {account.ad_account_name || account.ad_account_id}
-                        </p>
-                        <p className="text-xs text-gray-500">ID: {account.ad_account_id}</p>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={account.status} />
+                        <button
+                          onClick={() => testFacebookAccount(account.id)}
+                          disabled={testing[account.id]}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                          title="Probar conexión"
+                        >
+                          {testing[account.id] ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => disconnectFacebookAccount(account.id)}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Desconectar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={account.status} />
-                      <button
-                        onClick={() => testFacebookAccount(account.id)}
-                        disabled={testing[account.id]}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
-                        title="Probar conexión"
-                      >
-                        {testing[account.id] ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => disconnectFacebookAccount(account.id)}
-                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Desconectar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {account.status === 'error' && account.last_error && (
+                      <div className="flex items-start gap-2 text-xs text-red-700 bg-red-50 border border-red-100 rounded px-2 py-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        <span className="break-words">{account.last_error}</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
