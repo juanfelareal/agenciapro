@@ -9,8 +9,9 @@ const DEFAULT_WIDGETS = [
   { id: 'stat-projects', type: 'stat', config: { metric: 'projects' }, size: 'small', order: 1 },
   { id: 'stat-tasks', type: 'stat', config: { metric: 'tasks' }, size: 'small', order: 2 },
   { id: 'stat-income', type: 'stat', config: { metric: 'income' }, size: 'small', order: 3 },
-  { id: 'finances', type: 'finances', size: 'medium', order: 4 },
-  { id: 'projects-summary', type: 'projects', size: 'medium', order: 5 },
+  { id: 'monthly-sales-goal', type: 'monthly-sales-goal', size: 'large', order: 4, adminOnly: true },
+  { id: 'finances', type: 'finances', size: 'medium', order: 5 },
+  { id: 'projects-summary', type: 'projects', size: 'medium', order: 6 },
 ];
 
 // Widget catalog - all available widgets
@@ -36,6 +37,12 @@ export const WIDGET_CATALOG = {
     name: 'Tendencia de Ingresos',
     category: 'Finanzas',
     sizes: ['medium', 'large'],
+  },
+  'monthly-sales-goal': {
+    name: 'Ventas Mensuales · Meta',
+    category: 'Finanzas',
+    sizes: ['large'],
+    adminOnly: true,
   },
   'expenses-chart': {
     name: 'Gastos por Categoría',

@@ -234,15 +234,17 @@ const SiigoInvoices = () => {
 
           const status = invoice.balance === 0 ? 'paid' : 'invoiced';
 
+          // amount must be the subtotal (without IVA) — the system computes IVA from it.
+          const subtotal = invoiceSubtotal(invoice);
           const invoiceData = {
             client_id: clientId,
-            amount: invoice.total || 0,
+            amount: subtotal,
             invoice_type: hasIva ? 'con_iva' : 'sin_iva',
             status: status,
             issue_date: invoice.date ? invoice.date.split('T')[0] : null,
             notes: `Siigo: ${invoice.name} - ${invoice.items?.[0]?.description || ''}`,
             siigo_id: invoice.id,
-            siigo_status: 'sent',
+            siigo_status: 'normalized',
           };
 
           const res = await fetch(`${API_URL}/invoices`, {
@@ -272,6 +274,32 @@ const SiigoInvoices = () => {
         text: parts.join(' · '),
       });
       setSelectedIds(new Set());
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleNormalizeAmounts = async () => {
+    setImporting(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/siigo/invoices/normalize-amounts`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({
+          type: 'success',
+          text: data.updated > 0
+            ? `${data.updated} factura(s) ajustada(s): amount ahora es subtotal sin IVA.`
+            : 'Todos los montos ya están normalizados.',
+        });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al normalizar montos' });
+      }
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -372,10 +400,19 @@ const SiigoInvoices = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={handleNormalizeAmounts}
+            disabled={importing}
+            className="btn-secondary flex items-center gap-2"
+            title="Corrige el amount de facturas Siigo viejas para que sea subtotal sin IVA"
+          >
+            <RefreshCw size={16} />
+            Normalizar montos
+          </button>
+          <button
             onClick={handleCleanupDuplicates}
             disabled={importing}
             className="btn-secondary flex items-center gap-2"
-            title="Elimina facturas con el mismo siigo_id (conserva la más nueva)"
+            title="Elimina facturas duplicadas (conserva la más nueva)"
           >
             <X size={16} />
             Limpiar duplicados

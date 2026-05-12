@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Plus, Users, FolderKanban, CheckSquare, DollarSign, AlertCircle, Wallet, PieChart, TrendingUp, Clock, BarChart3, FileCode2 } from 'lucide-react';
 import { useDashboard, WIDGET_CATALOG } from '../../context/DashboardContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ICONS = {
   Users,
@@ -26,13 +27,15 @@ const CATEGORY_ICONS = {
 
 const WidgetPicker = ({ isOpen, onClose }) => {
   const { addWidget, widgets } = useDashboard();
+  const { isAdmin } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('Estadísticas');
 
   if (!isOpen) return null;
 
-  // Group widgets by category
+  // Group widgets by category (skip admin-only widgets for non-admins)
   const categories = {};
   Object.entries(WIDGET_CATALOG).forEach(([type, widget]) => {
+    if (widget.adminOnly && !isAdmin) return;
     if (!categories[widget.category]) {
       categories[widget.category] = [];
     }

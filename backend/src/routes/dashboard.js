@@ -162,6 +162,59 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// Monthly sales comparison: current year vs previous year + goals
+// Returns an array of 12 months with sales_net, sales_iva, prev_sales_net, goal
+router.get('/monthly-sales-comparison', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+    const prevYear = year - 1;
+
+    const yearStart = `${year}-01-01`;
+    const yearEnd = `${year}-12-31`;
+    const prevStart = `${prevYear}-01-01`;
+    const prevEnd = `${prevYear}-12-31`;
+
+    const salesRows = await db.prepare(`
+      SELECT
+        SUBSTRING(issue_date, 1, 4) as yr,
+        SUBSTRING(issue_date, 6, 2) as mo,
+        SUM(amount) as sales_net,
+        SUM(CASE WHEN invoice_type = 'con_iva' THEN amount * 0.19 ELSE 0 END) as sales_iva
+      FROM invoices
+      WHERE organization_id = ?
+        AND status IN ('invoiced', 'paid')
+        AND issue_date >= ? AND issue_date <= ?
+      GROUP BY SUBSTRING(issue_date, 1, 4), SUBSTRING(issue_date, 6, 2)
+    `).all(orgId, prevStart, yearEnd);
+
+    const goalRows = await db.prepare(
+      'SELECT month, goal_amount FROM monthly_sales_goals WHERE organization_id = ? AND year = ?'
+    ).all(orgId, year);
+    const goalByMonth = {};
+    goalRows.forEach((g) => { goalByMonth[g.month] = Number(g.goal_amount); });
+
+    const months = [];
+    for (let m = 1; m <= 12; m++) {
+      const current = salesRows.find((r) => Number(r.yr) === year && Number(r.mo) === m);
+      const previous = salesRows.find((r) => Number(r.yr) === prevYear && Number(r.mo) === m);
+      months.push({
+        month: m,
+        sales_net: current ? Number(current.sales_net) : 0,
+        sales_iva: current ? Number(current.sales_iva) : 0,
+        sales_gross: current ? Number(current.sales_net) + Number(current.sales_iva) : 0,
+        prev_sales_net: previous ? Number(previous.sales_net) : 0,
+        prev_sales_gross: previous ? Number(previous.sales_net) + Number(previous.sales_iva) : 0,
+        goal: goalByMonth[m] || 0,
+      });
+    }
+
+    res.json({ year, prevYear, months });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get recent activity
 router.get('/recent-activity', async (req, res) => {
   try {

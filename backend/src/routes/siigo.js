@@ -329,6 +329,30 @@ router.post('/invoices/:invoiceId/send-email', async (req, res) => {
   }
 });
 
+// One-time data fix: for Siigo-imported invoices with invoice_type='con_iva',
+// the amount was stored as the gross total (with IVA). The rest of the system
+// expects amount to be the subtotal. This recalculates amount = amount / 1.19
+// for those rows. Idempotent: only runs against rows where notes start with
+// "Siigo:" and that haven't been marked as normalized yet (siigo_status = 'sent').
+router.post('/invoices/normalize-amounts', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const result = await db.prepare(`
+      UPDATE invoices
+      SET amount = ROUND((amount / 1.19)::numeric, 2),
+          siigo_status = 'normalized',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE organization_id = ?
+        AND notes LIKE 'Siigo:%'
+        AND invoice_type = 'con_iva'
+        AND COALESCE(siigo_status, '') <> 'normalized'
+    `).run(orgId);
+    res.json({ success: true, updated: result.changes || 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete duplicate Siigo-imported invoices (keeps the newest by id).
 // Runs two passes:
 //   1) Duplicates with the same siigo_id (standard case)

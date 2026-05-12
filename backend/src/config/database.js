@@ -278,6 +278,20 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Monthly sales goals (forecast) per org / year / month
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS monthly_sales_goals (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
+        goal_amount REAL NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (organization_id, year, month)
+      )
+    `);
+
     // Expenses table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS expenses (

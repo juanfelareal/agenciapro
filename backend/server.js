@@ -24,6 +24,7 @@ import teamRoutes from './src/routes/team.js';
 import invoiceRoutes from './src/routes/invoices.js';
 import expenseRoutes from './src/routes/expenses.js';
 import dashboardRoutes from './src/routes/dashboard.js';
+import salesGoalsRoutes from './src/routes/sales-goals.js';
 // Monday.com style routes
 import boardColumnRoutes from './src/routes/board-columns.js';
 import taskDependencyRoutes from './src/routes/task-dependencies.js';
@@ -177,6 +178,7 @@ app.use('/api/tasks', teamAuthMiddleware, taskRoutes);
 app.use('/api/invoices', teamAuthMiddleware, invoiceRoutes);
 app.use('/api/expenses', teamAuthMiddleware, expenseRoutes);
 app.use('/api/dashboard', teamAuthMiddleware, dashboardRoutes);
+app.use('/api/sales-goals', teamAuthMiddleware, salesGoalsRoutes);
 // Monday.com style routes
 app.use('/api/board-columns', teamAuthMiddleware, boardColumnRoutes);
 app.use('/api/task-dependencies', teamAuthMiddleware, taskDependencyRoutes);

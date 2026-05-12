@@ -12,7 +12,8 @@ import {
   sortableKeyboardCoordinates,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useDashboard } from '../../context/DashboardContext';
+import { useDashboard, WIDGET_CATALOG } from '../../context/DashboardContext';
+import { useAuth } from '../../context/AuthContext';
 import WidgetWrapper from './WidgetWrapper';
 import StatWidget from './widgets/StatWidget';
 import FinancesWidget from './widgets/FinancesWidget';
@@ -21,6 +22,7 @@ import TasksUpcomingWidget from './widgets/TasksUpcomingWidget';
 import TasksPriorityWidget from './widgets/TasksPriorityWidget';
 import IncomeTrendWidget from './widgets/IncomeTrendWidget';
 import BriefsWidget from './widgets/BriefsWidget';
+import MonthlySalesGoalWidget from './widgets/MonthlySalesGoalWidget';
 
 // Map widget types to components
 const WIDGET_COMPONENTS = {
@@ -30,11 +32,13 @@ const WIDGET_COMPONENTS = {
   'tasks-upcoming': TasksUpcomingWidget,
   'tasks-priority': TasksPriorityWidget,
   'income-trend': IncomeTrendWidget,
+  'monthly-sales-goal': MonthlySalesGoalWidget,
   briefs: BriefsWidget,
 };
 
 const WidgetGrid = ({ stats, period }) => {
   const { widgets, updateWidgetOrder, isEditMode } = useDashboard();
+  const { isAdmin } = useAuth();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -57,7 +61,9 @@ const WidgetGrid = ({ stats, period }) => {
     }
   };
 
-  const sortedWidgets = [...widgets].sort((a, b) => a.order - b.order);
+  const sortedWidgets = [...widgets]
+    .filter((w) => isAdmin || !(WIDGET_CATALOG[w.type]?.adminOnly || w.adminOnly))
+    .sort((a, b) => a.order - b.order);
 
   return (
     <DndContext

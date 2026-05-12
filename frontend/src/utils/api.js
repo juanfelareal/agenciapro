@@ -143,6 +143,13 @@ export const dashboardAPI = {
   getUpcomingTasks: () => api.get('/dashboard/upcoming-tasks'),
   getOverdueInvoices: () => api.get('/dashboard/overdue-invoices'),
   getRevenueTrend: (months) => api.get('/dashboard/revenue-trend', { params: { months } }),
+  getMonthlySalesComparison: (year) => api.get('/dashboard/monthly-sales-comparison', { params: { year } }),
+};
+
+export const salesGoalsAPI = {
+  list: (year) => api.get('/sales-goals', { params: { year } }),
+  upsert: (year, month, goal_amount) => api.put(`/sales-goals/${year}/${month}`, { goal_amount }),
+  bulkUpsert: (year, goals) => api.post('/sales-goals/bulk', { year, goals }),
 };
 
 // Board Columns API (Monday.com style)
