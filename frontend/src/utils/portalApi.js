@@ -137,6 +137,29 @@ export const portalInvoicesAPI = {
 };
 
 // ============================================
+// PAYMENT PROOFS API (portal)
+// ============================================
+export const portalPaymentProofsAPI = {
+  list: async () => {
+    const response = await portalApi.get('/payment-proofs');
+    return response.data;
+  },
+  upload: async (invoiceId, file, notes) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (notes) formData.append('notes', notes);
+    const response = await portalApi.post(`/payment-proofs/${invoiceId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  delete: async (id) => {
+    const response = await portalApi.delete(`/payment-proofs/${id}`);
+    return response.data;
+  },
+};
+
+// ============================================
 // METRICS API
 // ============================================
 export const portalMetricsAPI = {

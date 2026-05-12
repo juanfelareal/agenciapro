@@ -13,7 +13,8 @@ import {
   Bell,
   LogOut,
   Menu,
-  X
+  X,
+  Receipt
 } from 'lucide-react';
 
 export default function PortalHeader() {
@@ -51,6 +52,7 @@ export default function PortalHeader() {
     { path: '/portal', icon: LayoutDashboard, label: 'Dashboard', permission: null },
     { path: '/portal/projects', icon: FolderKanban, label: 'Proyectos', permission: 'can_view_projects' },
     // { path: '/portal/invoices', icon: FileText, label: 'Facturas', permission: 'can_view_invoices' }, // Hidden temporarily while Siigo integration is fixed
+    { path: '/portal/payment-proofs', icon: Receipt, label: 'Soportes de pago', permission: 'can_view_invoices' },
     { path: '/portal/metrics', icon: BarChart3, label: 'Métricas', permission: 'can_view_metrics' },
     { path: '/portal/calls', icon: Phone, label: 'Llamadas', permission: null },
     { path: '/portal/forms', icon: ClipboardList, label: 'Formularios', permission: 'can_view_forms' },

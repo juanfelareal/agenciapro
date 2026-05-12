@@ -54,6 +54,7 @@ import PortalProjects from './pages/portal/PortalProjects';
 import PortalProjectDetail from './pages/portal/PortalProjectDetail';
 import PortalTaskDetail from './pages/portal/PortalTaskDetail';
 import PortalInvoices from './pages/portal/PortalInvoices';
+import PortalPaymentProofs from './pages/portal/PortalPaymentProofs';
 import PortalMetrics from './pages/portal/PortalMetrics';
 import PortalForms from './pages/portal/PortalForms';
 import PortalFormFill from './pages/portal/PortalFormFill';
@@ -131,6 +132,14 @@ function App() {
             element={
               <PortalProtectedRoute permission="can_view_invoices">
                 <PortalInvoices />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="payment-proofs"
+            element={
+              <PortalProtectedRoute permission="can_view_invoices">
+                <PortalPaymentProofs />
               </PortalProtectedRoute>
             }
           />

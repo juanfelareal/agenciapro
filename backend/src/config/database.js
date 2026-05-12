@@ -1344,6 +1344,24 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)`);
 
+    // Payment proofs uploaded by clients from the portal
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS invoice_payment_proofs (
+        id SERIAL PRIMARY KEY,
+        invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL,
+        file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER,
+        file_type TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoice_payment_proofs_invoice ON invoice_payment_proofs(invoice_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoice_payment_proofs_client ON invoice_payment_proofs(client_id)`);
+
     // Allow 'cancelled' as a valid invoice status (for invoices voided by Siigo credit notes)
     try {
       await pool.query(`
