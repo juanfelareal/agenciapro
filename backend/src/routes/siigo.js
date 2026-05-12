@@ -329,6 +329,68 @@ router.post('/invoices/:invoiceId/send-email', async (req, res) => {
   }
 });
 
+// Pull credit notes from Siigo and apply them to AgenciaPro invoices.
+// If a credit note's total >= 99% of the invoice's gross total, the invoice
+// is marked as 'cancelled' (effectively voided). Partial credit notes
+// subtract the NC subtotal from invoice.amount.
+router.post('/sync-credit-notes', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { dateStart, dateEnd } = req.body || {};
+
+    const creditNotes = await siigoService.getCreditNotes(orgId, dateStart, dateEnd);
+
+    let cancelledCount = 0;
+    let partialCount = 0;
+    let notFoundCount = 0;
+
+    for (const nc of creditNotes) {
+      const invoiceSiigoId = nc.invoice?.id || nc.invoice_id || nc.related_invoice?.id;
+      if (!invoiceSiigoId) continue;
+
+      const invoice = await db.prepare(
+        'SELECT * FROM invoices WHERE siigo_id = ? AND organization_id = ?'
+      ).get(invoiceSiigoId, orgId);
+
+      if (!invoice) {
+        notFoundCount++;
+        continue;
+      }
+
+      const ncTotal = Number(nc.total) || 0; // NC total (with IVA)
+      const invoiceGross = invoice.invoice_type === 'con_iva'
+        ? invoice.amount * 1.19
+        : invoice.amount;
+
+      // Full cancellation (within 1% tolerance for rounding)
+      if (ncTotal >= invoiceGross * 0.99) {
+        await db.prepare(
+          "UPDATE invoices SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?"
+        ).run(invoice.id, orgId);
+        cancelledCount++;
+      } else {
+        // Partial: subtract the NC subtotal from invoice.amount
+        const ncSubtotal = invoice.invoice_type === 'con_iva' ? ncTotal / 1.19 : ncTotal;
+        const newAmount = Math.max(0, invoice.amount - ncSubtotal);
+        await db.prepare(
+          'UPDATE invoices SET amount = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?'
+        ).run(newAmount, invoice.id, orgId);
+        partialCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      total: creditNotes.length,
+      cancelled: cancelledCount,
+      partial: partialCount,
+      notFound: notFoundCount,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // One-time data fix: for Siigo-imported invoices with invoice_type='con_iva',
 // the amount was stored as the gross total (with IVA). The rest of the system
 // expects amount to be the subtotal. This recalculates amount = amount / 1.19

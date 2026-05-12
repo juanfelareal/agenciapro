@@ -359,6 +359,35 @@ class SiigoService {
     return await this.apiRequest(orgId, 'GET', `/invoices/${invoiceId}`);
   }
 
+  // Returns all credit notes whose document date falls in [dateStart, dateEnd].
+  // Mirrors getInvoices: Siigo's date_* filter is unreliable, so we fetch
+  // everything created from dateStart on and filter locally.
+  async getCreditNotes(orgId, dateStart = null, dateEnd = null) {
+    const allResults = [];
+    let currentPage = 1;
+    const pageSize = 100;
+
+    while (true) {
+      let url = `/credit-notes?page=${currentPage}&page_size=${pageSize}`;
+      if (dateStart) url += `&created_start=${dateStart}`;
+      const data = await this.apiRequest(orgId, 'GET', url);
+      const pageResults = data?.results || [];
+      allResults.push(...pageResults);
+      const total = data?.pagination?.total_results || 0;
+      if (allResults.length >= total || pageResults.length === 0) break;
+      currentPage++;
+    }
+
+    if (!dateStart && !dateEnd) return allResults;
+    return allResults.filter((nc) => {
+      const d = nc.date?.split('T')[0];
+      if (!d) return false;
+      if (dateStart && d < dateStart) return false;
+      if (dateEnd && d > dateEnd) return false;
+      return true;
+    });
+  }
+
   async getInvoicePdf(orgId, invoiceId) {
     return await this.apiRequest(orgId, 'GET', `/invoices/${invoiceId}/pdf`);
   }

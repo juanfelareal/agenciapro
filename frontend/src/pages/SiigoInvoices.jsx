@@ -281,6 +281,40 @@ const SiigoInvoices = () => {
     }
   };
 
+  const handleSyncCreditNotes = async () => {
+    setImporting(true);
+    setMessage(null);
+    try {
+      const body = {};
+      if (startDate) body.dateStart = startDate;
+      if (endDate) body.dateEnd = endDate;
+      const res = await fetch(`${API_URL}/siigo/sync-credit-notes`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const parts = [];
+        if (data.cancelled > 0) parts.push(`${data.cancelled} anuladas`);
+        if (data.partial > 0) parts.push(`${data.partial} con NC parcial`);
+        if (data.notFound > 0) parts.push(`${data.notFound} factura(s) no encontrada(s)`);
+        setMessage({
+          type: data.total === 0 ? 'success' : 'success',
+          text: data.total === 0
+            ? 'No se encontraron notas crédito en el rango.'
+            : `Procesadas ${data.total} NC${parts.length ? ': ' + parts.join(', ') : ''}.`,
+        });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al aplicar notas crédito' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleNormalizeAmounts = async () => {
     setImporting(true);
     setMessage(null);
@@ -399,6 +433,15 @@ const SiigoInvoices = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncCreditNotes}
+            disabled={importing}
+            className="btn-secondary flex items-center gap-2"
+            title="Trae notas crédito de Siigo y anula las facturas correspondientes en el rango filtrado"
+          >
+            <RefreshCw size={16} />
+            Aplicar notas crédito
+          </button>
           <button
             onClick={handleNormalizeAmounts}
             disabled={importing}

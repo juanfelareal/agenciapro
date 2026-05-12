@@ -1344,6 +1344,25 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)`);
 
+    // Allow 'cancelled' as a valid invoice status (for invoices voided by Siigo credit notes)
+    try {
+      await pool.query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'invoices_status_check' AND conrelid = 'invoices'::regclass
+          ) THEN
+            ALTER TABLE invoices DROP CONSTRAINT invoices_status_check;
+          END IF;
+          ALTER TABLE invoices ADD CONSTRAINT invoices_status_check
+            CHECK (status IN ('draft', 'approved', 'invoiced', 'paid', 'cancelled'));
+        END $$;
+      `);
+    } catch (statusCheckError) {
+      console.log('  ⏭️  invoices status_check migration skipped:', statusCheckError.message);
+    }
+
     // Tasks indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to)`);
