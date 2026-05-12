@@ -281,6 +281,36 @@ const SiigoInvoices = () => {
     }
   };
 
+  const handleRefreshAmounts = async () => {
+    setImporting(true);
+    setMessage(null);
+    try {
+      // Build exact subtotals from the Siigo listing we already have loaded.
+      const payload = invoices.map((inv) => ({
+        siigo_id: inv.id,
+        amount: invoiceSubtotal(inv),
+      }));
+      const res = await fetch(`${API_URL}/siigo/invoices/refresh-amounts`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ invoices: payload }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({
+          type: 'success',
+          text: `${data.updated} factura(s) actualizada(s) con subtotal exacto de Siigo.`,
+        });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al recalcular montos' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleSyncCreditNotes = async () => {
     setImporting(true);
     setMessage(null);
@@ -434,6 +464,15 @@ const SiigoInvoices = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={handleRefreshAmounts}
+            disabled={importing}
+            className="btn-secondary flex items-center gap-2"
+            title="Recalcula el amount de las facturas con el subtotal exacto de Siigo (usa los items.taxes del rango filtrado)"
+          >
+            <RefreshCw size={16} />
+            Recalcular montos
+          </button>
+          <button
             onClick={handleSyncCreditNotes}
             disabled={importing}
             className="btn-secondary flex items-center gap-2"
@@ -446,7 +485,7 @@ const SiigoInvoices = () => {
             onClick={handleNormalizeAmounts}
             disabled={importing}
             className="btn-secondary flex items-center gap-2"
-            title="Corrige el amount de facturas Siigo viejas para que sea subtotal sin IVA"
+            title="(Legacy) Divide entre 1.19 — usa Recalcular montos en su lugar"
           >
             <RefreshCw size={16} />
             Normalizar montos

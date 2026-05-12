@@ -329,6 +329,35 @@ router.post('/invoices/:invoiceId/send-email', async (req, res) => {
   }
 });
 
+// Refresh invoice amounts using exact subtotals from Siigo.
+// Body: { invoices: [{ siigo_id, amount }] } — the frontend computes the exact
+// subtotal locally from the items[].taxes[].value that the Siigo listing
+// already includes, so we don't need to hit the API again per invoice.
+router.post('/invoices/refresh-amounts', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { invoices } = req.body || {};
+    if (!Array.isArray(invoices)) {
+      return res.status(400).json({ error: 'invoices array is required' });
+    }
+    let updated = 0;
+    for (const inv of invoices) {
+      if (!inv.siigo_id || typeof inv.amount !== 'number') continue;
+      // Only refresh non-cancelled invoices — cancelled ones were voided via
+      // credit-notes and we don't want to undo that.
+      const result = await db.prepare(`
+        UPDATE invoices
+        SET amount = ?, siigo_status = 'recalculated', updated_at = CURRENT_TIMESTAMP
+        WHERE siigo_id = ? AND organization_id = ? AND status <> 'cancelled'
+      `).run(inv.amount, inv.siigo_id, orgId);
+      if (result.changes > 0) updated++;
+    }
+    res.json({ success: true, updated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Pull credit notes from Siigo and apply them to AgenciaPro invoices.
 // If a credit note's total >= 99% of the invoice's gross total, the invoice
 // is marked as 'cancelled' (effectively voided). Partial credit notes

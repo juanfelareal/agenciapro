@@ -174,7 +174,7 @@ const MonthlySalesGoalWidget = () => {
               </tr>
             </thead>
             <tbody>
-              {data.months.map((m) => {
+              {data.months.filter((m) => m.month <= currentMonth).map((m) => {
                 const isCurrentMonth = m.month === currentMonth;
                 const prevDelta = m.prev_sales_net > 0
                   ? ((m.sales_net - m.prev_sales_net) / m.prev_sales_net) * 100
