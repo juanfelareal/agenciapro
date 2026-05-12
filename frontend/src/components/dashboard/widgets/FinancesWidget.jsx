@@ -4,7 +4,7 @@ const FinancesWidget = ({ widget, stats }) => {
   const isLarge = widget.size === 'large';
 
   const f = stats?.finances || {};
-  const fmt = (v) => `$${(v || 0).toLocaleString('es-CO')}`;
+  const fmt = (v) => `$${Math.round(v || 0).toLocaleString('es-CO')}`;
 
   return (
     <div className="p-6">
