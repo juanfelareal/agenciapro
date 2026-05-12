@@ -69,13 +69,18 @@ router.get('/stats', async (req, res) => {
     // Finance stats - filter by paid_date for paid invoices, issue_date for total invoiced
     let invoiceQuery, expenseQuery;
 
+    // amount is stored as the base (subtotal without IVA). IVA is added when invoice_type='con_iva'.
+    // *_net = subtotal sin IVA, *_iva = sólo el IVA, *_gross = neto + IVA.
     if (start && end) {
       invoiceQuery = `
         SELECT
           COUNT(*) as total_invoices,
-          SUM(CASE WHEN status IN ('invoiced', 'paid') THEN amount ELSE 0 END) as total_invoiced,
-          SUM(CASE WHEN status = 'paid' AND paid_date >= ? AND paid_date <= ? THEN amount ELSE 0 END) as total_paid,
-          SUM(CASE WHEN status = 'invoiced' AND issue_date >= ? AND issue_date <= ? THEN amount ELSE 0 END) as total_pending
+          SUM(CASE WHEN status IN ('invoiced', 'paid') THEN amount ELSE 0 END) as total_invoiced_net,
+          SUM(CASE WHEN status IN ('invoiced', 'paid') AND invoice_type = 'con_iva' THEN amount * 0.19 ELSE 0 END) as total_invoiced_iva,
+          SUM(CASE WHEN status = 'paid' AND paid_date >= ? AND paid_date <= ? THEN amount ELSE 0 END) as total_paid_net,
+          SUM(CASE WHEN status = 'paid' AND paid_date >= ? AND paid_date <= ? AND invoice_type = 'con_iva' THEN amount * 0.19 ELSE 0 END) as total_paid_iva,
+          SUM(CASE WHEN status = 'invoiced' AND issue_date >= ? AND issue_date <= ? THEN amount ELSE 0 END) as total_pending_net,
+          SUM(CASE WHEN status = 'invoiced' AND issue_date >= ? AND issue_date <= ? AND invoice_type = 'con_iva' THEN amount * 0.19 ELSE 0 END) as total_pending_iva
         FROM invoices
         WHERE organization_id = ? AND issue_date >= ? AND issue_date <= ?
       `;
@@ -87,21 +92,37 @@ router.get('/stats', async (req, res) => {
         WHERE organization_id = ? AND expense_date >= ? AND expense_date <= ?
       `;
 
-      const invoiceStats = await db.prepare(invoiceQuery).get(start, end, start, end, orgId, start, end);
+      const invoiceStats = await db.prepare(invoiceQuery).get(start, end, start, end, start, end, start, end, orgId, start, end);
       const expenseStats = await db.prepare(expenseQuery).get(orgId, start, end);
 
+      const net = invoiceStats.total_invoiced_net || 0;
+      const iva = invoiceStats.total_invoiced_iva || 0;
+      const paidNet = invoiceStats.total_paid_net || 0;
+      const paidIva = invoiceStats.total_paid_iva || 0;
+      const pendingNet = invoiceStats.total_pending_net || 0;
+      const pendingIva = invoiceStats.total_pending_iva || 0;
       stats.finances = {
         ...invoiceStats,
         ...expenseStats,
-        net_income: (invoiceStats.total_invoiced || 0) - (expenseStats.total_expenses_amount || 0),
+        total_invoiced_gross: net + iva,
+        total_paid_gross: paidNet + paidIva,
+        total_pending_gross: pendingNet + pendingIva,
+        // legacy keys (kept for back-compat with any consumers still reading them)
+        total_invoiced: net,
+        total_paid: paidNet,
+        total_pending: pendingNet,
+        net_income: net - (expenseStats.total_expenses_amount || 0),
       };
     } else {
       invoiceQuery = `
         SELECT
           COUNT(*) as total_invoices,
-          SUM(CASE WHEN status IN ('invoiced', 'paid') THEN amount ELSE 0 END) as total_invoiced,
-          SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as total_paid,
-          SUM(CASE WHEN status = 'invoiced' THEN amount ELSE 0 END) as total_pending
+          SUM(CASE WHEN status IN ('invoiced', 'paid') THEN amount ELSE 0 END) as total_invoiced_net,
+          SUM(CASE WHEN status IN ('invoiced', 'paid') AND invoice_type = 'con_iva' THEN amount * 0.19 ELSE 0 END) as total_invoiced_iva,
+          SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) as total_paid_net,
+          SUM(CASE WHEN status = 'paid' AND invoice_type = 'con_iva' THEN amount * 0.19 ELSE 0 END) as total_paid_iva,
+          SUM(CASE WHEN status = 'invoiced' THEN amount ELSE 0 END) as total_pending_net,
+          SUM(CASE WHEN status = 'invoiced' AND invoice_type = 'con_iva' THEN amount * 0.19 ELSE 0 END) as total_pending_iva
         FROM invoices
         WHERE organization_id = ?
       `;
@@ -116,10 +137,22 @@ router.get('/stats', async (req, res) => {
       const invoiceStats = await db.prepare(invoiceQuery).get(orgId);
       const expenseStats = await db.prepare(expenseQuery).get(orgId);
 
+      const net = invoiceStats.total_invoiced_net || 0;
+      const iva = invoiceStats.total_invoiced_iva || 0;
+      const paidNet = invoiceStats.total_paid_net || 0;
+      const paidIva = invoiceStats.total_paid_iva || 0;
+      const pendingNet = invoiceStats.total_pending_net || 0;
+      const pendingIva = invoiceStats.total_pending_iva || 0;
       stats.finances = {
         ...invoiceStats,
         ...expenseStats,
-        net_income: (invoiceStats.total_invoiced || 0) - (expenseStats.total_expenses_amount || 0),
+        total_invoiced_gross: net + iva,
+        total_paid_gross: paidNet + paidIva,
+        total_pending_gross: pendingNet + pendingIva,
+        total_invoiced: net,
+        total_paid: paidNet,
+        total_pending: pendingNet,
+        net_income: net - (expenseStats.total_expenses_amount || 0),
       };
     }
 
