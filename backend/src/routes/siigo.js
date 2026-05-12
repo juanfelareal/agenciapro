@@ -329,11 +329,17 @@ router.post('/invoices/:invoiceId/send-email', async (req, res) => {
   }
 });
 
-// Delete duplicate Siigo-imported invoices (keeps the newest by id)
+// Delete duplicate Siigo-imported invoices (keeps the newest by id).
+// Runs two passes:
+//   1) Duplicates with the same siigo_id (standard case)
+//   2) Duplicates among invoices whose notes start with "Siigo:" — covers
+//      old imports where the follow-up PUT that set siigo_id never ran,
+//      so the duplicate rows have siigo_id = NULL.
 router.post('/invoices/cleanup-duplicates', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const result = await db.prepare(`
+
+    const pass1 = await db.prepare(`
       DELETE FROM invoices
       WHERE id IN (
         SELECT id FROM (
@@ -344,7 +350,28 @@ router.post('/invoices/cleanup-duplicates', async (req, res) => {
         WHERE rn > 1
       )
     `).run(orgId);
-    res.json({ success: true, deleted: result.changes || 0 });
+
+    const pass2 = await db.prepare(`
+      DELETE FROM invoices
+      WHERE id IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY client_id, amount, issue_date, notes
+            ORDER BY id DESC
+          ) AS rn
+          FROM invoices
+          WHERE notes LIKE 'Siigo:%' AND organization_id = ?
+        ) ranked
+        WHERE rn > 1
+      )
+    `).run(orgId);
+
+    res.json({
+      success: true,
+      deleted: (pass1.changes || 0) + (pass2.changes || 0),
+      bySiigoId: pass1.changes || 0,
+      byNotes: pass2.changes || 0,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

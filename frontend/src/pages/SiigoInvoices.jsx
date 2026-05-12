@@ -289,12 +289,17 @@ const SiigoInvoices = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({
-          type: 'success',
-          text: data.deleted > 0
-            ? `Limpieza completada: ${data.deleted} duplicado(s) eliminado(s).`
-            : 'No se encontraron duplicados.',
-        });
+        if (data.deleted > 0) {
+          const detail = [];
+          if (data.bySiigoId > 0) detail.push(`${data.bySiigoId} por siigo_id`);
+          if (data.byNotes > 0) detail.push(`${data.byNotes} por notas`);
+          setMessage({
+            type: 'success',
+            text: `Limpieza completada: ${data.deleted} duplicado(s) eliminado(s)${detail.length ? ` (${detail.join(', ')})` : ''}.`,
+          });
+        } else {
+          setMessage({ type: 'success', text: 'No se encontraron duplicados.' });
+        }
       } else {
         setMessage({ type: 'error', text: data.error || 'Error al limpiar duplicados' });
       }
