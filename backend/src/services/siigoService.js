@@ -314,7 +314,13 @@ class SiigoService {
     let url = `/invoices?page=${page}&page_size=${pageSize}`;
     if (dateStart) url += `&date_start=${dateStart}`;
     if (dateEnd) url += `&date_end=${dateEnd}`;
-    return await this.apiRequest(orgId, 'GET', url);
+    console.log('[Siigo] GET invoices URL:', url);
+    const result = await this.apiRequest(orgId, 'GET', url);
+    console.log('[Siigo] invoices response:', {
+      results_count: result?.results?.length,
+      pagination: result?.pagination,
+    });
+    return result;
   }
 
   async getInvoice(orgId, invoiceId) {
