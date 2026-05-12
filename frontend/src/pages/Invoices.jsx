@@ -66,6 +66,60 @@ const Invoices = () => {
     next_recurrence_date: '',
   });
 
+  const COLUMN_DEFAULTS = {
+    select: 48,
+    client: 280,
+    amount: 130,
+    status: 180,
+    date: 140,
+    type: 110,
+    notes: 220,
+    siigo: 100,
+    actions: 130,
+  };
+  const [columnWidths, setColumnWidths] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('invoices-column-widths'));
+      return { ...COLUMN_DEFAULTS, ...saved };
+    } catch {
+      return COLUMN_DEFAULTS;
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem('invoices-column-widths', JSON.stringify(columnWidths));
+  }, [columnWidths]);
+
+  const startResize = (e, columnKey) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = columnWidths[columnKey];
+    const handleMove = (ev) => {
+      const delta = ev.clientX - startX;
+      setColumnWidths((prev) => ({
+        ...prev,
+        [columnKey]: Math.max(60, startWidth + delta),
+      }));
+    };
+    const handleUp = () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+  const ResizeHandle = ({ columnKey }) => (
+    <div
+      onMouseDown={(e) => startResize(e, columnKey)}
+      className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400 transition-colors"
+    />
+  );
+  const tableWidth = Object.values(columnWidths).reduce((s, w) => s + w, 0);
+
   useEffect(() => {
     loadData();
     checkSiigoConnection();
@@ -932,10 +986,22 @@ const Invoices = () => {
       )}
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-        <table className="w-full min-w-[900px]">
+        <style>{`.invoices-table td{overflow:hidden;}`}</style>
+        <table className="invoices-table" style={{ tableLayout: 'fixed', width: tableWidth }}>
+          <colgroup>
+            <col style={{ width: columnWidths.select }} />
+            <col style={{ width: columnWidths.client }} />
+            <col style={{ width: columnWidths.amount }} />
+            <col style={{ width: columnWidths.status }} />
+            <col style={{ width: columnWidths.date }} />
+            <col style={{ width: columnWidths.type }} />
+            <col style={{ width: columnWidths.notes }} />
+            <col style={{ width: columnWidths.siigo }} />
+            <col style={{ width: columnWidths.actions }} />
+          </colgroup>
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-3 py-3 text-center w-12">
+              <th className="px-3 py-3 text-center relative">
                 <button
                   onClick={toggleSelectAll}
                   className="text-gray-500 hover:text-[#1A1A2E]"
@@ -950,28 +1016,35 @@ const Invoices = () => {
                   )}
                 </button>
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase relative">
                 Cliente
+                <ResizeHandle columnKey="client" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase relative">
                 Monto
+                <ResizeHandle columnKey="amount" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase relative">
                 Estado
+                <ResizeHandle columnKey="status" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase relative">
                 Fecha
+                <ResizeHandle columnKey="date" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase relative">
                 Tipo
+                <ResizeHandle columnKey="type" />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase relative">
                 Notas
+                <ResizeHandle columnKey="notes" />
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-24">
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase relative">
                 Siigo
+                <ResizeHandle columnKey="siigo" />
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-32">
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                 Acciones
               </th>
             </tr>
