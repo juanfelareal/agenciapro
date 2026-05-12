@@ -311,16 +311,48 @@ class SiigoService {
 
   // ========== INVOICES ==========
   async getInvoices(orgId, page = 1, pageSize = 25, dateStart = null, dateEnd = null) {
-    let url = `/invoices?page=${page}&page_size=${pageSize}`;
-    if (dateStart) url += `&date_start=${dateStart}`;
-    if (dateEnd) url += `&date_end=${dateEnd}`;
-    console.log('[Siigo] GET invoices URL:', url);
-    const result = await this.apiRequest(orgId, 'GET', url);
-    console.log('[Siigo] invoices response:', {
-      results_count: result?.results?.length,
-      pagination: result?.pagination,
+    // No date filter: simple passthrough to Siigo's pagination
+    if (!dateStart && !dateEnd) {
+      const url = `/invoices?page=${page}&page_size=${pageSize}`;
+      return await this.apiRequest(orgId, 'GET', url);
+    }
+
+    // With date filter: Siigo's date_start/date_end is unreliable — in practice
+    // it filters by creation date. Backdated invoices (document date in range
+    // but created later) get excluded. Workaround: fetch everything created
+    // from dateStart onward, then filter locally by document date.
+    const allResults = [];
+    let currentPage = 1;
+    const fetchPageSize = 100;
+
+    while (true) {
+      let url = `/invoices?page=${currentPage}&page_size=${fetchPageSize}`;
+      if (dateStart) url += `&created_start=${dateStart}`;
+      const data = await this.apiRequest(orgId, 'GET', url);
+      const pageResults = data?.results || [];
+      allResults.push(...pageResults);
+
+      const total = data?.pagination?.total_results || 0;
+      if (allResults.length >= total || pageResults.length === 0) break;
+      currentPage++;
+    }
+
+    const filtered = allResults.filter((inv) => {
+      const d = inv.date?.split('T')[0];
+      if (!d) return false;
+      if (dateStart && d < dateStart) return false;
+      if (dateEnd && d > dateEnd) return false;
+      return true;
     });
-    return result;
+
+    return {
+      results: filtered,
+      pagination: {
+        page: 1,
+        page_size: filtered.length,
+        total_results: filtered.length,
+      },
+    };
   }
 
   async getInvoice(orgId, invoiceId) {
