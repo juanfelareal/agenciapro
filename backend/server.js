@@ -322,6 +322,23 @@ cron.schedule('0 7 * * 1', async () => {
 
 console.log('✅ Weekly AI insights cron job scheduled (Monday 7:00 AM Colombia time)');
 
+// Setup cron job for daily integration health check (Facebook, Shopify, Siigo tokens)
+// Runs every day at 7:00 AM Colombia time
+import { runIntegrationHealthCheck } from './src/services/integrationHealthCheck.js';
+cron.schedule('0 7 * * *', async () => {
+  console.log('⏰ Running daily integration health check...');
+  try {
+    await runIntegrationHealthCheck();
+  } catch (error) {
+    console.error('❌ Error in integration health check:', error.message);
+  }
+}, {
+  scheduled: true,
+  timezone: "America/Bogota"
+});
+
+console.log('✅ Integration health check cron job scheduled (daily at 7:00 AM Colombia time)');
+
 // Setup cron job for scheduled collection reminders
 // Runs every 2 hours
 cron.schedule('0 */2 * * *', async () => {

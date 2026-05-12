@@ -49,6 +49,18 @@ router.get('/client/:clientId', async (req, res) => {
   }
 });
 
+// Run the integration health check on demand (tests every connected
+// Facebook, Shopify, and Siigo integration and updates their status).
+router.post('/health-check', async (req, res) => {
+  try {
+    const { runIntegrationHealthCheck } = await import('../services/integrationHealthCheck.js');
+    const result = await runIntegrationHealthCheck();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================
 // FACEBOOK ADS CREDENTIALS
 // ============================================
