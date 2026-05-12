@@ -609,7 +609,7 @@ const SiigoInvoices = () => {
 
       {/* Summary */}
       <div className="card p-4">
-        <div className="grid grid-cols-4 gap-4 text-center">
+        <div className="grid grid-cols-5 gap-4 text-center">
           <div>
             <p className="text-sm text-gray-500">Total con IVA</p>
             <p className="text-xl font-bold text-[#1A1A2E]">
@@ -620,6 +620,12 @@ const SiigoInvoices = () => {
             <p className="text-sm text-gray-500">Ventas netas (sin IVA)</p>
             <p className="text-xl font-bold text-[#1A1A2E]">
               {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + invoiceSubtotal(inv), 0))}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">IVA</p>
+            <p className="text-xl font-bold text-blue-600">
+              {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + invoiceTaxes(inv), 0))}
             </p>
           </div>
           <div>
