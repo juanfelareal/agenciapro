@@ -1038,7 +1038,6 @@ const Invoices = () => {
       )}
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
-        <style>{`.invoices-table td{overflow:hidden;}`}</style>
         <table className="invoices-table" style={{ tableLayout: 'fixed', width: tableWidth }}>
           <colgroup>
             <col style={{ width: columnWidths.select }} />
@@ -1129,10 +1128,10 @@ const Invoices = () => {
                   </button>
                 </td>
                 <td
-                  className="px-4 py-4 whitespace-nowrap font-medium cursor-pointer hover:text-blue-600"
+                  className="px-4 py-4 whitespace-nowrap font-medium cursor-pointer hover:text-blue-600 overflow-hidden text-ellipsis"
                   onClick={() => navigate(`/app/invoices/${invoice.id}`)}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 overflow-hidden text-ellipsis">
                     {invoice.client_name}
                     {invoice.is_recurring === 1 && (
                       <span className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs" title={`Recurrente: ${invoice.recurrence_frequency === 'weekly' ? 'Semanal' : invoice.recurrence_frequency === 'biweekly' ? 'Quincenal' : invoice.recurrence_frequency === 'monthly' ? 'Mensual' : invoice.recurrence_frequency === 'quarterly' ? 'Trimestral' : 'Anual'}`}>
@@ -1293,8 +1292,8 @@ const Invoices = () => {
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-4 max-w-xs text-sm text-gray-500">
-                  <div className="whitespace-pre-wrap break-words">
+                <td className="px-4 py-4 max-w-xs text-sm text-gray-500 overflow-hidden">
+                  <div className="whitespace-pre-wrap break-words overflow-hidden" style={{ maxHeight: '5em' }}>
                     {invoice.notes || '-'}
                   </div>
                 </td>
