@@ -17,6 +17,7 @@ export const clientsAPI = {
   update: (id, data) => api.put(`/clients/${id}`, data),
   delete: (id) => api.delete(`/clients/${id}`),
   searchNit: (nit) => api.get(`/clients/search-nit/${nit}`),
+  syncToSiigo: (id) => api.post(`/siigo/customers/sync/${id}`),
 };
 
 // Client Documents API

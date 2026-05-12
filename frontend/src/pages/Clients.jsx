@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle } from 'lucide-react';
 import ClientPortfolio from './ClientPortfolio';
 
 const Clients = () => {
@@ -35,6 +35,8 @@ const Clients = () => {
   const [searchingNit, setSearchingNit] = useState(false);
 
   const [copiedPortalId, setCopiedPortalId] = useState(null);
+  const [syncingSiigoId, setSyncingSiigoId] = useState(null);
+  const [siigoToast, setSiigoToast] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const viewMode = searchParams.get('view') || 'lista';
   const setViewMode = (mode) => setSearchParams({ view: mode });
@@ -492,6 +494,22 @@ const Clients = () => {
     setEditingNickname(null);
   };
 
+  const handleSyncToSiigo = async (client) => {
+    setSyncingSiigoId(client.id);
+    setSiigoToast(null);
+    try {
+      const res = await clientsAPI.syncToSiigo(client.id);
+      const siigoId = res.data?.siigoCustomer?.id;
+      setClients((prev) => prev.map((c) => (c.id === client.id ? { ...c, siigo_id: siigoId || c.siigo_id } : c)));
+      setSiigoToast({ type: 'success', text: `${client.name || client.company} sincronizado con Siigo.` });
+    } catch (error) {
+      const msg = error?.response?.data?.error || error.message || 'Error al sincronizar con Siigo';
+      setSiigoToast({ type: 'error', text: msg });
+    } finally {
+      setSyncingSiigoId(null);
+    }
+  };
+
   const handleToggleStatus = async (client) => {
     const newStatus = client.status === 'active' ? 'inactive' : 'active';
     try {
@@ -549,6 +567,16 @@ const Clients = () => {
 
   return (
     <div className="space-y-6">
+      {siigoToast && (
+        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 ${
+          siigoToast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          <span className="text-sm">{siigoToast.text}</span>
+          <button onClick={() => setSiigoToast(null)} className="text-current opacity-60 hover:opacity-100">
+            <X size={16} />
+          </button>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Clientes</h1>
@@ -822,6 +850,24 @@ const Clients = () => {
                     title="Configurar Plataformas (Facebook Ads / Shopify)"
                   >
                     <Settings size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleSyncToSiigo(client)}
+                    disabled={syncingSiigoId === client.id}
+                    className={`p-1.5 rounded-lg mr-1 transition-colors ${
+                      client.siigo_id
+                        ? 'text-emerald-600 hover:bg-emerald-50'
+                        : 'text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100'
+                    }`}
+                    title={client.siigo_id ? 'Ya sincronizado con Siigo (clic para re-sincronizar)' : 'Sincronizar a Siigo'}
+                  >
+                    {syncingSiigoId === client.id ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : client.siigo_id ? (
+                      <CheckCircle size={18} />
+                    ) : (
+                      <Send size={18} />
+                    )}
                   </button>
                   <button
                     onClick={() => handleEdit(client)}
