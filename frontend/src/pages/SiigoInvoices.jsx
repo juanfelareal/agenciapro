@@ -301,6 +301,18 @@ const SiigoInvoices = () => {
     });
   };
 
+  const invoiceTaxes = (invoice) => {
+    let sum = 0;
+    invoice.items?.forEach((item) => {
+      item.taxes?.forEach((tax) => {
+        sum += tax.value || 0;
+      });
+    });
+    return sum;
+  };
+
+  const invoiceSubtotal = (invoice) => (invoice.total || 0) - invoiceTaxes(invoice);
+
   const isAllSelected = filteredInvoices.length > 0 && selectedIds.size === filteredInvoices.length;
   const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
 
@@ -597,11 +609,17 @@ const SiigoInvoices = () => {
 
       {/* Summary */}
       <div className="card p-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-4 gap-4 text-center">
           <div>
-            <p className="text-sm text-gray-500">Total Facturas</p>
+            <p className="text-sm text-gray-500">Total con IVA</p>
             <p className="text-xl font-bold text-[#1A1A2E]">
               {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0))}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Ventas netas (sin IVA)</p>
+            <p className="text-xl font-bold text-[#1A1A2E]">
+              {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + invoiceSubtotal(inv), 0))}
             </p>
           </div>
           <div>
