@@ -137,7 +137,8 @@ const InvoiceDetail = () => {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('es-CO', {
+    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

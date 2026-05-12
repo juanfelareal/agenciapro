@@ -242,7 +242,7 @@ const SiigoInvoices = () => {
             amount: invoice.total || 0,
             invoice_type: hasIva ? 'con_iva' : 'sin_iva',
             status: status,
-            issue_date: invoice.date,
+            issue_date: invoice.date ? invoice.date.split('T')[0] : null,
             notes: `Siigo: ${invoice.name} - ${invoice.items?.[0]?.description || ''}`,
             siigo_id: invoice.id,
           };
@@ -293,7 +293,8 @@ const SiigoInvoices = () => {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('es-CO', {
+    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
