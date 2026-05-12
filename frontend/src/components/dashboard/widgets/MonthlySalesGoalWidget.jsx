@@ -17,7 +17,14 @@ const FORECAST_2026 = {
 const formatCurrency = (value) => {
   if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
-  return `$${(value || 0).toLocaleString('es-CO')}`;
+  return `$${Math.round(value || 0).toLocaleString('es-CO')}`;
+};
+
+const formatCurrencyFull = (value) => `$${Math.round(value || 0).toLocaleString('es-CO')}`;
+
+const formatDelta = (value) => {
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(1)}%`;
 };
 
 const MonthlySalesGoalWidget = () => {
@@ -141,7 +148,7 @@ const MonthlySalesGoalWidget = () => {
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
               <Tooltip
-                formatter={(value, name) => [`$${(value || 0).toLocaleString('es-CO')}`, name]}
+                formatter={(value, name) => [formatCurrencyFull(value), name]}
                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }}
               />
               <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
@@ -152,6 +159,111 @@ const MonthlySalesGoalWidget = () => {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Tabla mensual detallada */}
+      {!loading && (
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-ink-100 text-xs uppercase tracking-wide text-ink-500">
+                <th className="text-left py-2 px-2 font-medium">Mes</th>
+                <th className="text-right py-2 px-2 font-medium">Venta neta {data.year}</th>
+                <th className="text-right py-2 px-2 font-medium">vs Año anterior</th>
+                <th className="text-right py-2 px-2 font-medium">vs Meta</th>
+                <th className="text-right py-2 px-2 font-medium">Diferencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.months.map((m) => {
+                const isCurrentMonth = m.month === currentMonth;
+                const prevDelta = m.prev_sales_net > 0
+                  ? ((m.sales_net - m.prev_sales_net) / m.prev_sales_net) * 100
+                  : null;
+                const goalPct = m.goal > 0 ? (m.sales_net / m.goal) * 100 : null;
+                const goalDiff = m.sales_net - (m.goal || 0);
+                return (
+                  <tr
+                    key={m.month}
+                    className={`border-b border-ink-50 ${isCurrentMonth ? 'bg-blue-50/50' : ''}`}
+                  >
+                    <td className="py-2 px-2 font-medium text-ink-700">
+                      {MONTH_LABELS[m.month - 1]}
+                      {isCurrentMonth && <span className="ml-1 text-xs text-blue-600">·</span>}
+                    </td>
+                    <td className="text-right py-2 px-2 text-ink-900 font-medium">
+                      {formatCurrencyFull(m.sales_net)}
+                    </td>
+                    <td className={`text-right py-2 px-2 ${
+                      prevDelta == null ? 'text-ink-400' : prevDelta >= 0 ? 'text-emerald-600' : 'text-red-500'
+                    }`}>
+                      {prevDelta == null ? '—' : formatDelta(prevDelta)}
+                    </td>
+                    <td className={`text-right py-2 px-2 ${
+                      goalPct == null ? 'text-ink-400' :
+                      goalPct >= 100 ? 'text-emerald-600' :
+                      goalPct >= 70 ? 'text-amber-600' : 'text-red-500'
+                    }`}>
+                      {goalPct == null ? '—' : `${goalPct.toFixed(0)}%`}
+                    </td>
+                    <td className={`text-right py-2 px-2 ${
+                      m.goal === 0 ? 'text-ink-400' : goalDiff >= 0 ? 'text-emerald-600' : 'text-red-500'
+                    }`}>
+                      {m.goal === 0 ? '—' : `${goalDiff >= 0 ? '+' : ''}${formatCurrencyFull(goalDiff)}`}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Resumen acumulado YTD y total año */}
+      {!loading && (() => {
+        const ytdMonths = data.months.filter((m) => m.month <= currentMonth);
+        const ytdSales = ytdMonths.reduce((s, m) => s + m.sales_net, 0);
+        const ytdGoal = ytdMonths.reduce((s, m) => s + (m.goal || 0), 0);
+        const ytdPct = ytdGoal > 0 ? (ytdSales / ytdGoal) * 100 : 0;
+        const ytdDiff = ytdSales - ytdGoal;
+
+        const yearSales = data.months.reduce((s, m) => s + m.sales_net, 0);
+        const yearGoal = data.months.reduce((s, m) => s + (m.goal || 0), 0);
+        const yearPct = yearGoal > 0 ? (yearSales / yearGoal) * 100 : 0;
+        const yearDiff = yearSales - yearGoal;
+
+        const ytdColor = ytdPct >= 100 ? 'text-emerald-600' : ytdPct >= 70 ? 'text-amber-600' : 'text-red-500';
+
+        return (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100">
+              <p className="text-xs uppercase tracking-wide text-blue-700 font-medium">Acumulado YTD (Ene–{MONTH_LABELS[currentMonth - 1]})</p>
+              <div className="flex items-baseline justify-between mt-2">
+                <p className="text-2xl font-bold text-ink-900">{formatCurrencyFull(ytdSales)}</p>
+                <p className={`text-2xl font-bold ${ytdColor}`}>{ytdPct.toFixed(0)}%</p>
+              </div>
+              <p className="text-xs text-ink-600 mt-1">
+                Meta acumulada: {formatCurrencyFull(ytdGoal)}
+              </p>
+              <p className={`text-sm font-medium mt-1 ${ytdDiff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                {ytdDiff >= 0 ? 'Superando' : 'Faltan'} {formatCurrencyFull(Math.abs(ytdDiff))}
+              </p>
+            </div>
+            <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100">
+              <p className="text-xs uppercase tracking-wide text-emerald-700 font-medium">Proyección año {data.year}</p>
+              <div className="flex items-baseline justify-between mt-2">
+                <p className="text-2xl font-bold text-ink-900">{formatCurrencyFull(yearSales)}</p>
+                <p className="text-2xl font-bold text-ink-700">{yearPct.toFixed(0)}%</p>
+              </div>
+              <p className="text-xs text-ink-600 mt-1">
+                Meta anual: {formatCurrencyFull(yearGoal)}
+              </p>
+              <p className={`text-sm font-medium mt-1 ${yearDiff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                {yearDiff >= 0 ? 'Superando por' : 'Faltan'} {formatCurrencyFull(Math.abs(yearDiff))}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {showGoalsModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
