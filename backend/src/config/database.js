@@ -1344,6 +1344,28 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)`);
 
+    // Reports the agency uploads for a client (monthly close, biweekly partial, etc.)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_reports (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        report_type TEXT NOT NULL DEFAULT 'monthly',
+        period_label TEXT,
+        period_start TEXT,
+        period_end TEXT,
+        file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER,
+        file_type TEXT,
+        uploaded_by INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_reports_client ON client_reports(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_reports_period ON client_reports(period_start DESC)`);
+
     // Payment proofs uploaded by clients from the portal
     await pool.query(`
       CREATE TABLE IF NOT EXISTS invoice_payment_proofs (

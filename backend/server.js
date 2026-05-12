@@ -246,6 +246,8 @@ app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
 // Client Documents
 import clientDocumentsRoutes from './src/routes/client-documents.js';
 app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);
+import clientReportsRoutes from './src/routes/client-reports.js';
+app.use('/api/client-reports', teamAuthMiddleware, clientReportsRoutes);
 // Ad Creative Tagging
 app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 // Chat

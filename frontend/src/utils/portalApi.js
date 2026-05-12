@@ -160,6 +160,16 @@ export const portalPaymentProofsAPI = {
 };
 
 // ============================================
+// REPORTS API (portal)
+// ============================================
+export const portalReportsAPI = {
+  list: async () => {
+    const response = await portalApi.get('/reports');
+    return response.data;
+  },
+};
+
+// ============================================
 // METRICS API
 // ============================================
 export const portalMetricsAPI = {

@@ -20,6 +20,15 @@ export const clientsAPI = {
   syncToSiigo: (id) => api.post(`/siigo/customers/sync/${id}`),
 };
 
+export const clientReportsAPI = {
+  list: (clientId) => api.get(`/client-reports/${clientId}`),
+  upload: (clientId, formData) =>
+    api.post(`/client-reports/${clientId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  delete: (clientId, reportId) => api.delete(`/client-reports/${clientId}/${reportId}`),
+};
+
 // Client Documents API
 export const clientDocumentsAPI = {
   getAll: (clientId) => api.get(`/client-documents/${clientId}`),

@@ -820,6 +820,13 @@ const Clients = () => {
                     <FolderOpen size={18} />
                   </button>
                   <button
+                    onClick={() => navigate(`/app/clients/${client.id}/reportes`)}
+                    className="text-gray-400 hover:text-purple-600 hover:bg-purple-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    title="Reportes"
+                  >
+                    <BarChart3 size={18} />
+                  </button>
+                  <button
                     onClick={() => handleFacturar(client)}
                     className="text-gray-400 hover:text-[#10B981] hover:bg-[#10B981]/10 p-1.5 rounded-lg mr-1 transition-colors"
                     title="Facturar"

@@ -40,6 +40,7 @@ import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
 import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
+import ClientReports from './pages/ClientReports';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 import Briefs from './pages/Briefs';
@@ -55,6 +56,7 @@ import PortalProjectDetail from './pages/portal/PortalProjectDetail';
 import PortalTaskDetail from './pages/portal/PortalTaskDetail';
 import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalPaymentProofs from './pages/portal/PortalPaymentProofs';
+import PortalReports from './pages/portal/PortalReports';
 import PortalMetrics from './pages/portal/PortalMetrics';
 import PortalForms from './pages/portal/PortalForms';
 import PortalFormFill from './pages/portal/PortalFormFill';
@@ -140,6 +142,14 @@ function App() {
             element={
               <PortalProtectedRoute permission="can_view_invoices">
                 <PortalPaymentProofs />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <PortalProtectedRoute>
+                <PortalReports />
               </PortalProtectedRoute>
             }
           />
@@ -373,6 +383,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="clients">
                       <ClientDocuments />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="clients/:id/reportes"
+                  element={
+                    <ProtectedRoute permission="clients">
+                      <ClientReports />
                     </ProtectedRoute>
                   }
                 />
