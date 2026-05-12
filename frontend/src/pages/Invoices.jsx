@@ -1315,6 +1315,18 @@ const Invoices = () => {
                       >
                         <Mail size={14} />
                       </button>
+                      {/* Legacy drafts: marked as 'sent' but still in draft locally — let user push to DIAN */}
+                      {invoice.status === 'draft' && (
+                        <button
+                          onClick={() => handleSendToDian(invoice)}
+                          disabled={sendingToSiigo === invoice.id}
+                          className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg disabled:opacity-50"
+                          title="Forzar envío a DIAN (Siigo confirmará si ya estaba aprobada)"
+                        >
+                          {sendingToSiigo === invoice.id ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+                          <span>A DIAN</span>
+                        </button>
+                      )}
                     </div>
                   ) : invoice.siigo_status === 'draft' ? (
                     <div className="flex items-center justify-center gap-2">

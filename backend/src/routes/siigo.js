@@ -284,19 +284,19 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
   }
 });
 
-// Send an existing Siigo draft invoice to DIAN (electronic stamping)
+// Send an existing Siigo draft invoice to DIAN (electronic stamping).
+// We don't block based on local siigo_status — Siigo is the source of truth.
+// If the document was already stamped, Siigo's API will return an error we
+// surface to the user.
 router.post('/invoices/:invoiceId/send-to-dian', async (req, res) => {
   try {
     const orgId = req.orgId;
     const invoice = await db.prepare(
-      'SELECT siigo_id, siigo_status FROM invoices WHERE id = ? AND organization_id = ?'
+      'SELECT siigo_id FROM invoices WHERE id = ? AND organization_id = ?'
     ).get(req.params.invoiceId, orgId);
 
     if (!invoice?.siigo_id) {
       return res.status(404).json({ error: 'La factura no está en Siigo todavía' });
-    }
-    if (invoice.siigo_status === 'sent') {
-      return res.status(400).json({ error: 'Esta factura ya fue enviada a la DIAN' });
     }
 
     const result = await siigoService.sendElectronicInvoice(orgId, invoice.siigo_id);
