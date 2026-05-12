@@ -1,25 +1,12 @@
 import express from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
 import db from '../config/database.js';
+import { uploadBuffer, deleteBlob } from '../utils/blobStorage.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const uploadsDir = path.join(__dirname, '../../uploads/client-reports');
-fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${randomUUID()}${ext}`);
-  },
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 const router = express.Router();
 
@@ -53,8 +40,9 @@ router.post('/:clientId', upload.single('file'), async (req, res) => {
     if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
     if (!req.file) return res.status(400).json({ error: 'Archivo requerido' });
 
-    const { title, report_type, period_label, period_start, period_end } = req.body;
+    const blob = await uploadBuffer('client-reports', req.file);
 
+    const { title, report_type, period_label, period_start, period_end } = req.body;
     const result = await db.prepare(`
       INSERT INTO client_reports (client_id, organization_id, title, report_type, period_label, period_start, period_end, file_name, file_path, file_size, file_type, uploaded_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -67,7 +55,7 @@ router.post('/:clientId', upload.single('file'), async (req, res) => {
       period_start || null,
       period_end || null,
       req.file.originalname,
-      `/uploads/client-reports/${req.file.filename}`,
+      blob.url,
       req.file.size,
       req.file.mimetype,
       req.teamMember?.id || null,
@@ -89,11 +77,7 @@ router.delete('/:clientId/:reportId', async (req, res) => {
     if (!report) return res.status(404).json({ error: 'Reporte no encontrado' });
 
     await db.prepare('DELETE FROM client_reports WHERE id = ?').run(report.id);
-
-    if (report.file_path?.startsWith('/uploads/')) {
-      const absolute = path.join(__dirname, '../..', report.file_path);
-      fs.unlink(absolute, () => {});
-    }
+    await deleteBlob(report.file_path);
 
     res.json({ success: true });
   } catch (error) {

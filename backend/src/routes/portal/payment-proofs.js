@@ -1,26 +1,13 @@
 import express from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
+import { uploadBuffer, deleteBlob } from '../../utils/blobStorage.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const uploadsDir = path.join(__dirname, '../../../uploads/payment-proofs');
-fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${randomUUID()}${ext}`);
-  },
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
 });
-const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 
 const router = express.Router();
 
@@ -76,11 +63,9 @@ router.post(
         'SELECT id, organization_id FROM invoices WHERE id = ? AND client_id = ?',
         [invoiceId, clientId]
       );
-      if (!invoice) {
-        // Cleanup uploaded file if invoice is invalid
-        fs.unlink(req.file.path, () => {});
-        return res.status(404).json({ error: 'Factura no encontrada' });
-      }
+      if (!invoice) return res.status(404).json({ error: 'Factura no encontrada' });
+
+      const blob = await uploadBuffer('payment-proofs', req.file);
 
       const result = await db.run(
         `INSERT INTO invoice_payment_proofs (invoice_id, client_id, organization_id, file_name, file_path, file_size, file_type, notes)
@@ -90,7 +75,7 @@ router.post(
           clientId,
           invoice.organization_id,
           req.file.originalname,
-          `/uploads/payment-proofs/${req.file.filename}`,
+          blob.url,
           req.file.size,
           req.file.mimetype,
           req.body.notes || null,
@@ -117,12 +102,7 @@ router.delete('/:id', clientAuthMiddleware, requirePortalPermission('can_view_in
     if (!proof) return res.status(404).json({ error: 'Soporte no encontrado' });
 
     await db.run('DELETE FROM invoice_payment_proofs WHERE id = ?', [proof.id]);
-
-    // Best-effort file cleanup
-    if (proof.file_path?.startsWith('/uploads/')) {
-      const absolute = path.join(__dirname, '../../../', proof.file_path.replace(/^\//, ''));
-      fs.unlink(absolute, () => {});
-    }
+    await deleteBlob(proof.file_path);
 
     res.json({ success: true });
   } catch (error) {

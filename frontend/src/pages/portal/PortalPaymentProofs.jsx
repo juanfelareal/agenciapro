@@ -3,6 +3,7 @@ import { Receipt, Upload, Loader2, FileText, Trash2, Download, CheckCircle2 } fr
 import { portalPaymentProofsAPI } from '../../utils/portalApi';
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '');
+const fileUrl = (p) => (p?.startsWith('http') ? p : `${API_ORIGIN}${p}`);
 
 const fmtCurrency = (v) => `$${(v || 0).toLocaleString('es-CO')}`;
 const fmtDate = (d) => {
@@ -152,7 +153,7 @@ export default function PortalPaymentProofs() {
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <a
-                            href={`${API_ORIGIN}${p.file_path}`}
+                            href={fileUrl(p.file_path)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-2 rounded-lg hover:bg-white text-ink-500 hover:text-ink-900"

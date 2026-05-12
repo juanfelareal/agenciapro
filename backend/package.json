@@ -20,6 +20,7 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.77",
     "@anthropic-ai/sdk": "^0.78.0",
+    "@vercel/blob": "^2.3.3",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",

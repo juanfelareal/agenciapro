@@ -1,29 +1,11 @@
 import express from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
 import db from '../config/database.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../../uploads/documents');
-fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${randomUUID()}${ext}`);
-  },
-});
+import { uploadBuffer, deleteBlob } from '../utils/blobStorage.js';
 
 const upload = multer({
-  storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
 });
 
 const router = express.Router();
@@ -57,6 +39,7 @@ router.post('/:clientId', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Archivo requerido' });
 
     const { label, category } = req.body;
+    const blob = await uploadBuffer('client-documents', req.file);
 
     const result = await db.run(`
       INSERT INTO client_documents (client_id, label, category, file_name, file_path, file_size, file_type, uploaded_by, organization_id)
@@ -66,7 +49,7 @@ router.post('/:clientId', upload.single('file'), async (req, res) => {
       label || req.file.originalname,
       category || 'General',
       req.file.originalname,
-      `/uploads/documents/${req.file.filename}`,
+      blob.url,
       req.file.size,
       req.file.mimetype,
       req.teamMember?.id || null,
@@ -107,11 +90,8 @@ router.delete('/:clientId/:docId', async (req, res) => {
     const doc = await db.get('SELECT * FROM client_documents WHERE id = ? AND client_id = ? AND organization_id = ?', [req.params.docId, req.params.clientId, req.orgId]);
     if (!doc) return res.status(404).json({ error: 'Documento no encontrado' });
 
-    // Delete file from disk
-    const fullPath = path.join(__dirname, '../..', doc.file_path);
-    if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-
     await db.run('DELETE FROM client_documents WHERE id = ?', [req.params.docId]);
+    await deleteBlob(doc.file_path);
     res.json({ message: 'Documento eliminado' });
   } catch (error) {
     res.status(500).json({ error: error.message });

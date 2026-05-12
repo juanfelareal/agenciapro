@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+const fileUrl = (p) => (p?.startsWith('http') ? p : `${API_BASE}${p}`);
 
 const CATEGORIES = ['General', 'Contrato', 'Acuerdo de Confidencialidad', 'Propuesta', 'Factura', 'Otro'];
 
@@ -269,7 +270,7 @@ export default function ClientDocuments() {
                   {!isEditing && (
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <a
-                        href={`${API_BASE}${doc.file_path}`}
+                        href={fileUrl(doc.file_path)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

@@ -3,6 +3,7 @@ import { BarChart3, FileText, Loader2, Download, Calendar } from 'lucide-react';
 import { portalReportsAPI } from '../../utils/portalApi';
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '');
+const fileUrl = (p) => (p?.startsWith('http') ? p : `${API_ORIGIN}${p}`);
 
 const TYPE_LABELS = {
   monthly: 'Cierre de mes',
@@ -89,7 +90,7 @@ export default function PortalReports() {
                   {groups[key].map((r) => (
                     <a
                       key={r.id}
-                      href={`${API_ORIGIN}${r.file_path}`}
+                      href={fileUrl(r.file_path)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block bg-white border border-ink-100 rounded-2xl p-4 hover:border-ink-300 transition-colors group"

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+const fileUrl = (p) => (p?.startsWith('http') ? p : `${API_BASE}${p}`);
 
 const formatSize = (bytes) => {
   if (!bytes) return '';
@@ -175,7 +176,7 @@ export default function ClientReports() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <a
-                      href={`${API_BASE}${r.file_path}`}
+                      href={fileUrl(r.file_path)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-400 hover:text-[#1A1A2E] p-1.5 rounded-lg hover:bg-gray-100 inline-block"
