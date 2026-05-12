@@ -222,7 +222,7 @@ router.get('/invoices/:invoiceId/detail', async (req, res) => {
 router.post('/invoices/sync/:invoiceId', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const { sendElectronic = true } = req.body || {};
+    const { sendElectronic = true, paymentTypeId, dueDateDays } = req.body || {};
 
     // Get invoice with client info, verify org ownership
     const invoice = await db.prepare(`
@@ -262,7 +262,11 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
     };
 
     // Send to Siigo
-    const siigoInvoice = await siigoService.syncInvoice(orgId, invoice, client, { sendElectronic });
+    const siigoInvoice = await siigoService.syncInvoice(orgId, invoice, client, {
+      sendElectronic,
+      paymentTypeId,
+      dueDateDays,
+    });
 
     res.json({
       success: true,
@@ -498,7 +502,7 @@ router.post('/invoices/cleanup-duplicates', async (req, res) => {
 router.post('/invoices/sync-bulk', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const { invoiceIds, sendElectronic = true } = req.body || {};
+    const { invoiceIds, sendElectronic = true, paymentTypeId, dueDateDays } = req.body || {};
 
     if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
       return res.status(400).json({ error: 'invoiceIds array is required' });
@@ -544,7 +548,11 @@ router.post('/invoices/sync-bulk', async (req, res) => {
           siigo_id: invoice.client_siigo_id
         };
 
-        const siigoInvoice = await siigoService.syncInvoice(orgId, invoice, client, { sendElectronic });
+        const siigoInvoice = await siigoService.syncInvoice(orgId, invoice, client, {
+          sendElectronic,
+          paymentTypeId,
+          dueDateDays,
+        });
         results.success.push({ invoiceId, siigoId: siigoInvoice.id });
       } catch (error) {
         results.errors.push({ invoiceId, error: error.message });

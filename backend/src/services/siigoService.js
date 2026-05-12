@@ -4,6 +4,18 @@ import db from '../config/database.js';
 const SIIGO_API_URL = 'https://api.siigo.com/v1';
 const SIIGO_AUTH_URL = 'https://api.siigo.com/auth';
 
+// Adds N days to a YYYY-MM-DD string without timezone drift.
+const addDaysToDate = (dateStr, days) => {
+  if (!dateStr || !days) return dateStr;
+  const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + Number(days));
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+};
+
 class SiigoService {
   constructor() {
     // Per-org token cache: { orgId: { accessToken, tokenExpiresAt } }
@@ -422,10 +434,30 @@ class SiigoService {
       ).get('FV', orgId);
     }
 
-    // Get payment type: prefer "Crédito" / credit type, fallback to first available
-    let paymentType = await db.prepare(
-      "SELECT * FROM siigo_payment_types WHERE organization_id = ? AND (LOWER(name) LIKE '%cr_dito%' OR LOWER(name) LIKE '%credito%' OR LOWER(name) LIKE '%credit%' OR LOWER(type) = 'credit') LIMIT 1"
-    ).get(orgId);
+    // Get payment type:
+    //   1) Explicit options.paymentTypeId from caller
+    //   2) Plain "Crédito" (excluding "tarjeta de crédito", "débito", etc.)
+    //   3) Any payment type with type = 'Credit'
+    //   4) First available
+    let paymentType = null;
+    if (options.paymentTypeId) {
+      paymentType = await db.prepare(
+        'SELECT * FROM siigo_payment_types WHERE organization_id = ? AND siigo_id = ? LIMIT 1'
+      ).get(orgId, Number(options.paymentTypeId));
+    }
+    if (!paymentType) {
+      paymentType = await db.prepare(`
+        SELECT * FROM siigo_payment_types
+        WHERE organization_id = ?
+          AND LOWER(name) IN ('crédito', 'credito')
+        LIMIT 1
+      `).get(orgId);
+    }
+    if (!paymentType) {
+      paymentType = await db.prepare(
+        "SELECT * FROM siigo_payment_types WHERE organization_id = ? AND LOWER(type) = 'credit' LIMIT 1"
+      ).get(orgId);
+    }
     if (!paymentType) {
       paymentType = await db.prepare(
         'SELECT * FROM siigo_payment_types WHERE organization_id = ? LIMIT 1'
@@ -516,7 +548,7 @@ class SiigoService {
         {
           id: Number(paymentType?.siigo_id) || 5636,
           value: siigoTotal,
-          due_date: invoice.issue_date
+          due_date: addDaysToDate(invoice.issue_date, Number(options.dueDateDays) || 0),
         }
       ],
       stamp: {

@@ -38,6 +38,9 @@ const Invoices = () => {
   const [amountEditOpen, setAmountEditOpen] = useState(null);
   const [bulkAmountValue, setBulkAmountValue] = useState('');
   const [siigoProducts, setSiigoProducts] = useState([]);
+  const [siigoPaymentTypes, setSiigoPaymentTypes] = useState([]);
+  const [siigoPaymentTypeId, setSiigoPaymentTypeId] = useState('');
+  const [siigoDueDateDays, setSiigoDueDateDays] = useState(15);
   const [siigoConfirmInvoice, setSiigoConfirmInvoice] = useState(null);
   const [siigoMessage, setSiigoMessage] = useState(null);
   const [emailModalInvoice, setEmailModalInvoice] = useState(null);
@@ -133,6 +136,7 @@ const Invoices = () => {
       setSiigoConnected(connected);
       if (connected) {
         loadSiigoProducts();
+        loadSiigoPaymentTypes();
       }
     } catch (error) {
       console.error('Error checking Siigo connection:', error);
@@ -147,6 +151,22 @@ const Invoices = () => {
       setSiigoProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading Siigo products:', error);
+    }
+  };
+
+  const loadSiigoPaymentTypes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/siigo/payment-types`, { headers: authHeaders() });
+      const data = await res.json();
+      const types = Array.isArray(data) ? data : [];
+      setSiigoPaymentTypes(types);
+      // Default to "Crédito" (excluding tarjeta de crédito) if available
+      const credito = types.find((t) => /^cr[eé]dito$/i.test(t.name));
+      const credit = types.find((t) => (t.type || '').toLowerCase() === 'credit');
+      const preferred = credito || credit || types[0];
+      if (preferred) setSiigoPaymentTypeId(String(preferred.siigo_id));
+    } catch (error) {
+      console.error('Error loading Siigo payment types:', error);
     }
   };
 
@@ -533,7 +553,11 @@ const Invoices = () => {
       const res = await fetch(`${API_URL}/siigo/invoices/sync/${invoice.id}`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ sendElectronic }),
+        body: JSON.stringify({
+          sendElectronic,
+          paymentTypeId: siigoPaymentTypeId ? Number(siigoPaymentTypeId) : undefined,
+          dueDateDays: Number(siigoDueDateDays) || 0,
+        }),
       });
       const data = await res.json();
 
@@ -573,7 +597,11 @@ const Invoices = () => {
       const res = await fetch(`${API_URL}/siigo/invoices/sync-bulk`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ invoiceIds: Array.from(selectedIds) })
+        body: JSON.stringify({
+          invoiceIds: Array.from(selectedIds),
+          paymentTypeId: siigoPaymentTypeId ? Number(siigoPaymentTypeId) : undefined,
+          dueDateDays: Number(siigoDueDateDays) || 0,
+        })
       });
       const data = await res.json();
 
@@ -1804,6 +1832,41 @@ const Invoices = () => {
                   </div>
                 </>
               )}
+              <div className="border-t pt-3 space-y-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Forma de pago</label>
+                  <select
+                    value={siigoPaymentTypeId}
+                    onChange={(e) => setSiigoPaymentTypeId(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  >
+                    {siigoPaymentTypes.length === 0 && <option value="">(cargando...)</option>}
+                    {siigoPaymentTypes.map((t) => (
+                      <option key={t.siigo_id} value={t.siigo_id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Plazo (días)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={siigoDueDateDays}
+                    onChange={(e) => setSiigoDueDateDays(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Vence: {(() => {
+                      const issue = siigoConfirmInvoice.issue_date?.split('T')[0];
+                      if (!issue) return '—';
+                      const [y, m, d] = issue.split('-').map(Number);
+                      const dt = new Date(y, m - 1, d);
+                      dt.setDate(dt.getDate() + Number(siigoDueDateDays || 0));
+                      return dt.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
+                    })()}
+                  </p>
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 justify-end">
               <button
