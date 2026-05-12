@@ -408,8 +408,47 @@ class SiigoService {
     return await this.apiRequest(orgId, 'POST', '/invoices', invoiceData);
   }
 
+  // Siigo's API only stamps invoices during creation (POST with stamp.send=true).
+  // For invoices that were created as drafts, the official path is to stamp them
+  // manually in Siigo Nube — but a PUT with stamp.send=true will work in most
+  // cases. We pull the full document first so we can replay the required fields.
   async sendElectronicInvoice(orgId, invoiceId) {
-    return await this.apiRequest(orgId, 'POST', `/invoices/${invoiceId}/stamp`);
+    const current = await this.getInvoice(orgId, invoiceId);
+    if (!current?.id) throw new Error('No se pudo obtener la factura desde Siigo');
+
+    const body = {
+      document: { id: current.document?.id },
+      date: current.date?.split('T')[0],
+      ...(current.number != null && { number: current.number }),
+      customer: {
+        identification: current.customer?.identification,
+        ...(current.customer?.branch_office != null && { branch_office: current.customer.branch_office }),
+      },
+      seller: current.seller,
+      ...(current.observations && { observations: current.observations }),
+      ...(Array.isArray(current.items) && {
+        items: current.items.map((it) => ({
+          code: it.code,
+          description: it.description,
+          quantity: it.quantity,
+          price: it.price,
+          discount: it.discount || 0,
+          ...(Array.isArray(it.taxes) && it.taxes.length > 0 && {
+            taxes: it.taxes.map((t) => ({ id: t.id })),
+          }),
+        })),
+      }),
+      ...(Array.isArray(current.payments) && {
+        payments: current.payments.map((p) => ({
+          id: p.id,
+          value: p.value,
+          ...(p.due_date && { due_date: p.due_date.split('T')[0] }),
+        })),
+      }),
+      stamp: { send: true },
+    };
+
+    return await this.apiRequest(orgId, 'PUT', `/invoices/${invoiceId}`, body);
   }
 
   async sendInvoiceByEmail(orgId, invoiceId, email) {
