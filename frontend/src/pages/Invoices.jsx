@@ -1438,7 +1438,17 @@ const Invoices = () => {
                         required={!showNewClient}
                         className="flex-1 border rounded-lg px-3 py-2"
                         value={formData.client_id}
-                        onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                        onChange={(e) => {
+                          const newClientId = e.target.value;
+                          // Reset project_id if the current project doesn't belong to the new client
+                          const currentProject = projects.find((p) => String(p.id) === String(formData.project_id));
+                          const projectStillValid = currentProject && String(currentProject.client_id) === String(newClientId);
+                          setFormData({
+                            ...formData,
+                            client_id: newClientId,
+                            project_id: projectStillValid ? formData.project_id : '',
+                          });
+                        }}
                       >
                         <option value="">Seleccione...</option>
                         {clients.map((client) => (
@@ -1473,12 +1483,17 @@ const Invoices = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">Proyecto</label>
                   <select
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border rounded-lg px-3 py-2 disabled:bg-gray-50 disabled:text-gray-400"
                     value={formData.project_id}
                     onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                    disabled={!formData.client_id}
                   >
-                    <option value="">Sin proyecto</option>
-                    {projects.map((project) => (
+                    <option value="">
+                      {formData.client_id ? 'Sin proyecto' : 'Selecciona un cliente primero'}
+                    </option>
+                    {projects
+                      .filter((p) => !formData.client_id || String(p.client_id) === String(formData.client_id))
+                      .map((project) => (
                       <option key={project.id} value={project.id}>
                         {project.name}
                       </option>
