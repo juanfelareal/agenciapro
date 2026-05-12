@@ -329,6 +329,27 @@ router.post('/invoices/:invoiceId/send-email', async (req, res) => {
   }
 });
 
+// Delete duplicate Siigo-imported invoices (keeps the newest by id)
+router.post('/invoices/cleanup-duplicates', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const result = await db.prepare(`
+      DELETE FROM invoices
+      WHERE id IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (PARTITION BY siigo_id ORDER BY id DESC) AS rn
+          FROM invoices
+          WHERE siigo_id IS NOT NULL AND organization_id = ?
+        ) ranked
+        WHERE rn > 1
+      )
+    `).run(orgId);
+    res.json({ success: true, deleted: result.changes || 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========== BULK OPERATIONS ==========
 
 // Sync multiple invoices to Siigo

@@ -185,19 +185,19 @@ const SiigoInvoices = () => {
     try {
       const selectedInvoices = invoices.filter(inv => selectedIds.has(inv.id));
       let imported = 0;
+      let skipped = 0;
       let errors = 0;
+
+      // Fetch existing clients once instead of per-invoice
+      const clientsRes = await fetch(`${API_URL}/clients`, { headers: authHeaders() });
+      const existingClients = await clientsRes.json();
 
       for (const invoice of selectedInvoices) {
         try {
           const customerInfo = customers[invoice.customer?.id] || {};
 
-          // First, find or create the client in AgenciaPro
           let clientId = null;
-
-          // Search for existing client by NIT
-          const clientsRes = await fetch(`${API_URL}/clients`, { headers: authHeaders() });
-          const clients = await clientsRes.json();
-          const existingClient = clients.find(c =>
+          const existingClient = existingClients.find(c =>
             c.nit === invoice.customer?.identification ||
             c.siigo_id === invoice.customer?.id
           );
@@ -205,7 +205,6 @@ const SiigoInvoices = () => {
           if (existingClient) {
             clientId = existingClient.id;
           } else {
-            // Create new client
             const newClientRes = await fetch(`${API_URL}/clients`, {
               method: 'POST',
               headers: authHeaders(),
@@ -220,6 +219,7 @@ const SiigoInvoices = () => {
             if (newClientRes.ok) {
               const newClient = await newClientRes.json();
               clientId = newClient.id;
+              existingClients.push(newClient);
             }
           }
 
@@ -228,15 +228,12 @@ const SiigoInvoices = () => {
             continue;
           }
 
-          // Determine invoice type based on taxes
           const hasIva = invoice.items?.some(item =>
             item.taxes?.some(tax => tax.percentage > 0)
           );
 
-          // Determine status based on balance
           const status = invoice.balance === 0 ? 'paid' : 'invoiced';
 
-          // Create invoice in AgenciaPro
           const invoiceData = {
             client_id: clientId,
             amount: invoice.total || 0,
@@ -245,6 +242,7 @@ const SiigoInvoices = () => {
             issue_date: invoice.date ? invoice.date.split('T')[0] : null,
             notes: `Siigo: ${invoice.name} - ${invoice.items?.[0]?.description || ''}`,
             siigo_id: invoice.id,
+            siigo_status: 'sent',
           };
 
           const res = await fetch(`${API_URL}/invoices`, {
@@ -254,14 +252,9 @@ const SiigoInvoices = () => {
           });
 
           if (res.ok) {
-            // Update the invoice with siigo_status
-            const newInvoice = await res.json();
-            await fetch(`${API_URL}/invoices/${newInvoice.id}`, {
-              method: 'PUT',
-              headers: authHeaders(),
-              body: JSON.stringify({ siigo_status: 'sent', siigo_id: invoice.id }),
-            });
-            imported++;
+            const body = await res.json();
+            if (body.existing) skipped++;
+            else imported++;
           } else {
             errors++;
           }
@@ -271,11 +264,40 @@ const SiigoInvoices = () => {
         }
       }
 
+      const parts = [`Importadas: ${imported}`];
+      if (skipped > 0) parts.push(`Ya existían: ${skipped}`);
+      if (errors > 0) parts.push(`Errores: ${errors}`);
       setMessage({
-        type: imported > 0 ? 'success' : 'error',
-        text: `Importadas: ${imported} factura(s). ${errors > 0 ? `Errores: ${errors}` : ''}`
+        type: imported > 0 || skipped > 0 ? 'success' : 'error',
+        text: parts.join(' · '),
       });
       setSelectedIds(new Set());
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleCleanupDuplicates = async () => {
+    setImporting(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/siigo/invoices/cleanup-duplicates`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({
+          type: 'success',
+          text: data.deleted > 0
+            ? `Limpieza completada: ${data.deleted} duplicado(s) eliminado(s).`
+            : 'No se encontraron duplicados.',
+        });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al limpiar duplicados' });
+      }
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -343,13 +365,24 @@ const SiigoInvoices = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => fetchInvoices(startDate || null, endDate || null)}
-          className="btn-secondary flex items-center gap-2"
-        >
-          <RefreshCw size={16} />
-          Actualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCleanupDuplicates}
+            disabled={importing}
+            className="btn-secondary flex items-center gap-2"
+            title="Elimina facturas con el mismo siigo_id (conserva la más nueva)"
+          >
+            <X size={16} />
+            Limpiar duplicados
+          </button>
+          <button
+            onClick={() => fetchInvoices(startDate || null, endDate || null)}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <RefreshCw size={16} />
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Message */}
