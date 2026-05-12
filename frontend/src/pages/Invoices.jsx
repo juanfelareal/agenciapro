@@ -583,6 +583,30 @@ const Invoices = () => {
     }
   };
 
+  const handleSendToDian = async (invoice) => {
+    setSendingToSiigo(invoice.id);
+    setSiigoMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/siigo/invoices/${invoice.id}/send-to-dian`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al enviar a la DIAN');
+      setSiigoMessage({
+        type: 'success',
+        text: `Factura ${invoice.invoice_number} enviada a la DIAN`,
+        invoiceId: invoice.id,
+        clientEmail: invoice.client_email,
+      });
+      loadData();
+    } catch (error) {
+      setSiigoMessage({ type: 'error', text: error.message });
+    } finally {
+      setSendingToSiigo(null);
+    }
+  };
+
   const handleBulkSendToSiigo = async () => {
     if (selectedIds.size === 0) return;
     if (!siigoConnected) {
@@ -1290,6 +1314,26 @@ const Invoices = () => {
                         title="Enviar factura electrónica por email"
                       >
                         <Mail size={14} />
+                      </button>
+                    </div>
+                  ) : invoice.siigo_status === 'draft' ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="flex items-center gap-1 text-amber-600" title={`Borrador en Siigo (ID: ${invoice.siigo_id})`}>
+                        <Clock size={16} />
+                        <span className="text-xs">Borrador</span>
+                      </span>
+                      <button
+                        onClick={() => handleSendToDian(invoice)}
+                        disabled={sendingToSiigo === invoice.id}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg disabled:opacity-50"
+                        title="Enviar esta factura a la DIAN"
+                      >
+                        {sendingToSiigo === invoice.id ? (
+                          <RefreshCw size={14} className="animate-spin" />
+                        ) : (
+                          <Send size={14} />
+                        )}
+                        <span>{sendingToSiigo === invoice.id ? '...' : 'A DIAN'}</span>
                       </button>
                     </div>
                   ) : invoice.siigo_status === 'error' ? (

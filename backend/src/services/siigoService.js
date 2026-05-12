@@ -558,11 +558,13 @@ class SiigoService {
 
     const siigoInvoice = await this.createInvoice(orgId, invoiceData);
 
+    // siigo_status reflects whether it was electronically stamped (DIAN) or just left as a draft in Siigo
+    const siigoStatus = options.sendElectronic === false ? 'draft' : 'sent';
     await db.prepare(`
       UPDATE invoices
-      SET siigo_id = ?, siigo_status = 'sent', status = 'invoiced', updated_at = CURRENT_TIMESTAMP
+      SET siigo_id = ?, siigo_status = ?, status = 'invoiced', updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `).run(siigoInvoice.id, invoice.id, orgId);
+    `).run(siigoInvoice.id, siigoStatus, invoice.id, orgId);
 
     return siigoInvoice;
   }

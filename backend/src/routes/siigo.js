@@ -284,6 +284,33 @@ router.post('/invoices/sync/:invoiceId', async (req, res) => {
   }
 });
 
+// Send an existing Siigo draft invoice to DIAN (electronic stamping)
+router.post('/invoices/:invoiceId/send-to-dian', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const invoice = await db.prepare(
+      'SELECT siigo_id, siigo_status FROM invoices WHERE id = ? AND organization_id = ?'
+    ).get(req.params.invoiceId, orgId);
+
+    if (!invoice?.siigo_id) {
+      return res.status(404).json({ error: 'La factura no está en Siigo todavía' });
+    }
+    if (invoice.siigo_status === 'sent') {
+      return res.status(400).json({ error: 'Esta factura ya fue enviada a la DIAN' });
+    }
+
+    const result = await siigoService.sendElectronicInvoice(orgId, invoice.siigo_id);
+
+    await db.prepare(
+      "UPDATE invoices SET siigo_status = 'sent', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?"
+    ).run(req.params.invoiceId, orgId);
+
+    res.json({ success: true, siigo: result, message: 'Factura enviada a la DIAN' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get invoice PDF from Siigo
 router.get('/invoices/:invoiceId/pdf', async (req, res) => {
   try {
