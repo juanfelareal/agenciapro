@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useNavigate, Link } from 'react-router-dom';
+import { Navigate, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import OrbitLogo from '../components/OrbitLogo';
@@ -7,10 +7,16 @@ import OrbitLogo from '../components/OrbitLogo';
 const Login = () => {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(
+    searchParams.get('session') === 'expired'
+      ? 'Tu sesión expiró. Inicia sesión de nuevo para continuar.'
+      : ''
+  );
+  const nextPath = searchParams.get('next');
 
   // Redirect if already authenticated
   if (authLoading) {
@@ -25,7 +31,7 @@ const Login = () => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/app" replace />;
+    return <Navigate to={nextPath || '/app'} replace />;
   }
 
   const handleSubmit = async (e) => {

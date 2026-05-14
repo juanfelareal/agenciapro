@@ -9,6 +9,30 @@ const api = axios.create({
   },
 });
 
+// When the backend says the session is invalid/expired, clear the local
+// auth state and bounce to the login screen instead of letting each
+// caller surface "Token inválido o expirado" as a generic alert.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401) {
+      const path = window.location.pathname;
+      // Don't loop on the login page itself and don't hijack portal sessions.
+      const onLogin = path === '/login' || path === '/';
+      const onPortal = path.startsWith('/portal');
+      if (!onLogin && !onPortal) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        delete api.defaults.headers.common['Authorization'];
+        const next = encodeURIComponent(path + window.location.search);
+        window.location.replace(`/login?session=expired&next=${next}`);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Clients API
 export const clientsAPI = {
   getAll: (status) => api.get('/clients', { params: { status } }),
