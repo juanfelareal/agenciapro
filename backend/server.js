@@ -290,8 +290,8 @@ cron.schedule('0 8 * * *', () => {
 console.log('✅ Due date automations cron job scheduled (daily at 8:00 AM Colombia time)');
 
 // Setup cron job for metrics sync (Facebook Ads & Shopify)
-// Runs every 30 minutes (at :00 and :30) to keep metrics near real-time
-cron.schedule('0,30 * * * *', async () => {
+// Runs every 5 minutes for near real-time data
+cron.schedule('*/5 * * * *', async () => {
   console.log('⏰ Running metrics sync (Facebook Ads & Shopify)...');
   try {
     // Sync today's metrics
@@ -305,7 +305,7 @@ cron.schedule('0,30 * * * *', async () => {
   timezone: "America/Bogota"
 });
 
-console.log('✅ Metrics sync cron job scheduled (daily at 2:00 AM Colombia time)');
+console.log('✅ Metrics sync cron job scheduled (every 5 minutes, Colombia time)');
 
 // Setup cron job for weekly AI insights
 // Runs every Monday at 7:00 AM
