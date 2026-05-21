@@ -448,18 +448,21 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
         shopify: { ...(metrics?.shopify || {}), top_products: topRes?.products || [] },
       };
 
-      // Render the template into a visible div that lives behind the modal
-      // (z-index lower than the modal's 50). html2canvas refuses to capture
-      // elements with opacity:0 or off-screen, so we keep it on-screen at 0,0
-      // and rely on the modal overlay to hide it from the user.
+      // html2canvas (used by html2pdf under the hood) DOES NOT support
+      // position:fixed elements — it silently skips them, leaving a blank
+      // canvas. So we mount the template at position:absolute, scrolled to
+      // the top of the page, and let it occupy real document flow off to the
+      // right where the user won't see it. The browser still paints it and
+      // html2canvas captures it correctly.
       const wrapper = document.createElement('div');
-      wrapper.style.position = 'fixed';
-      wrapper.style.left = '0';
+      wrapper.style.position = 'absolute';
       wrapper.style.top = '0';
+      wrapper.style.left = '0';
       wrapper.style.width = '210mm';
       wrapper.style.background = '#ffffff';
-      wrapper.style.zIndex = '10'; // behind the modal (z-50)
+      wrapper.style.zIndex = '9999'; // above the modal so the modal doesn't clip the snapshot
       wrapper.style.pointerEvents = 'none';
+      wrapper.style.visibility = 'hidden'; // invisible to the user, still painted
       document.body.appendChild(wrapper);
 
       // Mount React tree into the wrapper so styles + layout are computed.
@@ -479,6 +482,14 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
         throw new Error(`Render del template falló (size: ${rect.width}x${rect.height}, children: ${wrapper.children.length})`);
       }
 
+      // html2canvas needs the element to be capture-able, so right before
+      // snapshotting we flip visibility back to visible (it's still off-flow
+      // and behind nothing because we placed it at position:absolute 0,0).
+      wrapper.style.visibility = 'visible';
+      // Scroll to top so the captured area starts at the wrapper.
+      const prevScroll = { x: window.scrollX, y: window.scrollY };
+      window.scrollTo(0, 0);
+
       const filename = `reporte-${(client?.name || client?.company || 'cliente').toLowerCase().replace(/\s+/g, '-')}-${(period?.start_date || '').slice(0, 7)}.pdf`;
 
       console.log('[PDF] starting html2pdf save…');
@@ -488,7 +499,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
           margin: 0,
           filename,
           image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: true, windowWidth: wrapper.scrollWidth, windowHeight: wrapper.scrollHeight },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: true },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
           pagebreak: { mode: ['css', 'legacy'] },
         })
@@ -498,6 +509,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
       // Cleanup
       root.unmount();
       document.body.removeChild(wrapper);
+      window.scrollTo(prevScroll.x, prevScroll.y);
       setOpen(false);
       setInsights('');
     } catch (err) {
