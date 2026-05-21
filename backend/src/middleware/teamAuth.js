@@ -44,7 +44,10 @@ export const teamAuthMiddleware = async (req, res, next) => {
 
       // Update last_used_at AND extend expires_at by 30 days (rolling session)
       // so an active user never gets kicked out unexpectedly.
-      const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      // 10-year rolling expiry. With every authenticated request we push
+      // expires_at this far into the future, so active users effectively
+      // never get logged out.
+      const newExpiry = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString();
       await db.run(
         `UPDATE user_session_tokens SET last_used_at = CURRENT_TIMESTAMP, expires_at = ? WHERE id = ?`,
         [newExpiry, newToken.token_id]
@@ -120,7 +123,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
     }
 
     // Update last_used_at + rolling expiry on legacy tokens too
-    const legacyNewExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const legacyNewExpiry = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString();
     await db.run(
       `UPDATE team_session_tokens SET last_used_at = CURRENT_TIMESTAMP, expires_at = ? WHERE id = ?`,
       [legacyNewExpiry, legacyToken.id]

@@ -161,7 +161,7 @@ router.post('/login', async (req, res) => {
 
     // Generate session token
     const sessionToken = generateSessionToken();
-    const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const sessionExpires = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000); // 10 years
 
     // Create session with current_org_id
     await db.run(`
@@ -237,7 +237,7 @@ async function legacyLogin(req, res, emailLower, pin) {
   }
 
   const sessionToken = generateSessionToken();
-  const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const sessionExpires = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000);
 
   await db.run(`
     INSERT INTO team_session_tokens (team_member_id, token, status, expires_at, last_used_at)
@@ -392,6 +392,65 @@ router.get('/validate', teamAuthMiddleware, async (req, res) => {
   res.json({ valid: true });
 });
 
+/**
+ * POST /api/auth/restore-all-sessions
+ * One-shot maintenance endpoint: re-activates every session token in
+ * the system and extends its expiry by 10 years, so no one stays
+ * locked out. Gated by SESSION_RESTORE_SECRET env var (no other auth)
+ * because admins might themselves be locked out.
+ *
+ * curl -X POST https://.../api/auth/restore-all-sessions \
+ *   -H "x-restore-secret: <SESSION_RESTORE_SECRET>"
+ */
+router.post('/restore-all-sessions', async (req, res) => {
+  try {
+    const expected = process.env.SESSION_RESTORE_SECRET;
+    const provided = req.headers['x-restore-secret'] || req.query.secret;
+    if (!expected) {
+      return res.status(503).json({ error: 'SESSION_RESTORE_SECRET no está configurado en el server' });
+    }
+    if (!provided || provided !== expected) {
+      return res.status(403).json({ error: 'Secret inválido' });
+    }
+
+    const newExpiry = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString();
+    let revivedNew = 0;
+    let revivedLegacy = 0;
+
+    try {
+      const r1 = await db.run(
+        `UPDATE user_session_tokens SET status = 'active', expires_at = ?`,
+        [newExpiry]
+      );
+      revivedNew = r1?.changes || 0;
+    } catch (e) {
+      console.error('Error restoring user_session_tokens:', e.message);
+    }
+
+    try {
+      const r2 = await db.run(
+        `UPDATE team_session_tokens SET status = 'active', expires_at = ?`,
+        [newExpiry]
+      );
+      revivedLegacy = r2?.changes || 0;
+    } catch (e) {
+      console.error('Error restoring team_session_tokens:', e.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Todas las sesiones quedaron activas por 10 años',
+      revived: {
+        user_session_tokens: revivedNew,
+        team_session_tokens: revivedLegacy,
+      },
+      new_expires_at: newExpiry,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========================================
 // REGISTRATION (public)
 // ========================================
@@ -482,7 +541,7 @@ router.post('/register', async (req, res) => {
 
     // Auto-login: create session
     const sessionToken = generateSessionToken();
-    const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const sessionExpires = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000);
 
     await db.run(`
       INSERT INTO user_session_tokens (user_id, current_org_id, token, status, expires_at, last_used_at)
