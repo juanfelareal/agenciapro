@@ -41,6 +41,7 @@ import Settings from './pages/Settings';
 import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
 import ClientReports from './pages/ClientReports';
+import ClientEmailMarketing from './pages/ClientEmailMarketing';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 import Briefs from './pages/Briefs';
@@ -391,6 +392,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="clients">
                       <ClientReports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="clients/:id/email-marketing"
+                  element={
+                    <ProtectedRoute permission="clients">
+                      <ClientEmailMarketing />
                     </ProtectedRoute>
                   }
                 />

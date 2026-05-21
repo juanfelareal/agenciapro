@@ -53,6 +53,13 @@ export const clientReportsAPI = {
   delete: (clientId, reportId) => api.delete(`/client-reports/${clientId}/${reportId}`),
 };
 
+export const emailMarketingAPI = {
+  list: (clientId, params) => api.get(`/email-marketing/${clientId}`, { params }),
+  create: (clientId, data) => api.post(`/email-marketing/${clientId}`, data),
+  update: (clientId, campaignId, data) => api.put(`/email-marketing/${clientId}/${campaignId}`, data),
+  delete: (clientId, campaignId) => api.delete(`/email-marketing/${clientId}/${campaignId}`),
+};
+
 // Client Documents API
 export const clientDocumentsAPI = {
   getAll: (clientId) => api.get(`/client-documents/${clientId}`),

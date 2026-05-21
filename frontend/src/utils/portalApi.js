@@ -169,6 +169,13 @@ export const portalReportsAPI = {
   },
 };
 
+export const portalEmailMarketingAPI = {
+  list: async (params = {}) => {
+    const response = await portalApi.get('/email-marketing', { params });
+    return response.data;
+  },
+};
+
 // ============================================
 // METRICS API
 // ============================================

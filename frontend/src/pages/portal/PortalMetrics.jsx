@@ -5,6 +5,7 @@ import MetricsTable from '../../components/MetricsTable';
 import CollapsibleSection from '../../components/CollapsibleSection';
 import FacebookCampaignsBreakdown from '../../components/portal/FacebookCampaignsBreakdown';
 import PortalReportExport from '../../components/portal/PortalReportExport';
+import PortalEmailMarketingSection from '../../components/portal/PortalEmailMarketingSection';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
   PieChart, Pie, Cell,
@@ -869,22 +870,8 @@ export default function PortalMetrics() {
           )}
 
           {/* Email Marketing (no colapsable, debajo de combinadas) */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
-                <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
-                  <Mail className="w-4 h-4 text-pink-600" />
-                </div>
-                Email Marketing
-              </h2>
-              <span className="text-xs text-gray-400 hidden sm:block">Datos manuales desde Shopify Email</span>
-            </div>
-            <div className="py-6 text-center text-gray-500">
-              <Mail className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-              <p className="text-sm">Próximamente: registro de campañas de email marketing</p>
-              <p className="text-xs text-gray-400 mt-1">Esperando definir campos a registrar</p>
-            </div>
-          </div>
+          <PortalEmailMarketingSection getApiParams={getApiParams} />
+
 
           {/* Facebook Ads Metrics (colapsable, cerrado por defecto) */}
           {metrics?.facebook && (

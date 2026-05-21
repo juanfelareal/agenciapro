@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle, Mail } from 'lucide-react';
 import ClientPortfolio from './ClientPortfolio';
 
 const Clients = () => {
@@ -63,7 +63,7 @@ const Clients = () => {
     email: 220,
     estado: 80,
     valor: 130,
-    acciones: 460,
+    acciones: 500,
   });
   const resizingRef = useRef(null);
 
@@ -825,6 +825,13 @@ const Clients = () => {
                     title="Reportes"
                   >
                     <BarChart3 size={18} />
+                  </button>
+                  <button
+                    onClick={() => navigate(`/app/clients/${client.id}/email-marketing`)}
+                    className="text-gray-400 hover:text-pink-600 hover:bg-pink-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    title="Email Marketing"
+                  >
+                    <Mail size={18} />
                   </button>
                   <button
                     onClick={() => handleFacturar(client)}

@@ -1344,6 +1344,29 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC)`);
 
+    // Email marketing campaigns logged manually from Shopify Email
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS email_marketing_campaigns (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL,
+        campaign_name TEXT NOT NULL,
+        subject TEXT,
+        sent_date TEXT NOT NULL,
+        recipients INTEGER DEFAULT 0,
+        delivered INTEGER DEFAULT 0,
+        opens INTEGER DEFAULT 0,
+        clicks INTEGER DEFAULT 0,
+        unsubscribes INTEGER DEFAULT 0,
+        orders INTEGER DEFAULT 0,
+        revenue REAL DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_email_campaigns_client_date ON email_marketing_campaigns(client_id, sent_date DESC)`);
+
     // Reports the agency uploads for a client (monthly close, biweekly partial, etc.)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_reports (

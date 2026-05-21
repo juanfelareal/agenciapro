@@ -248,6 +248,8 @@ import clientDocumentsRoutes from './src/routes/client-documents.js';
 app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);
 import clientReportsRoutes from './src/routes/client-reports.js';
 app.use('/api/client-reports', teamAuthMiddleware, clientReportsRoutes);
+import emailMarketingRoutes from './src/routes/email-marketing.js';
+app.use('/api/email-marketing', teamAuthMiddleware, emailMarketingRoutes);
 // Ad Creative Tagging
 app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 // Chat
