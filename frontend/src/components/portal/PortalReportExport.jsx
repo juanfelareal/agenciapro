@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { pdf } from '@react-pdf/renderer';
 import { Download, X, FileText, Loader2 } from 'lucide-react';
 import { portalMetricsAPI, portalEmailMarketingAPI } from '../../utils/portalApi';
-import { LA_REAL_LOGO_BASE64 } from '../../assets/laRealLogo';
+import ReportPdfDocument from './ReportPdfDocument';
 
 // ====== Formatters ======
 const fmtCurrency = (v) => `$${Math.round(v || 0).toLocaleString('es-CO')}`;
@@ -522,8 +522,11 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
         shopify: { ...(metrics?.shopify || {}), top_products: topRes?.products || [] },
       };
 
-      const html = renderToStaticMarkup(
-        <PdfTemplate
+      const filename = `reporte-${(client?.name || client?.company || 'cliente').toLowerCase().replace(/\s+/g, '-')}-${(period?.start_date || '').slice(0, 7)}.pdf`;
+
+      // Generate the PDF natively (no browser print dialog, no headers/footers)
+      const blob = await pdf(
+        <ReportPdfDocument
           client={client}
           period={period}
           insights={insights}
@@ -531,60 +534,19 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
           ads={adsRes?.ads || []}
           emailCampaigns={emailRes?.campaigns || []}
         />
-      );
+      ).toBlob();
 
-      const filename = `reporte-${(client?.name || client?.company || 'cliente').toLowerCase().replace(/\s+/g, '-')}-${(period?.start_date || '').slice(0, 7)}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      iframe.setAttribute('title', filename);
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      doc.open();
-      doc.write(`<!doctype html>
-<html><head>
-<meta charset="utf-8">
-<title>${filename}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #ffffff; }
-  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
-  @page { size: A4; margin: 14mm 12mm; }
-  .page-break { break-before: page; page-break-before: always; }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-    /* Keep table rows and small groups together */
-    tr, table, .keep-together { break-inside: avoid; page-break-inside: avoid; }
-    /* Don't orphan section headings at the bottom of a page */
-    h2, h3, .section-header { break-after: avoid; page-break-after: avoid; }
-    /* Notice boxes shouldn't split */
-    .notice { break-inside: avoid; page-break-inside: avoid; }
-  }
-</style>
-</head>
-<body>${html}</body>
-</html>`);
-      doc.close();
-
-      await new Promise((resolve) => {
-        if (doc.readyState === 'complete') resolve();
-        else iframe.addEventListener('load', () => resolve(), { once: true });
-      });
-      await new Promise((resolve) => setTimeout(resolve, 600));
-
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-
-      setTimeout(() => {
-        if (iframe.parentNode) document.body.removeChild(iframe);
-      }, 2000);
+      setOpen(false);
+      setInsights('');
     } catch (err) {
       console.error('Error generating PDF report:', err);
       alert('No se pudo generar el PDF: ' + (err.message || 'error desconocido'));
@@ -614,7 +576,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[#0D1B2A]">Exportar reporte</h2>
-                  <p className="text-xs text-gray-500">Se abrirá el diálogo del navegador — elige "Guardar como PDF"</p>
+                  <p className="text-xs text-gray-500">Métricas Combinadas · Email Marketing · Facebook Ads · Shopify</p>
                 </div>
               </div>
               <button onClick={() => !busy && setOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-500">
@@ -652,7 +614,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
                 className="px-4 py-2 text-sm font-medium bg-[#0D1B2A] text-white rounded-xl hover:bg-[#1F2937] flex items-center gap-2 disabled:opacity-50"
               >
                 {busy ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                {busy ? 'Preparando…' : 'Generar PDF'}
+                {busy ? 'Generando…' : 'Descargar PDF'}
               </button>
             </div>
           </div>
