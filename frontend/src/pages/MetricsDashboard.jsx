@@ -12,7 +12,8 @@ import {
   Loader2,
   EyeOff,
   Eye,
-  Rocket
+  Rocket,
+  Clock
 } from 'lucide-react';
 import { clientMetricsAPI, growthAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
@@ -40,10 +41,17 @@ function MetricsDashboard() {
     start: getColombiaDate(-7),
     end: getColombiaDate()
   });
+  // Tick once a minute so the "hace X min" label stays fresh without re-fetching
+  const [nowTick, setNowTick] = useState(Date.now());
 
   useEffect(() => {
     if (activeTab === 'general') loadData();
   }, [dateRange, activeTab]);
+
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -122,6 +130,21 @@ function MetricsDashboard() {
     setDateRange({ start, end });
   };
 
+  const formatLastSync = (iso) => {
+    if (!iso) return null;
+    const then = new Date(iso);
+    if (Number.isNaN(then.getTime())) return null;
+    const diffMin = Math.max(0, Math.round((nowTick - then.getTime()) / 60000));
+    let ago;
+    if (diffMin < 1) ago = 'hace un momento';
+    else if (diffMin === 1) ago = 'hace 1 min';
+    else if (diffMin < 60) ago = `hace ${diffMin} min`;
+    else if (diffMin < 1440) ago = `hace ${Math.floor(diffMin / 60)} h`;
+    else ago = `hace ${Math.floor(diffMin / 1440)} d`;
+    const time = then.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
+    return `${ago} · ${time}`;
+  };
+
   const formatCurrency = (val) => {
     if (!val) return '$0';
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
@@ -149,6 +172,15 @@ function MetricsDashboard() {
         <div>
           <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Resumen de todos los clientes</p>
+          {data.last_sync_at && (
+            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
+              <Clock className="w-3 h-3" />
+              <span>
+                Última actualización: <span className="font-medium text-gray-500">{formatLastSync(data.last_sync_at)}</span>
+                <span className="text-gray-300 ml-1.5">· se actualiza cada 5 min</span>
+              </span>
+            </p>
+          )}
         </div>
         <button
           onClick={handleSync}

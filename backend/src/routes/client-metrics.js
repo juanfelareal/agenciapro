@@ -305,7 +305,29 @@ router.get('/aggregate/all', async (req, res) => {
     totals.roas = totals.total_ad_spend > 0 ? totals.display_revenue / totals.total_ad_spend : 0;
     totals.avg_ctr = totals.total_impressions > 0 ? (totals.total_clicks / totals.total_impressions) * 100 : 0;
 
-    res.json({ clients: result, totals });
+    // Most recent successful sync across this org (FB or Shopify credentials)
+    let last_sync_at = null;
+    try {
+      const lastSyncRow = await db.prepare(`
+        SELECT MAX(last_sync_at) AS last_sync_at FROM (
+          SELECT fc.last_sync_at
+          FROM client_facebook_credentials fc
+          JOIN clients c ON c.id = fc.client_id
+          WHERE c.organization_id = ? AND fc.last_sync_at IS NOT NULL
+          UNION ALL
+          SELECT sc.last_sync_at
+          FROM client_shopify_credentials sc
+          JOIN clients c ON c.id = sc.client_id
+          WHERE c.organization_id = ? AND sc.last_sync_at IS NOT NULL
+        ) t
+      `).get(orgId, orgId);
+      last_sync_at = lastSyncRow?.last_sync_at || null;
+    } catch (e) {
+      // If anything fails here we still return the metrics — last_sync_at is just informative
+      console.warn('Could not fetch last_sync_at:', e.message);
+    }
+
+    res.json({ clients: result, totals, last_sync_at });
   } catch (error) {
     console.error('Error fetching aggregate metrics:', error);
     res.status(500).json({ error: error.message });
