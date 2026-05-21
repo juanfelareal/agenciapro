@@ -63,7 +63,7 @@ const Clients = () => {
     email: 220,
     estado: 80,
     valor: 130,
-    acciones: 500,
+    acciones: 320,
   });
   const resizingRef = useRef(null);
 
@@ -807,68 +807,68 @@ const Clients = () => {
                 <td className="px-4 py-4 whitespace-nowrap text-center">
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/calls`)}
-                    className="text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded mr-0.5 transition-colors"
                     title="Llamadas"
                   >
-                    <Phone size={18} />
+                    <Phone size={16} />
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/documentos`)}
-                    className="text-gray-400 hover:text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-amber-600 hover:bg-amber-50 p-1 rounded mr-0.5 transition-colors"
                     title="Documentos"
                   >
-                    <FolderOpen size={18} />
+                    <FolderOpen size={16} />
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/reportes`)}
-                    className="text-gray-400 hover:text-purple-600 hover:bg-purple-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-purple-600 hover:bg-purple-50 p-1 rounded mr-0.5 transition-colors"
                     title="Reportes"
                   >
-                    <BarChart3 size={18} />
+                    <BarChart3 size={16} />
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/email-marketing`)}
-                    className="text-gray-400 hover:text-pink-600 hover:bg-pink-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-pink-600 hover:bg-pink-50 p-1 rounded mr-0.5 transition-colors"
                     title="Email Marketing"
                   >
-                    <Mail size={18} />
+                    <Mail size={16} />
                   </button>
                   <button
                     onClick={() => handleFacturar(client)}
-                    className="text-gray-400 hover:text-[#10B981] hover:bg-[#10B981]/10 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-[#10B981] hover:bg-[#10B981]/10 p-1 rounded mr-0.5 transition-colors"
                     title="Facturar"
                   >
-                    <FileText size={18} />
+                    <FileText size={16} />
                   </button>
                   <button
                     onClick={() => handleQuickCopyPortalLink(client)}
-                    className={`p-1.5 rounded-lg mr-1 transition-colors ${
+                    className={`p-1 rounded mr-0.5 transition-colors ${
                       copiedPortalId === client.id
                         ? 'text-green-600 bg-green-50'
                         : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                     }`}
                     title={copiedPortalId === client.id ? 'Link copiado!' : 'Copiar link del portal'}
                   >
-                    {copiedPortalId === client.id ? <Check size={18} /> : <Link2 size={18} />}
+                    {copiedPortalId === client.id ? <Check size={16} /> : <Link2 size={16} />}
                   </button>
                   <button
                     onClick={() => handleOpenDashboard(client)}
-                    className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1 rounded mr-0.5 transition-colors"
                     title="Abrir dashboard del cliente"
                   >
-                    <Eye size={18} />
+                    <Eye size={16} />
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/plataformas`)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
                     title="Configurar Plataformas (Facebook Ads / Shopify)"
                   >
-                    <Settings size={18} />
+                    <Settings size={16} />
                   </button>
                   <button
                     onClick={() => handleSyncToSiigo(client)}
                     disabled={syncingSiigoId === client.id}
-                    className={`p-1.5 rounded-lg mr-1 transition-colors ${
+                    className={`p-1 rounded mr-0.5 transition-colors ${
                       client.siigo_id
                         ? 'text-emerald-600 hover:bg-emerald-50'
                         : 'text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100'
@@ -876,26 +876,26 @@ const Clients = () => {
                     title={client.siigo_id ? 'Ya sincronizado con Siigo (clic para re-sincronizar)' : 'Sincronizar a Siigo'}
                   >
                     {syncingSiigoId === client.id ? (
-                      <Loader2 size={18} className="animate-spin" />
+                      <Loader2 size={16} className="animate-spin" />
                     ) : client.siigo_id ? (
-                      <CheckCircle size={18} />
+                      <CheckCircle size={16} />
                     ) : (
-                      <Send size={18} />
+                      <Send size={16} />
                     )}
                   </button>
                   <button
                     onClick={() => handleEdit(client)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-1 transition-colors"
+                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
                     title="Editar"
                   >
-                    <Edit size={18} />
+                    <Edit size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(client.id)}
-                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-colors"
                     title="Eliminar"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </button>
                 </td>
                 <td className="px-4 py-4 text-sm text-gray-500 truncate" title={client.name}>{client.name || '-'}</td>
@@ -1117,7 +1117,7 @@ const Clients = () => {
                       >
                         {analyzingPdf ? (
                           <>
-                            <Loader2 size={18} className="animate-spin" />
+                            <Loader2 size={16} className="animate-spin" />
                             Analizando...
                           </>
                         ) : (
