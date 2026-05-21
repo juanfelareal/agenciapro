@@ -60,11 +60,25 @@ export const AuthProvider = ({ children }) => {
         setOrganizations(data.organizations);
       }
     } catch (err) {
-      // Token invalid or expired
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
-      localStorage.removeItem('currentOrg');
-      setAuthToken(null);
+      const status = err?.response?.status;
+      // Only clear the session when the server explicitly says the token is
+      // invalid/expired (401/403). On network failures, timeouts, 5xx, etc.,
+      // keep the token so a flaky connection doesn't kick the user out.
+      if (status === 401 || status === 403) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+        localStorage.removeItem('currentOrg');
+        setAuthToken(null);
+      } else {
+        // Restore whatever user info we had so the user stays "logged in"
+        // until the next successful refresh.
+        try {
+          const savedUser = JSON.parse(localStorage.getItem('authUser') || 'null');
+          const savedOrg = JSON.parse(localStorage.getItem('currentOrg') || 'null');
+          if (savedUser) setUser(savedUser);
+          if (savedOrg) setCurrentOrg(savedOrg);
+        } catch (_) { /* ignore */ }
+      }
     } finally {
       setLoading(false);
     }

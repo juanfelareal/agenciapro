@@ -42,8 +42,13 @@ export const teamAuthMiddleware = async (req, res, next) => {
         return res.status(401).json({ error: 'Sesión expirada. Por favor inicie sesión nuevamente.' });
       }
 
-      // Update last_used_at
-      await db.run(`UPDATE user_session_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?`, [newToken.token_id]);
+      // Update last_used_at AND extend expires_at by 30 days (rolling session)
+      // so an active user never gets kicked out unexpectedly.
+      const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await db.run(
+        `UPDATE user_session_tokens SET last_used_at = CURRENT_TIMESTAMP, expires_at = ? WHERE id = ?`,
+        [newExpiry, newToken.token_id]
+      );
 
       // Get team_member for this user+org (the membership record)
       const membership = await db.get(`
@@ -114,8 +119,12 @@ export const teamAuthMiddleware = async (req, res, next) => {
       return res.status(401).json({ error: 'Sesión expirada. Por favor inicie sesión nuevamente.' });
     }
 
-    // Update last_used_at
-    await db.run(`UPDATE team_session_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE id = ?`, [legacyToken.id]);
+    // Update last_used_at + rolling expiry on legacy tokens too
+    const legacyNewExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    await db.run(
+      `UPDATE team_session_tokens SET last_used_at = CURRENT_TIMESTAMP, expires_at = ? WHERE id = ?`,
+      [legacyNewExpiry, legacyToken.id]
+    );
 
     // Parse permissions
     let permissions = {};
