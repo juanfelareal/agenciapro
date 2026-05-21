@@ -24,7 +24,11 @@ import {
   X,
   Check,
   BarChart3,
-  ArrowLeftRight
+  ArrowLeftRight,
+  ChevronRight,
+  Mail,
+  Facebook,
+  ShoppingBag
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart, Cell,
@@ -33,6 +37,7 @@ import {
 import { clientsAPI, clientMetricsAPI, adTagsAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import MetricsTable from '../components/MetricsTable';
+import CollapsibleSection from '../components/CollapsibleSection';
 import DashboardShareModal from '../components/DashboardShareModal';
 
 // Get current date in Colombia timezone (YYYY-MM-DD)
@@ -511,6 +516,14 @@ function ClientMetrics() {
         </div>
       )}
 
+      {/* ============ MÉTRICAS COMBINADAS ============ */}
+      <div className="flex items-center gap-2 mb-3 mt-2">
+        <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+          <BarChart3 className="w-4 h-4 text-violet-600" />
+        </div>
+        <h2 className="text-lg font-semibold text-[#1A1A2E]">Métricas Combinadas</h2>
+      </div>
+
       {/* Revenue Metrics - 3 types — higher is better */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <MetricCard
@@ -554,33 +567,63 @@ function ClientMetrics() {
         />
       </div>
 
-      {/* Orders — higher is better, except Pendientes (lower is better) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {/* Combinadas: Ad spend & efficiency — costs: lower is better; ROAS: higher is better */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <MetricCard
-          title="Pedidos Confirmados"
-          value={metrics?.total_orders}
-          icon={ShoppingCart}
-          iconBgColor="bg-orange-100"
-          iconColor="text-orange-600"
-          format="integer"
-          loading={loading}
-          change={compareMode ? calcChange(metrics?.total_orders, compareMetrics?.total_orders) : null}
-          compareValue={compareMode ? compareMetrics?.total_orders : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="Pedidos Pendientes"
-          value={metrics?.total_pending_orders}
-          icon={ShoppingCart}
-          iconBgColor="bg-yellow-100"
-          iconColor="text-yellow-600"
-          format="integer"
+          title="Inversion Publicidad"
+          value={metrics?.total_ad_spend}
+          icon={MousePointerClick}
+          iconBgColor="bg-blue-100"
+          iconColor="text-blue-600"
+          format="currency"
           loading={loading}
           invertChange
-          change={compareMode ? calcChange(metrics?.total_pending_orders, compareMetrics?.total_pending_orders) : null}
-          compareValue={compareMode ? compareMetrics?.total_pending_orders : null}
+          change={compareMode ? calcChange(metrics?.total_ad_spend, compareMetrics?.total_ad_spend) : null}
+          compareValue={compareMode ? compareMetrics?.total_ad_spend : null}
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
+        <MetricCard
+          title="ROAS"
+          value={metrics?.roas}
+          icon={TrendingUp}
+          iconBgColor="bg-purple-100"
+          iconColor="text-purple-600"
+          format="decimal"
+          loading={loading}
+          change={compareMode ? calcChange(metrics?.roas, compareMetrics?.roas) : null}
+          compareValue={compareMode ? compareMetrics?.roas : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
+        />
+        <MetricCard
+          title="Inversion Por Pedido"
+          value={metrics?.cost_per_order}
+          icon={Receipt}
+          iconBgColor="bg-indigo-100"
+          iconColor="text-indigo-600"
+          format="currency"
+          loading={loading}
+          invertChange
+          change={compareMode ? calcChange(metrics?.cost_per_order, compareMetrics?.cost_per_order) : null}
+          compareValue={compareMode ? compareMetrics?.cost_per_order : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
+        />
+        <MetricCard
+          title="% Inversion Publicidad"
+          value={metrics?.ad_spend_percentage}
+          icon={Percent}
+          iconBgColor="bg-pink-100"
+          iconColor="text-pink-600"
+          format="percent"
+          loading={loading}
+          invertChange
+          change={compareMode ? calcChange(metrics?.ad_spend_percentage, compareMetrics?.ad_spend_percentage) : null}
+          compareValue={compareMode ? compareMetrics?.ad_spend_percentage : null}
+          changeLabel={compareMode ? 'vs anterior' : ''}
+        />
+      </div>
+
+      {/* Combinadas: Total Pedidos + Ticket */}
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
         <MetricCard
           title="Total Pedidos"
           value={metrics?.total_all_orders_count}
@@ -607,155 +650,163 @@ function ClientMetrics() {
         />
       </div>
 
-      {/* Ad spend & efficiency — costs: lower is better; ROAS: higher is better */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <MetricCard
-          title="Inversion Publicidad"
-          value={metrics?.total_ad_spend}
-          icon={MousePointerClick}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-          format="currency"
-          loading={loading}
-          invertChange
-          change={compareMode ? calcChange(metrics?.total_ad_spend, compareMetrics?.total_ad_spend) : null}
-          compareValue={compareMode ? compareMetrics?.total_ad_spend : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="Inversion Por Pedido"
-          value={metrics?.cost_per_order}
-          icon={Receipt}
-          iconBgColor="bg-indigo-100"
-          iconColor="text-indigo-600"
-          format="currency"
-          loading={loading}
-          invertChange
-          change={compareMode ? calcChange(metrics?.cost_per_order, compareMetrics?.cost_per_order) : null}
-          compareValue={compareMode ? compareMetrics?.cost_per_order : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="ROAS"
-          value={metrics?.roas}
-          icon={TrendingUp}
-          iconBgColor="bg-purple-100"
-          iconColor="text-purple-600"
-          format="decimal"
-          loading={loading}
-          change={compareMode ? calcChange(metrics?.roas, compareMetrics?.roas) : null}
-          compareValue={compareMode ? compareMetrics?.roas : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="% Inversion Publicidad"
-          value={metrics?.ad_spend_percentage}
-          icon={Percent}
-          iconBgColor="bg-pink-100"
-          iconColor="text-pink-600"
-          format="percent"
-          loading={loading}
-          invertChange
-          change={compareMode ? calcChange(metrics?.ad_spend_percentage, compareMetrics?.ad_spend_percentage) : null}
-          compareValue={compareMode ? compareMetrics?.ad_spend_percentage : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
+      {/* ============ EMAIL MARKETING (no colapsable, debajo de Combinadas) ============ */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center">
+              <Mail className="w-4 h-4 text-pink-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-[#1A1A2E]">Email Marketing</h2>
+          </div>
+          <span className="text-xs text-gray-400">
+            Datos manuales desde Shopify Email
+          </span>
+        </div>
+        <div className="py-8 text-center text-gray-500">
+          <Mail className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+          <p className="text-sm">Próximamente: registro de campañas de email marketing</p>
+          <p className="text-xs text-gray-400 mt-1">Esperando los pantallazos de Shopify Email para definir las métricas a registrar</p>
+        </div>
       </div>
 
-      {/* Facebook costs — lower is better */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <MetricCard
-          title="CPM"
-          value={metrics?.cpm}
-          icon={Eye}
-          iconBgColor="bg-sky-100"
-          iconColor="text-sky-600"
-          format="currency"
-          loading={loading}
-          invertChange
-          change={compareMode ? calcChange(metrics?.cpm, compareMetrics?.cpm) : null}
-          compareValue={compareMode ? compareMetrics?.cpm : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="Costo por Compra"
-          value={metrics?.cost_per_purchase}
-          icon={Target}
-          iconBgColor="bg-rose-100"
-          iconColor="text-rose-600"
-          format="currency"
-          loading={loading}
-          invertChange
-          change={compareMode ? calcChange(metrics?.cost_per_purchase, compareMetrics?.cost_per_purchase) : null}
-          compareValue={compareMode ? compareMetrics?.cost_per_purchase : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-      </div>
+      {/* ============ FACEBOOK ADS (colapsable) ============ */}
+      <CollapsibleSection
+        id="facebook"
+        title="Facebook Ads"
+        icon={Facebook}
+        iconBg="bg-blue-100"
+        iconColor="text-blue-600"
+        defaultOpen={false}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="Inversión Publicidad"
+            value={metrics?.total_ad_spend}
+            icon={MousePointerClick}
+            iconBgColor="bg-blue-100"
+            iconColor="text-blue-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.total_ad_spend, compareMetrics?.total_ad_spend) : null}
+            compareValue={compareMode ? compareMetrics?.total_ad_spend : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="CPM"
+            value={metrics?.cpm}
+            icon={Eye}
+            iconBgColor="bg-sky-100"
+            iconColor="text-sky-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.cpm, compareMetrics?.cpm) : null}
+            compareValue={compareMode ? compareMetrics?.cpm : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Costo por Compra"
+            value={metrics?.cost_per_purchase}
+            icon={Target}
+            iconBgColor="bg-rose-100"
+            iconColor="text-rose-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.cost_per_purchase, compareMetrics?.cost_per_purchase) : null}
+            compareValue={compareMode ? compareMetrics?.cost_per_purchase : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+        </div>
+      </CollapsibleSection>
 
-      {/* Shopify expanded — sessions & conversion higher is better; pendientes lower is better */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <MetricCard
-          title="Sesiones"
-          value={metrics?.total_sessions}
-          icon={MousePointerClick}
-          iconBgColor="bg-cyan-100"
-          iconColor="text-cyan-600"
-          format="integer"
-          loading={loading}
-          change={compareMode ? calcChange(metrics?.total_sessions, compareMetrics?.total_sessions) : null}
-          compareValue={compareMode ? compareMetrics?.total_sessions : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="Tasa de Conversión"
-          value={metrics?.conversion_rate}
-          icon={TrendingUp}
-          iconBgColor="bg-teal-100"
-          iconColor="text-teal-600"
-          format="percent"
-          loading={loading}
-          change={compareMode ? calcChange(metrics?.conversion_rate, compareMetrics?.conversion_rate) : null}
-          compareValue={compareMode ? compareMetrics?.conversion_rate : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="Pedidos Pendientes"
-          value={metrics?.total_pending_orders}
-          icon={ShoppingCart}
-          iconBgColor="bg-red-100"
-          iconColor="text-red-600"
-          format="integer"
-          loading={loading}
-          invertChange
-          change={compareMode ? calcChange(metrics?.total_pending_orders, compareMetrics?.total_pending_orders) : null}
-          compareValue={compareMode ? compareMetrics?.total_pending_orders : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="Impuestos"
-          value={metrics?.total_tax}
-          icon={Receipt}
-          iconBgColor="bg-gray-100"
-          iconColor="text-gray-600"
-          format="currency"
-          loading={loading}
-          change={compareMode ? calcChange(metrics?.total_tax, compareMetrics?.total_tax) : null}
-          compareValue={compareMode ? compareMetrics?.total_tax : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-        <MetricCard
-          title="Descuentos"
-          value={metrics?.total_discounts}
-          icon={Tag}
-          iconBgColor="bg-lime-100"
-          iconColor="text-lime-600"
-          format="currency"
-          loading={loading}
-          change={compareMode ? calcChange(metrics?.total_discounts, compareMetrics?.total_discounts) : null}
-          compareValue={compareMode ? compareMetrics?.total_discounts : null}
-          changeLabel={compareMode ? 'vs anterior' : ''}
-        />
-      </div>
+      {/* ============ SHOPIFY (colapsable) ============ */}
+      <CollapsibleSection
+        id="shopify"
+        title="Shopify"
+        icon={ShoppingBag}
+        iconBg="bg-emerald-100"
+        iconColor="text-emerald-600"
+        defaultOpen={false}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard
+            title="Pedidos Confirmados"
+            value={metrics?.total_orders}
+            icon={ShoppingCart}
+            iconBgColor="bg-orange-100"
+            iconColor="text-orange-600"
+            format="integer"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.total_orders, compareMetrics?.total_orders) : null}
+            compareValue={compareMode ? compareMetrics?.total_orders : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Pedidos Pendientes"
+            value={metrics?.total_pending_orders}
+            icon={ShoppingCart}
+            iconBgColor="bg-red-100"
+            iconColor="text-red-600"
+            format="integer"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.total_pending_orders, compareMetrics?.total_pending_orders) : null}
+            compareValue={compareMode ? compareMetrics?.total_pending_orders : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Sesiones"
+            value={metrics?.total_sessions}
+            icon={MousePointerClick}
+            iconBgColor="bg-cyan-100"
+            iconColor="text-cyan-600"
+            format="integer"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.total_sessions, compareMetrics?.total_sessions) : null}
+            compareValue={compareMode ? compareMetrics?.total_sessions : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Tasa de Conversión"
+            value={metrics?.conversion_rate}
+            icon={TrendingUp}
+            iconBgColor="bg-teal-100"
+            iconColor="text-teal-600"
+            format="percent"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.conversion_rate, compareMetrics?.conversion_rate) : null}
+            compareValue={compareMode ? compareMetrics?.conversion_rate : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Impuestos"
+            value={metrics?.total_tax}
+            icon={Receipt}
+            iconBgColor="bg-gray-100"
+            iconColor="text-gray-600"
+            format="currency"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.total_tax, compareMetrics?.total_tax) : null}
+            compareValue={compareMode ? compareMetrics?.total_tax : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Descuentos"
+            value={metrics?.total_discounts}
+            icon={Tag}
+            iconBgColor="bg-lime-100"
+            iconColor="text-lime-600"
+            format="currency"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.total_discounts, compareMetrics?.total_discounts) : null}
+            compareValue={compareMode ? compareMetrics?.total_discounts : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+        </div>
+      </CollapsibleSection>
 
       {/* Top Products */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
