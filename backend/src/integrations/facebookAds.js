@@ -291,7 +291,9 @@ class FacebookAdsIntegration {
       fields: [
         'ad_id',
         'ad_name',
+        'adset_id',
         'adset_name',
+        'campaign_id',
         'campaign_name',
         'spend',
         'impressions',
@@ -351,7 +353,9 @@ class FacebookAdsIntegration {
       return {
         ad_id: ad.ad_id,
         ad_name: ad.ad_name,
+        adset_id: ad.adset_id,
         adset_name: ad.adset_name,
+        campaign_id: ad.campaign_id,
         campaign_name: ad.campaign_name,
         spend,
         impressions,
@@ -370,6 +374,66 @@ class FacebookAdsIntegration {
         hook_rate: hookRate,
         hold_rate: holdRate
       };
+    });
+
+    // Enrich with campaign objective + status, and adset status, via batch GET
+    const objectiveLabels = {
+      OUTCOME_SALES: 'Ventas',
+      OUTCOME_AWARENESS: 'Reconocimiento',
+      OUTCOME_TRAFFIC: 'Tráfico',
+      OUTCOME_LEADS: 'Leads',
+      OUTCOME_ENGAGEMENT: 'Interacción',
+      OUTCOME_APP_PROMOTION: 'Apps',
+      // Legacy objectives (pre-2022 ODAX)
+      CONVERSIONS: 'Conversiones',
+      LINK_CLICKS: 'Clics',
+      REACH: 'Alcance',
+      BRAND_AWARENESS: 'Reconocimiento',
+      LEAD_GENERATION: 'Leads',
+      MESSAGES: 'Mensajes',
+      VIDEO_VIEWS: 'Video',
+      CATALOG_SALES: 'Ventas catálogo',
+      POST_ENGAGEMENT: 'Interacción',
+    };
+
+    const fetchBatch = async (ids, fields) => {
+      const result = {};
+      for (let i = 0; i < ids.length; i += 50) {
+        const chunk = ids.slice(i, i + 50);
+        try {
+          const response = await axios.get(`${FB_GRAPH_API_URL}/`, {
+            params: { ids: chunk.join(','), fields, access_token: this.accessToken },
+          });
+          Object.assign(result, response.data);
+        } catch (e) {
+          // Non-fatal — leave fields empty for missing entities
+        }
+      }
+      return result;
+    };
+
+    const uniqueCampaignIds = [...new Set(ads.map((a) => a.campaign_id).filter(Boolean))];
+    const uniqueAdsetIds = [...new Set(ads.map((a) => a.adset_id).filter(Boolean))];
+
+    const [campaignsMeta, adsetsMeta] = await Promise.all([
+      uniqueCampaignIds.length > 0
+        ? fetchBatch(uniqueCampaignIds, 'name,objective,effective_status')
+        : {},
+      uniqueAdsetIds.length > 0
+        ? fetchBatch(uniqueAdsetIds, 'name,effective_status')
+        : {},
+    ]);
+
+    ads.forEach((ad) => {
+      const c = campaignsMeta[ad.campaign_id];
+      const s = adsetsMeta[ad.adset_id];
+      const objectiveCode = c?.objective || null;
+      ad.campaign_objective = objectiveCode;
+      ad.campaign_objective_label = objectiveCode
+        ? objectiveLabels[objectiveCode] || objectiveCode
+        : null;
+      ad.campaign_status = c?.effective_status || null;
+      ad.adset_status = s?.effective_status || null;
     });
 
     // Fetch preview links and adset budgets in chunks of 50

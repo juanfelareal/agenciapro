@@ -3,6 +3,7 @@ import { usePortal } from '../../context/PortalContext';
 import { portalMetricsAPI } from '../../utils/portalApi';
 import MetricsTable from '../../components/MetricsTable';
 import CollapsibleSection from '../../components/CollapsibleSection';
+import FacebookCampaignsBreakdown from '../../components/portal/FacebookCampaignsBreakdown';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
   PieChart, Pie, Cell,
@@ -1018,6 +1019,26 @@ export default function PortalMetrics() {
                     <TrendIndicator value={metrics.facebook.cost_per_landing_page_view_change} inverted />
                   </div>
                 </div>
+              </div>
+
+              {/* Detalle por campaña / ad set / ads */}
+              <FacebookCampaignsBreakdown
+                startDate={resolveDateRange()?.start_date}
+                endDate={resolveDateRange()?.end_date}
+              />
+
+              {/* Aviso de atribución de Facebook */}
+              <div className="mt-6 p-4 rounded-xl bg-red-50 border border-red-200">
+                <p className="text-sm font-semibold text-red-800 mb-1 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Atribución de Facebook Ads
+                </p>
+                <p className="text-sm text-red-700 leading-relaxed">
+                  Debido a la problemática de atribución de Facebook Ads es importante revisar las
+                  métricas combinadas. ¿Qué quiere decir esto? Que Facebook Ads nunca garantiza que
+                  realmente la información sea 100% correcta. Por lo general, la información reporta
+                  menos ventas de las que realmente generó.
+                </p>
               </div>
 
             </div>
