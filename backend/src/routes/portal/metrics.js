@@ -90,7 +90,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart,
         COALESCE(SUM(shopify_all_orders_revenue), 0) as total_all_orders_revenue,
         COALESCE(SUM(shopify_all_orders_count), 0) as total_all_orders_count,
-        COALESCE(SUM(shopify_net_revenue), 0) as total_net_revenue
+        COALESCE(SUM(shopify_net_revenue), 0) as total_net_revenue,
+        COALESCE(SUM(shopify_refunds), 0) as total_refunds
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -119,7 +120,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(fb_add_to_cart), 0) as total_add_to_cart,
         COALESCE(SUM(shopify_all_orders_revenue), 0) as total_all_orders_revenue,
         COALESCE(SUM(shopify_all_orders_count), 0) as total_all_orders_count,
-        COALESCE(SUM(shopify_net_revenue), 0) as total_net_revenue
+        COALESCE(SUM(shopify_net_revenue), 0) as total_net_revenue,
+        COALESCE(SUM(shopify_refunds), 0) as total_refunds
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -265,6 +267,11 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         portalRevenueLabel = 'Venta Total Confirmada';
       }
 
+      const netRevenue = p(current?.total_net_revenue);
+      const refunds = p(current?.total_refunds);
+      const prevNetRevenue = p(previous?.total_net_revenue);
+      const prevRefunds = p(previous?.total_refunds);
+
       response.shopify = {
         revenue: portalRevenue,
         revenue_label: portalRevenueLabel,
@@ -276,6 +283,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         sessions: sessions,
         conversion_rate: conversionRate,
         pending_orders: pendingOrders,
+        net_revenue: netRevenue,
+        refunds: refunds,
         ...(hasComparison && {
           revenue_change: calcChange(portalRevenue, prevPortalRevenue),
           orders_change: calcChange(orders, prevOrders),
@@ -286,6 +295,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
           sessions_change: calcChange(sessions, prevSessions),
           conversion_rate_change: calcChange(conversionRate, prevConversionRate),
           pending_orders_change: calcChange(pendingOrders, prevPendingOrders),
+          net_revenue_change: calcChange(netRevenue, prevNetRevenue),
+          refunds_change: calcChange(refunds, prevRefunds),
         }),
       };
     }

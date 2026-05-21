@@ -159,6 +159,15 @@ export default function PortalMetrics() {
     }
   }, [compareDates.start, compareDates.end]);
 
+  // Auto-load top products as soon as we have Shopify data; reload when the
+  // date range changes so the list always matches the selected period.
+  useEffect(() => {
+    if (!metrics?.shopify) return;
+    setTopProducts(null); // trigger fresh fetch on range change
+    loadTopProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metrics?.period?.start_date, metrics?.period?.end_date, !!metrics?.shopify]);
+
   // Load ad preview when modal opens or format changes
   useEffect(() => {
     if (!previewAd) {
@@ -1142,55 +1151,87 @@ export default function PortalMetrics() {
                   </div>
                 </div>
 
-                {/* Sessions */}
+                {/* Venta Neta (sin IVA ni envío) */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-500">Sesiones</p>
+                      <p className="text-sm text-gray-500">Venta Neta</p>
                       <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                        {formatNumber(metrics.shopify.sessions)}
+                        {formatCurrency(metrics.shopify.net_revenue)}
                       </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">sin IVA ni envío</p>
                     </div>
-                    <TrendIndicator value={metrics.shopify.sessions_change} />
+                    <TrendIndicator value={metrics.shopify.net_revenue_change} />
                   </div>
                 </div>
 
-                {/* Conversion Rate */}
+                {/* Devoluciones */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-500">Tasa de Conversión</p>
+                      <p className="text-sm text-gray-500">Devoluciones</p>
                       <p className="text-xl font-bold text-[#1A1A2E] mt-1">
-                        {formatPercent(metrics.shopify.conversion_rate)}
+                        {formatCurrency(metrics.shopify.refunds)}
                       </p>
                     </div>
-                    <TrendIndicator value={metrics.shopify.conversion_rate_change} />
+                    <TrendIndicator value={metrics.shopify.refunds_change} inverted />
                   </div>
                 </div>
 
               </div>
 
-              {/* Aviso si sessions=0 pero hay pedidos: probable problema de permisos */}
-              {(metrics.shopify.sessions || 0) === 0 && (metrics.shopify.orders || 0) > 0 && (
-                <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
-                  <p className="text-sm font-semibold text-amber-800 mb-1 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    No estamos recibiendo el dato de sesiones
+              {/* Top 5 productos — autoload dentro del colapsable */}
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4 text-green-600" />
+                  Top 5 productos más vendidos
+                </h3>
+
+                {topProductsLoading && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                  </div>
+                )}
+
+                {topProducts !== null && !topProductsLoading && topProducts.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-6">
+                    No hay productos vendidos en este periodo
                   </p>
-                  <p className="text-sm text-amber-700 leading-relaxed">
-                    Hubo pedidos en este período pero Shopify no nos está devolviendo el número
-                    de sesiones, por eso la tasa de conversión sale en 0%. Suele ser por permisos
-                    de analítica en la tienda o por el plan de Shopify. El equipo de la agencia
-                    ya está en aviso.
-                  </p>
-                </div>
-              )}
+                )}
+
+                {topProducts !== null && !topProductsLoading && topProducts.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-500">
+                          <th className="text-left py-2 px-2 font-medium w-10">#</th>
+                          <th className="text-left py-2 px-2 font-medium">Producto</th>
+                          <th className="text-right py-2 px-2 font-medium">Unidades</th>
+                          <th className="text-right py-2 px-2 font-medium">Ingresos</th>
+                          <th className="text-right py-2 px-2 font-medium">Pedidos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topProducts.slice(0, 5).map((product, idx) => (
+                          <tr key={idx} className="border-b border-gray-50">
+                            <td className="py-2 px-2 text-gray-400 font-medium">{idx + 1}</td>
+                            <td className="py-2 px-2 text-[#1A1A2E]">{product.title}</td>
+                            <td className="py-2 px-2 text-right font-medium">{formatNumber(product.quantity)}</td>
+                            <td className="py-2 px-2 text-right font-semibold">{formatCurrency(product.revenue)}</td>
+                            <td className="py-2 px-2 text-right text-gray-500">{formatNumber(product.orders)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
             </CollapsibleSection>
           )}
 
-          {/* Top Products */}
-          {metrics?.shopify && (
+          {/* (Legacy) "Productos Más Vendidos" — removido, ahora vive dentro de la sección Shopify */}
+          {false && metrics?.shopify && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
