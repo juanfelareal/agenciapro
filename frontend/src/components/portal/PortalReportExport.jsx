@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
 import { Download, X, FileText, Loader2 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { portalMetricsAPI } from '../../utils/portalApi';
@@ -447,22 +448,31 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
         shopify: { ...(metrics?.shopify || {}), top_products: topRes?.products || [] },
       };
 
-      // Render the template into a hidden offscreen div and pdf-ify it
+      // Render the template into a temporary div that's inside the viewport
+      // (html2canvas can't capture off-screen elements reliably). We make it
+      // visually invisible (opacity 0, behind everything) but kept inside the
+      // page so the browser actually lays it out and paints it.
       const wrapper = document.createElement('div');
-      wrapper.style.position = 'fixed';
-      wrapper.style.left = '-10000px';
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '0';
       wrapper.style.top = '0';
       wrapper.style.width = '210mm';
-      wrapper.style.background = '#fff';
+      wrapper.style.background = '#ffffff';
+      wrapper.style.opacity = '0';
+      wrapper.style.pointerEvents = 'none';
+      wrapper.style.zIndex = '-9999';
       document.body.appendChild(wrapper);
 
-      // Manually render the React tree as static HTML through ReactDOM-less approach.
-      // Easier: build the HTML string via a transient mount using a portal-less pattern.
-      // html2pdf accepts DOM nodes directly, so we render via ReactDOMServer.
-      const ReactDOMServer = await import('react-dom/server');
-      wrapper.innerHTML = ReactDOMServer.renderToStaticMarkup(
+      // Mount React tree into the wrapper so styles + layout are computed.
+      const root = createRoot(wrapper);
+      root.render(
         <PdfTemplate client={client} period={period} insights={insights} metrics={enriched} ads={adsRes?.ads || []} />
       );
+
+      // Wait two animation frames so the browser has fully painted the layout.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      // Small extra delay for fonts/measurements to settle.
+      await new Promise((resolve) => setTimeout(resolve, 250));
 
       const filename = `reporte-${(client?.name || client?.company || 'cliente').toLowerCase().replace(/\s+/g, '-')}-${(period?.start_date || '').slice(0, 7)}.pdf`;
 
@@ -472,12 +482,14 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
           margin: 0,
           filename,
           image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
           pagebreak: { mode: ['css', 'legacy'] },
         })
         .save();
 
+      // Cleanup
+      root.unmount();
       document.body.removeChild(wrapper);
       setOpen(false);
       setInsights('');
