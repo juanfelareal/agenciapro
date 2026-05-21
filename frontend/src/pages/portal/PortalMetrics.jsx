@@ -1169,6 +1169,22 @@ export default function PortalMetrics() {
                 </div>
 
               </div>
+
+              {/* Aviso si sessions=0 pero hay pedidos: probable problema de permisos */}
+              {(metrics.shopify.sessions || 0) === 0 && (metrics.shopify.orders || 0) > 0 && (
+                <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                  <p className="text-sm font-semibold text-amber-800 mb-1 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    No estamos recibiendo el dato de sesiones
+                  </p>
+                  <p className="text-sm text-amber-700 leading-relaxed">
+                    Hubo pedidos en este período pero Shopify no nos está devolviendo el número
+                    de sesiones, por eso la tasa de conversión sale en 0%. Suele ser por permisos
+                    de analítica en la tienda o por el plan de Shopify. El equipo de la agencia
+                    ya está en aviso.
+                  </p>
+                </div>
+              )}
             </div>
             </CollapsibleSection>
           )}

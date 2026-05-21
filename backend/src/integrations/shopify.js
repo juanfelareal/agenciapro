@@ -224,57 +224,72 @@ class ShopifyIntegration {
    * @returns {Promise<number>}
    */
   async getSessions(startDate, endDate) {
-    try {
-      // ShopifyQL UNTIL is exclusive, so add 1 day to endDate to include it
-      const untilDate = new Date(endDate + 'T00:00:00');
-      untilDate.setDate(untilDate.getDate() + 1);
-      const untilStr = untilDate.toISOString().split('T')[0];
+    const diag = await this.getSessionsWithDiagnostics(startDate, endDate);
+    return diag.sessions;
+  }
 
-      const query = `{
-        shopifyqlQuery(query: "FROM visits SINCE ${startDate} UNTIL ${untilStr} SHOW sum(totalSessions)") {
-          __typename
-          ... on TableResponse {
-            tableData {
-              rowData
-              columns { name dataType }
-            }
+  /**
+   * Same as getSessions but returns { sessions, source, error, raw } so callers
+   * (including the diagnostics endpoint) can surface why sessions came back 0.
+   */
+  async getSessionsWithDiagnostics(startDate, endDate) {
+    // ShopifyQL UNTIL is exclusive, so add 1 day to endDate to include it
+    const untilDate = new Date(endDate + 'T00:00:00');
+    untilDate.setDate(untilDate.getDate() + 1);
+    const untilStr = untilDate.toISOString().split('T')[0];
+
+    // Try the modern dataset first, fall back to legacy if it errors out.
+    const queries = [
+      { source: 'sessions(visits)', sql: `FROM visits SINCE ${startDate} UNTIL ${untilStr} SHOW sum(totalSessions)` },
+      { source: 'sessions(online_store_sessions)', sql: `FROM online_store_sessions SINCE ${startDate} UNTIL ${untilStr} SHOW sum(sessions)` },
+    ];
+
+    let lastError = null;
+    for (const q of queries) {
+      try {
+        const response = await axios.post(
+          `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
+          { query: `{ shopifyqlQuery(query: "${q.sql}") { __typename ... on TableResponse { tableData { rowData columns { name dataType } } } } }` },
+          {
+            headers: {
+              'X-Shopify-Access-Token': this.accessToken,
+              'Content-Type': 'application/json',
+            },
           }
+        );
+
+        if (response.data?.errors?.length > 0) {
+          lastError = { source: q.source, errors: response.data.errors };
+          console.warn(`[Shopify ${this.storeUrl}] ShopifyQL error on ${q.source}:`, JSON.stringify(response.data.errors));
+          continue;
         }
-      }`;
 
-      const response = await axios.post(
-        `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
-        { query },
-        {
-          headers: {
-            'X-Shopify-Access-Token': this.accessToken,
-            'Content-Type': 'application/json'
-          }
+        const tableData = response.data?.data?.shopifyqlQuery?.tableData;
+        if (tableData?.rowData?.length > 0) {
+          const row = tableData.rowData[0];
+          const parsed = typeof row === 'string' ? JSON.parse(row) : row;
+          const value = Array.isArray(parsed) ? parsed[0] : parsed;
+          const sessions = parseInt(value) || 0;
+          return { sessions, source: q.source, error: null, raw: tableData };
         }
-      );
-
-      const queryResult = response.data?.data?.shopifyqlQuery;
-
-      // Check for errors in GraphQL response
-      if (response.data?.errors?.length > 0) {
-        console.warn(`ShopifyQL sessions error for ${this.storeUrl}:`, JSON.stringify(response.data.errors));
-        return 0;
+        // No rows = 0 sessions but no error — keep trying alternatives
+        lastError = { source: q.source, errors: 'empty rowData' };
+      } catch (error) {
+        const status = error.response?.status;
+        const body = error.response?.data;
+        lastError = {
+          source: q.source,
+          status,
+          message: error.message,
+          body: body ? JSON.stringify(body).slice(0, 500) : null,
+        };
+        console.warn(`[Shopify ${this.storeUrl}] sessions fetch failed (${q.source}):`, status, body || error.message);
+        // 401/403 = auth/scope problem — no point trying the next query
+        if (status === 401 || status === 403) break;
       }
-
-      const tableData = queryResult?.tableData;
-      if (tableData?.rowData?.length > 0) {
-        // rowData elements are JSON strings like '["123"]', need to parse
-        const row = tableData.rowData[0];
-        const parsed = typeof row === 'string' ? JSON.parse(row) : row;
-        const value = Array.isArray(parsed) ? parsed[0] : parsed;
-        return parseInt(value) || 0;
-      }
-      return 0;
-    } catch (error) {
-      // Graceful: return 0 if scope read_analytics not available (403)
-      console.warn(`Could not fetch sessions for ${this.storeUrl}:`, error.response?.status || error.message);
-      return 0;
     }
+
+    return { sessions: 0, source: null, error: lastError, raw: null };
   }
 
   /**

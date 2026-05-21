@@ -306,6 +306,32 @@ router.post('/shopify/:id/test', async (req, res) => {
   }
 });
 
+// Diagnose why sessions/conversion_rate are coming back as 0. Runs ShopifyQL
+// against the user's store and returns the raw response so we can see the
+// real error (missing scope, plan limitation, deprecated dataset, etc.).
+router.get('/shopify/:id/sessions-diagnostics', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { id } = req.params;
+    const startDate = req.query.start_date || new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    const endDate = req.query.end_date || new Date().toISOString().split('T')[0];
+
+    const cred = await db.prepare(`
+      SELECT csc.store_url, csc.access_token
+      FROM client_shopify_credentials csc
+      JOIN clients c ON csc.client_id = c.id
+      WHERE csc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
+    if (!cred) return res.status(404).json({ error: 'Credenciales no encontradas' });
+
+    const shopify = new ShopifyIntegration(cred.store_url, cred.access_token);
+    const diag = await shopify.getSessionsWithDiagnostics(startDate, endDate);
+    res.json({ store: cred.store_url, range: { startDate, endDate }, ...diag });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /**
  * DELETE /api/platform-credentials/shopify/:id
  * Disconnect Shopify from client
