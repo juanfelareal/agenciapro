@@ -1367,6 +1367,27 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_email_campaigns_client_date ON email_marketing_campaigns(client_id, sent_date DESC)`);
 
+    // Shopify Email metrics — match the exact fields Shopify shows
+    const emailCampaignExtraColumns = [
+      ['delivery_rate', 'REAL DEFAULT 0'],
+      ['bounce_rate', 'REAL DEFAULT 0'],
+      ['open_rate', 'REAL DEFAULT 0'],
+      ['unsubscribe_rate', 'REAL DEFAULT 0'],
+      ['spam_rate', 'REAL DEFAULT 0'],
+      ['click_rate', 'REAL DEFAULT 0'],
+      ['conversion_rate', 'REAL DEFAULT 0'],
+      ['sessions', 'INTEGER DEFAULT 0'],
+      ['unique_visitors', 'INTEGER DEFAULT 0'],
+      ['added_to_cart', 'INTEGER DEFAULT 0'],
+    ];
+    for (const [col, type] of emailCampaignExtraColumns) {
+      try {
+        await pool.query(`ALTER TABLE email_marketing_campaigns ADD COLUMN IF NOT EXISTS ${col} ${type}`);
+      } catch (e) {
+        console.log(`  ⏭️  email_marketing_campaigns.${col} migration skipped:`, e.message);
+      }
+    }
+
     // Reports the agency uploads for a client (monthly close, biweekly partial, etc.)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_reports (

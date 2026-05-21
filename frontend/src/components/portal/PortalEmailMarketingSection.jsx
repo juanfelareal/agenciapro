@@ -6,6 +6,7 @@ const fmtCurrency = (v) => `$${Math.round(v || 0).toLocaleString('es-CO')}`;
 const fmtInt = (v) => (v || 0).toLocaleString('es-CO');
 const fmtPct = (v) => `${(v || 0).toFixed(1)}%`;
 const rate = (a, b) => (b > 0 ? (a / b) * 100 : 0);
+const pickRate = (direct, num, denom) => (direct > 0 ? direct : rate(num, denom));
 const fmtDate = (d) => {
   if (!d) return '';
   const [y, m, day] = d.split('T')[0].split('-').map(Number);
@@ -73,47 +74,63 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
         </div>
       )}
 
-      {!loading && campaigns.length > 0 && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <Stat label="Enviados" value={fmtInt(totals.recipients)} />
-            <Stat label="Aperturas" value={fmtInt(totals.opens)} sub={fmtPct(rate(totals.opens, totals.delivered))} />
-            <Stat label="Clicks" value={fmtInt(totals.clicks)} sub={fmtPct(rate(totals.clicks, totals.delivered))} />
-            <Stat label="Revenue" value={fmtCurrency(totals.revenue)} sub={`${fmtInt(totals.orders)} pedidos`} accent="text-emerald-600" />
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs uppercase tracking-wide text-gray-500 border-b border-gray-100">
-                  <th className="text-left py-2 pr-3 font-medium">Campaña</th>
-                  <th className="text-left py-2 px-3 font-medium">Fecha</th>
-                  <th className="text-right py-2 px-3 font-medium">Enviados</th>
-                  <th className="text-right py-2 px-3 font-medium">Apertura</th>
-                  <th className="text-right py-2 px-3 font-medium">Click</th>
-                  <th className="text-right py-2 px-3 font-medium">Pedidos</th>
-                  <th className="text-right py-2 pl-3 font-medium">Revenue</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {campaigns.map((c) => (
-                  <tr key={c.id}>
-                    <td className="py-2 pr-3">
-                      <p className="font-medium text-[#1A1A2E]">{c.campaign_name}</p>
-                      {c.subject && <p className="text-xs text-gray-400">{c.subject}</p>}
-                    </td>
-                    <td className="py-2 px-3 text-gray-600">{fmtDate(c.sent_date)}</td>
-                    <td className="py-2 px-3 text-right">{fmtInt(c.recipients)}</td>
-                    <td className="py-2 px-3 text-right">{fmtPct(rate(c.opens, c.delivered))}</td>
-                    <td className="py-2 px-3 text-right">{fmtPct(rate(c.clicks, c.delivered))}</td>
-                    <td className="py-2 px-3 text-right">{fmtInt(c.orders)}</td>
-                    <td className="py-2 pl-3 text-right font-semibold">{fmtCurrency(c.revenue)}</td>
+      {!loading && campaigns.length > 0 && (() => {
+        const weighted = (key, denomKey) => {
+          let num = 0, denom = 0;
+          for (const c of campaigns) {
+            const d = c[denomKey] || 0;
+            num += (c[key] || 0) * d;
+            denom += d;
+          }
+          return denom > 0 ? num / denom : 0;
+        };
+        const avgOpen = weighted('open_rate', 'recipients');
+        const avgClick = weighted('click_rate', 'recipients');
+        const avgConv = weighted('conversion_rate', 'sessions');
+        return (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <Stat label="Correos enviados" value={fmtInt(totals.recipients)} />
+              <Stat label="Tasa de apertura" value={fmtPct(avgOpen)} />
+              <Stat label="Tasa de clics" value={fmtPct(avgClick)} />
+              <Stat label="Ventas totales" value={fmtCurrency(totals.revenue)} sub={`${fmtInt(totals.orders)} pedidos · ${fmtPct(avgConv)} conv.`} accent="text-emerald-600" />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs uppercase tracking-wide text-gray-500 border-b border-gray-100">
+                    <th className="text-left py-2 pr-3 font-medium">Campaña</th>
+                    <th className="text-left py-2 px-3 font-medium">Fecha</th>
+                    <th className="text-right py-2 px-3 font-medium">Enviados</th>
+                    <th className="text-right py-2 px-3 font-medium">Apertura</th>
+                    <th className="text-right py-2 px-3 font-medium">Clics</th>
+                    <th className="text-right py-2 px-3 font-medium">Conv.</th>
+                    <th className="text-right py-2 px-3 font-medium">Pedidos</th>
+                    <th className="text-right py-2 pl-3 font-medium">Ventas</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {campaigns.map((c) => (
+                    <tr key={c.id}>
+                      <td className="py-2 pr-3">
+                        <p className="font-medium text-[#1A1A2E]">{c.campaign_name}</p>
+                        {c.subject && <p className="text-xs text-gray-400">{c.subject}</p>}
+                      </td>
+                      <td className="py-2 px-3 text-gray-600">{fmtDate(c.sent_date)}</td>
+                      <td className="py-2 px-3 text-right">{fmtInt(c.recipients)}</td>
+                      <td className="py-2 px-3 text-right">{fmtPct(pickRate(c.open_rate, c.opens, c.delivered))}</td>
+                      <td className="py-2 px-3 text-right">{fmtPct(pickRate(c.click_rate, c.clicks, c.delivered))}</td>
+                      <td className="py-2 px-3 text-right">{fmtPct(c.conversion_rate)}</td>
+                      <td className="py-2 px-3 text-right">{fmtInt(c.orders)}</td>
+                      <td className="py-2 pl-3 text-right font-semibold">{fmtCurrency(c.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

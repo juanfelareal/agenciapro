@@ -14,18 +14,34 @@ const fmtDate = (d) => {
 };
 const rate = (a, b) => (b > 0 ? (a / b) * 100 : 0);
 const fmtPct = (v) => `${(v || 0).toFixed(1)}%`;
+// Prefer the rate the user typed (matches Shopify exactly); fall back to a derived value
+const pickRate = (directRate, num, denom) => (directRate > 0 ? directRate : rate(num, denom));
 
 const blankCampaign = {
   campaign_name: '',
   subject: '',
   sent_date: new Date().toISOString().split('T')[0],
+  // Capacidad de entrega
   recipients: 0,
-  delivered: 0,
+  delivery_rate: 0,
+  bounce_rate: 0,
+  open_rate: 0,
+  unsubscribe_rate: 0,
+  spam_rate: 0,
+  // Rendimiento
+  click_rate: 0,
+  sessions: 0,
+  conversion_rate: 0,
+  revenue: 0,
+  orders: 0,
+  // Embudo de conversión
   opens: 0,
+  unique_visitors: 0,
+  added_to_cart: 0,
+  // Derivados (mantener compatibilidad)
+  delivered: 0,
   clicks: 0,
   unsubscribes: 0,
-  orders: 0,
-  revenue: 0,
   notes: '',
 };
 
@@ -69,12 +85,22 @@ export default function ClientEmailMarketing() {
       subject: c.subject || '',
       sent_date: (c.sent_date || '').split('T')[0],
       recipients: c.recipients || 0,
-      delivered: c.delivered || 0,
+      delivery_rate: c.delivery_rate || 0,
+      bounce_rate: c.bounce_rate || 0,
+      open_rate: c.open_rate || 0,
+      unsubscribe_rate: c.unsubscribe_rate || 0,
+      spam_rate: c.spam_rate || 0,
+      click_rate: c.click_rate || 0,
+      sessions: c.sessions || 0,
+      conversion_rate: c.conversion_rate || 0,
+      revenue: c.revenue || 0,
+      orders: c.orders || 0,
       opens: c.opens || 0,
+      unique_visitors: c.unique_visitors || 0,
+      added_to_cart: c.added_to_cart || 0,
+      delivered: c.delivered || 0,
       clicks: c.clicks || 0,
       unsubscribes: c.unsubscribes || 0,
-      orders: c.orders || 0,
-      revenue: c.revenue || 0,
       notes: c.notes || '',
     });
     setShowModal(true);
@@ -151,26 +177,42 @@ export default function ClientEmailMarketing() {
         </button>
       </div>
 
-      {/* Resumen */}
-      {campaigns.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Campañas', value: fmtInt(campaigns.length) },
-            { label: 'Enviados', value: fmtInt(totals.recipients) },
-            { label: 'Aperturas', value: `${fmtInt(totals.opens)} (${fmtPct(rate(totals.opens, totals.delivered))})` },
-            { label: 'Clicks', value: `${fmtInt(totals.clicks)} (${fmtPct(rate(totals.clicks, totals.delivered))})` },
-            { label: 'Bajas', value: fmtInt(totals.unsubscribes) },
-            { label: 'Pedidos', value: fmtInt(totals.orders) },
-            { label: 'Revenue', value: fmtCurrency(totals.revenue) },
-            { label: 'CTR sobre apertura', value: fmtPct(rate(totals.clicks, totals.opens)) },
-          ].map((m, i) => (
-            <div key={i} className="bg-white border border-gray-100 rounded-xl p-4">
-              <p className="text-xs text-gray-500">{m.label}</p>
-              <p className="text-lg font-bold text-[#1A1A2E] mt-1">{m.value}</p>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Resumen — promedios ponderados por enviados / aperturas */}
+      {campaigns.length > 0 && (() => {
+        const weighted = (key, denomKey) => {
+          let num = 0, denom = 0;
+          for (const c of campaigns) {
+            const d = c[denomKey] || 0;
+            const r = c[key] || 0;
+            num += r * d;
+            denom += d;
+          }
+          return denom > 0 ? num / denom : 0;
+        };
+        const avgOpen = weighted('open_rate', 'recipients');
+        const avgClick = weighted('click_rate', 'recipients');
+        const avgConv = weighted('conversion_rate', 'sessions');
+        const avgBounce = weighted('bounce_rate', 'recipients');
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Campañas', value: fmtInt(campaigns.length) },
+              { label: 'Correos enviados', value: fmtInt(totals.recipients) },
+              { label: 'Tasa de apertura', value: fmtPct(avgOpen) },
+              { label: 'Tasa de clics', value: fmtPct(avgClick) },
+              { label: 'Tasa de conversión', value: fmtPct(avgConv) },
+              { label: 'Tasa de rebote', value: fmtPct(avgBounce) },
+              { label: 'Ventas totales', value: fmtCurrency(totals.revenue) },
+              { label: 'Pedidos', value: fmtInt(totals.orders) },
+            ].map((m, i) => (
+              <div key={i} className="bg-white border border-gray-100 rounded-xl p-4">
+                <p className="text-xs text-gray-500">{m.label}</p>
+                <p className="text-lg font-bold text-[#1A1A2E] mt-1">{m.value}</p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Tabla */}
       {campaigns.length === 0 ? (
@@ -188,11 +230,13 @@ export default function ClientEmailMarketing() {
                   <th className="text-left py-3 px-4 font-medium">Campaña</th>
                   <th className="text-left py-3 px-3 font-medium">Fecha</th>
                   <th className="text-right py-3 px-3 font-medium">Enviados</th>
-                  <th className="text-right py-3 px-3 font-medium">Aperturas</th>
-                  <th className="text-right py-3 px-3 font-medium">Clicks</th>
+                  <th className="text-right py-3 px-3 font-medium">Apertura</th>
+                  <th className="text-right py-3 px-3 font-medium">Clics</th>
+                  <th className="text-right py-3 px-3 font-medium">Sesiones</th>
+                  <th className="text-right py-3 px-3 font-medium">Conv.</th>
                   <th className="text-right py-3 px-3 font-medium">Pedidos</th>
-                  <th className="text-right py-3 px-3 font-medium">Revenue</th>
-                  <th className="text-right py-3 px-3 font-medium w-24">Acciones</th>
+                  <th className="text-right py-3 px-3 font-medium">Ventas</th>
+                  <th className="text-right py-3 px-3 font-medium w-20">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -204,21 +248,17 @@ export default function ClientEmailMarketing() {
                     </td>
                     <td className="py-3 px-3 text-gray-600">{fmtDate(c.sent_date)}</td>
                     <td className="py-3 px-3 text-right">{fmtInt(c.recipients)}</td>
-                    <td className="py-3 px-3 text-right">
-                      <p>{fmtInt(c.opens)}</p>
-                      <p className="text-xs text-gray-400">{fmtPct(rate(c.opens, c.delivered))}</p>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <p>{fmtInt(c.clicks)}</p>
-                      <p className="text-xs text-gray-400">{fmtPct(rate(c.clicks, c.delivered))}</p>
-                    </td>
+                    <td className="py-3 px-3 text-right">{fmtPct(pickRate(c.open_rate, c.opens, c.delivered))}</td>
+                    <td className="py-3 px-3 text-right">{fmtPct(pickRate(c.click_rate, c.clicks, c.delivered))}</td>
+                    <td className="py-3 px-3 text-right">{fmtInt(c.sessions)}</td>
+                    <td className="py-3 px-3 text-right">{fmtPct(c.conversion_rate)}</td>
                     <td className="py-3 px-3 text-right">{fmtInt(c.orders)}</td>
                     <td className="py-3 px-3 text-right font-semibold">{fmtCurrency(c.revenue)}</td>
                     <td className="py-3 px-3 text-right">
-                      <button onClick={() => openEdit(c)} className="text-gray-400 hover:text-blue-600 p-1.5 rounded">
+                      <button onClick={() => openEdit(c)} className="text-gray-400 hover:text-blue-600 p-1 rounded">
                         <Edit size={14} />
                       </button>
-                      <button onClick={() => remove(c)} className="text-gray-400 hover:text-red-500 p-1.5 rounded">
+                      <button onClick={() => remove(c)} className="text-gray-400 hover:text-red-500 p-1 rounded">
                         <Trash2 size={14} />
                       </button>
                     </td>
@@ -231,110 +271,177 @@ export default function ClientEmailMarketing() {
       )}
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[#1A1A2E]">
-                {editingId ? 'Editar campaña' : 'Registrar campaña'}
-              </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Nombre de campaña *</label>
-                  <input
-                    type="text"
-                    value={form.campaign_name}
-                    onChange={(e) => setForm({ ...form, campaign_name: e.target.value })}
-                    placeholder="Ej: Newsletter Día de la Madre"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Fecha de envío *</label>
-                  <input
-                    type="date"
-                    value={form.sent_date}
-                    onChange={(e) => setForm({ ...form, sent_date: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
+      {showModal && <CampaignModal form={form} setForm={setForm} editingId={editingId} saving={saving} onSave={save} onClose={() => setShowModal(false)} />}
+    </div>
+  );
+}
+
+// ====== Modal: registrar / editar campaña (sigue el formato exacto de Shopify Email) ======
+function CampaignModal({ form, setForm, editingId, saving, onSave, onClose }) {
+  const setField = (key, value) => setForm({ ...form, [key]: value });
+  const setNumeric = (key, value) => setForm({ ...form, [key]: Number(value) || 0 });
+
+  // Derived helper: valor medio del pedido = revenue / orders
+  const avgOrder = form.orders > 0 ? form.revenue / form.orders : 0;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-xl max-h-[92vh] flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-[#1A1A2E]">
+              {editingId ? 'Editar campaña' : 'Registrar campaña'}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">Mismas métricas que muestra Shopify Email</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto space-y-5">
+          {/* Identificación */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Identificación</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Nombre de campaña *</label>
+                <input
+                  type="text"
+                  value={form.campaign_name}
+                  onChange={(e) => setField('campaign_name', e.target.value)}
+                  placeholder="Ej: Para la mujer que siempre está presente"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Asunto del email</label>
+                <label className="block text-xs text-gray-600 mb-1">Fecha de envío *</label>
+                <input
+                  type="date"
+                  value={form.sent_date}
+                  onChange={(e) => setField('sent_date', e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-600 mb-1">Asunto del email</label>
                 <input
                   type="text"
                   value={form.subject}
-                  onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                  placeholder="Ej: 🎁 -20% solo este fin de semana"
+                  onChange={(e) => setField('subject', e.target.value)}
+                  placeholder="Ej: Hasta 30% OFF y 2x1 en maquillaje"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                 />
               </div>
-              <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Métricas de envío</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    ['recipients', 'Enviados'],
-                    ['delivered', 'Entregados'],
-                    ['opens', 'Aperturas'],
-                    ['clicks', 'Clicks'],
-                    ['unsubscribes', 'Bajas'],
-                    ['orders', 'Pedidos'],
-                  ].map(([key, label]) => (
-                    <div key={key}>
-                      <label className="block text-xs text-gray-500 mb-1">{label}</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={form[key]}
-                        onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) || 0 })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                      />
-                    </div>
-                  ))}
-                  <div className="col-span-2 md:col-span-2">
-                    <label className="block text-xs text-gray-500 mb-1">Revenue atribuido (COP)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={form.revenue}
-                      onChange={(e) => setForm({ ...form, revenue: Number(e.target.value) || 0 })}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Notas (opcional)</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
-                Cancelar
-              </button>
-              <button
-                onClick={save}
-                disabled={saving}
-                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                {saving ? 'Guardando…' : 'Guardar'}
-              </button>
             </div>
           </div>
+
+          {/* Capacidad de entrega */}
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Capacidad de entrega</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <NumField label="Correos enviados" value={form.recipients} onChange={(v) => setNumeric('recipients', v)} />
+              <PctField label="Tasa de entrega" value={form.delivery_rate} onChange={(v) => setNumeric('delivery_rate', v)} />
+              <PctField label="Tasa de rebote" value={form.bounce_rate} onChange={(v) => setNumeric('bounce_rate', v)} />
+              <PctField label="Tasa de apertura" value={form.open_rate} onChange={(v) => setNumeric('open_rate', v)} />
+              <PctField label="Tasa de cancelación" value={form.unsubscribe_rate} onChange={(v) => setNumeric('unsubscribe_rate', v)} />
+              <PctField label="Tasa de spam" value={form.spam_rate} onChange={(v) => setNumeric('spam_rate', v)} />
+            </div>
+          </div>
+
+          {/* Rendimiento */}
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Rendimiento</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <PctField label="Tasa de clics" value={form.click_rate} onChange={(v) => setNumeric('click_rate', v)} />
+              <NumField label="Sesiones" value={form.sessions} onChange={(v) => setNumeric('sessions', v)} />
+              <PctField label="Tasa de conversión" value={form.conversion_rate} onChange={(v) => setNumeric('conversion_rate', v)} />
+              <NumField label="Ventas totales (COP)" value={form.revenue} onChange={(v) => setNumeric('revenue', v)} />
+              <NumField label="Total de pedidos" value={form.orders} onChange={(v) => setNumeric('orders', v)} />
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Valor medio del pedido</label>
+                <div className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">
+                  ${Math.round(avgOrder).toLocaleString('es-CO')}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5">Calculado: ventas / pedidos</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Embudo de conversión */}
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Embudo de conversión</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <NumField label="Aperturas (únicas)" value={form.opens} onChange={(v) => setNumeric('opens', v)} />
+              <NumField label="Visitantes únicos" value={form.unique_visitors} onChange={(v) => setNumeric('unique_visitors', v)} />
+              <NumField label="Añadidos al carrito" value={form.added_to_cart} onChange={(v) => setNumeric('added_to_cart', v)} />
+              <NumField label="Pedidos" value={form.orders} onChange={(v) => setNumeric('orders', v)} />
+            </div>
+          </div>
+
+          {/* Notas */}
+          <div className="border-t border-gray-100 pt-4">
+            <label className="block text-xs text-gray-600 mb-1">Notas (opcional)</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setField('notes', e.target.value)}
+              rows={2}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
         </div>
-      )}
+
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
+            Cancelar
+          </button>
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Atomic field components
+function NumField({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <input
+        type="number"
+        min="0"
+        step="any"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+      />
+    </div>
+  );
+}
+
+function PctField({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="0.1"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm"
+        />
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">%</span>
+      </div>
     </div>
   );
 }

@@ -30,6 +30,7 @@ const fmtInt = (v) => (v || 0).toLocaleString('es-CO');
 const fmtRoas = (v) => `${(v || 0).toFixed(2)}x`;
 const fmtPct = (v) => `${(v || 0).toFixed(1)}%`;
 const rate = (a, b) => (b > 0 ? (a / b) * 100 : 0);
+const pickRate = (direct, num, denom) => (direct > 0 ? direct : rate(num, denom));
 const fmtDelta = (v) => {
   if (v == null || !isFinite(v)) return '';
   const sign = v > 0 ? '+' : '';
@@ -273,6 +274,19 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
     orders: acc.orders + (c.orders || 0),
     revenue: acc.revenue + (c.revenue || 0),
   }), { recipients: 0, delivered: 0, opens: 0, clicks: 0, unsubscribes: 0, orders: 0, revenue: 0 });
+  // Weighted averages — match Shopify's own averaging
+  {
+    let openNum = 0, openDen = 0, clickNum = 0, clickDen = 0;
+    for (const c of emailCampaigns || []) {
+      const d = c.recipients || 0;
+      openNum += (c.open_rate || pickRate(0, c.opens, c.delivered)) * d;
+      clickNum += (c.click_rate || pickRate(0, c.clicks, c.delivered)) * d;
+      openDen += d;
+      clickDen += d;
+    }
+    emailTotals.avgOpen = openDen > 0 ? openNum / openDen : 0;
+    emailTotals.avgClick = clickDen > 0 ? clickNum / clickDen : 0;
+  }
 
   const clientLabel = (client?.company || client?.name || 'Cliente').toUpperCase();
   const periodLabel = period
@@ -347,31 +361,33 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
         ) : (
           <>
             <View style={s.cardRow}>
-              <Card label="Envios" value={fmtInt(emailTotals.recipients)} accent={C.pink} />
-              <Card label="Aperturas" value={fmtPct(rate(emailTotals.opens, emailTotals.delivered))} sublabel={`${fmtInt(emailTotals.opens)} unicos`} accent={C.pink} />
-              <Card label="Clicks" value={fmtPct(rate(emailTotals.clicks, emailTotals.delivered))} sublabel={`${fmtInt(emailTotals.clicks)} unicos`} accent={C.pink} />
-              <Card label="Revenue atribuido" value={fmtCurrency(emailTotals.revenue)} sublabel={`${fmtInt(emailTotals.orders)} pedidos`} accent={C.green} last />
+              <Card label="Correos enviados" value={fmtInt(emailTotals.recipients)} accent={C.pink} />
+              <Card label="Tasa de apertura" value={fmtPct(emailTotals.avgOpen)} accent={C.pink} />
+              <Card label="Tasa de clics" value={fmtPct(emailTotals.avgClick)} accent={C.pink} />
+              <Card label="Ventas atribuidas" value={fmtCurrency(emailTotals.revenue)} sublabel={`${fmtInt(emailTotals.orders)} pedidos`} accent={C.green} last />
             </View>
             <View style={s.table}>
               <View style={s.tableHeader}>
-                <Text style={[s.tableHeaderCell, { width: '36%' }]}>CAMPANA</Text>
-                <Text style={[s.tableHeaderCell, { width: '12%' }]}>FECHA</Text>
+                <Text style={[s.tableHeaderCell, { width: '32%' }]}>CAMPANA</Text>
+                <Text style={[s.tableHeaderCell, { width: '10%' }]}>FECHA</Text>
                 <Text style={[s.tableHeaderCell, { width: '10%', textAlign: 'right' }]}>ENVIOS</Text>
-                <Text style={[s.tableHeaderCell, { width: '10%', textAlign: 'right' }]}>APERTURA</Text>
-                <Text style={[s.tableHeaderCell, { width: '8%', textAlign: 'right' }]}>CLICK</Text>
+                <Text style={[s.tableHeaderCell, { width: '8%', textAlign: 'right' }]}>APERTURA</Text>
+                <Text style={[s.tableHeaderCell, { width: '8%', textAlign: 'right' }]}>CLICS</Text>
+                <Text style={[s.tableHeaderCell, { width: '8%', textAlign: 'right' }]}>CONV.</Text>
                 <Text style={[s.tableHeaderCell, { width: '8%', textAlign: 'right' }]}>PEDIDOS</Text>
-                <Text style={[s.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>REVENUE</Text>
+                <Text style={[s.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>VENTAS</Text>
               </View>
               {emailCampaigns.map((c, i) => (
                 <View key={i} style={s.tableRow}>
-                  <View style={{ width: '36%', paddingRight: 4 }}>
+                  <View style={{ width: '32%', paddingRight: 4 }}>
                     <Text style={{ fontSize: 8, fontFamily: FONT_BOLD, color: C.ink }}>{c.campaign_name}</Text>
                     {c.subject && <Text style={{ fontSize: 7, color: C.textLight }}>{c.subject}</Text>}
                   </View>
-                  <Text style={[s.tableCell, { width: '12%' }]}>{fmtDateShort(c.sent_date)}</Text>
+                  <Text style={[s.tableCell, { width: '10%' }]}>{fmtDateShort(c.sent_date)}</Text>
                   <Text style={[s.tableCell, { width: '10%', textAlign: 'right' }]}>{fmtInt(c.recipients)}</Text>
-                  <Text style={[s.tableCell, { width: '10%', textAlign: 'right' }]}>{fmtPct(rate(c.opens, c.delivered))}</Text>
-                  <Text style={[s.tableCell, { width: '8%', textAlign: 'right' }]}>{fmtPct(rate(c.clicks, c.delivered))}</Text>
+                  <Text style={[s.tableCell, { width: '8%', textAlign: 'right' }]}>{fmtPct(pickRate(c.open_rate, c.opens, c.delivered))}</Text>
+                  <Text style={[s.tableCell, { width: '8%', textAlign: 'right' }]}>{fmtPct(pickRate(c.click_rate, c.clicks, c.delivered))}</Text>
+                  <Text style={[s.tableCell, { width: '8%', textAlign: 'right' }]}>{fmtPct(c.conversion_rate)}</Text>
                   <Text style={[s.tableCell, { width: '8%', textAlign: 'right' }]}>{fmtInt(c.orders)}</Text>
                   <Text style={[s.tableCell, { width: '16%', textAlign: 'right', fontFamily: FONT_BOLD }]}>{fmtCurrency(c.revenue)}</Text>
                 </View>

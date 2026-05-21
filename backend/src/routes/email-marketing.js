@@ -44,14 +44,23 @@ router.post('/:clientId', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO email_marketing_campaigns (client_id, organization_id, campaign_name, subject, sent_date, recipients, delivered, opens, clicks, unsubscribes, orders, revenue, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO email_marketing_campaigns (
+        client_id, organization_id, campaign_name, subject, sent_date,
+        recipients, delivered, opens, clicks, unsubscribes, orders, revenue, notes,
+        delivery_rate, bounce_rate, open_rate, unsubscribe_rate, spam_rate,
+        click_rate, conversion_rate, sessions, unique_visitors, added_to_cart
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       req.params.clientId, orgId,
       b.campaign_name, b.subject || null, b.sent_date,
       numeric(b.recipients), numeric(b.delivered), numeric(b.opens),
       numeric(b.clicks), numeric(b.unsubscribes), numeric(b.orders),
       numeric(b.revenue), b.notes || null,
+      numeric(b.delivery_rate), numeric(b.bounce_rate), numeric(b.open_rate),
+      numeric(b.unsubscribe_rate), numeric(b.spam_rate),
+      numeric(b.click_rate), numeric(b.conversion_rate),
+      numeric(b.sessions), numeric(b.unique_visitors), numeric(b.added_to_cart),
     );
 
     const created = await db.prepare('SELECT * FROM email_marketing_campaigns WHERE id = ?')
@@ -77,6 +86,10 @@ router.put('/:clientId/:campaignId', async (req, res) => {
       SET campaign_name = ?, subject = ?, sent_date = ?,
           recipients = ?, delivered = ?, opens = ?, clicks = ?,
           unsubscribes = ?, orders = ?, revenue = ?, notes = ?,
+          delivery_rate = ?, bounce_rate = ?, open_rate = ?,
+          unsubscribe_rate = ?, spam_rate = ?,
+          click_rate = ?, conversion_rate = ?,
+          sessions = ?, unique_visitors = ?, added_to_cart = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
@@ -91,6 +104,16 @@ router.put('/:clientId/:campaignId', async (req, res) => {
       numeric(b.orders ?? existing.orders),
       numeric(b.revenue ?? existing.revenue),
       b.notes ?? existing.notes,
+      numeric(b.delivery_rate ?? existing.delivery_rate),
+      numeric(b.bounce_rate ?? existing.bounce_rate),
+      numeric(b.open_rate ?? existing.open_rate),
+      numeric(b.unsubscribe_rate ?? existing.unsubscribe_rate),
+      numeric(b.spam_rate ?? existing.spam_rate),
+      numeric(b.click_rate ?? existing.click_rate),
+      numeric(b.conversion_rate ?? existing.conversion_rate),
+      numeric(b.sessions ?? existing.sessions),
+      numeric(b.unique_visitors ?? existing.unique_visitors),
+      numeric(b.added_to_cart ?? existing.added_to_cart),
       req.params.campaignId,
     );
 
