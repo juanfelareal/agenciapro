@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { Download, X, FileText, Loader2 } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
 import { portalMetricsAPI } from '../../utils/portalApi';
 
 const fmtCurrency = (v) => `$${Math.round(v || 0).toLocaleString('es-CO')}`;
@@ -448,68 +447,68 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
         shopify: { ...(metrics?.shopify || {}), top_products: topRes?.products || [] },
       };
 
-      // html2canvas (used by html2pdf under the hood) DOES NOT support
-      // position:fixed elements — it silently skips them, leaving a blank
-      // canvas. So we mount the template at position:absolute, scrolled to
-      // the top of the page, and let it occupy real document flow off to the
-      // right where the user won't see it. The browser still paints it and
-      // html2canvas captures it correctly.
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'absolute';
-      wrapper.style.top = '0';
-      wrapper.style.left = '0';
-      wrapper.style.width = '210mm';
-      wrapper.style.background = '#ffffff';
-      wrapper.style.zIndex = '9999'; // above the modal so the modal doesn't clip the snapshot
-      wrapper.style.pointerEvents = 'none';
-      wrapper.style.visibility = 'hidden'; // invisible to the user, still painted
-      document.body.appendChild(wrapper);
-
-      // Mount React tree into the wrapper so styles + layout are computed.
-      const root = createRoot(wrapper);
-      root.render(
+      // Render the template to HTML and load it into a hidden iframe, then
+      // trigger the browser's native print dialog. This is far more reliable
+      // than html2canvas/html2pdf (which were silently producing blank PDFs)
+      // because the print engine is the same one rendering the visible
+      // preview — what you see on screen is exactly what the PDF shows.
+      const html = renderToStaticMarkup(
         <PdfTemplate client={client} period={period} insights={insights} metrics={enriched} ads={adsRes?.ads || []} />
       );
 
-      // Wait two animation frames so the browser has fully painted the layout.
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      // Small extra delay for fonts/measurements to settle.
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      const filename = `reporte-${(client?.name || client?.company || 'cliente').toLowerCase().replace(/\s+/g, '-')}-${(period?.start_date || '').slice(0, 7)}`;
 
-      const rect = wrapper.getBoundingClientRect();
-      console.log('[PDF] wrapper size:', rect.width, 'x', rect.height, 'children:', wrapper.children.length);
-      if (rect.width === 0 || rect.height === 0 || wrapper.children.length === 0) {
-        throw new Error(`Render del template falló (size: ${rect.width}x${rect.height}, children: ${wrapper.children.length})`);
-      }
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.setAttribute('title', filename);
+      document.body.appendChild(iframe);
 
-      // html2canvas needs the element to be capture-able, so right before
-      // snapshotting we flip visibility back to visible (it's still off-flow
-      // and behind nothing because we placed it at position:absolute 0,0).
-      wrapper.style.visibility = 'visible';
-      // Scroll to top so the captured area starts at the wrapper.
-      const prevScroll = { x: window.scrollX, y: window.scrollY };
-      window.scrollTo(0, 0);
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(`<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<title>${filename}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+  }
+</style>
+</head>
+<body>${html}</body>
+</html>`);
+      doc.close();
 
-      const filename = `reporte-${(client?.name || client?.company || 'cliente').toLowerCase().replace(/\s+/g, '-')}-${(period?.start_date || '').slice(0, 7)}.pdf`;
+      // Wait until the iframe content is fully loaded (fonts, layout)
+      await new Promise((resolve) => {
+        if (doc.readyState === 'complete') {
+          resolve();
+        } else {
+          iframe.addEventListener('load', () => resolve(), { once: true });
+        }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      console.log('[PDF] starting html2pdf save…');
-      await html2pdf()
-        .from(wrapper)
-        .set({
-          margin: 0,
-          filename,
-          image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: true },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-          pagebreak: { mode: ['css', 'legacy'] },
-        })
-        .save();
-      console.log('[PDF] save finished');
+      console.log('[PDF] triggering native print dialog');
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
 
-      // Cleanup
-      root.unmount();
-      document.body.removeChild(wrapper);
-      window.scrollTo(prevScroll.x, prevScroll.y);
+      // Clean up the iframe after the print dialog flow — keep it alive for
+      // a few seconds so the user can interact with the dialog without losing
+      // the document.
+      setTimeout(() => {
+        if (iframe.parentNode) document.body.removeChild(iframe);
+      }, 2000);
       setOpen(false);
       setInsights('');
     } catch (err) {
@@ -541,7 +540,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[#1A1A2E]">Exportar reporte</h2>
-                  <p className="text-xs text-gray-500">Va a incluir Métricas Combinadas, Email Marketing, Facebook Ads y Shopify</p>
+                  <p className="text-xs text-gray-500">Se abrirá el diálogo del navegador — elige "Guardar como PDF" como destino</p>
                 </div>
               </div>
               <button onClick={() => !busy && setOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-500">
@@ -582,7 +581,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
                 className="px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] flex items-center gap-2 disabled:opacity-50"
               >
                 {busy ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                {busy ? 'Generando…' : 'Generar PDF'}
+                {busy ? 'Preparando…' : 'Generar PDF'}
               </button>
             </div>
           </div>
