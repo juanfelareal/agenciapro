@@ -57,7 +57,7 @@ const C = {
 
 // ====== Reusable atoms (inline styles) ======
 const SectionHeader = ({ number, title, accent }) => (
-  <div style={{
+  <div className="section-header" style={{
     display: 'flex',
     alignItems: 'baseline',
     gap: '14px',
@@ -346,12 +346,14 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
         {/* 03 — Facebook Ads */}
         {fb && (
           <>
-            <SectionHeader number={3} title="Facebook Ads" accent={C.blue} />
-            <div style={grid(4)}>
-              <Card label="Inversión" value={fmtCurrency(fb.spend)} change={fb.spend_change} inverted accent={C.blue} />
-              <Card label="Impresiones" value={fmtInt(fb.impressions)} change={fb.impressions_change} />
-              <Card label="Clics" value={fmtInt(fb.clicks)} change={fb.clicks_change} />
-              <Card label="CTR" value={fmtPct(fb.ctr)} change={fb.ctr_change} />
+            <div className="keep-together">
+              <SectionHeader number={3} title="Facebook Ads" accent={C.blue} />
+              <div style={grid(4)}>
+                <Card label="Inversión" value={fmtCurrency(fb.spend)} change={fb.spend_change} inverted accent={C.blue} />
+                <Card label="Impresiones" value={fmtInt(fb.impressions)} change={fb.impressions_change} />
+                <Card label="Clics" value={fmtInt(fb.clicks)} change={fb.clicks_change} />
+                <Card label="CTR" value={fmtPct(fb.ctr)} change={fb.ctr_change} />
+              </div>
             </div>
             <div style={grid(3)}>
               <Card label="Conversiones" value={fmtInt(fb.conversions)} change={fb.conversions_change} accent={C.green} />
@@ -397,7 +399,7 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
               </div>
             )}
 
-            <div style={{
+            <div className="notice" style={{
               background: C.redSoft,
               border: `1px solid #FCA5A5`,
               borderRadius: '8px',
@@ -418,15 +420,18 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
           </>
         )}
 
-        {/* 04 — Shopify */}
+        {/* 04 — Shopify (keep header + first row of cards together so the
+            section title never gets orphaned at the end of a page) */}
         {sh && (
           <>
-            <SectionHeader number={4} title="Shopify" accent={C.green} />
-            <div style={grid(4)}>
-              <Card label="Venta Total Confirmada" value={fmtCurrency(sh.revenue)} change={sh.revenue_change} accent={C.green} />
-              <Card label="Pedidos" value={fmtInt(sh.orders)} change={sh.orders_change} />
-              <Card label="Ticket Promedio" value={fmtCurrency(sh.aov)} change={sh.aov_change} />
-              <Card label="Clientes" value={fmtInt(sh.customers)} change={sh.customers_change} />
+            <div className="keep-together">
+              <SectionHeader number={4} title="Shopify" accent={C.green} />
+              <div style={grid(4)}>
+                <Card label="Venta Total Confirmada" value={fmtCurrency(sh.revenue)} change={sh.revenue_change} accent={C.green} />
+                <Card label="Pedidos" value={fmtInt(sh.orders)} change={sh.orders_change} />
+                <Card label="Ticket Promedio" value={fmtCurrency(sh.aov)} change={sh.aov_change} />
+                <Card label="Clientes" value={fmtInt(sh.customers)} change={sh.customers_change} />
+              </div>
             </div>
             <div style={grid(4)}>
               <Card label="Impuestos" value={fmtCurrency(sh.total_tax)} change={sh.total_tax_change} />
@@ -553,7 +558,12 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
   @page { size: A4; margin: 0; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-    tr, .keep-together { break-inside: avoid; page-break-inside: avoid; }
+    /* Keep table rows and small groups together */
+    tr, table, .keep-together { break-inside: avoid; page-break-inside: avoid; }
+    /* Don't orphan section headings at the bottom of a page */
+    h2, h3, .section-header { break-after: avoid; page-break-after: avoid; }
+    /* Notice boxes shouldn't split */
+    .notice { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>
 </head>
