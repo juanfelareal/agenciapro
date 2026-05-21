@@ -198,11 +198,21 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
 
     const hasComparison = previous !== null;
 
+    // Most recent successful sync across this client's connected platforms
+    const allSyncTimes = [
+      ...facebookAccounts.map(a => a.last_sync_at).filter(Boolean),
+      shopifyStore?.last_sync_at,
+    ].filter(Boolean);
+    const lastSyncAt = allSyncTimes.length
+      ? allSyncTimes.reduce((max, t) => (new Date(t) > new Date(max) ? t : max))
+      : null;
+
     // Build structured response
     const response = {
       period: { start_date: startDate, end_date: endDate },
       has_comparison: hasComparison,
       revenue_metric: revenueMetric,
+      last_sync_at: lastSyncAt,
       connected_platforms: {
         facebook: facebookAccounts,
         shopify: shopifyStore

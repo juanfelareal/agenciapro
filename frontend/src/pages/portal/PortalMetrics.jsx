@@ -42,7 +42,8 @@ import {
   ShoppingBag,
   Smartphone,
   Monitor,
-  Instagram
+  Instagram,
+  Clock
 } from 'lucide-react';
 
 export default function PortalMetrics() {
@@ -58,6 +59,26 @@ export default function PortalMetrics() {
   const [topProducts, setTopProducts] = useState(null);
   const [topProductsLoading, setTopProductsLoading] = useState(false);
   const [compareMode, setCompareMode] = useState('previous'); // 'previous' | 'year' | 'custom' | 'none'
+  // Tick once a minute so the "hace X min" label stays fresh without re-fetching
+  const [nowTick, setNowTick] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  const formatLastSync = (iso) => {
+    if (!iso) return null;
+    const then = new Date(iso);
+    if (Number.isNaN(then.getTime())) return null;
+    const diffMin = Math.max(0, Math.round((nowTick - then.getTime()) / 60000));
+    let ago;
+    if (diffMin < 1) ago = 'hace un momento';
+    else if (diffMin === 1) ago = 'hace 1 min';
+    else if (diffMin < 60) ago = `hace ${diffMin} min`;
+    else if (diffMin < 1440) ago = `hace ${Math.floor(diffMin / 60)} h`;
+    else ago = `hace ${Math.floor(diffMin / 1440)} d`;
+    const time = then.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' });
+    return `${ago} · ${time}`;
+  };
   const [compareDates, setCompareDates] = useState({ start: '', end: '' });
   const [demographics, setDemographics] = useState(null);
   const [demographicsLoading, setDemographicsLoading] = useState(false);
@@ -650,6 +671,15 @@ export default function PortalMetrics() {
           <div>
             <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
             <p className="text-sm text-gray-500 mt-0.5">Rendimiento de tus campañas y ventas</p>
+            {metrics?.last_sync_at && (
+              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
+                <Clock className="w-3 h-3" />
+                <span>
+                  Última actualización: <span className="font-medium text-gray-500">{formatLastSync(metrics.last_sync_at)}</span>
+                  <span className="text-gray-300 ml-1.5">· se actualiza cada 5 min</span>
+                </span>
+              </p>
+            )}
           </div>
           <PortalReportExport
             client={client}
