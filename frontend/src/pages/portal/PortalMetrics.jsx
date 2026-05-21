@@ -4,6 +4,7 @@ import { portalMetricsAPI } from '../../utils/portalApi';
 import MetricsTable from '../../components/MetricsTable';
 import CollapsibleSection from '../../components/CollapsibleSection';
 import FacebookCampaignsBreakdown from '../../components/portal/FacebookCampaignsBreakdown';
+import PortalReportExport from '../../components/portal/PortalReportExport';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
   PieChart, Pie, Cell,
@@ -44,7 +45,7 @@ import {
 } from 'lucide-react';
 
 export default function PortalMetrics() {
-  const { hasPermission } = usePortal();
+  const { hasPermission, client } = usePortal();
   const [metrics, setMetrics] = useState(null);
   const [dailyData, setDailyData] = useState([]);
   const [insight, setInsight] = useState(null);
@@ -644,9 +645,17 @@ export default function PortalMetrics() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Rendimiento de tus campañas y ventas</p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Rendimiento de tus campañas y ventas</p>
+          </div>
+          <PortalReportExport
+            client={client}
+            metrics={metrics}
+            period={metrics?.period}
+            getApiParams={getApiParams}
+          />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200 p-1">
@@ -1295,215 +1304,6 @@ export default function PortalMetrics() {
             </div>
           )}
 
-          {/* Venta por Categorías (Colecciones) */}
-          {metrics?.shopify && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-teal-500" />
-                  Venta por Categorías
-                </h3>
-                {categories === null && (
-                  <button
-                    onClick={loadCategories}
-                    disabled={categoriesLoading}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
-                  >
-                    {categoriesLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Tag className="w-4 h-4" />
-                    )}
-                    Ver categorías
-                  </button>
-                )}
-              </div>
-
-              {categoriesLoading && (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                </div>
-              )}
-
-              {categories !== null && !categoriesLoading && categories.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-8">
-                  No hay datos de categorías en este periodo
-                </p>
-              )}
-
-              {categories !== null && !categoriesLoading && categories.length > 0 && (
-                <div className="space-y-3">
-                  {categories.slice(0, 15).map((cat, idx) => {
-                    const maxRevenue = categories[0]?.revenue || 1;
-                    const barPct = (cat.revenue / maxRevenue) * 100;
-                    return (
-                      <div key={idx} className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-[#1A1A2E] w-[35%] min-w-[120px] truncate" title={cat.collection}>
-                          {cat.collection}
-                        </span>
-                        <div className="flex-1 flex items-center gap-3">
-                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{ width: `${barPct}%`, backgroundColor: '#2DD4BF' }}
-                            />
-                          </div>
-                          <span className="text-sm font-semibold text-[#1A1A2E] w-[120px] text-right flex-shrink-0">
-                            {formatCurrency(cat.revenue)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Venta por Canal */}
-          {metrics?.shopify && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-blue-500" />
-                  Venta por Canal
-                </h3>
-                {channels === null && (
-                  <button
-                    onClick={loadChannels}
-                    disabled={channelsLoading}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
-                  >
-                    {channelsLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <BarChart3 className="w-4 h-4" />
-                    )}
-                    Ver canales
-                  </button>
-                )}
-              </div>
-
-              {channelsLoading && (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                </div>
-              )}
-
-              {channels !== null && !channelsLoading && channels.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-8">
-                  No hay datos de canales en este periodo
-                </p>
-              )}
-
-              {channels !== null && !channelsLoading && channels.length > 0 && (() => {
-                const totalRevenue = channels.reduce((s, c) => s + c.revenue, 0);
-                const totalOrders = channels.reduce((s, c) => s + c.orders, 0);
-                const pieData = channels.map(c => ({
-                  name: c.channel,
-                  value: c.revenue,
-                  orders: c.orders,
-                  pct: totalRevenue > 0 ? (c.revenue / totalRevenue) * 100 : 0,
-                }));
-
-                return (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-                    {/* Pie Chart */}
-                    <div className="flex justify-center">
-                      <ResponsiveContainer width={280} height={280}>
-                        <PieChart>
-                          <Pie
-                            data={pieData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={65}
-                            outerRadius={120}
-                            paddingAngle={2}
-                            dataKey="value"
-                            stroke="none"
-                          >
-                            {pieData.map((entry, idx) => (
-                              <Cell key={idx} fill={CHANNEL_COLORS[entry.name] || '#9CA3AF'} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }}
-                            formatter={(value, name) => [formatCurrency(value), name]}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Legend + Details */}
-                    <div className="space-y-3">
-                      {pieData.map((entry, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHANNEL_COLORS[entry.name] || '#9CA3AF' }} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-[#1A1A2E] truncate">{entry.name}</span>
-                              <span className="text-sm font-bold text-[#1A1A2E] ml-2">{formatCurrency(entry.value)}</span>
-                            </div>
-                            <div className="flex items-center justify-between mt-0.5">
-                              <span className="text-xs text-gray-400">{entry.orders} pedidos</span>
-                              <span className="text-xs font-semibold text-gray-500">{entry.pct.toFixed(1)}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-500">Total</span>
-                        <div className="text-right">
-                          <span className="text-sm font-bold text-[#1A1A2E]">{formatCurrency(totalRevenue)}</span>
-                          <span className="text-xs text-gray-400 ml-2">({totalOrders} pedidos)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-
-          {/* Conversion Funnel — compact */}
-          {funnelData && funnelData.maxValue > 0 && (() => {
-            const barWidths = [100, 70, 50, 30, 18];
-            const barColors = ['#334155', '#475569', '#64748B', '#94A3B8', '#22C55E'];
-            return (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-                <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2 mb-4">
-                  <Filter className="w-4 h-4 text-indigo-500" />
-                  Embudo de Conversión
-                </h3>
-                <div className="space-y-1.5">
-                  {funnelData.steps.map((step, idx) => {
-                    const rate = funnelData.rates[idx];
-                    const semaphore = rate ? getSemaphore(rate.value, rate.key) : null;
-                    return (
-                      <div key={step.label}>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <div
-                              className="rounded-lg px-3 py-2 flex items-center justify-between text-white"
-                              style={{ width: `${barWidths[idx]}%`, backgroundColor: barColors[idx], minWidth: '180px' }}
-                            >
-                              <span className="text-xs font-medium opacity-80">{step.label}</span>
-                              <span className="text-sm font-bold">{formatNumber(step.value)}</span>
-                            </div>
-                          </div>
-                          {rate && (
-                            <span className={`text-xs font-semibold whitespace-nowrap ${semaphore.color}`}>
-                              {semaphore.icon} {rate.label}: {rate.value.toFixed(1)}%
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
 
           {/* Top 5 Anuncios */}
           {metrics?.facebook && (
@@ -1690,29 +1490,6 @@ export default function PortalMetrics() {
                 </div>
               )}
 
-              {/* 5. Sesiones vs Pedidos */}
-              {metrics?.shopify && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-                  <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Sesiones vs Pedidos</h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <ComposedChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        formatter={(value, name) => [formatNumber(value), name === 'sessions' ? 'Sesiones' : 'Pedidos']}
-                        labelFormatter={fmtDateLabel}
-                      />
-                      <Legend formatter={(v) => v === 'sessions' ? 'Sesiones' : 'Pedidos'} />
-                      <Bar yAxisId="left" dataKey="sessions" fill="#6366F1" opacity={0.3} radius={[3, 3, 0, 0]} />
-                      <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#22C55E" strokeWidth={2} dot={false} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
               {/* 6. Tasa de Conversión */}
               {metrics?.shopify && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
@@ -1785,180 +1562,6 @@ export default function PortalMetrics() {
         />
       )}
 
-      {/* Ad-Level Performance */}
-      {metrics?.facebook && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-semibold text-[#1A1A2E] flex items-center gap-2">
-              <Target className="w-4 h-4 text-blue-500" />
-              Rendimiento por Anuncio
-            </h3>
-            {ads === null && (
-              <button
-                onClick={loadAds}
-                disabled={adsLoading}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
-              >
-                {adsLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <BarChart3 className="w-4 h-4" />
-                )}
-                Ver anuncios
-              </button>
-            )}
-          </div>
-
-          {adsLoading && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-            </div>
-          )}
-
-          {ads !== null && !adsLoading && ads.length === 0 && (
-            <p className="text-sm text-gray-500 text-center py-8">
-              No hay anuncios con actividad en este periodo
-            </p>
-          )}
-
-          {ads !== null && !adsLoading && ads.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm whitespace-nowrap">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left py-3 px-3 font-medium text-gray-500">Anuncio</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-500">Campaña</th>
-                    {portalTagCategories.map(cat => (
-                      <th key={cat.id} className="text-left py-3 px-3 font-medium text-gray-500" style={{ minWidth: '100px' }}>
-                        <span className="inline-flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }}></span>
-                          {cat.name}
-                        </span>
-                      </th>
-                    ))}
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Inversión</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Presupuesto</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">CPM</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Frecuencia</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">CTR único</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Clics enlace</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">CPC</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Visitas página</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Resultados</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Resultado</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">ROAS</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Hook Rate</th>
-                    <th className="text-right py-3 px-3 font-medium text-gray-500">Hold Rate</th>
-                    <th className="py-3 px-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ads.map((ad) => (
-                    <tr key={ad.ad_id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                      <td className="py-3 px-3 max-w-[200px] truncate" title={ad.ad_name}>
-                        <button
-                          onClick={() => { setPreviewFormat('MOBILE_FEED_STANDARD'); setPreviewAd(ad); }}
-                          className="text-left text-[#1A1A2E] hover:text-blue-600 hover:underline truncate w-full"
-                        >
-                          {ad.ad_name}
-                        </button>
-                      </td>
-                      <td className="py-3 px-3 max-w-[160px] truncate text-gray-500" title={ad.campaign_name}>
-                        {ad.campaign_name}
-                      </td>
-                      {portalTagCategories.map(cat => {
-                        const tag = (ad.tags || []).find(t => t.category_id === cat.id);
-                        return (
-                          <td key={cat.id} className="py-2 px-3">
-                            {tag ? (
-                              <span
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white"
-                                style={{ backgroundColor: tag.value_color || cat.color }}
-                              >
-                                {tag.value_name}
-                              </span>
-                            ) : (
-                              <span className="text-gray-300 text-xs">—</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="py-3 px-3 text-right font-medium">{formatCurrency(ad.spend)}</td>
-                      <td className="py-3 px-3 text-right">{ad.budget ? formatCurrency(ad.budget) : '—'}</td>
-                      <td className="py-3 px-3 text-right">{formatCurrency(ad.cpm)}</td>
-                      <td className="py-3 px-3 text-right">{(ad.frequency || 0).toFixed(2)}</td>
-                      <td className="py-3 px-3 text-right">{formatPercent(ad.unique_ctr)}</td>
-                      <td className="py-3 px-3 text-right">{formatNumber(ad.link_clicks)}</td>
-                      <td className="py-3 px-3 text-right">{formatCurrency(ad.cpc)}</td>
-                      <td className="py-3 px-3 text-right">{formatNumber(ad.landing_page_views)}</td>
-                      <td className="py-3 px-3 text-right">{formatNumber(ad.conversions)}</td>
-                      <td className="py-3 px-3 text-right">{formatCurrency(ad.cost_per_purchase)}</td>
-                      <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
-                      <td className="py-3 px-3 text-right">{formatPercent(ad.hook_rate)}</td>
-                      <td className="py-3 px-3 text-right">{formatPercent(ad.hold_rate)}</td>
-                      <td className="py-3 px-1">
-                        {ad.preview_url && (
-                          <a
-                            href={ad.preview_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            title="Ver anuncio"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  {(() => {
-                    const totSpend = ads.reduce((s, a) => s + a.spend, 0);
-                    const totImpressions = ads.reduce((s, a) => s + a.impressions, 0);
-                    const totClicks = ads.reduce((s, a) => s + a.clicks, 0);
-                    const totLinkClicks = ads.reduce((s, a) => s + (a.link_clicks || 0), 0);
-                    const totLandingPageViews = ads.reduce((s, a) => s + (a.landing_page_views || 0), 0);
-                    const totConversions = ads.reduce((s, a) => s + a.conversions, 0);
-                    const totRevenue = ads.reduce((s, a) => s + (a.revenue || 0), 0);
-                    const avgCpm = totImpressions > 0 ? (totSpend / totImpressions) * 1000 : 0;
-                    const avgFrequency = ads.length > 0 ? ads.reduce((s, a) => s + (a.frequency || 0), 0) / ads.length : 0;
-                    const avgUniqueCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
-                    const avgCpc = totClicks > 0 ? totSpend / totClicks : 0;
-                    const avgRoas = totSpend > 0 ? totRevenue / totSpend : 0;
-                    const avgCostPerPurchase = totConversions > 0 ? totSpend / totConversions : 0;
-                    const adsWithHook = ads.filter(a => a.hook_rate > 0);
-                    const avgHookRate = adsWithHook.length > 0 ? adsWithHook.reduce((s, a) => s + a.hook_rate, 0) / adsWithHook.length : 0;
-                    const adsWithHold = ads.filter(a => a.hold_rate > 0);
-                    const avgHoldRate = adsWithHold.length > 0 ? adsWithHold.reduce((s, a) => s + a.hold_rate, 0) / adsWithHold.length : 0;
-                    return (
-                      <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#1A1A2E]">
-                        <td className="py-3 px-3">Total</td>
-                        <td className="py-3 px-3"></td>
-                        {portalTagCategories.map(cat => <td key={cat.id} className="py-3 px-3"></td>)}
-                        <td className="py-3 px-3 text-right">{formatCurrency(totSpend)}</td>
-                        <td className="py-3 px-3"></td>
-                        <td className="py-3 px-3 text-right">{formatCurrency(avgCpm)}</td>
-                        <td className="py-3 px-3 text-right">{avgFrequency.toFixed(2)}</td>
-                        <td className="py-3 px-3 text-right">{formatPercent(avgUniqueCtr)}</td>
-                        <td className="py-3 px-3 text-right">{formatNumber(totLinkClicks)}</td>
-                        <td className="py-3 px-3 text-right">{formatCurrency(avgCpc)}</td>
-                        <td className="py-3 px-3 text-right">{formatNumber(totLandingPageViews)}</td>
-                        <td className="py-3 px-3 text-right">{formatNumber(totConversions)}</td>
-                        <td className="py-3 px-3 text-right">{formatCurrency(avgCostPerPurchase)}</td>
-                        <td className="py-3 px-3 text-right">{avgRoas.toFixed(2)}x</td>
-                        <td className="py-3 px-3 text-right">{formatPercent(avgHookRate)}</td>
-                        <td className="py-3 px-3 text-right">{formatPercent(avgHoldRate)}</td>
-                        <td className="py-3 px-1"></td>
-                      </tr>
-                    );
-                  })()}
-                </tfoot>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Tag Analysis (Portal — read-only) */}
       {ads !== null && ads.length > 0 && portalTagCategories.length > 0 && (
