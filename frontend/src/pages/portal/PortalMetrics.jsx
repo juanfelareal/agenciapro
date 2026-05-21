@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { usePortal } from '../../context/PortalContext';
 import { portalMetricsAPI } from '../../utils/portalApi';
 import MetricsTable from '../../components/MetricsTable';
+import CollapsibleSection from '../../components/CollapsibleSection';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
   PieChart, Pie, Cell,
@@ -33,6 +34,9 @@ import {
   ChevronRight,
   Tag,
   X,
+  Mail,
+  Facebook,
+  ShoppingBag,
   Smartphone,
   Monitor,
   Instagram
@@ -845,18 +849,35 @@ export default function PortalMetrics() {
             </div>
           )}
 
-          {/* Facebook Ads Metrics */}
-          {metrics?.facebook && (
-            <div className="space-y-4">
+          {/* Email Marketing (no colapsable, debajo de combinadas) */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
+                <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
+                  <Mail className="w-4 h-4 text-pink-600" />
                 </div>
-                Facebook Ads
+                Email Marketing
               </h2>
+              <span className="text-xs text-gray-400 hidden sm:block">Datos manuales desde Shopify Email</span>
+            </div>
+            <div className="py-6 text-center text-gray-500">
+              <Mail className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+              <p className="text-sm">Próximamente: registro de campañas de email marketing</p>
+              <p className="text-xs text-gray-400 mt-1">Esperando definir campos a registrar</p>
+            </div>
+          </div>
 
+          {/* Facebook Ads Metrics (colapsable, cerrado por defecto) */}
+          {metrics?.facebook && (
+            <CollapsibleSection
+              id="portal-facebook"
+              title="Facebook Ads"
+              icon={Facebook}
+              iconBg="bg-blue-100"
+              iconColor="text-blue-600"
+              defaultOpen={false}
+            >
+            <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Ad Spend */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
@@ -1000,18 +1021,20 @@ export default function PortalMetrics() {
               </div>
 
             </div>
+            </CollapsibleSection>
           )}
 
-          {/* Shopify Metrics */}
+          {/* Shopify Metrics (colapsable, cerrado por defecto) */}
           {metrics?.shopify && (
+            <CollapsibleSection
+              id="portal-shopify"
+              title="Shopify"
+              icon={ShoppingBag}
+              iconBg="bg-green-100"
+              iconColor="text-green-600"
+              defaultOpen={false}
+            >
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 text-green-600" />
-                </div>
-                Shopify
-              </h2>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Revenue */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
@@ -1126,6 +1149,7 @@ export default function PortalMetrics() {
 
               </div>
             </div>
+            </CollapsibleSection>
           )}
 
           {/* Top Products */}
