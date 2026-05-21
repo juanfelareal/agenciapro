@@ -343,9 +343,11 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
           </div>
         )}
 
-        {/* 03 — Facebook Ads */}
+        {/* 03 — Facebook Ads (starts on a fresh page so the FB section, its
+            campaign table and the attribution notice live together) */}
         {fb && (
           <>
+            <div className="page-break" />
             <div className="keep-together">
               <SectionHeader number={3} title="Facebook Ads" accent={C.blue} />
               <div style={grid(4)}>
@@ -420,10 +422,10 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
           </>
         )}
 
-        {/* 04 — Shopify (keep header + first row of cards together so the
-            section title never gets orphaned at the end of a page) */}
+        {/* 04 — Shopify (also starts on a fresh page) */}
         {sh && (
           <>
+            <div className="page-break" />
             <div className="keep-together">
               <SectionHeader number={4} title="Shopify" accent={C.green} />
               <div style={grid(4)}>
@@ -556,6 +558,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
   html, body { margin: 0; padding: 0; background: #F8F5F0; }
   body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
   @page { size: A4; margin: 0; }
+  .page-break { break-before: page; page-break-before: always; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
     /* Keep table rows and small groups together */
