@@ -448,19 +448,18 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
         shopify: { ...(metrics?.shopify || {}), top_products: topRes?.products || [] },
       };
 
-      // Render the template into a temporary div that's inside the viewport
-      // (html2canvas can't capture off-screen elements reliably). We make it
-      // visually invisible (opacity 0, behind everything) but kept inside the
-      // page so the browser actually lays it out and paints it.
+      // Render the template into a visible div that lives behind the modal
+      // (z-index lower than the modal's 50). html2canvas refuses to capture
+      // elements with opacity:0 or off-screen, so we keep it on-screen at 0,0
+      // and rely on the modal overlay to hide it from the user.
       const wrapper = document.createElement('div');
-      wrapper.style.position = 'absolute';
+      wrapper.style.position = 'fixed';
       wrapper.style.left = '0';
       wrapper.style.top = '0';
       wrapper.style.width = '210mm';
       wrapper.style.background = '#ffffff';
-      wrapper.style.opacity = '0';
+      wrapper.style.zIndex = '10'; // behind the modal (z-50)
       wrapper.style.pointerEvents = 'none';
-      wrapper.style.zIndex = '-9999';
       document.body.appendChild(wrapper);
 
       // Mount React tree into the wrapper so styles + layout are computed.
@@ -472,21 +471,29 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
       // Wait two animation frames so the browser has fully painted the layout.
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       // Small extra delay for fonts/measurements to settle.
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      const rect = wrapper.getBoundingClientRect();
+      console.log('[PDF] wrapper size:', rect.width, 'x', rect.height, 'children:', wrapper.children.length);
+      if (rect.width === 0 || rect.height === 0 || wrapper.children.length === 0) {
+        throw new Error(`Render del template falló (size: ${rect.width}x${rect.height}, children: ${wrapper.children.length})`);
+      }
 
       const filename = `reporte-${(client?.name || client?.company || 'cliente').toLowerCase().replace(/\s+/g, '-')}-${(period?.start_date || '').slice(0, 7)}.pdf`;
 
+      console.log('[PDF] starting html2pdf save…');
       await html2pdf()
         .from(wrapper)
         .set({
           margin: 0,
           filename,
           image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: true, windowWidth: wrapper.scrollWidth, windowHeight: wrapper.scrollHeight },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
           pagebreak: { mode: ['css', 'legacy'] },
         })
         .save();
+      console.log('[PDF] save finished');
 
       // Cleanup
       root.unmount();
