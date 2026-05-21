@@ -109,8 +109,8 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontFamily: FONT_BOLD, letterSpacing: -0.3, color: C.ink, flex: 1 },
   sectionDot: { width: 6, height: 6, borderRadius: 3 },
 
-  // Card grid
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  // Card row (explicit rows for predictable column count)
+  cardRow: { flexDirection: 'row', marginBottom: 6 },
   card: {
     borderWidth: 1,
     borderColor: C.hairline,
@@ -196,8 +196,8 @@ const SectionHeader = ({ number, title, accent }) => (
   </View>
 );
 
-const Card = ({ label, value, change, inverted, sublabel, accent, width }) => (
-  <View style={[s.card, { width }]}>
+const Card = ({ label, value, change, inverted, sublabel, accent, last }) => (
+  <View style={[s.card, { flex: 1, marginRight: last ? 0 : 6 }]}>
     {accent && <View style={[s.cardAccent, { backgroundColor: accent }]} />}
     <Text style={s.cardLabel}>{label.toUpperCase()}</Text>
     <Text style={s.cardValue}>{value}</Text>
@@ -224,9 +224,7 @@ const StatusBadge = ({ status }) => {
   return null;
 };
 
-const cardWidth = (cols, gap = 6) => `${(100 - gap * (cols - 1) / 5.4) / cols}%`;
-const W3 = '32.6%';
-const W4 = '24%';
+// Cards now use flex:1 inside a row, so we no longer need explicit widths
 
 // ===== Main Document =====
 export default function ReportPdfDocument({ client, period, insights, metrics, ads, emailCampaigns }) {
@@ -328,13 +326,15 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
         )}
 
         <SectionHeader number={1} title="Metricas Combinadas" accent={C.violet} />
-        <View style={s.cardGrid}>
-          <Card width={W3} label="Venta Total Confirmada" value={fmtCurrency(sh?.revenue)} change={sh?.revenue_change} accent={C.green} />
-          <Card width={W3} label="Inversion Total" value={fmtCurrency(fb?.spend)} change={fb?.spend_change} inverted accent={C.blue} />
-          <Card width={W3} label="ROAS Real" value={fmtRoas(blended?.real_roas ?? (fb?.spend > 0 && sh?.revenue ? sh.revenue / fb.spend : 0))} change={blended?.real_roas_change} accent={C.violet} />
-          <Card width={W3} label="Costo por Pedido" value={fmtCurrency(blended?.cost_per_order ?? (sh?.orders > 0 ? (fb?.spend || 0) / sh.orders : 0))} change={blended?.cost_per_order_change} inverted />
-          <Card width={W3} label="% Inversion" value={fmtPct(blended?.ad_spend_percentage ?? (sh?.revenue > 0 ? ((fb?.spend || 0) / sh.revenue) * 100 : 0))} change={blended?.ad_spend_percentage_change} inverted />
-          <Card width={W3} label="Margen despues de Ads" value={fmtCurrency(blended?.margin_after_ads ?? ((sh?.revenue || 0) - (fb?.spend || 0)))} change={blended?.margin_after_ads_change} accent={C.green} />
+        <View style={s.cardRow}>
+          <Card label="Venta Total Confirmada" value={fmtCurrency(sh?.revenue)} change={sh?.revenue_change} accent={C.green} />
+          <Card label="Inversion Total" value={fmtCurrency(fb?.spend)} change={fb?.spend_change} inverted accent={C.blue} />
+          <Card label="ROAS Real" value={fmtRoas(blended?.real_roas ?? (fb?.spend > 0 && sh?.revenue ? sh.revenue / fb.spend : 0))} change={blended?.real_roas_change} accent={C.violet} last />
+        </View>
+        <View style={s.cardRow}>
+          <Card label="Costo por Pedido" value={fmtCurrency(blended?.cost_per_order ?? (sh?.orders > 0 ? (fb?.spend || 0) / sh.orders : 0))} change={blended?.cost_per_order_change} inverted />
+          <Card label="% Inversion" value={fmtPct(blended?.ad_spend_percentage ?? (sh?.revenue > 0 ? ((fb?.spend || 0) / sh.revenue) * 100 : 0))} change={blended?.ad_spend_percentage_change} inverted />
+          <Card label="Margen despues de Ads" value={fmtCurrency(blended?.margin_after_ads ?? ((sh?.revenue || 0) - (fb?.spend || 0)))} change={blended?.margin_after_ads_change} accent={C.green} last />
         </View>
 
         <SectionHeader number={2} title="Email Marketing" accent={C.pink} />
@@ -346,11 +346,11 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
           </View>
         ) : (
           <>
-            <View style={s.cardGrid}>
-              <Card width={W4} label="Envios" value={fmtInt(emailTotals.recipients)} accent={C.pink} />
-              <Card width={W4} label="Aperturas" value={fmtPct(rate(emailTotals.opens, emailTotals.delivered))} sublabel={`${fmtInt(emailTotals.opens)} unicos`} accent={C.pink} />
-              <Card width={W4} label="Clicks" value={fmtPct(rate(emailTotals.clicks, emailTotals.delivered))} sublabel={`${fmtInt(emailTotals.clicks)} unicos`} accent={C.pink} />
-              <Card width={W4} label="Revenue atribuido" value={fmtCurrency(emailTotals.revenue)} sublabel={`${fmtInt(emailTotals.orders)} pedidos`} accent={C.green} />
+            <View style={s.cardRow}>
+              <Card label="Envios" value={fmtInt(emailTotals.recipients)} accent={C.pink} />
+              <Card label="Aperturas" value={fmtPct(rate(emailTotals.opens, emailTotals.delivered))} sublabel={`${fmtInt(emailTotals.opens)} unicos`} accent={C.pink} />
+              <Card label="Clicks" value={fmtPct(rate(emailTotals.clicks, emailTotals.delivered))} sublabel={`${fmtInt(emailTotals.clicks)} unicos`} accent={C.pink} />
+              <Card label="Revenue atribuido" value={fmtCurrency(emailTotals.revenue)} sublabel={`${fmtInt(emailTotals.orders)} pedidos`} accent={C.green} last />
             </View>
             <View style={s.table}>
               <View style={s.tableHeader}>
@@ -385,16 +385,16 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
       {fb && (
         <Page size="A4" style={s.page}>
           <SectionHeader number={3} title="Facebook Ads" accent={C.blue} />
-          <View style={s.cardGrid}>
-            <Card width={W4} label="Inversion" value={fmtCurrency(fb.spend)} change={fb.spend_change} inverted accent={C.blue} />
-            <Card width={W4} label="Impresiones" value={fmtInt(fb.impressions)} change={fb.impressions_change} />
-            <Card width={W4} label="Clics" value={fmtInt(fb.clicks)} change={fb.clicks_change} />
-            <Card width={W4} label="CTR" value={fmtPct(fb.ctr)} change={fb.ctr_change} />
+          <View style={s.cardRow}>
+            <Card label="Inversion" value={fmtCurrency(fb.spend)} change={fb.spend_change} inverted accent={C.blue} />
+            <Card label="Impresiones" value={fmtInt(fb.impressions)} change={fb.impressions_change} />
+            <Card label="Clics" value={fmtInt(fb.clicks)} change={fb.clicks_change} />
+            <Card label="CTR" value={fmtPct(fb.ctr)} change={fb.ctr_change} last />
           </View>
-          <View style={s.cardGrid}>
-            <Card width={W3} label="Conversiones" value={fmtInt(fb.conversions)} change={fb.conversions_change} accent={C.green} />
-            <Card width={W3} label="Costo por Compra" value={fmtCurrency(fb.cpa)} change={fb.cpa_change} inverted />
-            <Card width={W3} label="ROAS Facebook" value={fmtRoas(fb.roas)} change={fb.roas_change} accent={C.violet} />
+          <View style={s.cardRow}>
+            <Card label="Conversiones" value={fmtInt(fb.conversions)} change={fb.conversions_change} accent={C.green} />
+            <Card label="Costo por Compra" value={fmtCurrency(fb.cpa)} change={fb.cpa_change} inverted />
+            <Card label="ROAS Facebook" value={fmtRoas(fb.roas)} change={fb.roas_change} accent={C.violet} last />
           </View>
 
           {campaigns.length > 0 && (
@@ -451,17 +451,17 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
       {sh && (
         <Page size="A4" style={s.page}>
           <SectionHeader number={4} title="Shopify" accent={C.green} />
-          <View style={s.cardGrid}>
-            <Card width={W4} label="Venta Total Confirmada" value={fmtCurrency(sh.revenue)} change={sh.revenue_change} accent={C.green} />
-            <Card width={W4} label="Pedidos" value={fmtInt(sh.orders)} change={sh.orders_change} />
-            <Card width={W4} label="Ticket Promedio" value={fmtCurrency(sh.aov)} change={sh.aov_change} />
-            <Card width={W4} label="Clientes" value={fmtInt(sh.customers)} change={sh.customers_change} />
+          <View style={s.cardRow}>
+            <Card label="Venta Total Confirmada" value={fmtCurrency(sh.revenue)} change={sh.revenue_change} accent={C.green} />
+            <Card label="Pedidos" value={fmtInt(sh.orders)} change={sh.orders_change} />
+            <Card label="Ticket Promedio" value={fmtCurrency(sh.aov)} change={sh.aov_change} />
+            <Card label="Clientes" value={fmtInt(sh.customers)} change={sh.customers_change} last />
           </View>
-          <View style={s.cardGrid}>
-            <Card width={W4} label="Impuestos" value={fmtCurrency(sh.total_tax)} change={sh.total_tax_change} />
-            <Card width={W4} label="Descuentos" value={fmtCurrency(sh.total_discounts)} change={sh.total_discounts_change} inverted />
-            <Card width={W4} label="Venta Neta" value={fmtCurrency(sh.net_revenue)} change={sh.net_revenue_change} sublabel="sin IVA ni envio" accent={C.green} />
-            <Card width={W4} label="Devoluciones" value={fmtCurrency(sh.refunds)} change={sh.refunds_change} inverted />
+          <View style={s.cardRow}>
+            <Card label="Impuestos" value={fmtCurrency(sh.total_tax)} change={sh.total_tax_change} />
+            <Card label="Descuentos" value={fmtCurrency(sh.total_discounts)} change={sh.total_discounts_change} inverted />
+            <Card label="Venta Neta" value={fmtCurrency(sh.net_revenue)} change={sh.net_revenue_change} sublabel="sin IVA ni envio" accent={C.green} />
+            <Card label="Devoluciones" value={fmtCurrency(sh.refunds)} change={sh.refunds_change} inverted last />
           </View>
 
           {topProducts.length > 0 && (
