@@ -97,9 +97,9 @@ const Card = ({ label, value, change, inverted, sublabel, accent }) => (
     border: `1px solid ${C.hairline}`,
     borderRadius: '10px',
     padding: '12px 14px',
-    background: C.cream,
+    background: '#ffffff',
     position: 'relative',
-    boxShadow: '0 1px 2px rgba(13, 27, 42, 0.04)',
+    boxShadow: '0 1px 3px rgba(13, 27, 42, 0.06)',
     breakInside: 'avoid',
     pageBreakInside: 'avoid',
   }}>
@@ -208,10 +208,9 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
     <div style={{
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       color: C.ink,
-      background: C.bone,
+      background: '#ffffff',
       fontSize: '11px',
       lineHeight: 1.45,
-      padding: '0 14mm 6mm 14mm',
     }}>
       {/* ============ HEADER DARK (banner card, not full-bleed) ============ */}
       <table style={{
@@ -219,7 +218,7 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
         background: C.ink,
         color: C.bone,
         borderRadius: '12px',
-        margin: '8mm 0 10mm 0',
+        margin: '0 0 10mm 0',
         borderCollapse: 'separate',
       }}>
         <tbody>
@@ -479,7 +478,7 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
         background: C.ink,
         color: '#a8b3c5',
         borderRadius: '12px',
-        margin: '8mm 0 0 0',
+        margin: '10mm 0 0 0',
         borderCollapse: 'separate',
       }}>
         <tbody>
@@ -555,9 +554,9 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #F8F5F0; }
+  html, body { margin: 0; padding: 0; background: #ffffff; }
   body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
-  @page { size: A4; margin: 0; }
+  @page { size: A4; margin: 14mm 12mm; }
   .page-break { break-before: page; page-break-before: always; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
