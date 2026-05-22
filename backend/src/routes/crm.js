@@ -32,6 +32,86 @@ router.get('/stages', async (req, res) => {
   }
 });
 
+// Crear una etapa del pipeline
+router.post('/stages', async (req, res) => {
+  try {
+    const { name, color, position } = req.body;
+    if (!name) return res.status(400).json({ error: 'El nombre de la etapa es requerido' });
+
+    // Posición: la indicada, o al final del pipeline.
+    let finalPosition = position;
+    if (finalPosition === undefined || finalPosition === null) {
+      const last = await db.get(
+        'SELECT MAX(position) as max FROM crm_pipeline_stages WHERE organization_id = ? OR organization_id IS NULL',
+        [req.orgId]
+      );
+      finalPosition = (last?.max ?? -1) + 1;
+    }
+
+    const result = await db.run(
+      'INSERT INTO crm_pipeline_stages (name, position, color, organization_id) VALUES (?, ?, ?, ?)',
+      [name, finalPosition, color || '#6B7280', req.orgId]
+    );
+    const stage = await db.get('SELECT * FROM crm_pipeline_stages WHERE id = ?', [result.lastInsertRowid]);
+    res.status(201).json(stage);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Actualizar una etapa del pipeline (de la organización o una global por defecto)
+router.put('/stages/:id', async (req, res) => {
+  try {
+    const { name, color, position } = req.body;
+    const stage = await db.get(
+      'SELECT * FROM crm_pipeline_stages WHERE id = ? AND (organization_id = ? OR organization_id IS NULL)',
+      [req.params.id, req.orgId]
+    );
+    if (!stage) return res.status(404).json({ error: 'Etapa no encontrada' });
+
+    await db.run(
+      'UPDATE crm_pipeline_stages SET name = ?, color = ?, position = ? WHERE id = ?',
+      [
+        name !== undefined ? name : stage.name,
+        color !== undefined ? color : stage.color,
+        position !== undefined ? position : stage.position,
+        req.params.id,
+      ]
+    );
+    const updated = await db.get('SELECT * FROM crm_pipeline_stages WHERE id = ?', [req.params.id]);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Eliminar una etapa del pipeline
+router.delete('/stages/:id', async (req, res) => {
+  try {
+    const stage = await db.get(
+      'SELECT * FROM crm_pipeline_stages WHERE id = ? AND (organization_id = ? OR organization_id IS NULL)',
+      [req.params.id, req.orgId]
+    );
+    if (!stage) return res.status(404).json({ error: 'Etapa no encontrada' });
+
+    // No permitir borrar una etapa que aún tenga negocios dentro.
+    const inUse = await db.get(
+      'SELECT COUNT(*) as count FROM crm_deals WHERE stage_id = ?',
+      [req.params.id]
+    );
+    if (inUse && Number(inUse.count) > 0) {
+      return res.status(400).json({
+        error: `No se puede eliminar: hay ${inUse.count} negocio(s) en esta etapa. Muévelos primero a otra etapa.`,
+      });
+    }
+
+    await db.run('DELETE FROM crm_pipeline_stages WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Etapa eliminada' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========================================
 // DEALS
 // ========================================

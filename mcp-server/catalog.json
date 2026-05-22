@@ -1,7 +1,7 @@
 {
   "generated": "2026-05-22",
   "note": "Rutas relativas a la base /api (la herramienta api_request NO necesita el prefijo /api). Los campos 'body' son best-effort, extraídos del código del backend.",
-  "totalEndpoints": 386,
+  "totalEndpoints": 389,
   "domains": {
     "ad-tags": [
       {
@@ -881,6 +881,34 @@
       {
         "method": "GET",
         "path": "/crm/stages"
+      },
+      {
+        "method": "POST",
+        "path": "/crm/stages",
+        "body": [
+          "name",
+          "color",
+          "position"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/crm/stages/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "color",
+          "position"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/crm/stages/:id",
+        "params": [
+          "id"
+        ]
       },
       {
         "method": "GET",
