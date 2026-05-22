@@ -88,6 +88,7 @@ import growthRoutes from './src/routes/growth.js';
 import briefRoutes from './src/routes/briefs.js';
 // AI Agents
 import agentRoutes from './src/routes/agents.js';
+import auditLogRoutes from './src/routes/audit-log.js';
 import { setupAgentSocket } from './src/agents/socket.js';
 
 const app = express();
@@ -258,6 +259,8 @@ app.use('/api/chat', teamAuthMiddleware, chatRoutes);
 app.use('/api/briefs', teamAuthMiddleware, briefRoutes);
 // AI Agents
 app.use('/api/agents', teamAuthMiddleware, agentRoutes);
+// Auditoría (historial de borrados vía MCP)
+app.use('/api/audit-log', teamAuthMiddleware, auditLogRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

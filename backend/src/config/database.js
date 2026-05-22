@@ -2338,6 +2338,22 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Tabla de auditoría — registra borrados hechos vía el MCP (quién, qué, cuándo).
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        team_member_id INTEGER,
+        user_name TEXT,
+        user_email TEXT,
+        action TEXT NOT NULL,
+        resource_path TEXT,
+        snapshot JSONB,
+        source TEXT DEFAULT 'mcp',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

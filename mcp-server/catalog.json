@@ -1,0 +1,3256 @@
+{
+  "generated": "2026-05-22",
+  "note": "Rutas relativas a la base /api (la herramienta api_request NO necesita el prefijo /api). Los campos 'body' son best-effort, extraídos del código del backend.",
+  "totalEndpoints": 386,
+  "domains": {
+    "ad-tags": [
+      {
+        "method": "GET",
+        "path": "/ad-tags/categories"
+      },
+      {
+        "method": "POST",
+        "path": "/ad-tags/categories",
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/ad-tags/categories/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/ad-tags/categories/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/ad-tags/categories/:categoryId/values",
+        "params": [
+          "categoryId"
+        ],
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/ad-tags/values/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/ad-tags/values/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/ad-tags/assignments/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/ad-tags/assignments/:adId",
+        "params": [
+          "adId"
+        ],
+        "body": [
+          "client_id",
+          "assignments"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/ad-tags/assignments/bulk",
+        "body": [
+          "client_id",
+          "ad_ids",
+          "assignments"
+        ]
+      }
+    ],
+    "agents": [
+      {
+        "method": "GET",
+        "path": "/agents"
+      },
+      {
+        "method": "GET",
+        "path": "/agents/:slug",
+        "params": [
+          "slug"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/agents/:slug/query",
+        "params": [
+          "slug"
+        ],
+        "body": [
+          "message",
+          "sessionId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/agents/:slug/stream",
+        "params": [
+          "slug"
+        ],
+        "body": [
+          "message",
+          "sessionId"
+        ]
+      }
+    ],
+    "audit-log": [
+      {
+        "method": "POST",
+        "path": "/audit-log",
+        "body": [
+          "action",
+          "resource_path",
+          "snapshot",
+          "source"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/audit-log"
+      }
+    ],
+    "auth": [
+      {
+        "method": "POST",
+        "path": "/auth/bootstrap",
+        "body": [
+          "email",
+          "pin",
+          "name"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/auth/login",
+        "body": [
+          "email",
+          "pin"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/auth/select-org",
+        "body": [
+          "org_id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/auth/logout"
+      },
+      {
+        "method": "GET",
+        "path": "/auth/me"
+      },
+      {
+        "method": "GET",
+        "path": "/auth/validate"
+      },
+      {
+        "method": "POST",
+        "path": "/auth/restore-all-sessions"
+      },
+      {
+        "method": "POST",
+        "path": "/auth/register",
+        "body": [
+          "name",
+          "email",
+          "pin",
+          "org_name",
+          "logo_base64",
+          "onboarding"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/auth/invite",
+        "body": [
+          "name",
+          "email",
+          "role"
+        ]
+      }
+    ],
+    "automations": [
+      {
+        "method": "GET",
+        "path": "/automations"
+      },
+      {
+        "method": "GET",
+        "path": "/automations/project/:projectId",
+        "params": [
+          "projectId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/automations/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/automations",
+        "body": [
+          "project_id",
+          "name",
+          "trigger_type",
+          "trigger_conditions",
+          "action_type",
+          "action_params",
+          "is_active"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/automations/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "project_id",
+          "name",
+          "trigger_type",
+          "trigger_conditions",
+          "action_type",
+          "action_params",
+          "is_active"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/automations/:id/toggle",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/automations/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "board-columns": [
+      {
+        "method": "GET",
+        "path": "/board-columns/project/:projectId",
+        "params": [
+          "projectId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/board-columns/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/board-columns",
+        "body": [
+          "project_id",
+          "column_name",
+          "column_type",
+          "column_order",
+          "settings"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/board-columns/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "column_name",
+          "column_type",
+          "column_order",
+          "settings"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/board-columns/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/board-columns/values/task/:taskId",
+        "params": [
+          "taskId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/board-columns/values",
+        "body": [
+          "task_id",
+          "column_id",
+          "value"
+        ]
+      }
+    ],
+    "briefs": [
+      {
+        "method": "GET",
+        "path": "/briefs"
+      },
+      {
+        "method": "GET",
+        "path": "/briefs/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/briefs",
+        "body": [
+          "client_id",
+          "title",
+          "html_content",
+          "visible_to_client"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/briefs/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "title",
+          "html_content",
+          "visible_to_client",
+          "client_id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/briefs/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "chat": [
+      {
+        "method": "GET",
+        "path": "/chat/conversations"
+      },
+      {
+        "method": "POST",
+        "path": "/chat/conversations",
+        "body": [
+          "type",
+          "name",
+          "member_ids"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/chat/conversations/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/chat/conversations/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/chat/conversations/:id/messages",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/chat/conversations/:id/messages",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "content",
+          "entity_mentions"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/chat/conversations/:id/read",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/chat/conversations/:id/upload",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/chat/unread-count"
+      },
+      {
+        "method": "GET",
+        "path": "/chat/search/entities"
+      },
+      {
+        "method": "GET",
+        "path": "/chat/entity-preview/:type/:id",
+        "params": [
+          "type",
+          "id"
+        ]
+      }
+    ],
+    "client-calls": [
+      {
+        "method": "GET",
+        "path": "/client-calls/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/client-calls/:clientId/:callId",
+        "params": [
+          "clientId",
+          "callId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/client-calls/:clientId",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "title",
+          "call_date",
+          "duration_minutes",
+          "summary",
+          "transcription"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/client-calls/:clientId/:callId",
+        "params": [
+          "clientId",
+          "callId"
+        ],
+        "body": [
+          "title",
+          "call_date",
+          "duration_minutes",
+          "summary",
+          "transcription"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/client-calls/:clientId/:callId",
+        "params": [
+          "clientId",
+          "callId"
+        ]
+      }
+    ],
+    "client-documents": [
+      {
+        "method": "GET",
+        "path": "/client-documents/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/client-documents/:clientId",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "label",
+          "category"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/client-documents/:clientId/:docId",
+        "params": [
+          "clientId",
+          "docId"
+        ],
+        "body": [
+          "label",
+          "category"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/client-documents/:clientId/:docId",
+        "params": [
+          "clientId",
+          "docId"
+        ]
+      }
+    ],
+    "client-metrics": [
+      {
+        "method": "GET",
+        "path": "/client-metrics/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/client-metrics/:clientId/daily",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/client-metrics/aggregate/all"
+      },
+      {
+        "method": "GET",
+        "path": "/client-metrics/summary/all"
+      },
+      {
+        "method": "GET",
+        "path": "/client-metrics/:clientId/ads",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/client-metrics/:clientId/top-products",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/client-metrics/sync/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/client-metrics/sync-all",
+        "body": [
+          "start_date",
+          "end_date"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/client-metrics/sync-status"
+      }
+    ],
+    "client-reports": [
+      {
+        "method": "GET",
+        "path": "/client-reports/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/client-reports/:clientId",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "title",
+          "report_type",
+          "period_label",
+          "period_start",
+          "period_end"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/client-reports/:clientId/:reportId",
+        "params": [
+          "clientId",
+          "reportId"
+        ]
+      }
+    ],
+    "clients": [
+      {
+        "method": "GET",
+        "path": "/clients"
+      },
+      {
+        "method": "GET",
+        "path": "/clients/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/clients/search-nit/:nit",
+        "params": [
+          "nit"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/clients",
+        "body": [
+          "name",
+          "email",
+          "phone",
+          "company",
+          "nit",
+          "check_digit",
+          "address",
+          "city",
+          "nickname",
+          "status",
+          "contract_value",
+          "contract_start_date",
+          "contract_end_date",
+          "notes",
+          "is_recurring",
+          "billing_day",
+          "recurring_amount",
+          "siigo_id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/clients/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "email",
+          "phone",
+          "company",
+          "nit",
+          "check_digit",
+          "address",
+          "city",
+          "nickname",
+          "status",
+          "contract_value",
+          "contract_start_date",
+          "contract_end_date",
+          "notes",
+          "is_recurring",
+          "billing_day",
+          "recurring_amount",
+          "tipo_negociacion",
+          "estado_actual",
+          "valor_contratado",
+          "has_comision",
+          "comision_detalle"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/clients/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "collections": [
+      {
+        "method": "GET",
+        "path": "/collections/summary"
+      },
+      {
+        "method": "GET",
+        "path": "/collections/client/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/collections/preview-reminder",
+        "body": [
+          "client_id",
+          "custom_message",
+          "closing_message",
+          "invoice_ids"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/collections/send-reminder",
+        "body": [
+          "client_id",
+          "email_to",
+          "subject",
+          "custom_message",
+          "closing_message",
+          "invoice_ids"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/collections/reminders"
+      },
+      {
+        "method": "POST",
+        "path": "/collections/notes",
+        "body": [
+          "client_id",
+          "note",
+          "follow_up_date"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/collections/notes/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/collections/mark-paid",
+        "body": [
+          "invoice_id",
+          "paid_date",
+          "payment_proof"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/collections/process-scheduled"
+      },
+      {
+        "method": "POST",
+        "path": "/collections/schedule-reminder",
+        "body": [
+          "client_id",
+          "email_to",
+          "subject",
+          "custom_message",
+          "closing_message",
+          "invoice_ids",
+          "scheduled_for"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/collections/scheduled"
+      },
+      {
+        "method": "DELETE",
+        "path": "/collections/scheduled/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "commissions": [
+      {
+        "method": "GET",
+        "path": "/commissions/report/monthly"
+      },
+      {
+        "method": "GET",
+        "path": "/commissions"
+      },
+      {
+        "method": "GET",
+        "path": "/commissions/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/commissions",
+        "body": [
+          "team_member_id",
+          "client_id",
+          "otros",
+          "month",
+          "year",
+          "net_sales",
+          "commission_amount",
+          "status",
+          "notes"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/commissions/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "team_member_id",
+          "client_id",
+          "otros",
+          "month",
+          "year",
+          "net_sales",
+          "commission_amount",
+          "status",
+          "notes"
+        ]
+      },
+      {
+        "method": "PATCH",
+        "path": "/commissions/:id/status",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "status"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/commissions/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "crm": [
+      {
+        "method": "GET",
+        "path": "/crm/stages"
+      },
+      {
+        "method": "GET",
+        "path": "/crm/deals"
+      },
+      {
+        "method": "GET",
+        "path": "/crm/deals/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/crm/deals",
+        "body": [
+          "name",
+          "client_name",
+          "email",
+          "phone",
+          "company",
+          "source",
+          "estimated_value",
+          "stage_id",
+          "notes",
+          "assigned_to"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/crm/deals/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "client_name",
+          "email",
+          "phone",
+          "company",
+          "source",
+          "estimated_value",
+          "notes",
+          "assigned_to"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/crm/deals/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PATCH",
+        "path": "/crm/deals/:id/stage",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "stage_id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/crm/deals/:id/activities",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/crm/deals/:id/activities",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "type",
+          "title",
+          "content"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/crm/activities/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/crm/deals/:id/transcript",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "text"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/crm/deals/:id/convert",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/crm/webhook/transcript",
+        "body": [
+          "deal_id",
+          "text",
+          "organization_id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/crm/proposals/templates"
+      },
+      {
+        "method": "POST",
+        "path": "/crm/proposals/generate",
+        "body": [
+          "deal_id",
+          "template_slug",
+          "variables"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/crm/proposals/generate-custom",
+        "body": [
+          "deal_id",
+          "services_description"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/crm/proposals/deploy",
+        "body": [
+          "html",
+          "repo_name",
+          "deal_id"
+        ]
+      }
+    ],
+    "dashboard-share": [
+      {
+        "method": "POST",
+        "path": "/dashboard-share/clients/:clientId/share",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "expires_in_days"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/dashboard-share/clients/:clientId/shares",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/dashboard-share/clients/:clientId/share/:tokenId",
+        "params": [
+          "clientId",
+          "tokenId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/dashboard-share/public/:token",
+        "params": [
+          "token"
+        ]
+      }
+    ],
+    "dashboard": [
+      {
+        "method": "GET",
+        "path": "/dashboard/stats"
+      },
+      {
+        "method": "GET",
+        "path": "/dashboard/monthly-sales-comparison"
+      },
+      {
+        "method": "GET",
+        "path": "/dashboard/recent-activity"
+      },
+      {
+        "method": "GET",
+        "path": "/dashboard/upcoming-tasks"
+      },
+      {
+        "method": "GET",
+        "path": "/dashboard/overdue-invoices"
+      },
+      {
+        "method": "GET",
+        "path": "/dashboard/revenue-trend"
+      }
+    ],
+    "email-marketing": [
+      {
+        "method": "GET",
+        "path": "/email-marketing/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/email-marketing/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/email-marketing/:clientId/:campaignId",
+        "params": [
+          "clientId",
+          "campaignId"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/email-marketing/:clientId/:campaignId",
+        "params": [
+          "clientId",
+          "campaignId"
+        ]
+      }
+    ],
+    "expenses": [
+      {
+        "method": "GET",
+        "path": "/expenses"
+      },
+      {
+        "method": "GET",
+        "path": "/expenses/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/expenses",
+        "body": [
+          "description",
+          "category",
+          "amount",
+          "project_id",
+          "expense_date",
+          "payment_method",
+          "receipt_url",
+          "notes"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/expenses/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "description",
+          "category",
+          "amount",
+          "project_id",
+          "expense_date",
+          "payment_method",
+          "receipt_url",
+          "notes"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/expenses/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/expenses/summary/by-category"
+      }
+    ],
+    "oauth/facebook": [
+      {
+        "method": "GET",
+        "path": "/oauth/facebook/url"
+      },
+      {
+        "method": "GET",
+        "path": "/oauth/facebook/callback"
+      },
+      {
+        "method": "GET",
+        "path": "/oauth/facebook/ad-accounts"
+      },
+      {
+        "method": "POST",
+        "path": "/oauth/facebook/link-accounts",
+        "body": [
+          "session_id",
+          "client_id",
+          "account_ids"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/oauth/facebook/unlink/:credentialId",
+        "params": [
+          "credentialId"
+        ]
+      }
+    ],
+    "form-share": [
+      {
+        "method": "GET",
+        "path": "/form-share/public/:token",
+        "params": [
+          "token"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/form-share/public/:token/submit",
+        "params": [
+          "token"
+        ],
+        "body": [
+          "respondent_name",
+          "data"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/form-share/assignment/:token",
+        "params": [
+          "token"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/form-share/assignment/:token/save",
+        "params": [
+          "token"
+        ],
+        "body": [
+          "data"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/form-share/assignment/:token/submit",
+        "params": [
+          "token"
+        ],
+        "body": [
+          "data"
+        ]
+      }
+    ],
+    "forms": [
+      {
+        "method": "GET",
+        "path": "/forms"
+      },
+      {
+        "method": "GET",
+        "path": "/forms/client/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/forms/assignments/:assignmentId/response",
+        "params": [
+          "assignmentId"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/forms/assignments/:assignmentId",
+        "params": [
+          "assignmentId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/forms/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/forms",
+        "body": [
+          "title",
+          "description",
+          "status='draft'",
+          "sections=[]"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/forms/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "title",
+          "description",
+          "status",
+          "sections"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/forms/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/forms/:id/duplicate",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/forms/:id/assign",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "client_id",
+          "due_date"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/forms/:id/assignments",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/forms/:id/share",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/forms/:id/share",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/forms/:id/public-responses",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/forms/public-responses/:responseId",
+        "params": [
+          "responseId"
+        ]
+      }
+    ],
+    "growth": [
+      {
+        "method": "PUT",
+        "path": "/growth/clients/:clientId/hide",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "is_hidden"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/growth/clients/:clientId/service-type",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "service_type"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/growth/clients"
+      },
+      {
+        "method": "GET",
+        "path": "/growth/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/growth/:clientId/objectives",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "period",
+          "metric",
+          "conservador",
+          "base",
+          "optimista"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/growth/objectives/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "conservador",
+          "base",
+          "optimista"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/growth/:clientId/palancas",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "period",
+          "rank",
+          "nombre",
+          "estado",
+          "kpi_label",
+          "kpi_valor",
+          "impacto"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/growth/palancas/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "rank",
+          "nombre",
+          "estado",
+          "kpi_label",
+          "kpi_valor",
+          "impacto"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/growth/palancas/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/growth/:clientId/milestones",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "period",
+          "nombre",
+          "meta",
+          "status",
+          "responsable"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/growth/milestones/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "nombre",
+          "meta",
+          "status",
+          "responsable"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/growth/milestones/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/growth/:clientId/banderas",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "period",
+          "nivel",
+          "titulo",
+          "descripcion"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/growth/banderas/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "nivel",
+          "titulo",
+          "descripcion",
+          "is_active"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/growth/banderas/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "invoice-pdf": [
+      {
+        "method": "GET",
+        "path": "/invoice-pdf/:token",
+        "params": [
+          "token"
+        ]
+      }
+    ],
+    "invoices": [
+      {
+        "method": "GET",
+        "path": "/invoices"
+      },
+      {
+        "method": "GET",
+        "path": "/invoices/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/invoices",
+        "body": [
+          "client_id",
+          "project_id",
+          "amount",
+          "invoice_type",
+          "status",
+          "issue_date",
+          "notes",
+          "siigo_product_code",
+          "is_recurring",
+          "recurrence_frequency",
+          "recurrence_status",
+          "next_recurrence_date",
+          "siigo_id",
+          "siigo_status"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/invoices/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "client_id",
+          "project_id",
+          "amount",
+          "invoice_type",
+          "status",
+          "issue_date",
+          "paid_date",
+          "notes",
+          "payment_proof",
+          "changed_by",
+          "siigo_product_code",
+          "is_recurring",
+          "recurrence_frequency",
+          "recurrence_status",
+          "next_recurrence_date"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/invoices/:id/history",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/invoices/:id/send",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/invoices/:id/duplicate",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/invoices/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "note-categories": [
+      {
+        "method": "GET",
+        "path": "/note-categories"
+      },
+      {
+        "method": "GET",
+        "path": "/note-categories/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/note-categories",
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/note-categories/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/note-categories/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "note-folders": [
+      {
+        "method": "GET",
+        "path": "/note-folders"
+      },
+      {
+        "method": "GET",
+        "path": "/note-folders/flat"
+      },
+      {
+        "method": "PUT",
+        "path": "/note-folders/reorder",
+        "body": [
+          "folders"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/note-folders/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/note-folders",
+        "body": [
+          "name",
+          "parent_id",
+          "icon",
+          "color"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/note-folders/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "parent_id",
+          "icon",
+          "color",
+          "position"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/note-folders/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/note-folders/reorder",
+        "body": [
+          "folders"
+        ]
+      }
+    ],
+    "note-share": [
+      {
+        "method": "POST",
+        "path": "/note-share/:id/share",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "allow_comments=true",
+          "allow_edits=false",
+          "expires_in_days"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/note-share/:id/shares",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/note-share/:id/share/:tokenId",
+        "params": [
+          "id",
+          "tokenId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/note-share/:id/comments",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/note-share/:id/comments/:commentId/resolve",
+        "params": [
+          "id",
+          "commentId"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/note-share/:id/comments/:commentId/unresolve",
+        "params": [
+          "id",
+          "commentId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/note-share/:id/comments/:commentId/reply",
+        "params": [
+          "id",
+          "commentId"
+        ],
+        "body": [
+          "content"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/note-share/:id/edits",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/note-share/:id/edits/:editId",
+        "params": [
+          "id",
+          "editId"
+        ],
+        "body": [
+          "action"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/note-share/public/:token",
+        "params": [
+          "token"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/note-share/public/:token/comments",
+        "params": [
+          "token"
+        ],
+        "body": [
+          "author_name",
+          "content",
+          "selection_from",
+          "selection_to",
+          "quoted_text",
+          "parent_id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/note-share/public/:token/comments",
+        "params": [
+          "token"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/note-share/public/:token/edits",
+        "params": [
+          "token"
+        ],
+        "body": [
+          "author_name",
+          "content_json"
+        ]
+      }
+    ],
+    "notes": [
+      {
+        "method": "GET",
+        "path": "/notes"
+      },
+      {
+        "method": "GET",
+        "path": "/notes/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/notes/client/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/notes/project/:projectId",
+        "params": [
+          "projectId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/notes/team/:memberId",
+        "params": [
+          "memberId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/notes",
+        "body": [
+          "title",
+          "content",
+          "content_plain",
+          "color",
+          "category_id",
+          "folder_id",
+          "is_pinned",
+          "created_by",
+          "visibility",
+          "links"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/notes/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "title",
+          "content",
+          "content_plain",
+          "color",
+          "category_id",
+          "folder_id",
+          "is_pinned",
+          "visibility",
+          "links"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/notes/:id/pin",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/notes/:id/color",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "color"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/notes/:id/visibility",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "visibility"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/notes/:id/links",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "client_id",
+          "project_id",
+          "team_member_id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/notes/:id/links/:linkId/portal",
+        "params": [
+          "id",
+          "linkId"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/notes/:id/links/:linkId",
+        "params": [
+          "id",
+          "linkId"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/notes/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/notes/:id/versions",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/notes/:id/versions/:versionId",
+        "params": [
+          "id",
+          "versionId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/notes/:id/versions/:versionId/restore",
+        "params": [
+          "id",
+          "versionId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/notes/search/query"
+      },
+      {
+        "method": "POST",
+        "path": "/notes/upload-image"
+      }
+    ],
+    "notifications": [
+      {
+        "method": "GET",
+        "path": "/notifications/user/:userId",
+        "params": [
+          "userId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/notifications/user/:userId/unread-count",
+        "params": [
+          "userId"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/notifications/:id/read",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/notifications/user/:userId/read-all",
+        "params": [
+          "userId"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/notifications/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/notifications",
+        "body": [
+          "user_id",
+          "type",
+          "title",
+          "message",
+          "entity_type",
+          "entity_id",
+          "metadata"
+        ]
+      }
+    ],
+    "pdf": [
+      {
+        "method": "POST",
+        "path": "/pdf/analyze-rut"
+      }
+    ],
+    "platform-credentials": [
+      {
+        "method": "GET",
+        "path": "/platform-credentials/client/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/platform-credentials/health-check"
+      },
+      {
+        "method": "POST",
+        "path": "/platform-credentials/facebook",
+        "body": [
+          "client_id",
+          "access_token",
+          "ad_account_id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/platform-credentials/facebook/:id/test",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/platform-credentials/facebook/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/platform-credentials/shopify",
+        "body": [
+          "client_id",
+          "store_url",
+          "access_token"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/platform-credentials/shopify/:id/test",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/platform-credentials/shopify/:id/sessions-diagnostics",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/platform-credentials/shopify/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "portal-admin": [
+      {
+        "method": "GET",
+        "path": "/portal-admin/clients/:id/settings",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/portal-admin/clients/:id/settings",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "can_view_projects",
+          "can_view_tasks",
+          "can_view_invoices",
+          "can_view_metrics",
+          "can_approve_tasks",
+          "can_comment_tasks",
+          "can_view_team",
+          "can_download_files",
+          "welcome_message",
+          "portal_revenue_metric"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/portal-admin/clients/:id/invite",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "created_by"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/portal-admin/clients/:id/access",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/portal-admin/clients/:id/access/:tokenId",
+        "params": [
+          "id",
+          "tokenId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/portal-admin/clients/:id/activity",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/portal-admin/priorities/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/portal-admin/priorities/:clientId",
+        "params": [
+          "clientId"
+        ],
+        "body": [
+          "items"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/portal-admin/commercial-dates"
+      },
+      {
+        "method": "POST",
+        "path": "/portal-admin/commercial-dates",
+        "body": [
+          "title",
+          "date",
+          "client_ids"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/portal-admin/commercial-dates/group",
+        "body": [
+          "original_title",
+          "original_date",
+          "title",
+          "date",
+          "client_ids"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/portal-admin/commercial-dates/group"
+      },
+      {
+        "method": "GET",
+        "path": "/portal-admin/commercial-dates/:clientId",
+        "params": [
+          "clientId"
+        ]
+      }
+    ],
+    "project-stages": [
+      {
+        "method": "GET",
+        "path": "/project-stages"
+      },
+      {
+        "method": "POST",
+        "path": "/project-stages",
+        "body": [
+          "name",
+          "color",
+          "order_index"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/project-stages/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "color",
+          "order_index"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/project-stages/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "project-templates": [
+      {
+        "method": "GET",
+        "path": "/project-templates"
+      },
+      {
+        "method": "GET",
+        "path": "/project-templates/categories/all"
+      },
+      {
+        "method": "POST",
+        "path": "/project-templates/categories",
+        "body": [
+          "name"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/project-templates/categories/:name",
+        "params": [
+          "name"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/project-templates/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/project-templates",
+        "body": [
+          "name",
+          "description",
+          "category",
+          "subcategory",
+          "tasks"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/project-templates/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "description",
+          "category",
+          "subcategory"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/project-templates/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/project-templates/:id/tasks",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "title",
+          "description",
+          "priority",
+          "estimated_hours",
+          "default_assignee_id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/project-templates/:id/tasks/:taskId",
+        "params": [
+          "id",
+          "taskId"
+        ],
+        "body": [
+          "title",
+          "description",
+          "priority",
+          "estimated_hours",
+          "default_assignee_id",
+          "order_index"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/project-templates/:id/tasks/:taskId",
+        "params": [
+          "id",
+          "taskId"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/project-templates/:id/tasks/reorder",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "taskIds"
+        ]
+      }
+    ],
+    "projects": [
+      {
+        "method": "GET",
+        "path": "/projects"
+      },
+      {
+        "method": "GET",
+        "path": "/projects/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/projects",
+        "body": [
+          "name",
+          "description",
+          "client_id",
+          "start_date",
+          "end_date",
+          "stage_id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/projects/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "description",
+          "client_id",
+          "start_date",
+          "end_date",
+          "stage_id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/projects/:id/team",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "team_member_id",
+          "role"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/projects/:id/team/:team_member_id",
+        "params": [
+          "id",
+          "team_member_id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/projects/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "reports": [
+      {
+        "method": "GET",
+        "path": "/reports/productivity"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/financial"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/projects"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/team"
+      }
+    ],
+    "sales-goals": [
+      {
+        "method": "GET",
+        "path": "/sales-goals"
+      },
+      {
+        "method": "PUT",
+        "path": "/sales-goals/:year/:month",
+        "params": [
+          "year",
+          "month"
+        ],
+        "body": [
+          "goal_amount"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/sales-goals/bulk",
+        "body": [
+          "year",
+          "goals"
+        ]
+      }
+    ],
+    "screenstudio": [
+      {
+        "method": "GET",
+        "path": "/screenstudio/:videoId/video",
+        "params": [
+          "videoId"
+        ]
+      }
+    ],
+    "search": [
+      {
+        "method": "GET",
+        "path": "/search"
+      },
+      {
+        "method": "GET",
+        "path": "/search/quick"
+      }
+    ],
+    "oauth/shopify": [
+      {
+        "method": "POST",
+        "path": "/oauth/shopify/save-credentials",
+        "body": [
+          "client_id",
+          "shopify_api_key",
+          "shopify_api_secret"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/oauth/shopify/url"
+      },
+      {
+        "method": "GET",
+        "path": "/oauth/shopify/callback"
+      },
+      {
+        "method": "GET",
+        "path": "/oauth/shopify/callback-status"
+      },
+      {
+        "method": "GET",
+        "path": "/oauth/shopify/store-info"
+      },
+      {
+        "method": "POST",
+        "path": "/oauth/shopify/link-store",
+        "body": [
+          "session_id",
+          "client_id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/oauth/shopify/unlink/:credentialId",
+        "params": [
+          "credentialId"
+        ]
+      }
+    ],
+    "siigo": [
+      {
+        "method": "GET",
+        "path": "/siigo/settings"
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/settings",
+        "body": [
+          "username",
+          "access_key",
+          "partner_id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/test-connection"
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/sync-reference-data"
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/document-types"
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/payment-types"
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/taxes"
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/products"
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/customers/sync/:clientId",
+        "params": [
+          "clientId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/customers"
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/invoices"
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/invoices/:invoiceId/detail",
+        "params": [
+          "invoiceId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/invoices/sync/:invoiceId",
+        "params": [
+          "invoiceId"
+        ],
+        "body": [
+          "sendElectronic=true",
+          "paymentTypeId",
+          "dueDateDays"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/invoices/:invoiceId/send-to-dian",
+        "params": [
+          "invoiceId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/siigo/invoices/:invoiceId/pdf",
+        "params": [
+          "invoiceId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/invoices/:invoiceId/send-email",
+        "params": [
+          "invoiceId"
+        ],
+        "body": [
+          "email"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/invoices/refresh-amounts",
+        "body": [
+          "invoices"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/sync-credit-notes",
+        "body": [
+          "dateStart",
+          "dateEnd"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/invoices/normalize-amounts"
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/invoices/cleanup-duplicates"
+      },
+      {
+        "method": "POST",
+        "path": "/siigo/invoices/sync-bulk",
+        "body": [
+          "invoiceIds",
+          "sendElectronic=true",
+          "paymentTypeId",
+          "dueDateDays"
+        ]
+      }
+    ],
+    "sops": [
+      {
+        "method": "GET",
+        "path": "/sops/categories"
+      },
+      {
+        "method": "POST",
+        "path": "/sops/categories",
+        "body": [
+          "name",
+          "description",
+          "color",
+          "icon"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/sops/categories/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "description",
+          "color",
+          "icon",
+          "position"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/sops/categories/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/sops"
+      },
+      {
+        "method": "GET",
+        "path": "/sops/:identifier",
+        "params": [
+          "identifier"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/sops",
+        "body": [
+          "title",
+          "description",
+          "content",
+          "steps",
+          "editor_mode",
+          "category_id",
+          "created_by",
+          "status"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/sops/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "title",
+          "description",
+          "content",
+          "steps",
+          "editor_mode",
+          "category_id",
+          "status",
+          "is_pinned"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/sops/:id/pin",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/sops/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/sops/:id/revisions",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "subtasks": [
+      {
+        "method": "GET",
+        "path": "/subtasks/task/:taskId",
+        "params": [
+          "taskId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/subtasks/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/subtasks",
+        "body": [
+          "task_id",
+          "title",
+          "position"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/subtasks/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "title",
+          "is_completed",
+          "position"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/subtasks/:id/toggle",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/subtasks/reorder/:taskId",
+        "params": [
+          "taskId"
+        ],
+        "body": [
+          "subtaskIds"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/subtasks/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/subtasks/task/:taskId/progress",
+        "params": [
+          "taskId"
+        ]
+      }
+    ],
+    "tags": [
+      {
+        "method": "GET",
+        "path": "/tags"
+      },
+      {
+        "method": "GET",
+        "path": "/tags/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/tags",
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/tags/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "color"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/tags/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/tags/task/:taskId",
+        "params": [
+          "taskId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/tags/task/:taskId/tag/:tagId",
+        "params": [
+          "taskId",
+          "tagId"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/tags/task/:taskId/tag/:tagId",
+        "params": [
+          "taskId",
+          "tagId"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/tags/task/:taskId",
+        "params": [
+          "taskId"
+        ],
+        "body": [
+          "tagIds"
+        ]
+      }
+    ],
+    "task-comments": [
+      {
+        "method": "GET",
+        "path": "/task-comments/task/:taskId",
+        "params": [
+          "taskId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/task-comments",
+        "body": [
+          "task_id",
+          "user_id",
+          "comment"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/task-comments/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "comment"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/task-comments/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "task-dependencies": [
+      {
+        "method": "GET",
+        "path": "/task-dependencies/task/:taskId",
+        "params": [
+          "taskId"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/task-dependencies/task/:taskId/dependents",
+        "params": [
+          "taskId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/task-dependencies",
+        "body": [
+          "task_id",
+          "depends_on_task_id",
+          "dependency_type"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/task-dependencies/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "dependency_type"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/task-dependencies/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/task-dependencies/project/:projectId/chain",
+        "params": [
+          "projectId"
+        ]
+      }
+    ],
+    "task-files": [
+      {
+        "method": "POST",
+        "path": "/task-files/upload",
+        "body": [
+          "task_id",
+          "uploaded_by"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/task-files/task/:taskId",
+        "params": [
+          "taskId"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/task-files",
+        "body": [
+          "task_id",
+          "file_name",
+          "file_path",
+          "file_size",
+          "file_type",
+          "description",
+          "uploaded_by"
+        ]
+      },
+      {
+        "method": "PATCH",
+        "path": "/task-files/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "file_name",
+          "description"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/task-files/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "tasks": [
+      {
+        "method": "GET",
+        "path": "/tasks"
+      },
+      {
+        "method": "GET",
+        "path": "/tasks/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/tasks",
+        "body": [
+          "title",
+          "description",
+          "project_id",
+          "assigned_to",
+          "assignee_ids",
+          "status",
+          "priority",
+          "due_date",
+          "is_recurring",
+          "recurrence_pattern",
+          "timeline_start",
+          "timeline_end",
+          "progress",
+          "color",
+          "estimated_hours",
+          "delivery_url",
+          "created_by",
+          "order_index",
+          "linked_form_id",
+          "visible_to_client",
+          "requires_client_approval"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/tasks/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "title",
+          "description",
+          "project_id",
+          "assigned_to",
+          "assignee_ids",
+          "status",
+          "priority",
+          "due_date",
+          "is_recurring",
+          "recurrence_pattern",
+          "timeline_start",
+          "timeline_end",
+          "progress",
+          "color",
+          "estimated_hours",
+          "delivery_url",
+          "linked_form_id",
+          "visible_to_client",
+          "requires_client_approval"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/tasks/bulk-visibility",
+        "body": [
+          "project_id",
+          "visible_to_client"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/tasks/:id",
+        "params": [
+          "id"
+        ]
+      }
+    ],
+    "team": [
+      {
+        "method": "POST",
+        "path": "/team/auth/bootstrap"
+      },
+      {
+        "method": "POST",
+        "path": "/team/auth/login"
+      },
+      {
+        "method": "POST",
+        "path": "/team/auth/logout"
+      },
+      {
+        "method": "GET",
+        "path": "/team/auth/me"
+      },
+      {
+        "method": "GET",
+        "path": "/team/auth/validate"
+      },
+      {
+        "method": "POST",
+        "path": "/team/:id/set-pin",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "pin"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/team/org-logo",
+        "body": [
+          "logo_url"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/team/profile",
+        "body": [
+          "name",
+          "position"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/team/change-pin",
+        "body": [
+          "currentPin",
+          "newPin"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/team"
+      },
+      {
+        "method": "GET",
+        "path": "/team/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/team",
+        "body": [
+          "name",
+          "email",
+          "role",
+          "position",
+          "status",
+          "hire_date",
+          "birthday",
+          "permissions",
+          "pin",
+          "send_email"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/team/:id",
+        "params": [
+          "id"
+        ],
+        "body": [
+          "name",
+          "email",
+          "role",
+          "position",
+          "status",
+          "hire_date",
+          "birthday",
+          "permissions"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/team/:id",
+        "params": [
+          "id"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/team/leave-org"
+      }
+    ]
+  }
+}
