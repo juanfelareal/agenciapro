@@ -45,6 +45,7 @@ import ClientEmailMarketing from './pages/ClientEmailMarketing';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 import Briefs from './pages/Briefs';
+import Anuncios from './pages/Anuncios';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -328,6 +329,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="formularios">
                       <Forms />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="anuncios"
+                  element={
+                    <ProtectedRoute>
+                      <Anuncios />
                     </ProtectedRoute>
                   }
                 />

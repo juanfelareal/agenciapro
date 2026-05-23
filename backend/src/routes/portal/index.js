@@ -12,6 +12,7 @@ import notificationsRoutes from './notifications.js';
 import formsRoutes from './forms.js';
 import callsRoutes from './calls.js';
 import notesRoutes from './notes.js';
+import referenceAdsRoutes from './reference-ads.js';
 
 const router = express.Router();
 
@@ -29,5 +30,6 @@ router.use('/notifications', notificationsRoutes);
 router.use('/forms', formsRoutes);
 router.use('/calls', callsRoutes);
 router.use('/notes', notesRoutes);
+router.use('/reference-ads', referenceAdsRoutes);
 
 export default router;

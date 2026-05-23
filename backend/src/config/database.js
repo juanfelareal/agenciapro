@@ -801,6 +801,71 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // ============================================
+    // CLIENT GROUPS (audiencias para distribuir contenido a varios clientes)
+    // ============================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_groups (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#6366F1',
+        description TEXT,
+        created_by INTEGER REFERENCES team_members(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(name, organization_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_group_members (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES client_groups(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(group_id, client_id)
+      )
+    `);
+
+    // ============================================
+    // REFERENCE ADS (biblioteca de anuncios referente)
+    // ============================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reference_ads (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL,
+        url TEXT NOT NULL,
+        title TEXT,
+        notes TEXT,
+        platform TEXT,
+        thumbnail_url TEXT,
+        created_by INTEGER REFERENCES team_members(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reference_ad_clients (
+        id SERIAL PRIMARY KEY,
+        reference_ad_id INTEGER NOT NULL REFERENCES reference_ads(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(reference_ad_id, client_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reference_ad_groups (
+        id SERIAL PRIMARY KEY,
+        reference_ad_id INTEGER NOT NULL REFERENCES reference_ads(id) ON DELETE CASCADE,
+        group_id INTEGER NOT NULL REFERENCES client_groups(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(reference_ad_id, group_id)
+      )
+    `);
+
     // SOP Categories
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sop_categories (
@@ -1220,6 +1285,8 @@ export const initializeDatabase = async () => {
       'client_access_tokens', 'client_portal_settings', 'client_comments', 'client_notifications',
       'client_facebook_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
       'ad_tag_categories', 'ad_tag_values', 'ad_tag_assignments',
+      // Client groups & reference ads library
+      'client_groups', 'reference_ads',
       // Note: 'chat_conversations' and 'chat_messages' already have organization_id in their CREATE TABLE
       // Siigo (accounting integration)
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
@@ -1644,6 +1711,18 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_assignments_ad ON ad_tag_assignments(ad_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_assignments_client ON ad_tag_assignments(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_assignments_value ON ad_tag_assignments(tag_value_id)`);
+
+    // Client groups indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_groups_org ON client_groups(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_group_members_group ON client_group_members(group_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_group_members_client ON client_group_members(client_id)`);
+
+    // Reference ads indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ads_org ON reference_ads(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_clients_ad ON reference_ad_clients(reference_ad_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_clients_client ON reference_ad_clients(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_groups_ad ON reference_ad_groups(reference_ad_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_groups_group ON reference_ad_groups(group_id)`);
 
     // Notifications indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)`);

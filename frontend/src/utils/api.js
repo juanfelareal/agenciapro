@@ -620,4 +620,25 @@ export const chatAPI = {
   getEntityPreview: (type, id) => api.get(`/chat/entity-preview/${type}/${id}`),
 };
 
+// Client Groups (grupos de clientes para distribuir contenido)
+export const clientGroupsAPI = {
+  getAll: () => api.get('/client-groups'),
+  getById: (id) => api.get(`/client-groups/${id}`),
+  create: (data) => api.post('/client-groups', data),
+  update: (id, data) => api.put(`/client-groups/${id}`, data),
+  delete: (id) => api.delete(`/client-groups/${id}`),
+  setMembers: (id, clientIds) => api.put(`/client-groups/${id}/clients`, { client_ids: clientIds }),
+  addMember: (id, clientId) => api.post(`/client-groups/${id}/clients`, { client_id: clientId }),
+  removeMember: (id, clientId) => api.delete(`/client-groups/${id}/clients/${clientId}`),
+};
+
+// Reference Ads (biblioteca de anuncios referente para clientes)
+export const referenceAdsAPI = {
+  getAll: (filters) => api.get('/reference-ads', { params: filters }),
+  getById: (id) => api.get(`/reference-ads/${id}`),
+  create: (data) => api.post('/reference-ads', data),
+  update: (id, data) => api.put(`/reference-ads/${id}`, data),
+  delete: (id) => api.delete(`/reference-ads/${id}`),
+};
+
 export default api;

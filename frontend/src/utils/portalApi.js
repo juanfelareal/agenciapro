@@ -297,4 +297,11 @@ export const portalNotesAPI = {
   },
 };
 
+export const portalReferenceAdsAPI = {
+  list: async () => {
+    const response = await portalApi.get('/reference-ads');
+    return response.data;
+  },
+};
+
 export default portalApi;

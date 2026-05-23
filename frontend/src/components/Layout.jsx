@@ -26,6 +26,7 @@ import {
   MessageCircle,
   Bot,
   FileCode2,
+  Megaphone,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -86,6 +87,7 @@ const Layout = ({ children }) => {
     { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes' },
     { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
     { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
+    { name: 'Anuncios', path: '/app/anuncios', icon: Megaphone, permission: null },
     { name: 'Chat', path: '/app/chat', icon: MessageCircle, permission: null },
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
     { name: 'Briefs', path: '/app/briefs', icon: FileCode2, permission: null },

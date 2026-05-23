@@ -89,6 +89,9 @@ import briefRoutes from './src/routes/briefs.js';
 // AI Agents
 import agentRoutes from './src/routes/agents.js';
 import auditLogRoutes from './src/routes/audit-log.js';
+// Client groups & reference ads library
+import clientGroupsRoutes from './src/routes/client-groups.js';
+import referenceAdsRoutes from './src/routes/reference-ads.js';
 import { setupAgentSocket } from './src/agents/socket.js';
 
 const app = express();
@@ -261,6 +264,8 @@ app.use('/api/briefs', teamAuthMiddleware, briefRoutes);
 app.use('/api/agents', teamAuthMiddleware, agentRoutes);
 // Auditoría (historial de borrados vía MCP)
 app.use('/api/audit-log', teamAuthMiddleware, auditLogRoutes);
+app.use('/api/client-groups', teamAuthMiddleware, clientGroupsRoutes);
+app.use('/api/reference-ads', teamAuthMiddleware, referenceAdsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

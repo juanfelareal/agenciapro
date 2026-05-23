@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { usePortal } from '../../context/PortalContext';
-import { portalDashboardAPI, portalNotesAPI } from '../../utils/portalApi';
+import { portalDashboardAPI, portalNotesAPI, portalReferenceAdsAPI } from '../../utils/portalApi';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
@@ -31,7 +31,9 @@ import {
   Building2,
   ThumbsUp,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Megaphone,
+  Play
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TabbedNoteView from '../../components/TabbedNoteView';
@@ -47,10 +49,21 @@ export default function PortalDashboard() {
   const [selectedBrief, setSelectedBrief] = useState(null);
   const [briefFullscreen, setBriefFullscreen] = useState(false);
   const [commercialDatesOpen, setCommercialDatesOpen] = useState(false);
+  const [referenceAds, setReferenceAds] = useState([]);
 
   useEffect(() => {
     loadDashboard();
+    loadReferenceAds();
   }, []);
+
+  const loadReferenceAds = async () => {
+    try {
+      const ads = await portalReferenceAdsAPI.list();
+      setReferenceAds(ads || []);
+    } catch (error) {
+      console.error('Error loading reference ads:', error);
+    }
+  };
 
   const loadDashboard = async () => {
     try {
@@ -569,6 +582,79 @@ export default function PortalDashboard() {
           </div>
         </div>
       )}
+      {/* Reference Ads */}
+      {referenceAds.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+              <Megaphone className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-[#1A1A2E]">Anuncios de referencia</h2>
+              <p className="text-sm text-gray-500">
+                Inspiración curada por tu agencia · {referenceAds.length} {referenceAds.length === 1 ? 'referente' : 'referentes'}
+              </p>
+            </div>
+          </div>
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {referenceAds.map((ad) => {
+              const platformLabel = ({
+                facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok',
+                youtube: 'YouTube', twitter: 'X', linkedin: 'LinkedIn', web: 'Web', other: 'Link'
+              }[ad.platform] || 'Link');
+              const platformColor = ({
+                facebook: 'bg-blue-100 text-blue-700',
+                instagram: 'bg-pink-100 text-pink-700',
+                tiktok: 'bg-gray-900 text-white',
+                youtube: 'bg-red-100 text-red-700',
+                twitter: 'bg-slate-100 text-slate-700',
+                linkedin: 'bg-sky-100 text-sky-700',
+              }[ad.platform] || 'bg-gray-100 text-gray-700');
+              return (
+                <a
+                  key={ad.id}
+                  href={ad.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block bg-gray-50 hover:bg-white border border-gray-100 hover:border-gray-200 hover:shadow-md rounded-xl overflow-hidden transition-all"
+                >
+                  <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                    {ad.thumbnail_url ? (
+                      <img
+                        src={ad.thumbnail_url}
+                        alt={ad.title || 'Anuncio'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <Play className="w-10 h-10" />
+                      </div>
+                    )}
+                    <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold ${platformColor}`}>
+                      {platformLabel}
+                    </span>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="bg-white/90 rounded-full p-2.5">
+                        <ExternalLink className="w-4 h-4 text-gray-700" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-medium text-[#1A1A2E] line-clamp-1 mb-0.5">
+                      {ad.title || 'Anuncio sin título'}
+                    </p>
+                    {ad.notes && (
+                      <p className="text-xs text-gray-500 line-clamp-2">{ad.notes}</p>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Commercial Date Response Modal */}
       {selectedDate && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
