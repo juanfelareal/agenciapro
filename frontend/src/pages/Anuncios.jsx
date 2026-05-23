@@ -87,7 +87,8 @@ export default function Anuncios() {
 
   const loadClients = async () => {
     try {
-      const { data } = await clientsAPI.getAll();
+      // Solo clientes activos — los inactivos hacen ruido en los selectores
+      const { data } = await clientsAPI.getAll('active');
       setClients(data || []);
     } catch (err) {
       console.error('Error loading clients:', err);
