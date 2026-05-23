@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../config/database.js';
 import { notifyTaskAssigned, notifyTaskUpdated, notifyTaskCompleted } from '../utils/notificationHelper.js';
 import { processTaskCreated, processTaskUpdated } from '../services/automationEngine.js';
+import { logTaskActivity, diffTaskForActivity } from '../utils/activityLog.js';
 
 const router = express.Router();
 
@@ -228,6 +229,17 @@ router.post('/', async (req, res) => {
       ? await db.all('SELECT ta.team_member_id as id, tm.name FROM task_assignees ta JOIN team_members tm ON ta.team_member_id = tm.id WHERE ta.task_id = ?', [taskId])
       : [];
 
+    // History: task created
+    logTaskActivity(req, taskId, 'created', {
+      description: `Creó la tarea "${title}"`,
+      metadata: {
+        status: task.status,
+        priority: task.priority,
+        assignee_ids: resolvedAssigneeIds,
+        project_id: task.project_id,
+      },
+    });
+
     res.status(201).json(task);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -326,6 +338,33 @@ router.put('/:id', async (req, res) => {
       // Notify newly added assignees
       if (addedIds.length > 0) {
         notifyTaskAssigned(req.params.id, title, addedIds, 0);
+      }
+
+      // History: assignees changed (resolve names for the description)
+      if (addedIds.length > 0 || removedIds.length > 0) {
+        const allChangedIds = [...addedIds, ...removedIds];
+        const placeholders = allChangedIds.map(() => '?').join(',');
+        const memberRows = allChangedIds.length > 0
+          ? await db.all(
+              `SELECT id, name FROM team_members WHERE id IN (${placeholders})`,
+              allChangedIds
+            ).catch(() => [])
+          : [];
+        const nameById = Object.fromEntries(memberRows.map(m => [m.id, m.name]));
+        if (addedIds.length > 0) {
+          const names = addedIds.map(id => nameById[id] || `#${id}`).join(', ');
+          logTaskActivity(req, req.params.id, 'assignees_added', {
+            description: `Asignó a ${names}`,
+            metadata: { added: addedIds },
+          });
+        }
+        if (removedIds.length > 0) {
+          const names = removedIds.map(id => nameById[id] || `#${id}`).join(', ');
+          logTaskActivity(req, req.params.id, 'assignees_removed', {
+            description: `Quitó a ${names}`,
+            metadata: { removed: removedIds },
+          });
+        }
       }
     }
 
@@ -430,6 +469,30 @@ router.put('/:id', async (req, res) => {
 
       // Process automations for task update
       processTaskUpdated(oldTask, task);
+
+      // History: diff old vs new and log each meaningful change
+      try {
+        const projectIdsToResolve = [oldTask.project_id, task.project_id].filter(Boolean);
+        const uniqueProjectIds = [...new Set(projectIdsToResolve)];
+        let projectNamesById = {};
+        if (uniqueProjectIds.length > 0) {
+          const placeholders = uniqueProjectIds.map(() => '?').join(',');
+          const rows = await db.all(
+            `SELECT id, name FROM projects WHERE id IN (${placeholders})`,
+            uniqueProjectIds
+          );
+          projectNamesById = Object.fromEntries(rows.map(r => [r.id, r.name]));
+        }
+        const events = diffTaskForActivity(oldTask, task, { projectNamesById });
+        for (const e of events) {
+          logTaskActivity(req, req.params.id, e.action, {
+            description: e.description,
+            metadata: e.metadata,
+          });
+        }
+      } catch (logErr) {
+        console.error('Error logging task diff:', logErr);
+      }
     }
 
     res.json(task);
@@ -473,13 +536,18 @@ router.delete('/:id', async (req, res) => {
   try {
     // Verify the task belongs to this org before deleting
     const task = await db.get(
-      'SELECT id FROM tasks WHERE id = ? AND organization_id = ?',
+      'SELECT id, title FROM tasks WHERE id = ? AND organization_id = ?',
       [req.params.id, req.orgId]
     );
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
+
+    // History: log BEFORE delete so the entry survives the cascade
+    await logTaskActivity(req, req.params.id, 'deleted', {
+      description: `Eliminó la tarea "${task.title}"`,
+    });
 
     await db.run('DELETE FROM tasks WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json({ message: 'Task deleted successfully' });

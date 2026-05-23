@@ -620,6 +620,11 @@ export const chatAPI = {
   getEntityPreview: (type, id) => api.get(`/chat/entity-preview/${type}/${id}`),
 };
 
+// Task History (feed unificado por tarea)
+export const taskHistoryAPI = {
+  get: (taskId) => api.get(`/task-history/${taskId}`),
+};
+
 // Client Groups (grupos de clientes para distribuir contenido)
 export const clientGroupsAPI = {
   getAll: () => api.get('/client-groups'),

@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
+import { logActivity } from '../../utils/activityLog.js';
 
 const router = express.Router();
 
@@ -235,6 +236,19 @@ router.put('/:id/approval', clientAuthMiddleware, requirePortalPermission('can_a
 
     // Get updated task
     const updatedTask = await db.get('SELECT * FROM tasks WHERE id = ?', [id]);
+
+    // History: client action on this task
+    const actionLabel = action === 'approved' ? 'aprobó'
+      : action === 'rejected' ? 'rechazó'
+      : 'solicitó cambios en';
+    logActivity({
+      entityType: 'task',
+      entityId: id,
+      action: `client_${action}`,
+      description: `${req.client.name} (cliente) ${actionLabel} la tarea${notes ? ': ' + notes : ''}`,
+      metadata: { client_id: clientId, notes: notes || null },
+      orgId: updatedTask?.organization_id || null,
+    });
 
     res.json({
       success: true,

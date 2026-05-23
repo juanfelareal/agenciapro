@@ -11,6 +11,7 @@ import TaskFilters from '../components/tasks/TaskFilters';
 import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
 import CalendarView from '../components/tasks/CalendarView';
+import TaskHistory from '../components/tasks/TaskHistory';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -1382,6 +1383,13 @@ const Tasks = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Historial — toggle expandible con eventos y comentarios. Solo al editar. */}
+                {editingTask && (
+                  <div className="col-span-2 mt-4">
+                    <TaskHistory taskId={editingTask.id} />
+                  </div>
+                )}
               </div>
               {/* Action buttons - inside sidebar when expanded */}
               <div className={`flex justify-end gap-3 ${modalExpanded ? 'mt-4 pt-4' : 'mt-6 pt-4'} border-t border-gray-100`}>
