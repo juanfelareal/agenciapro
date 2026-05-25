@@ -196,8 +196,8 @@ const executeAction = async (task, automation, context = {}) => {
           }
           for (const recipientId of recipientIds) {
             await db.prepare(`
-              INSERT INTO notifications (user_id, type, title, message, related_task_id, organization_id)
-              VALUES (?, 'automation', ?, ?, ?, ?)
+              INSERT INTO notifications (user_id, type, category, title, message, related_task_id, organization_id)
+              VALUES (?, 'automation', 'system', ?, ?, ?, ?)
             `).run(recipientId, `Automatización: ${automation.name}`, params.message, task.id, notifOrgId);
             console.log(`  → Sent notification to user: ${recipientId}`);
           }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Bell, X, Check, CheckCheck } from 'lucide-react';
-import { notificationsAPI } from '../utils/api';
+import { notificationsAPI, getNotificationMeta } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -116,19 +116,8 @@ const NotificationBell = () => {
     loadNotifications();
   };
 
-  const getNotificationIcon = (type) => {
-    const icons = {
-      task_assigned: '📋',
-      comment: '💬',
-      mention: '@',
-      task_updated: '🔄',
-      task_due: '⏰',
-      task_completed: '✅',
-      commission_approved: '💰',
-      chat_message: '💬'
-    };
-    return icons[type] || '🔔';
-  };
+  // Use the shared taxonomy so Bell and Inbox stay in sync.
+  const getNotificationIcon = (type) => getNotificationMeta(type).icon;
 
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
@@ -191,16 +180,23 @@ const NotificationBell = () => {
                 No tienes notificaciones
               </div>
             ) : (
-              notifications.map((notification) => (
+              notifications.map((notification) => {
+                const meta = getNotificationMeta(notification.type);
+                const isClientAction = meta.category === 'client_action';
+                return (
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${
-                    !notification.is_read ? 'bg-blue-50' : ''
+                    !notification.is_read
+                      ? (isClientAction ? 'bg-pink-50/60' : 'bg-blue-50')
+                      : ''
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
+                    <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${meta.color}`}>
+                      {meta.icon}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
@@ -241,7 +237,8 @@ const NotificationBell = () => {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
 

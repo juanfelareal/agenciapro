@@ -211,20 +211,23 @@ router.post('/:assignmentId/submit',
         UPDATE form_assignments SET status = 'submitted', updated_at = CURRENT_TIMESTAMP WHERE id = ?
       `).run(assignment.id);
 
-      // Create notification for the team member who assigned it
+      // Create notification for the team member who assigned it.
+      // Was silently broken: used 'team_member_id' (wrong column), type 'info'
+      // (not in schema), and 'link' (not a column). Swallowed by try/catch.
       if (assignment.assigned_by) {
         try {
           await db.prepare(`
-            INSERT INTO notifications (team_member_id, type, title, message, link)
-            VALUES (?, 'info', ?, ?, ?)
+            INSERT INTO notifications (user_id, type, category, title, message, entity_type, entity_id, organization_id)
+            VALUES (?, 'client_form_submitted', 'client_action', ?, ?, 'form', ?, ?)
           `).run(
             assignment.assigned_by,
-            'Formulario completado',
-            `${req.client.name} completó el formulario`,
-            `/app/formularios`
+            'Formulario completado por cliente',
+            `${req.client.name} completó el formulario asignado.`,
+            assignment.id,
+            assignment.organization_id || null
           );
         } catch (e) {
-          // Non-critical
+          console.error('Form notification insert failed:', e.message);
         }
       }
 

@@ -492,7 +492,8 @@ export const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS notifications (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
-        type TEXT CHECK(type IN ('task_assigned', 'comment', 'mention', 'task_updated', 'task_due', 'task_completed', 'automation')) NOT NULL,
+        type TEXT NOT NULL,
+        category TEXT,
         title TEXT NOT NULL,
         message TEXT NOT NULL,
         entity_type TEXT,
@@ -504,6 +505,54 @@ export const initializeDatabase = async () => {
         read_at TEXT
       )
     `);
+
+    // Migration: add `category` column to existing envs, drop legacy CHECK on `type`,
+    // backfill categories from type, then add indexes for tab filtering.
+    try {
+      await pool.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                         WHERE table_name='notifications' AND column_name='category') THEN
+            ALTER TABLE notifications ADD COLUMN category TEXT;
+          END IF;
+        END $$;
+      `);
+
+      // Drop the legacy CHECK constraint if it still exists (it was named
+      // notifications_type_check by Postgres in the original CREATE TABLE).
+      await pool.query(`
+        DO $$
+        DECLARE
+          c RECORD;
+        BEGIN
+          FOR c IN
+            SELECT conname FROM pg_constraint
+            WHERE conrelid = 'notifications'::regclass AND contype = 'c'
+          LOOP
+            EXECUTE format('ALTER TABLE notifications DROP CONSTRAINT %I', c.conname);
+          END LOOP;
+        END $$;
+      `);
+
+      // Backfill category from type for legacy rows that have no category
+      await pool.query(`
+        UPDATE notifications SET category = CASE
+          WHEN type IN ('client_approved','client_rejected','client_changes_requested',
+                        'client_comment','client_task_created','client_form_submitted') THEN 'client_action'
+          WHEN type IN ('task_assigned','task_updated','task_due','task_completed','form_assigned') THEN 'task'
+          WHEN type IN ('comment','mention') THEN 'comment'
+          WHEN type IN ('invoice_created','invoice_paid','commission_approved') THEN 'finance'
+          WHEN type IN ('automation','chat_message','info') THEN 'system'
+          ELSE 'system'
+        END
+        WHERE category IS NULL
+      `);
+
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_category ON notifications(user_id, category, is_read)`);
+    } catch (e) {
+      console.warn('[notifications migration] non-fatal:', e.message);
+    }
 
     // Note Categories
     await pool.query(`

@@ -1,39 +1,49 @@
-import { useEffect, useState } from 'react';
-import { notificationsAPI } from '../utils/api';
+import { useEffect, useState, useMemo } from 'react';
+import {
+  notificationsAPI,
+  getNotificationMeta,
+  NOTIFICATION_CATEGORIES,
+} from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Bell, Check, CheckCheck, X, Trash2, Filter } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Inbox = () => {
   const [notifications, setNotifications] = useState([]);
+  const [categoryCounts, setCategoryCounts] = useState({
+    client_action: 0, task: 0, comment: 0, finance: 0, system: 0
+  });
+  const [totalUnread, setTotalUnread] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, unread, read
+  const [activeCategory, setActiveCategory] = useState('client_action');
+  const [showRead, setShowRead] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    loadNotifications();
-  }, [user, filter]);
+    if (!user?.id) { setLoading(false); return; }
+    loadAll();
+  }, [user?.id, activeCategory, showRead]);
 
-  const loadNotifications = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
+  const loadAll = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await notificationsAPI.getByUser(
-        user.id,
-        filter === 'unread'
-      );
-      let filtered = response.data;
+      // Counts always for all categories
+      const countsPromise = notificationsAPI.getCategoryCounts(user.id);
+      const params = {};
+      if (activeCategory !== 'all') params.category = activeCategory;
+      if (!showRead) params.unread_only = true;
 
-      if (filter === 'read') {
-        filtered = response.data.filter(n => n.is_read === 1);
-      }
+      const [notifRes, countsRes] = await Promise.all([
+        notificationsAPI.getByUser(user.id, params),
+        countsPromise,
+      ]);
 
-      setNotifications(filtered);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
+      setNotifications(notifRes.data || []);
+      if (countsRes.data?.counts) setCategoryCounts(countsRes.data.counts);
+      if (typeof countsRes.data?.total === 'number') setTotalUnread(countsRes.data.total);
+    } catch (err) {
+      console.error('Error loading notifications:', err);
     } finally {
       setLoading(false);
     }
@@ -42,86 +52,58 @@ const Inbox = () => {
   const handleMarkAsRead = async (id) => {
     try {
       await notificationsAPI.markAsRead(id);
-      loadNotifications();
-    } catch (error) {
-      console.error('Error marking as read:', error);
-    }
+      loadAll();
+    } catch (err) { console.error(err); }
   };
 
   const handleMarkAllAsRead = async () => {
     if (!user?.id) return;
-
     try {
       await notificationsAPI.markAllAsRead(user.id);
-      loadNotifications();
-    } catch (error) {
-      console.error('Error marking all as read:', error);
-    }
+      loadAll();
+    } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (id) => {
     try {
       await notificationsAPI.delete(id);
-      loadNotifications();
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
+      loadAll();
+    } catch (err) { console.error(err); }
   };
 
-  const getNotificationIcon = (type) => {
-    const icons = {
-      task_assigned: '📋',
-      comment: '💬',
-      mention: '@',
-      task_updated: '🔄',
-      task_due: '⏰',
-      task_completed: '✅'
-    };
-    return icons[type] || '🔔';
-  };
-
-  const getNotificationColor = (type) => {
-    const colors = {
-      task_assigned: 'bg-blue-100 text-blue-800',
-      comment: 'bg-green-100 text-green-800',
-      mention: 'bg-purple-100 text-purple-800',
-      task_updated: 'bg-yellow-100 text-yellow-800',
-      task_due: 'bg-orange-100 text-orange-800',
-      task_completed: 'bg-emerald-100 text-emerald-800'
-    };
-    return colors[type] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getNotificationTypeLabel = (type) => {
-    const labels = {
-      task_assigned: 'Tarea Asignada',
-      comment: 'Comentario',
-      mention: 'Mención',
-      task_updated: 'Actualización',
-      task_due: 'Próxima a Vencer',
-      task_completed: 'Completada'
-    };
-    return labels[type] || type;
+  const handleOpen = async (n) => {
+    if (!n.is_read) await notificationsAPI.markAsRead(n.id);
+    // Navigate to the relevant entity
+    if (n.related_task_id) navigate(`/app/tasks?task=${n.related_task_id}`);
+    else if (n.entity_type === 'chat') navigate(`/app/chat/${n.entity_id}`);
+    else if (n.entity_type === 'task') navigate(`/app/tasks`);
+    else if (n.entity_type === 'invoice') navigate(`/app/invoices/${n.entity_id}`);
+    else if (n.entity_type === 'commission') navigate(`/app/comisiones`);
+    else if (n.entity_type === 'form') navigate(`/app/formularios`);
+    loadAll();
   };
 
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
-    if (diffInSeconds < 60) return 'Ahora';
-    if (diffInSeconds < 3600) return `Hace ${Math.floor(diffInSeconds / 60)} min`;
-    if (diffInSeconds < 86400) return `Hace ${Math.floor(diffInSeconds / 3600)} horas`;
-    if (diffInSeconds < 604800) return `Hace ${Math.floor(diffInSeconds / 86400)} días`;
-
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
+    const diffSec = Math.floor((now - date) / 1000);
+    if (diffSec < 60) return 'Ahora';
+    if (diffSec < 3600) return `Hace ${Math.floor(diffSec / 60)} min`;
+    if (diffSec < 86400) return `Hace ${Math.floor(diffSec / 3600)} h`;
+    if (diffSec < 604800) return `Hace ${Math.floor(diffSec / 86400)} d`;
+    return date.toLocaleDateString('es-CO', {
+      day: 'numeric', month: 'short',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
   };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  // Inject a synthetic "all" count
+  const tabs = useMemo(() => {
+    return NOTIFICATION_CATEGORIES.map(c => ({
+      ...c,
+      count: c.id === 'all' ? totalUnread : (categoryCounts[c.id] || 0),
+    }));
+  }, [categoryCounts, totalUnread]);
 
   if (!user) {
     return (
@@ -133,154 +115,148 @@ const Inbox = () => {
   }
 
   return (
-    <div>
+    <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <Bell size={28} className="text-[#1A1A2E]" />
+            <div className="w-10 h-10 rounded-xl bg-[#1A1A2E] flex items-center justify-center">
+              <Bell size={18} className="text-white" />
+            </div>
             <div>
               <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Inbox</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {unreadCount > 0
-                  ? `Tienes ${unreadCount} notificación${unreadCount !== 1 ? 'es' : ''} sin leer`
-                  : 'No tienes notificaciones sin leer'}
+              <p className="text-sm text-gray-500">
+                {totalUnread > 0
+                  ? `${totalUnread} sin leer en total`
+                  : 'Estás al día — sin notificaciones pendientes'}
               </p>
             </div>
           </div>
 
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] transition-colors"
-            >
-              <CheckCheck size={20} />
-              Marcar todas como leídas
-            </button>
-          )}
-        </div>
-
-        {/* Filters */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-[#1A1A2E] text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Todas {notifications.length > 0 && `(${notifications.length})`}
-          </button>
-          <button
-            onClick={() => setFilter('unread')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filter === 'unread'
-                ? 'bg-[#1A1A2E] text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            No leídas {unreadCount > 0 && `(${unreadCount})`}
-          </button>
-          <button
-            onClick={() => setFilter('read')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filter === 'read'
-                ? 'bg-[#1A1A2E] text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Leídas
-          </button>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showRead}
+                onChange={(e) => setShowRead(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Mostrar leídas
+            </label>
+            {totalUnread > 0 && (
+              <button
+                onClick={handleMarkAllAsRead}
+                className="flex items-center gap-2 px-3 py-2 bg-[#1A1A2E] text-white text-sm rounded-lg hover:bg-[#2a2a44] transition-colors"
+              >
+                <CheckCheck size={16} />
+                Marcar todas
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Notifications List */}
+      {/* Category Tabs */}
+      <div className="flex gap-1 mb-5 border-b border-gray-200 overflow-x-auto">
+        {tabs.map(tab => {
+          const isActive = activeCategory === tab.id;
+          const highlight = tab.id === 'client_action';
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveCategory(tab.id)}
+              className={`relative inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                isActive
+                  ? `border-[#1A1A2E] text-[#1A1A2E]`
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <span className="text-base">{tab.icon}</span>
+              <span>{tab.label}</span>
+              {tab.count > 0 && (
+                <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  highlight ? 'bg-pink-500 text-white' : (isActive ? 'bg-[#1A1A2E] text-white' : 'bg-gray-200 text-gray-700')
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* List */}
       {loading ? (
-        <div className="text-center py-16">
-          <p className="text-gray-500">Cargando notificaciones...</p>
+        <div className="text-center py-20">
+          <Loader2 className="w-6 h-6 text-gray-400 animate-spin mx-auto" />
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg shadow">
-          <Bell size={48} className="mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600 text-lg mb-2">
-            {filter === 'unread'
-              ? 'No tienes notificaciones sin leer'
-              : filter === 'read'
-              ? 'No tienes notificaciones leídas'
-              : 'No tienes notificaciones'}
-          </p>
-          <p className="text-gray-500 text-sm">
-            Las notificaciones aparecerán aquí cuando haya actividad en tus tareas
+        <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+            <Bell className="w-6 h-6 text-gray-400" />
+          </div>
+          <p className="text-gray-700 font-medium mb-1">Sin notificaciones en esta categoría</p>
+          <p className="text-sm text-gray-500">
+            {showRead ? 'Aún no hay actividad aquí.' : 'Activa "Mostrar leídas" para ver el historial.'}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`bg-white rounded-lg shadow hover:shadow-md transition-shadow border-l-4 ${
-                !notification.is_read
-                  ? 'border-[#1A1A2E]'
-                  : 'border-gray-300'
-              }`}
-            >
-              <div className="p-6">
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl">
-                      {getNotificationIcon(notification.type)}
-                    </div>
+        <div className="space-y-2">
+          {notifications.map((n) => {
+            const meta = getNotificationMeta(n.type);
+            const isClientAction = meta.category === 'client_action';
+            return (
+              <div
+                key={n.id}
+                onClick={() => handleOpen(n)}
+                className={`group bg-white rounded-xl border transition-all cursor-pointer hover:border-gray-300 hover:shadow-sm ${
+                  !n.is_read
+                    ? (isClientAction ? 'border-pink-200 bg-pink-50/30' : 'border-blue-200 bg-blue-50/30')
+                    : 'border-gray-100'
+                }`}
+              >
+                <div className="p-4 flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${meta.color}`}>
+                    {meta.icon}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-gray-900">
-                          {notification.title}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getNotificationColor(notification.type)}`}>
-                          {getNotificationTypeLabel(notification.type)}
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm truncate">{n.title}</h3>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${meta.color}`}>
+                          {meta.label}
                         </span>
-                        {!notification.is_read && (
-                          <span className="w-2 h-2 bg-[#1A1A2E] rounded-full"></span>
-                        )}
+                        {!n.is_read && <span className="w-2 h-2 bg-pink-500 rounded-full flex-shrink-0"></span>}
                       </div>
-                      <span className="text-sm text-gray-500 whitespace-nowrap">
-                        {formatTimeAgo(notification.created_at)}
-                      </span>
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{formatTimeAgo(n.created_at)}</span>
                     </div>
 
-                    <p className="text-gray-700 mb-4">
-                      {notification.message}
-                    </p>
+                    <p className="text-sm text-gray-600 line-clamp-2">{n.message}</p>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-3">
-                      {!notification.is_read && (
+                    <div className="flex items-center gap-3 mt-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!n.is_read && (
                         <button
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="flex items-center gap-1 text-sm text-[#1A1A2E] hover:text-[#1A1A2E] font-medium"
+                          onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
+                          className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-[#1A1A2E] font-medium"
                         >
-                          <Check size={16} />
-                          Marcar como leída
+                          <Check size={12} />
+                          Marcar leída
                         </button>
                       )}
                       <button
-                        onClick={() => handleDelete(notification.id)}
-                        className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 font-medium"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
+                        className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700 font-medium"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={12} />
                         Eliminar
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

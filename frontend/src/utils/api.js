@@ -254,9 +254,54 @@ export const taskFilesAPI = {
 };
 
 // Notifications API
+// Shared icon/color/category metadata for the new notification taxonomy.
+// Imported by NotificationBell + Inbox + anywhere else that renders a notification.
+export const NOTIFICATION_TYPE_META = {
+  // Client actions (highlight visually — what the user actually cares about)
+  client_approved:           { category: 'client_action', icon: '✅', color: 'bg-emerald-100 text-emerald-700', label: 'Cliente aprobó' },
+  client_rejected:           { category: 'client_action', icon: '❌', color: 'bg-red-100 text-red-700',         label: 'Cliente rechazó' },
+  client_changes_requested:  { category: 'client_action', icon: '✏️', color: 'bg-amber-100 text-amber-700',     label: 'Cliente pidió cambios' },
+  client_comment:            { category: 'client_action', icon: '💬', color: 'bg-pink-100 text-pink-700',       label: 'Comentario del cliente' },
+  client_task_created:       { category: 'client_action', icon: '🆕', color: 'bg-indigo-100 text-indigo-700',   label: 'Tarea creada por cliente' },
+  client_form_submitted:     { category: 'client_action', icon: '📝', color: 'bg-violet-100 text-violet-700',   label: 'Formulario completado' },
+  // Tasks
+  task_assigned:             { category: 'task',          icon: '📋', color: 'bg-blue-100 text-blue-700',       label: 'Tarea asignada' },
+  task_updated:              { category: 'task',          icon: '🔄', color: 'bg-yellow-100 text-yellow-700',   label: 'Tarea actualizada' },
+  task_due:                  { category: 'task',          icon: '⏰', color: 'bg-orange-100 text-orange-700',   label: 'Tarea por vencer' },
+  task_completed:            { category: 'task',          icon: '🎉', color: 'bg-emerald-100 text-emerald-700', label: 'Tarea completada' },
+  form_assigned:             { category: 'task',          icon: '📝', color: 'bg-violet-100 text-violet-700',   label: 'Formulario asignado' },
+  // Comments
+  comment:                   { category: 'comment',       icon: '💬', color: 'bg-blue-50 text-blue-700',        label: 'Comentario' },
+  mention:                   { category: 'comment',       icon: '@',  color: 'bg-purple-100 text-purple-700',   label: 'Mención' },
+  // Finance
+  invoice_created:           { category: 'finance',       icon: '🧾', color: 'bg-teal-100 text-teal-700',       label: 'Factura' },
+  invoice_paid:              { category: 'finance',       icon: '💰', color: 'bg-emerald-100 text-emerald-700', label: 'Factura pagada' },
+  commission_approved:       { category: 'finance',       icon: '💸', color: 'bg-green-100 text-green-700',     label: 'Comisión aprobada' },
+  // System
+  automation:                { category: 'system',        icon: '🤖', color: 'bg-slate-100 text-slate-700',     label: 'Automatización' },
+  chat_message:              { category: 'system',        icon: '💬', color: 'bg-slate-100 text-slate-700',     label: 'Mensaje de chat' },
+};
+
+export const NOTIFICATION_CATEGORIES = [
+  { id: 'all',           label: 'Todas',     icon: '🔔', color: 'text-gray-700' },
+  { id: 'client_action', label: 'Cliente',   icon: '🎯', color: 'text-pink-700' },
+  { id: 'task',          label: 'Tareas',    icon: '📋', color: 'text-blue-700' },
+  { id: 'comment',       label: 'Comentarios', icon: '💬', color: 'text-purple-700' },
+  { id: 'finance',       label: 'Finanzas',  icon: '💰', color: 'text-emerald-700' },
+  { id: 'system',        label: 'Sistema',   icon: '🤖', color: 'text-slate-700' },
+];
+
+export const getNotificationMeta = (type) =>
+  NOTIFICATION_TYPE_META[type] || { category: 'system', icon: '🔔', color: 'bg-gray-100 text-gray-600', label: type || 'Notificación' };
+
 export const notificationsAPI = {
-  getByUser: (userId, unreadOnly = false) => api.get(`/notifications/user/${userId}`, { params: { unread_only: unreadOnly } }),
+  getByUser: (userId, params = {}) => {
+    // Backwards-compat: callers passing `true` as the second arg meant `unread_only`.
+    const query = typeof params === 'boolean' ? { unread_only: params } : params;
+    return api.get(`/notifications/user/${userId}`, { params: query });
+  },
   getUnreadCount: (userId) => api.get(`/notifications/user/${userId}/unread-count`),
+  getCategoryCounts: (userId) => api.get(`/notifications/user/${userId}/category-counts`),
   markAsRead: (id) => api.put(`/notifications/${id}/read`),
   markAllAsRead: (userId) => api.put(`/notifications/user/${userId}/read-all`),
   delete: (id) => api.delete(`/notifications/${id}`),

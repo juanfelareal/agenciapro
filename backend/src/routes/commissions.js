@@ -292,8 +292,8 @@ router.patch('/:id/status', async (req, res) => {
       }).format(commission.commission_amount);
 
       await db.prepare(`
-        INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, organization_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO notifications (user_id, type, category, title, message, entity_type, entity_id, organization_id)
+        VALUES (?, ?, 'finance', ?, ?, ?, ?, ?)
       `).run(
         commission.team_member_id,
         'commission_approved',

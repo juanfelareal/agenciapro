@@ -3,11 +3,11 @@ import db from '../config/database.js';
 
 const router = express.Router();
 
-// Get all notifications for a user
+// Get all notifications for a user (supports category filter for Inbox tabs)
 router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { unread_only } = req.query;
+    const { unread_only, category, limit } = req.query;
 
     let query = `
       SELECT n.*, tm.name as actor_name
@@ -15,17 +15,37 @@ router.get('/user/:userId', async (req, res) => {
       LEFT JOIN team_members tm ON n.user_id = tm.id
       WHERE n.user_id = ? AND n.organization_id = ?
     `;
-
     const params = [userId, req.orgId];
 
-    if (unread_only === 'true') {
-      query += ' AND n.is_read = 0';
-    }
+    if (unread_only === 'true') query += ' AND n.is_read = 0';
+    if (category)               { query += ' AND n.category = ?'; params.push(category); }
 
     query += ' ORDER BY n.created_at DESC';
+    if (limit) { query += ' LIMIT ?'; params.push(Number(limit)); }
 
     const notifications = await db.prepare(query).all(...params);
     res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get unread counts grouped by category — powers the Inbox tab badges
+router.get('/user/:userId/category-counts', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const rows = await db.prepare(`
+      SELECT COALESCE(category, 'system') AS category, COUNT(*)::int AS count
+      FROM notifications
+      WHERE user_id = ? AND organization_id = ? AND is_read = 0
+      GROUP BY COALESCE(category, 'system')
+    `).all(userId, req.orgId);
+
+    // Always return all 5 keys so the frontend can render badges deterministically
+    const counts = { client_action: 0, task: 0, comment: 0, finance: 0, system: 0 };
+    for (const r of rows) counts[r.category] = r.count;
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    res.json({ counts, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

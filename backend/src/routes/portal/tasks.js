@@ -2,6 +2,13 @@ import express from 'express';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
 import { logActivity } from '../../utils/activityLog.js';
+import {
+  notifyClientApproved,
+  notifyClientRejected,
+  notifyClientChangesRequested,
+  notifyClientCommented,
+  notifyClientTaskCreated,
+} from '../../utils/notificationHelper.js';
 
 const router = express.Router();
 
@@ -220,18 +227,18 @@ router.put('/:id/approval', clientAuthMiddleware, requirePortalPermission('can_a
       WHERE id = ?
     `, [action, new Date().toISOString(), notes || null, id]);
 
-    // Create notification for team (assigned user or all)
-    if (task.assigned_to) {
-      await db.run(`
-        INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, related_task_id)
-        VALUES (?, 'task_updated', ?, ?, 'task', ?, ?)
-      `, [
-        task.assigned_to,
-        `Cliente ${action === 'approved' ? 'aprobó' : action === 'rejected' ? 'rechazó' : 'solicitó cambios en'} tarea`,
-        `${req.client.name} ${action === 'approved' ? 'aprobó' : action === 'rejected' ? 'rechazó' : 'solicitó cambios en'} la tarea "${task.title}"${notes ? `: ${notes}` : ''}`,
-        id,
-        id
-      ]);
+    // Fan-out notification + email to ALL recipients (assignees + creator, dedup'd)
+    // using the new client-action helpers. This replaces the old direct insert
+    // that only targeted `task.assigned_to`.
+    const clientLabel = req.client.company || req.client.name || 'Cliente';
+    const handler =
+      action === 'approved' ? notifyClientApproved
+      : action === 'rejected' ? notifyClientRejected
+      : notifyClientChangesRequested;
+    try {
+      await handler({ taskId: id, clientName: clientLabel, notes });
+    } catch (e) {
+      console.error('notifyClient* failed:', e.message);
     }
 
     // Get updated task
@@ -342,18 +349,12 @@ router.post('/:id/comments', clientAuthMiddleware, requirePortalPermission('can_
       VALUES (?, ?, ?)
     `, [id, clientId, comment.trim()]);
 
-    // Notify assigned team member
-    if (task.assigned_to) {
-      await db.run(`
-        INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, related_task_id)
-        VALUES (?, 'comment', ?, ?, 'task', ?, ?)
-      `, [
-        task.assigned_to,
-        'Nuevo comentario de cliente',
-        `${req.client.name} comentó en la tarea "${task.title}": ${comment.substring(0, 100)}${comment.length > 100 ? '...' : ''}`,
-        id,
-        id
-      ]);
+    // Fan-out to ALL recipients (assignees + creator) with in-app + email
+    const clientLabel = req.client.company || req.client.name || 'Cliente';
+    try {
+      await notifyClientCommented({ taskId: id, clientName: clientLabel, commentText: comment.trim() });
+    } catch (e) {
+      console.error('notifyClientCommented failed:', e.message);
     }
 
     // Get the created comment
@@ -390,7 +391,7 @@ router.post('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks')
 
     // Verify the project belongs to this client
     const project = await db.get(
-      'SELECT id, name FROM projects WHERE id = ? AND client_id = ?',
+      'SELECT id, name, organization_id FROM projects WHERE id = ? AND client_id = ?',
       [project_id, clientId]
     );
 
@@ -402,28 +403,17 @@ router.post('/', clientAuthMiddleware, requirePortalPermission('can_view_tasks')
     const taskPriority = validPriorities.includes(priority) ? priority : 'medium';
 
     const result = await db.run(`
-      INSERT INTO tasks (title, description, project_id, status, priority, visible_to_client, created_by)
-      VALUES (?, ?, ?, 'todo', ?, 1, NULL)
-    `, [title.trim(), description?.trim() || null, project_id, taskPriority]);
+      INSERT INTO tasks (title, description, project_id, status, priority, visible_to_client, created_by, organization_id)
+      VALUES (?, ?, ?, 'todo', ?, 1, NULL, ?)
+    `, [title.trim(), description?.trim() || null, project_id, taskPriority, project.organization_id]);
 
-    // Notify team members assigned to this project
-    const projectMembers = await db.all(`
-      SELECT tm.id FROM project_team pt
-      JOIN team_members tm ON pt.team_member_id = tm.id
-      WHERE pt.project_id = ?
-    `, [project_id]);
-
-    for (const member of projectMembers) {
-      await db.run(`
-        INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, related_task_id)
-        VALUES (?, 'task_created', ?, ?, 'task', ?, ?)
-      `, [
-        member.id,
-        'Nueva tarea de cliente',
-        `${req.client.name} creo una tarea en "${project.name}": ${title.trim()}`,
-        result.lastInsertRowid,
-        result.lastInsertRowid
-      ]);
+    // Fan-out to assignees + creator (creator is null here so it falls back
+    // to project_team via the helper). Sends in-app + email.
+    const clientLabel = req.client.company || req.client.name || 'Cliente';
+    try {
+      await notifyClientTaskCreated({ taskId: result.lastInsertRowid, clientName: clientLabel });
+    } catch (e) {
+      console.error('notifyClientTaskCreated failed:', e.message);
     }
 
     const newTask = await db.get(`

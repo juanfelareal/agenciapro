@@ -120,8 +120,8 @@ export const setupChat = (io) => {
           // Check if member is offline (not in onlineUsers map)
           if (!onlineUsers.has(member.team_member_id)) {
             await db.run(
-              `INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id, organization_id)
-               VALUES (?, 'chat_message', ?, ?, 'chat', ?, ?)`,
+              `INSERT INTO notifications (user_id, type, category, title, message, entity_type, entity_id, organization_id)
+               VALUES (?, 'chat_message', 'system', ?, ?, 'chat', ?, ?)`,
               [
                 member.team_member_id,
                 `${socket.data.teamMemberName} te envió un mensaje`,

@@ -210,14 +210,16 @@ router.put('/:id', async (req, res) => {
         `).get(req.params.id, req.orgId);
 
         for (const admin of admins) {
+          // Use correct type + category. Was 'task_assigned' which polluted the Tasks tab.
           await db.prepare(`
-            INSERT INTO notifications (user_id, type, title, message, entity_type, entity_id)
-            VALUES (?, 'task_assigned', ?, ?, 'invoice', ?)
+            INSERT INTO notifications (user_id, type, category, title, message, entity_type, entity_id, organization_id)
+            VALUES (?, 'invoice_created', 'finance', ?, ?, 'invoice', ?, ?)
           `).run(
             admin.id,
             'Factura aprobada para facturar',
             `La factura ${invoice.invoice_number} de ${invoice.client_name || 'cliente'} está lista para facturar.`,
-            req.params.id
+            req.params.id,
+            req.orgId
           );
         }
       }
