@@ -6,19 +6,42 @@ import { logTaskActivity, diffTaskForActivity } from '../utils/activityLog.js';
 
 const router = express.Router();
 
-// Get all tasks (scoped to organization directly)
+// Get all tasks (scoped to organization directly).
+// Returns assignees, tags and subtask_progress inline so the frontend
+// can render the whole list with a single HTTP request (eliminates the
+// N+1 that used to make this page take ~30s with a few hundred tasks).
 router.get('/', async (req, res) => {
   try {
     const { status, project_id, assigned_to, client_id } = req.query;
     let query = `
-      SELECT t.*, p.name as project_name, p.client_id,
-             COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) as client_name,
-             tm.name as assigned_to_name,
-             cb.name as created_by_name,
-             (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name))
-              FROM task_assignees ta
-              JOIN team_members tm2 ON ta.team_member_id = tm2.id
-              WHERE ta.task_id = t.id) as assignees
+      SELECT t.*,
+             p.name AS project_name,
+             p.client_id,
+             COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) AS client_name,
+             tm.name AS assigned_to_name,
+             cb.name AS created_by_name,
+             COALESCE(
+               (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name))
+                FROM task_assignees ta
+                JOIN team_members tm2 ON ta.team_member_id = tm2.id
+                WHERE ta.task_id = t.id),
+               '[]'::json
+             ) AS assignees,
+             COALESCE(
+               (SELECT json_agg(json_build_object('id', tg.id, 'name', tg.name, 'color', tg.color))
+                FROM task_tags tt
+                JOIN tags tg ON tt.tag_id = tg.id
+                WHERE tt.task_id = t.id),
+               '[]'::json
+             ) AS tags,
+             COALESCE(
+               (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id),
+               0
+             )::int AS subtask_total,
+             COALESCE(
+               (SELECT COUNT(*) FROM subtasks s WHERE s.task_id = t.id AND s.is_completed = 1),
+               0
+             )::int AS subtask_completed
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN clients c ON p.client_id = c.id
@@ -28,30 +51,29 @@ router.get('/', async (req, res) => {
     `;
     const params = [req.orgId];
 
-    if (status) {
-      query += ' AND t.status = ?';
-      params.push(status);
-    }
-
-    if (project_id) {
-      query += ' AND t.project_id = ?';
-      params.push(project_id);
-    }
-
-    if (assigned_to) {
-      query += ' AND t.assigned_to = ?';
-      params.push(assigned_to);
-    }
-
-    if (client_id) {
-      query += ' AND p.client_id = ?';
-      params.push(client_id);
-    }
+    if (status)      { query += ' AND t.status = ?';      params.push(status); }
+    if (project_id)  { query += ' AND t.project_id = ?';  params.push(project_id); }
+    if (assigned_to) { query += ' AND t.assigned_to = ?'; params.push(assigned_to); }
+    if (client_id)   { query += ' AND p.client_id = ?';   params.push(client_id); }
 
     query += ' ORDER BY t.order_index ASC NULLS LAST, t.created_at DESC';
     const tasks = await db.all(query, params);
-    // Ensure assignees is always an array
-    tasks.forEach(t => { t.assignees = t.assignees || []; });
+
+    // Normalize: derive subtask_progress object so the FE can drop it in directly
+    tasks.forEach(t => {
+      t.assignees = t.assignees || [];
+      t.tags = t.tags || [];
+      const total = t.subtask_total || 0;
+      const completed = t.subtask_completed || 0;
+      t.subtask_progress = {
+        total,
+        completed,
+        progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+      };
+      delete t.subtask_total;
+      delete t.subtask_completed;
+    });
+
     res.json(tasks);
   } catch (error) {
     console.error('Error getting tasks:', error);

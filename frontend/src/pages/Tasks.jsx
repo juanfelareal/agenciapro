@@ -99,9 +99,30 @@ const Tasks = () => {
   });
   const [availableForms, setAvailableForms] = useState([]);
 
+  // Local search input — debounced into filters.search so the heavy
+  // filteredTasks memo doesn't recompute on every keystroke.
+  const [searchInput, setSearchInput] = useState('');
+
   useEffect(() => {
     loadData();
   }, []);
+
+  // Debounce: push searchInput into filters.search after 250ms of inactivity
+  useEffect(() => {
+    if (searchInput === filters.search) return;
+    const t = setTimeout(() => {
+      setFilters(f => ({ ...f, search: searchInput }));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // If filters.search gets cleared externally (e.g. "Clear filters" button),
+  // mirror that into the input so they stay in sync.
+  useEffect(() => {
+    if (filters.search === '' && searchInput !== '') {
+      setSearchInput('');
+    }
+  }, [filters.search]);
 
   // Persist showMyTasks preference
   useEffect(() => {
@@ -118,32 +139,22 @@ const Tasks = () => {
         clientsAPI.getAll(),
         formsAPI.getAll({ status: 'published' }),
       ]);
-      setTasks(tasksRes.data || []);
+      const tasksList = tasksRes.data || [];
+      setTasks(tasksList);
       setProjects(projectsRes.data || []);
       setTeamMembers(teamRes.data || []);
       setAllTags(tagsRes.data || []);
       setClients(clientsRes.data || []);
       setAvailableForms(formsRes.data || []);
 
-      // Load tags and subtask progress for each task
-      const tasksList = tasksRes.data || [];
+      // tags + subtask_progress now come INLINE in /api/tasks (single round-trip).
+      // We still keep the per-task maps so child components don't need to change.
       const tagsMap = {};
       const progressMap = {};
-
-      await Promise.all(tasksList.map(async (task) => {
-        try {
-          const [taskTagsRes, progressRes] = await Promise.all([
-            tagsAPI.getByTask(task.id),
-            subtasksAPI.getProgress(task.id),
-          ]);
-          tagsMap[task.id] = taskTagsRes.data || [];
-          progressMap[task.id] = progressRes.data || { total: 0, completed: 0, progress: 0 };
-        } catch {
-          tagsMap[task.id] = [];
-          progressMap[task.id] = { total: 0, completed: 0, progress: 0 };
-        }
-      }));
-
+      for (const t of tasksList) {
+        tagsMap[t.id] = t.tags || [];
+        progressMap[t.id] = t.subtask_progress || { total: 0, completed: 0, progress: 0 };
+      }
       setTaskTags(tagsMap);
       setTaskSubtaskProgress(progressMap);
     } catch (error) {
@@ -697,8 +708,8 @@ const Tasks = () => {
             <input
               type="text"
               placeholder="Buscar tareas..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFFF00] focus:border-transparent"
             />
           </div>

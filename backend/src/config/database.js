@@ -1574,6 +1574,10 @@ export const initializeDatabase = async () => {
     // Subtasks indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON subtasks(task_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_subtasks_org_id ON subtasks(organization_id)`);
+    // Composite for the per-task progress aggregate in GET /api/tasks
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_subtasks_task_completed ON subtasks(task_id, is_completed)`);
+    // Speeds up the main task listing's ORDER BY (org_id + ordering columns)
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_org_order ON tasks(organization_id, order_index NULLS LAST, created_at DESC)`);
 
     // Invoices indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_client_id ON invoices(client_id)`);
