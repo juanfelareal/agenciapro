@@ -19,15 +19,49 @@ portalApi.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 responses
+// 401 handling — verify-before-logout (same defence as the main api.js).
+// A single buggy endpoint or transient 401 used to log the client out;
+// now we ask /auth/validate once before kicking them out.
+const PORTAL_AUTH_ENDPOINTS = ['/auth/validate', '/auth/me', '/auth/login', '/auth/logout'];
+let pendingPortalValidation = null;
+
+const isPortalAuthEndpoint = (url = '') =>
+  PORTAL_AUTH_ENDPOINTS.some(suffix => url.endsWith(suffix));
+
+const performPortalLogout = () => {
+  localStorage.removeItem('portalToken');
+  window.location.href = '/portal/login';
+};
+
 portalApi.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('portalToken');
-      window.location.href = '/portal/login';
+  async (error) => {
+    if (error?.response?.status !== 401) return Promise.reject(error);
+
+    const url = error?.config?.url || '';
+    console.warn('[portalApi] 401 from', url);
+
+    if (isPortalAuthEndpoint(url)) {
+      performPortalLogout();
+      return Promise.reject(error);
     }
+
+    if (!pendingPortalValidation) {
+      pendingPortalValidation = portalApi.get('/auth/validate')
+        .then(() => ({ stillValid: true }))
+        .catch((vErr) => ({
+          stillValid: !(vErr?.response?.status === 401 || vErr?.response?.status === 403),
+        }))
+        .finally(() => {
+          setTimeout(() => { pendingPortalValidation = null; }, 1500);
+        });
+    }
+
+    try {
+      const { stillValid } = await pendingPortalValidation;
+      if (!stillValid) performPortalLogout();
+    } catch { /* never throws */ }
+
     return Promise.reject(error);
   }
 );

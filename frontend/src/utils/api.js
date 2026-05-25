@@ -9,26 +9,79 @@ const api = axios.create({
   },
 });
 
-// When the backend says the session is invalid/expired, clear the local
-// auth state and bounce to the login screen instead of letting each
-// caller surface "Token inválido o expirado" as a generic alert.
+// ------------------------------------------------------------
+// 401 handling — verify-before-logout
+// ------------------------------------------------------------
+// Old behaviour was "any 401 anywhere → log out", which was way too
+// aggressive: a single buggy endpoint or transient backend hiccup would
+// kick every user back to the login screen. Now, when we see a 401 we:
+//   1. Skip if we're on the login page or in the portal (different auth).
+//   2. If the failing request was itself an auth endpoint, the session
+//      really is gone — logout immediately (no point verifying).
+//   3. Otherwise, hit /auth/validate ONCE (single-flight across all
+//      concurrent failures) to confirm the token is dead before logging
+//      out. If validate succeeds → keep the user; only the offending
+//      endpoint had a problem.
+const AUTH_ENDPOINTS = ['/auth/validate', '/auth/me', '/auth/login', '/auth/logout'];
+let pendingValidation = null; // single-flight guard
+
+const isAuthEndpoint = (url = '') => AUTH_ENDPOINTS.some(suffix => url.endsWith(suffix));
+
+const performLogout = () => {
+  const path = window.location.pathname;
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('user');
+  localStorage.removeItem('authUser');
+  localStorage.removeItem('currentOrg');
+  delete api.defaults.headers.common['Authorization'];
+  const next = encodeURIComponent(path + window.location.search);
+  window.location.replace(`/login?session=expired&next=${next}`);
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error?.response?.status;
-    if (status === 401) {
-      const path = window.location.pathname;
-      // Don't loop on the login page itself and don't hijack portal sessions.
-      const onLogin = path === '/login' || path === '/';
-      const onPortal = path.startsWith('/portal');
-      if (!onLogin && !onPortal) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        delete api.defaults.headers.common['Authorization'];
-        const next = encodeURIComponent(path + window.location.search);
-        window.location.replace(`/login?session=expired&next=${next}`);
-      }
+    if (status !== 401) return Promise.reject(error);
+
+    const path = window.location.pathname;
+    const onLogin = path === '/login' || path === '/';
+    const onPortal = path.startsWith('/portal');
+    if (onLogin || onPortal) return Promise.reject(error);
+
+    const url = error?.config?.url || '';
+    console.warn('[api] 401 from', url);
+
+    // The auth endpoints ARE the source of truth — if /auth/me or
+    // /auth/validate themselves 401, the token really is dead.
+    if (isAuthEndpoint(url)) {
+      performLogout();
+      return Promise.reject(error);
     }
+
+    // Otherwise, verify before bouncing. Single-flight so a burst of
+    // concurrent 401s only causes one validation call.
+    if (!pendingValidation) {
+      pendingValidation = api.get('/auth/validate')
+        .then(() => ({ stillValid: true }))
+        .catch((vErr) => ({
+          stillValid: !(vErr?.response?.status === 401 || vErr?.response?.status === 403),
+        }))
+        .finally(() => {
+          // Allow another verification after this batch settles.
+          setTimeout(() => { pendingValidation = null; }, 1500);
+        });
+    }
+
+    try {
+      const { stillValid } = await pendingValidation;
+      if (!stillValid) {
+        performLogout();
+      }
+      // If still valid, swallow the side-effect of this 401 and let the
+      // caller handle the error normally (no forced logout).
+    } catch { /* never throws — pendingValidation resolves */ }
+
     return Promise.reject(error);
   }
 );
