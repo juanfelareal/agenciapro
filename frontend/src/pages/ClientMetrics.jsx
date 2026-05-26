@@ -64,6 +64,9 @@ function ClientMetrics() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [ads, setAds] = useState(null);
   const [adsLoading, setAdsLoading] = useState(false);
+  // Filtros sobre la tabla de anuncios — los selectores aparecen sobre la tabla
+  const [adsStatusFilter, setAdsStatusFilter] = useState('all'); // 'all' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED'
+  const [adsObjectiveFilter, setAdsObjectiveFilter] = useState('all'); // 'all' | objective label
   const [topProducts, setTopProducts] = useState(null);
   const [topProductsLoading, setTopProductsLoading] = useState(false);
   const [tagCategories, setTagCategories] = useState([]);
@@ -1059,10 +1062,66 @@ function ClientMetrics() {
         )}
 
         {ads !== null && !adsLoading && ads.length > 0 && (() => {
-          // Show messaging columns only when at least one ad reports
-          // conversations — keeps the table clean for pure ecommerce accounts.
-          const adsHaveMessagingData = ads.some(a => (a.messaging_conversations || 0) > 0);
+          // Available objectives (computed BEFORE applying any filter so the
+          // dropdown stays useful no matter what's selected).
+          const adsObjectives = Array.from(
+            new Set(ads.map(a => a.campaign_objective_label || a.campaign_objective).filter(Boolean))
+          ).sort();
+
+          // Apply filters
+          const filteredAds = ads.filter(a => {
+            if (adsStatusFilter !== 'all') {
+              const st = a.campaign_status || a.adset_status;
+              if (adsStatusFilter === 'ACTIVE' && st !== 'ACTIVE') return false;
+              if (adsStatusFilter === 'PAUSED' && !(st === 'PAUSED' || st === 'CAMPAIGN_PAUSED' || st === 'ADSET_PAUSED')) return false;
+              if (adsStatusFilter === 'ARCHIVED' && !(st === 'ARCHIVED' || st === 'DELETED')) return false;
+            }
+            if (adsObjectiveFilter !== 'all') {
+              const obj = a.campaign_objective_label || a.campaign_objective || '';
+              if (obj !== adsObjectiveFilter) return false;
+            }
+            return true;
+          });
+
+          // Show messaging columns only when at least one filtered ad has data.
+          const adsHaveMessagingData = filteredAds.some(a => (a.messaging_conversations || 0) > 0);
+          const activeFilters = (adsStatusFilter !== 'all') || (adsObjectiveFilter !== 'all');
           return (
+          <>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <select
+              value={adsObjectiveFilter}
+              onChange={(e) => setAdsObjectiveFilter(e.target.value)}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+              title="Filtrar por objetivo"
+            >
+              <option value="all">Todos los objetivos</option>
+              {adsObjectives.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <select
+              value={adsStatusFilter}
+              onChange={(e) => setAdsStatusFilter(e.target.value)}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+              title="Filtrar por estado"
+            >
+              <option value="all">Todas</option>
+              <option value="ACTIVE">Activas</option>
+              <option value="PAUSED">Pausadas</option>
+              <option value="ARCHIVED">Archivadas</option>
+            </select>
+            {activeFilters && (
+              <button
+                onClick={() => { setAdsStatusFilter('all'); setAdsObjectiveFilter('all'); }}
+                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1.5"
+              >
+                Limpiar
+              </button>
+            )}
+            <span className="text-xs text-gray-400 ml-auto">
+              {filteredAds.length} {filteredAds.length === 1 ? 'anuncio' : 'anuncios'}
+              {filteredAds.length !== ads.length && ` de ${ads.length}`}
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
@@ -1100,7 +1159,7 @@ function ClientMetrics() {
                 </tr>
               </thead>
               <tbody>
-                {ads.map((ad) => {
+                {filteredAds.map((ad) => {
                   const fmtCurrency = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
                   const fmtNumber = (v) => new Intl.NumberFormat('es-CO').format(v || 0);
                   const fmtPercent = (v) => `${(v || 0).toFixed(2)}%`;
@@ -1229,24 +1288,25 @@ function ClientMetrics() {
                   const fmtCurrency = (v) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v || 0);
                   const fmtNumber = (v) => new Intl.NumberFormat('es-CO').format(v || 0);
                   const fmtPercent = (v) => `${(v || 0).toFixed(2)}%`;
-                  const totSpend = ads.reduce((s, a) => s + a.spend, 0);
-                  const totImpressions = ads.reduce((s, a) => s + a.impressions, 0);
-                  const totClicks = ads.reduce((s, a) => s + a.clicks, 0);
-                  const totLinkClicks = ads.reduce((s, a) => s + (a.link_clicks || 0), 0);
-                  const totLandingPageViews = ads.reduce((s, a) => s + (a.landing_page_views || 0), 0);
-                  const totConversions = ads.reduce((s, a) => s + a.conversions, 0);
-                  const totRevenue = ads.reduce((s, a) => s + (a.revenue || 0), 0);
-                  const totMessagingConvs = ads.reduce((s, a) => s + (a.messaging_conversations || 0), 0);
+                  // Totals respect the active status/objective filters.
+                  const totSpend = filteredAds.reduce((s, a) => s + a.spend, 0);
+                  const totImpressions = filteredAds.reduce((s, a) => s + a.impressions, 0);
+                  const totClicks = filteredAds.reduce((s, a) => s + a.clicks, 0);
+                  const totLinkClicks = filteredAds.reduce((s, a) => s + (a.link_clicks || 0), 0);
+                  const totLandingPageViews = filteredAds.reduce((s, a) => s + (a.landing_page_views || 0), 0);
+                  const totConversions = filteredAds.reduce((s, a) => s + a.conversions, 0);
+                  const totRevenue = filteredAds.reduce((s, a) => s + (a.revenue || 0), 0);
+                  const totMessagingConvs = filteredAds.reduce((s, a) => s + (a.messaging_conversations || 0), 0);
                   const avgCostPerMessagingConv = totMessagingConvs > 0 ? totSpend / totMessagingConvs : 0;
                   const avgCpm = totImpressions > 0 ? (totSpend / totImpressions) * 1000 : 0;
-                  const avgFrequency = ads.length > 0 ? ads.reduce((s, a) => s + (a.frequency || 0), 0) / ads.length : 0;
+                  const avgFrequency = filteredAds.length > 0 ? filteredAds.reduce((s, a) => s + (a.frequency || 0), 0) / filteredAds.length : 0;
                   const avgUniqueCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
                   const avgCpc = totClicks > 0 ? totSpend / totClicks : 0;
                   const avgRoas = totSpend > 0 ? totRevenue / totSpend : 0;
                   const avgCostPerPurchase = totConversions > 0 ? totSpend / totConversions : 0;
-                  const adsWithHook = ads.filter(a => a.hook_rate > 0);
+                  const adsWithHook = filteredAds.filter(a => a.hook_rate > 0);
                   const avgHookRate = adsWithHook.length > 0 ? adsWithHook.reduce((s, a) => s + a.hook_rate, 0) / adsWithHook.length : 0;
-                  const adsWithHold = ads.filter(a => a.hold_rate > 0);
+                  const adsWithHold = filteredAds.filter(a => a.hold_rate > 0);
                   const avgHoldRate = adsWithHold.length > 0 ? adsWithHold.reduce((s, a) => s + a.hold_rate, 0) / adsWithHold.length : 0;
                   return (
                     <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#1A1A2E]">
@@ -1279,6 +1339,7 @@ function ClientMetrics() {
               </tfoot>
             </table>
           </div>
+          </>
           );
         })()}
       </div>

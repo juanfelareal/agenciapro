@@ -74,7 +74,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
           campaign_name: ad.campaign_name || 'Sin nombre',
           objective: ad.campaign_objective_label || ad.campaign_objective || null,
           status: ad.campaign_status || null,
-          spend: 0, conversions: 0, revenue: 0,
+          spend: 0, conversions: 0, revenue: 0, messaging_conversations: 0,
           adsets: new Map(),
         });
       }
@@ -82,13 +82,14 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
       c.spend += ad.spend || 0;
       c.conversions += ad.conversions || 0;
       c.revenue += ad.revenue || 0;
+      c.messaging_conversations += ad.messaging_conversations || 0;
 
       if (!c.adsets.has(aId)) {
         c.adsets.set(aId, {
           adset_id: aId,
           adset_name: ad.adset_name || 'Sin nombre',
           status: ad.adset_status || null,
-          spend: 0, conversions: 0, revenue: 0,
+          spend: 0, conversions: 0, revenue: 0, messaging_conversations: 0,
           ads: [],
         });
       }
@@ -96,6 +97,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
       a.spend += ad.spend || 0;
       a.conversions += ad.conversions || 0;
       a.revenue += ad.revenue || 0;
+      a.messaging_conversations += ad.messaging_conversations || 0;
       a.ads.push(ad);
       totalSpend += ad.spend || 0;
     }
@@ -103,10 +105,12 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
     let list = Array.from(map.values()).map((c) => ({
       ...c,
       roas: c.spend > 0 ? c.revenue / c.spend : 0,
+      cost_per_conversation: c.messaging_conversations > 0 ? c.spend / c.messaging_conversations : 0,
       adsets: Array.from(c.adsets.values())
         .map((a) => ({
           ...a,
           roas: a.spend > 0 ? a.revenue / a.spend : 0,
+          cost_per_conversation: a.messaging_conversations > 0 ? a.spend / a.messaging_conversations : 0,
           ads: a.ads.sort((x, y) => (y.spend || 0) - (x.spend || 0)),
         }))
         .sort((a, b) => b.spend - a.spend),
@@ -144,13 +148,21 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
         spend: acc.spend + (c.spend || 0),
         conversions: acc.conversions + (c.conversions || 0),
         revenue: acc.revenue + (c.revenue || 0),
+        messaging_conversations: acc.messaging_conversations + (c.messaging_conversations || 0),
       }),
-      { spend: 0, conversions: 0, revenue: 0 }
+      { spend: 0, conversions: 0, revenue: 0, messaging_conversations: 0 }
     );
     totals.roas = totals.spend > 0 ? totals.revenue / totals.spend : 0;
     totals.costPerConversion = totals.conversions > 0 ? totals.spend / totals.conversions : 0;
+    totals.costPerMessagingConv = totals.messaging_conversations > 0
+      ? totals.spend / totals.messaging_conversations
+      : 0;
 
-    return { list, totalSpend, objectives, totals };
+    // Show messaging columns only when at least one filtered campaign has
+    // conversations — keeps the table clean for pure e-commerce accounts.
+    const hasMessagingData = list.some((c) => (c.messaging_conversations || 0) > 0);
+
+    return { list, totalSpend, objectives, totals, hasMessagingData };
   }, [ads, statusFilter, objectiveFilter]);
 
   const toggleCampaign = (id) => {
@@ -240,6 +252,12 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
               <th className="text-left py-2 px-3 font-medium">Estado</th>
               <th className="text-right py-2 px-3 font-medium">Inversión</th>
               <th className="text-right py-2 px-3 font-medium">Conversiones</th>
+              {campaigns.hasMessagingData && (
+                <>
+                  <th className="text-right py-2 px-3 font-medium">Conversaciones</th>
+                  <th className="text-right py-2 px-3 font-medium">Costo/Conv.</th>
+                </>
+              )}
               <th className="text-right py-2 px-3 font-medium">Revenue</th>
               <th className="text-right py-2 px-3 font-medium">ROAS</th>
               <th className="text-center py-2 px-3 font-medium w-20">Ver</th>
@@ -277,6 +295,12 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                     <td className="py-3 px-3">{statusBadge(c.status)}</td>
                     <td className="py-3 px-3 text-right font-semibold text-[#1A1A2E]">{fmtCurrency(c.spend)}</td>
                     <td className="py-3 px-3 text-right">{fmtInt(c.conversions)}</td>
+                    {campaigns.hasMessagingData && (
+                      <>
+                        <td className="py-3 px-3 text-right">{fmtInt(c.messaging_conversations)}</td>
+                        <td className="py-3 px-3 text-right">{c.messaging_conversations > 0 ? fmtCurrency(c.cost_per_conversation) : '—'}</td>
+                      </>
+                    )}
                     <td className="py-3 px-3 text-right">{fmtCurrency(c.revenue)}</td>
                     <td className={`py-3 px-3 text-right ${ROAS_CLASS(c.roas)}`}>{fmtRoas(c.roas)}</td>
                     <td className="py-3 px-3" />
@@ -300,6 +324,12 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                           <td className="py-2 px-3">{statusBadge(a.status)}</td>
                           <td className="py-2 px-3 text-right">{fmtCurrency(a.spend)}</td>
                           <td className="py-2 px-3 text-right">{fmtInt(a.conversions)}</td>
+                          {campaigns.hasMessagingData && (
+                            <>
+                              <td className="py-2 px-3 text-right">{fmtInt(a.messaging_conversations)}</td>
+                              <td className="py-2 px-3 text-right">{a.messaging_conversations > 0 ? fmtCurrency(a.cost_per_conversation) : '—'}</td>
+                            </>
+                          )}
                           <td className="py-2 px-3 text-right">{fmtCurrency(a.revenue)}</td>
                           <td className={`py-2 px-3 text-right ${ROAS_CLASS(a.roas)}`}>{fmtRoas(a.roas)}</td>
                           <td className="py-2 px-3" />
@@ -314,6 +344,12 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                             <td className="py-2 px-3" />
                             <td className="py-2 px-3 text-right">{fmtCurrency(ad.spend)}</td>
                             <td className="py-2 px-3 text-right">{fmtInt(ad.conversions)}</td>
+                            {campaigns.hasMessagingData && (
+                              <>
+                                <td className="py-2 px-3 text-right">{fmtInt(ad.messaging_conversations)}</td>
+                                <td className="py-2 px-3 text-right">{ad.messaging_conversations > 0 ? fmtCurrency(ad.cost_per_messaging_conversation) : '—'}</td>
+                              </>
+                            )}
                             <td className="py-2 px-3 text-right">{fmtCurrency(ad.revenue)}</td>
                             <td className={`py-2 px-3 text-right ${ROAS_CLASS(ad.roas)}`}>{fmtRoas(ad.roas)}</td>
                             <td className="py-2 px-3 text-center">
@@ -358,6 +394,16 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                     </p>
                   )}
                 </td>
+                {campaigns.hasMessagingData && (
+                  <>
+                    <td className="py-3 px-3 text-right">{fmtInt(campaigns.totals.messaging_conversations)}</td>
+                    <td className="py-3 px-3 text-right">
+                      {campaigns.totals.messaging_conversations > 0
+                        ? fmtCurrency(campaigns.totals.costPerMessagingConv)
+                        : '—'}
+                    </td>
+                  </>
+                )}
                 <td className="py-3 px-3 text-right">{fmtCurrency(campaigns.totals.revenue)}</td>
                 <td className={`py-3 px-3 text-right ${ROAS_CLASS(campaigns.totals.roas)}`}>
                   {fmtRoas(campaigns.totals.roas)}
