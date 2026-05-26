@@ -354,8 +354,10 @@ const Layout = ({ children }) => {
           sidebarCollapsed ? 'ml-[72px]' : 'ml-[220px]'
         }`}
       >
-        {/* Top Header Bar - Clean white */}
-        <header className="sticky top-0 z-30 h-14 px-6 flex items-center justify-end bg-white border-b border-gray-100">
+        {/* Top Header Bar - Clean white.
+            Altura h-16 para que coincida con el header del sidebar (también h-16);
+            así las dos border-b se alinean en la misma línea horizontal. */}
+        <header className="sticky top-0 z-30 h-16 px-6 flex items-center justify-end bg-white border-b border-gray-100">
           <div className="flex items-center gap-4">
             <GlobalSearch />
             <NotificationBell />
