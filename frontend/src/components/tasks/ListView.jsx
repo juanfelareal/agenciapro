@@ -869,15 +869,35 @@ export default function ListView({
                   )}
                 </td>
 
-                {/* Status - editable */}
+                {/* Status - inline editable via styled native select.
+                    Reemplaza el badge click-to-edit que era invisible
+                    como interactivo. Ahora el badge ES el select. */}
                 <td className="px-4 py-3">
-                  {renderEditableCell(
-                    task,
-                    'status',
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[task.status]}`}>
-                      {statusLabels[task.status]}
-                    </span>
-                  )}
+                  <div
+                    className="relative inline-block"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <select
+                      value={task.status}
+                      onChange={async (e) => {
+                        const newValue = e.target.value;
+                        if (onUpdateTask && newValue !== task.status) {
+                          await onUpdateTask(task.id, { status: newValue });
+                        }
+                      }}
+                      className={`appearance-none cursor-pointer pl-2 pr-6 py-1 rounded-lg text-xs font-medium border-none focus:outline-none focus:ring-2 focus:ring-[#163B3B]/30 hover:opacity-80 transition-opacity ${statusColors[task.status]}`}
+                      style={{ backgroundImage: 'none' }}
+                      title="Cambiar estado"
+                    >
+                      {Object.entries(statusLabels).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={12}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60"
+                    />
+                  </div>
                 </td>
 
                 {/* Created by - read only */}
