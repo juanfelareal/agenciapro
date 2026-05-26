@@ -728,6 +728,15 @@ export const taskHistoryAPI = {
   get: (taskId) => api.get(`/task-history/${taskId}`),
 };
 
+// Task Saved Views (vistas favoritas personales de la pestaña Tareas)
+export const taskViewsAPI = {
+  getAll: () => api.get('/task-views'),
+  create: (data) => api.post('/task-views', data),
+  update: (id, data) => api.put(`/task-views/${id}`, data),
+  delete: (id) => api.delete(`/task-views/${id}`),
+  reorder: (ids) => api.put('/task-views/reorder', { ids }),
+};
+
 // Client Groups (grupos de clientes para distribuir contenido)
 export const clientGroupsAPI = {
   getAll: () => api.get('/client-groups'),

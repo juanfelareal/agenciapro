@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2, Edit2, Check } from 'lucide-react';
+import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI, taskViewsAPI } from '../utils/api';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2, Edit2, Check, Bookmark, Star, MoreHorizontal, Save } from 'lucide-react';
 import { getEmbed } from '../utils/embedUrl';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
@@ -103,9 +103,58 @@ const Tasks = () => {
   // filteredTasks memo doesn't recompute on every keystroke.
   const [searchInput, setSearchInput] = useState('');
 
+  // Saved views — per-user view presets (viewMode + filters + showMyTasks).
+  // activeViewId tracks the currently applied saved view (null = no preset).
+  const [savedViews, setSavedViews] = useState([]);
+  const [activeViewId, setActiveViewId] = useState(null);
+  const [savedViewsLoaded, setSavedViewsLoaded] = useState(false);
+  const [showSaveViewModal, setShowSaveViewModal] = useState(false);
+  const [openViewMenuId, setOpenViewMenuId] = useState(null);
+
   useEffect(() => {
     loadData();
+    loadSavedViews();
   }, []);
+
+  const loadSavedViews = async () => {
+    try {
+      const { data } = await taskViewsAPI.getAll();
+      setSavedViews(data || []);
+      // Auto-apply default view on first load (only once per mount)
+      if (!savedViewsLoaded) {
+        const def = (data || []).find(v => v.is_default);
+        if (def) applyView(def, { silent: true });
+        setSavedViewsLoaded(true);
+      }
+    } catch (err) {
+      console.error('Error loading saved views:', err);
+      setSavedViewsLoaded(true);
+    }
+  };
+
+  // Apply a saved view to the current page state.
+  // Use silent=true to avoid setting activeViewId before the data is even loaded.
+  const applyView = (view, { silent = false } = {}) => {
+    if (!view) return;
+    if (view.view_mode) setViewMode(view.view_mode);
+    if (typeof view.show_my_tasks === 'boolean') setShowMyTasks(view.show_my_tasks);
+    if (view.filters) {
+      setFilters(prev => ({ ...prev, ...view.filters }));
+      setSearchInput(view.filters.search || '');
+    }
+    if (!silent) setActiveViewId(view.id);
+    else setActiveViewId(view.id);
+  };
+
+  // Reset to "no preset" — keeps current state but unselects the pill
+  const clearActiveView = () => setActiveViewId(null);
+
+  // Snapshot of the current state, used when saving a new view
+  const currentSnapshot = () => ({
+    view_mode: viewMode,
+    show_my_tasks: showMyTasks,
+    filters: { ...filters, search: searchInput },
+  });
 
   // Debounce: push searchInput into filters.search after 250ms of inactivity
   useEffect(() => {
@@ -675,6 +724,117 @@ const Tasks = () => {
               <span className="hidden sm:inline">Nueva Tarea</span>
             </button>
           </div>
+        </div>
+
+        {/* Saved Views Pills — vistas favoritas del usuario.
+            Click en una pill aplica viewMode + filters + showMyTasks de un golpe.
+            Botón "+" guarda la combinación actual como nueva vista. */}
+        <div className="flex items-center flex-wrap gap-2 mt-4">
+          {savedViews.length === 0 && savedViewsLoaded && (
+            <span className="text-xs text-gray-400 italic mr-1">
+              Aún no tienes vistas guardadas — combina filtros y modo de visualización, y pulsa "Guardar vista" para acceder rápido después.
+            </span>
+          )}
+          {savedViews.map((v) => {
+            const isActive = activeViewId === v.id;
+            return (
+              <div key={v.id} className="relative">
+                <button
+                  onClick={() => applyView(v)}
+                  className={`inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                    isActive
+                      ? 'bg-[#1A1A2E] text-white border-[#1A1A2E]'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  {v.is_default && <Star size={11} className={isActive ? 'fill-yellow-300 text-yellow-300' : 'fill-yellow-400 text-yellow-400'} />}
+                  <span>{v.name}</span>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenViewMenuId(openViewMenuId === v.id ? null : v.id);
+                    }}
+                    className={`ml-1 rounded p-0.5 cursor-pointer ${isActive ? 'hover:bg-white/20' : 'hover:bg-gray-100'}`}
+                    role="button"
+                    title="Opciones"
+                  >
+                    <MoreHorizontal size={12} />
+                  </span>
+                </button>
+                {openViewMenuId === v.id && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setOpenViewMenuId(null)} />
+                    <div className="absolute top-full right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-lg w-48 py-1 z-50">
+                      <button
+                        onClick={async () => {
+                          await taskViewsAPI.update(v.id, { ...currentSnapshot() });
+                          setOpenViewMenuId(null);
+                          loadSavedViews();
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Save size={12} /> Actualizar con vista actual
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const newName = prompt('Nuevo nombre:', v.name);
+                          if (newName && newName.trim()) {
+                            await taskViewsAPI.update(v.id, { name: newName.trim() });
+                            setOpenViewMenuId(null);
+                            loadSavedViews();
+                          }
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Edit2 size={12} /> Renombrar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await taskViewsAPI.update(v.id, { is_default: !v.is_default });
+                          setOpenViewMenuId(null);
+                          loadSavedViews();
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Star size={12} />
+                        {v.is_default ? 'Quitar como predeterminada' : 'Marcar como predeterminada'}
+                      </button>
+                      <div className="border-t border-gray-100 my-1" />
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`¿Eliminar la vista "${v.name}"?`)) return;
+                          await taskViewsAPI.delete(v.id);
+                          setOpenViewMenuId(null);
+                          if (activeViewId === v.id) setActiveViewId(null);
+                          loadSavedViews();
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <Trash2 size={12} /> Eliminar
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+          <button
+            onClick={() => setShowSaveViewModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-600 border border-dashed border-gray-300 hover:border-[#1A1A2E] hover:text-[#1A1A2E] transition-colors"
+            title="Guarda la combinación actual de filtros y vista para acceder rápido"
+          >
+            <Bookmark size={12} />
+            Guardar vista
+          </button>
+          {activeViewId && (
+            <button
+              onClick={clearActiveView}
+              className="text-xs text-gray-400 hover:text-gray-700 ml-1"
+              title="Limpiar selección de vista guardada (no cambia los filtros)"
+            >
+              Sin vista
+            </button>
+          )}
         </div>
 
         {/* Search and Filter Bar */}
@@ -1554,8 +1714,133 @@ const Tasks = () => {
           </div>
         </div>
       )}
+
+      {/* Save view modal */}
+      {showSaveViewModal && (
+        <SaveViewModal
+          snapshot={currentSnapshot()}
+          onClose={() => setShowSaveViewModal(false)}
+          onSaved={(view) => {
+            setShowSaveViewModal(false);
+            setActiveViewId(view.id);
+            loadSavedViews();
+          }}
+        />
+      )}
     </div>
   );
 };
+
+// ============================================================
+// SaveViewModal — pide nombre + checkbox de "predeterminada"
+// ============================================================
+function SaveViewModal({ snapshot, onClose, onSaved }) {
+  const [name, setName] = useState('');
+  const [isDefault, setIsDefault] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Pretty summary of what's being saved
+  const summary = [];
+  if (snapshot.view_mode) summary.push(`Vista ${snapshot.view_mode === 'kanban' ? 'Kanban' : snapshot.view_mode === 'list' ? 'Lista' : 'Calendario'}`);
+  if (snapshot.show_my_tasks) summary.push('Mis tareas');
+  const f = snapshot.filters || {};
+  if (f.search) summary.push(`Búsqueda: "${f.search}"`);
+  if (f.assignees?.length) summary.push(`${f.assignees.length} asignados`);
+  if (f.priorities?.length) summary.push(`${f.priorities.length} prioridades`);
+  if (f.statuses?.length) summary.push(`${f.statuses.length} estados`);
+  if (f.projects?.length) summary.push(`${f.projects.length} proyectos`);
+  if (f.clients?.length) summary.push(`${f.clients.length} clientes`);
+  if (f.tags?.length) summary.push(`${f.tags.length} etiquetas`);
+  if (f.dueDateFrom || f.dueDateTo) summary.push('Rango de fechas');
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { data } = await taskViewsAPI.create({
+        name: name.trim(),
+        is_default: isDefault,
+        ...snapshot,
+      });
+      onSaved(data);
+    } catch (e) {
+      setError(e?.response?.data?.error || 'No se pudo guardar la vista');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#1A1A2E]">Guardar vista</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1 rounded">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Nombre</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder='Ej: "Urgentes de LA REAL"'
+              autoFocus
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+            />
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-medium mb-2">Esta vista guardará</p>
+            {summary.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">Sin filtros activos — guardará la vista por defecto.</p>
+            ) : (
+              <ul className="text-xs text-gray-700 space-y-1">
+                {summary.map((s, i) => (
+                  <li key={i} className="flex items-center gap-1.5">
+                    <Check size={11} className="text-emerald-600 flex-shrink-0" />
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isDefault}
+              onChange={(e) => setIsDefault(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <span className="text-sm text-gray-700">Marcar como predeterminada</span>
+            <span className="text-xs text-gray-400">(se aplica al abrir Tareas)</span>
+          </label>
+
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+          )}
+        </div>
+        <div className="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl" disabled={saving}>
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !name.trim()}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] hover:bg-[#252542] disabled:opacity-50 text-white text-sm font-medium rounded-xl"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Bookmark size={14} />}
+            Guardar vista
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default Tasks;

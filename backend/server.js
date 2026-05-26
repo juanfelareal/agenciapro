@@ -94,6 +94,8 @@ import clientGroupsRoutes from './src/routes/client-groups.js';
 import referenceAdsRoutes from './src/routes/reference-ads.js';
 // Task history (activity feed per task)
 import taskHistoryRoutes from './src/routes/task-history.js';
+// Task saved views (vistas favoritas personales)
+import taskViewsRoutes from './src/routes/task-views.js';
 import { setupAgentSocket } from './src/agents/socket.js';
 
 const app = express();
@@ -269,6 +271,7 @@ app.use('/api/audit-log', teamAuthMiddleware, auditLogRoutes);
 app.use('/api/client-groups', teamAuthMiddleware, clientGroupsRoutes);
 app.use('/api/reference-ads', teamAuthMiddleware, referenceAdsRoutes);
 app.use('/api/task-history', teamAuthMiddleware, taskHistoryRoutes);
+app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

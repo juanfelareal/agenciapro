@@ -915,6 +915,29 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // ============================================
+    // TASK SAVED VIEWS (vistas favoritas de la pestaña Tareas)
+    // ============================================
+    // Cada team_member guarda sus propias vistas: combina modo de
+    // visualización (kanban/list/calendar) + filtros + showMyTasks.
+    // Una de ellas puede ser la "predeterminada" que se aplica al abrir.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS task_saved_views (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL,
+        team_member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#1A1A2E',
+        view_mode TEXT,
+        filters TEXT,
+        show_my_tasks INTEGER DEFAULT 0,
+        is_default INTEGER DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // SOP Categories
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sop_categories (
@@ -1778,6 +1801,9 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_clients_ad ON reference_ad_clients(reference_ad_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_clients_client ON reference_ad_clients(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_groups_ad ON reference_ad_groups(reference_ad_id)`);
+    // Task saved views indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_task_saved_views_member ON task_saved_views(team_member_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_task_saved_views_org ON task_saved_views(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_reference_ad_groups_group ON reference_ad_groups(group_id)`);
 
     // Notifications indexes
