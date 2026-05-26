@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI, tasksAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI } from '../utils/api';
+import { projectsAPI, tasksAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, projectTemplatesAPI } from '../utils/api';
 import {
   ArrowLeft,
   Home,
@@ -17,7 +17,12 @@ import {
   Plus,
   Eye,
   EyeOff,
-  X
+  X,
+  Copy,
+  Search,
+  Loader2,
+  ChevronRight,
+  Check,
 } from 'lucide-react';
 import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
@@ -88,6 +93,9 @@ const ProjectDetail = () => {
     linked_form_id: '',
   });
   const [availableForms, setAvailableForms] = useState([]);
+
+  // Apply-template modal
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -556,13 +564,23 @@ const ProjectDetail = () => {
           </div>
 
           {viewMode !== 'table' && (
-            <button
-              onClick={() => handleAddTask()}
-              className="flex items-center gap-2 px-4 py-2 bg-[#163B3B] text-white rounded-xl hover:bg-[#1e4d4d] transition-colors"
-            >
-              <Plus size={18} />
-              Nueva tarea
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowTemplateModal(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                title="Cargar tareas desde una plantilla"
+              >
+                <Copy size={16} />
+                Aplicar plantilla
+              </button>
+              <button
+                onClick={() => handleAddTask()}
+                className="flex items-center gap-2 px-4 py-2 bg-[#163B3B] text-white rounded-xl hover:bg-[#1e4d4d] transition-colors"
+              >
+                <Plus size={18} />
+                Nueva tarea
+              </button>
+            </div>
           )}
         </div>
 
@@ -906,8 +924,267 @@ const ProjectDetail = () => {
           </div>
         </div>
       )}
+
+      {/* Apply template modal */}
+      {showTemplateModal && (
+        <ApplyTemplateModal
+          projectId={Number(id)}
+          teamMembers={teamMembers}
+          onClose={() => setShowTemplateModal(false)}
+          onApplied={async () => {
+            setShowTemplateModal(false);
+            await loadData();
+          }}
+        />
+      )}
     </div>
   );
 };
+
+// ============================================================
+// ApplyTemplateModal — selecciona plantilla, previsualiza tareas
+// (con asignados por defecto), permite override por tarea, y aplica.
+// ============================================================
+function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null); // template object with tasks
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [assigneeOverrides, setAssigneeOverrides] = useState({}); // { template_task_id: assignee_id|null }
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    projectTemplatesAPI.getAll()
+      .then((res) => { if (!cancelled) setTemplates(res.data || []); })
+      .catch(() => { if (!cancelled) setTemplates([]); })
+      .finally(() => { if (!cancelled) setLoadingTemplates(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!search) return templates;
+    const s = search.toLowerCase();
+    return templates.filter((t) =>
+      (t.name || '').toLowerCase().includes(s) ||
+      (t.description || '').toLowerCase().includes(s) ||
+      (t.category || '').toLowerCase().includes(s)
+    );
+  }, [templates, search]);
+
+  const handleSelectTemplate = async (template) => {
+    setLoadingDetail(true);
+    setError(null);
+    try {
+      const res = await projectTemplatesAPI.getById(template.id);
+      setSelected(res.data);
+      // Initialize overrides to template defaults so the user can see them
+      const init = {};
+      for (const t of res.data.tasks || []) {
+        init[t.id] = t.default_assignee_id || null;
+      }
+      setAssigneeOverrides(init);
+    } catch (e) {
+      setError(e?.response?.data?.error || 'Error al cargar la plantilla');
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleApply = async () => {
+    if (!selected) return;
+    setApplying(true);
+    setError(null);
+    try {
+      const res = await projectTemplatesAPI.apply(selected.id, projectId, assigneeOverrides);
+      await onApplied(res.data);
+    } catch (e) {
+      setError(e?.response?.data?.error || 'No se pudo aplicar la plantilla');
+      setApplying(false);
+    }
+  };
+
+  const memberName = (id) => teamMembers.find((m) => m.id === id)?.name;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {selected && (
+              <button
+                onClick={() => { setSelected(null); setAssigneeOverrides({}); }}
+                className="text-gray-400 hover:text-gray-700 text-sm flex items-center gap-1"
+              >
+                <ArrowLeft size={14} />
+                Cambiar plantilla
+              </button>
+            )}
+            <h2 className="text-lg font-semibold text-[#1A1A2E]">
+              {selected ? selected.name : 'Aplicar plantilla'}
+            </h2>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-700 rounded-lg">
+            <X size={18} />
+          </button>
+        </div>
+
+        {!selected ? (
+          // ----- Step 1: pick a template -----
+          <div className="p-6 overflow-y-auto flex-1">
+            <div className="relative mb-4">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar plantilla por nombre, descripción o categoría..."
+                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none"
+                autoFocus
+              />
+            </div>
+
+            {loadingTemplates ? (
+              <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-gray-400 animate-spin" /></div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Copy className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+                <p className="text-sm">
+                  {templates.length === 0
+                    ? 'Aún no hay plantillas. Crea una desde "Plantillas".'
+                    : 'No hay resultados para esa búsqueda.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {filtered.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleSelectTemplate(t)}
+                    className="text-left p-4 rounded-xl border border-gray-200 hover:border-[#163B3B] hover:shadow-sm transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="font-semibold text-[#1A1A2E] text-sm">{t.name}</p>
+                      <ChevronRight size={16} className="text-gray-300 group-hover:text-[#163B3B] flex-shrink-0" />
+                    </div>
+                    {t.category && (
+                      <span className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 mb-2">
+                        {t.category}
+                      </span>
+                    )}
+                    {t.description && (
+                      <p className="text-xs text-gray-500 line-clamp-2 mb-2">{t.description}</p>
+                    )}
+                    <p className="text-[11px] text-gray-400">
+                      {t.task_count ?? 0} tarea{(t.task_count ?? 0) === 1 ? '' : 's'}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          // ----- Step 2: preview tasks + customize assignees -----
+          <div className="p-6 overflow-y-auto flex-1">
+            {loadingDetail ? (
+              <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-gray-400 animate-spin" /></div>
+            ) : (
+              <>
+                {selected.description && (
+                  <p className="text-sm text-gray-600 mb-4">{selected.description}</p>
+                )}
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {selected.tasks?.length || 0} tarea{(selected.tasks?.length || 0) === 1 ? '' : 's'} se crearán en el proyecto
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    Puedes cambiar el asignado por tarea antes de aplicar.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {(selected.tasks || []).map((t, idx) => (
+                    <div key={t.id} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200">
+                      <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 text-xs flex items-center justify-center flex-shrink-0 font-medium">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#1A1A2E]">{t.title}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            t.priority === 'urgent' ? 'bg-red-100 text-red-700'
+                              : t.priority === 'high' ? 'bg-orange-100 text-orange-700'
+                              : t.priority === 'low' ? 'bg-gray-100 text-gray-600'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {t.priority || 'medium'}
+                          </span>
+                          {t.estimated_hours > 0 && (
+                            <span className="text-[10px] text-gray-500">{t.estimated_hours}h estimadas</span>
+                          )}
+                        </div>
+                        {t.description && (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{t.description}</p>
+                        )}
+                      </div>
+                      <select
+                        value={assigneeOverrides[t.id] || ''}
+                        onChange={(e) =>
+                          setAssigneeOverrides((prev) => ({
+                            ...prev,
+                            [t.id]: e.target.value ? Number(e.target.value) : null,
+                          }))
+                        }
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white flex-shrink-0 max-w-[180px]"
+                      >
+                        <option value="">Sin asignar</option>
+                        {teamMembers.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+
+                {error && (
+                  <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {selected && (
+          <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-2">
+            <p className="text-xs text-gray-500">
+              Las tareas se agregarán al final del proyecto, en estado <strong>Por hacer</strong>.
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl"
+                disabled={applying}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleApply}
+                disabled={applying || !selected?.tasks?.length}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#163B3B] hover:bg-[#1e4d4d] disabled:opacity-50 text-white text-sm font-medium rounded-xl"
+              >
+                {applying ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {applying ? 'Aplicando…' : `Aplicar ${selected.tasks?.length || 0} tareas`}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default ProjectDetail;

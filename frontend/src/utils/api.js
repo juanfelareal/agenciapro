@@ -587,6 +587,11 @@ export const projectTemplatesAPI = {
   updateTask: (templateId, taskId, data) => api.put(`/project-templates/${templateId}/tasks/${taskId}`, data),
   deleteTask: (templateId, taskId) => api.delete(`/project-templates/${templateId}/tasks/${taskId}`),
   reorderTasks: (templateId, taskIds) => api.put(`/project-templates/${templateId}/tasks/reorder`, { taskIds }),
+  apply: (templateId, projectId, assigneeOverrides = {}) =>
+    api.post(`/project-templates/${templateId}/apply`, {
+      project_id: projectId,
+      assignee_overrides: assigneeOverrides,
+    }),
   // Categories
   getCategories: () => api.get('/project-templates/categories/all'),
   createCategory: (name) => api.post('/project-templates/categories', { name }),

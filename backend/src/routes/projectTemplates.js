@@ -326,4 +326,124 @@ router.put('/:id/tasks/reorder', async (req, res) => {
   }
 });
 
+// ============================================
+// APPLY TEMPLATE TO PROJECT
+// ============================================
+
+/**
+ * POST /api/project-templates/:id/apply
+ * Body: { project_id, assignee_overrides?: { [template_task_id]: team_member_id|null } }
+ *
+ * Crea tareas reales en el proyecto a partir de la plantilla. Las nuevas
+ * tareas se agregan al final preservando el orden original. Multi-tenant:
+ * tanto plantilla como proyecto deben pertenecer a la misma org.
+ */
+router.post('/:id/apply', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { project_id, assignee_overrides = {} } = req.body || {};
+
+    if (!project_id) {
+      return res.status(400).json({ error: 'project_id es requerido' });
+    }
+
+    // Verify template + project belong to this org
+    const template = await db.get(
+      'SELECT id, name FROM project_templates WHERE id = ? AND organization_id = ?',
+      [req.params.id, orgId]
+    );
+    if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
+
+    const project = await db.get(
+      'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
+      [project_id, orgId]
+    );
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+    const templateTasks = await db.all(
+      `SELECT id, title, description, priority, estimated_hours, default_assignee_id, order_index
+       FROM project_template_tasks
+       WHERE template_id = ?
+       ORDER BY order_index ASC`,
+      [req.params.id]
+    );
+
+    if (templateTasks.length === 0) {
+      return res.status(400).json({ error: 'La plantilla no tiene tareas' });
+    }
+
+    // Find the current max order_index in this project so we append at the end
+    const maxOrder = await db.get(
+      `SELECT COALESCE(MAX(order_index), -1) AS max FROM tasks WHERE project_id = ?`,
+      [project_id]
+    );
+    let nextOrder = (Number(maxOrder?.max) || -1) + 1;
+
+    const createdTaskIds = [];
+
+    for (const t of templateTasks) {
+      // Override > template default > null
+      const explicitOverride = Object.prototype.hasOwnProperty.call(assignee_overrides, t.id);
+      const assigneeId = explicitOverride
+        ? (assignee_overrides[t.id] || null)
+        : (t.default_assignee_id || null);
+
+      // Guard: only assign someone in this org
+      let primaryAssignee = null;
+      if (assigneeId) {
+        const member = await db.get(
+          `SELECT id FROM team_members WHERE id = ? AND organization_id = ?`,
+          [assigneeId, orgId]
+        );
+        if (member) primaryAssignee = member.id;
+      }
+
+      const insert = await db.run(
+        `INSERT INTO tasks (
+           title, description, project_id, assigned_to, status, priority,
+           estimated_hours, created_by, order_index, organization_id
+         )
+         VALUES (?, ?, ?, ?, 'todo', ?, ?, ?, ?, ?)`,
+        [
+          t.title,
+          t.description || null,
+          project_id,
+          primaryAssignee,
+          t.priority || 'medium',
+          t.estimated_hours || 0,
+          req.teamMember?.id || null,
+          nextOrder++,
+          orgId,
+        ]
+      );
+
+      const newTaskId = insert.lastInsertRowid;
+      createdTaskIds.push(newTaskId);
+
+      // Mirror primary assignee into task_assignees (junction table) for the
+      // multi-assignee model used by the rest of the app.
+      if (primaryAssignee) {
+        await db.run(
+          `INSERT INTO task_assignees (task_id, team_member_id, organization_id)
+           VALUES (?, ?, ?)
+           ON CONFLICT (task_id, team_member_id) DO NOTHING`,
+          [newTaskId, primaryAssignee, orgId]
+        );
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Se crearon ${createdTaskIds.length} tareas desde "${template.name}"`,
+      template_id: template.id,
+      project_id,
+      created_task_ids: createdTaskIds,
+      count: createdTaskIds.length,
+    });
+  } catch (error) {
+    console.error('Error applying template:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
