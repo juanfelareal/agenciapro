@@ -550,8 +550,14 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
     opens: acc.opens + (c.opens || 0),
     clicks: acc.clicks + (c.clicks || 0),
     orders: acc.orders + (c.orders || 0),
+    new_customer_orders: acc.new_customer_orders + (c.new_customer_orders || 0),
+    returning_customer_orders: acc.returning_customer_orders + (c.returning_customer_orders || 0),
     revenue: acc.revenue + (c.revenue || 0),
-  }), { recipients: 0, delivered: 0, opens: 0, clicks: 0, orders: 0, revenue: 0 });
+  }), { recipients: 0, delivered: 0, opens: 0, clicks: 0, orders: 0, new_customer_orders: 0, returning_customer_orders: 0, revenue: 0 });
+  // % de pedidos de clientes nuevos sobre el total clasificado
+  const emailClassified = emailTotals.new_customer_orders + emailTotals.returning_customer_orders;
+  emailTotals.hasBreakdown = emailClassified > 0;
+  emailTotals.pctNew = emailClassified > 0 ? (emailTotals.new_customer_orders / emailClassified) * 100 : 0;
   {
     let on = 0, od = 0, cn = 0, cd = 0;
     for (const c of emailCampaigns || []) {
@@ -633,30 +639,62 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
               <KpiCell label="Tasa de clics" value={fmtPct(emailTotals.avgClick)} />
               <KpiCell label="Ventas atribuidas" value={fmtCurrency(emailTotals.revenue)} sub={`${fmtInt(emailTotals.orders)} pedidos`} last />
             </KpiRow>
+            {emailTotals.hasBreakdown && (
+              <KpiRow>
+                <KpiCell
+                  label="Pedidos de clientes nuevos"
+                  value={fmtInt(emailTotals.new_customer_orders)}
+                  sub={`${fmtPct(emailTotals.pctNew)} del total clasificado`}
+                />
+                <KpiCell
+                  label="Pedidos de clientes recurrentes"
+                  value={fmtInt(emailTotals.returning_customer_orders)}
+                  sub={`${fmtPct(100 - emailTotals.pctNew)} del total clasificado`}
+                />
+                <KpiCell
+                  label="Total pedidos clasificados"
+                  value={fmtInt(emailClassified)}
+                  sub={emailClassified === emailTotals.orders
+                    ? 'Cubre el 100% del período'
+                    : `${fmtInt(emailTotals.orders - emailClassified)} sin clasificar`}
+                  last
+                />
+              </KpiRow>
+            )}
             <View style={s.tableWrap}>
               <View style={s.tableHeader} wrap={false}>
-                <Text style={[s.tableHeaderCell, { width: '34%' }]}>CAMPAÑA</Text>
-                <Text style={[s.tableHeaderCell, { width: '10%' }]}>FECHA</Text>
-                <Text style={[s.tableHeaderCell, { width: '11%', textAlign: 'right' }]}>ENVÍOS</Text>
-                <Text style={[s.tableHeaderCell, { width: '10%', textAlign: 'right' }]}>APERT.</Text>
-                <Text style={[s.tableHeaderCell, { width: '10%', textAlign: 'right' }]}>CLICS</Text>
-                <Text style={[s.tableHeaderCell, { width: '9%', textAlign: 'right' }]}>PEDIDOS</Text>
-                <Text style={[s.tableHeaderCell, { width: '16%', textAlign: 'right' }]}>VENTAS</Text>
+                <Text style={[s.tableHeaderCell, { width: '32%' }]}>CAMPAÑA</Text>
+                <Text style={[s.tableHeaderCell, { width: '9%' }]}>FECHA</Text>
+                <Text style={[s.tableHeaderCell, { width: '10%', textAlign: 'right' }]}>ENVÍOS</Text>
+                <Text style={[s.tableHeaderCell, { width: '9%', textAlign: 'right' }]}>APERT.</Text>
+                <Text style={[s.tableHeaderCell, { width: '9%', textAlign: 'right' }]}>CLICS</Text>
+                <Text style={[s.tableHeaderCell, { width: '17%', textAlign: 'right' }]}>PEDIDOS</Text>
+                <Text style={[s.tableHeaderCell, { width: '14%', textAlign: 'right' }]}>VENTAS</Text>
               </View>
-              {emailCampaigns.map((c, i) => (
-                <View key={i} style={s.tableRow} wrap={false}>
-                  <View style={{ width: '34%', paddingRight: 6 }}>
-                    <Text style={s.tableCellEmph}>{c.campaign_name}</Text>
-                    {c.subject && <Text style={s.tableSubtext}>{c.subject}</Text>}
+              {emailCampaigns.map((c, i) => {
+                const hasRowBreakdown = (c.new_customer_orders || 0) > 0 || (c.returning_customer_orders || 0) > 0;
+                return (
+                  <View key={i} style={s.tableRow} wrap={false}>
+                    <View style={{ width: '32%', paddingRight: 6 }}>
+                      <Text style={s.tableCellEmph}>{c.campaign_name}</Text>
+                      {c.subject && <Text style={s.tableSubtext}>{c.subject}</Text>}
+                    </View>
+                    <Text style={[s.tableCell, { width: '9%' }]}>{fmtDateShort(c.sent_date)}</Text>
+                    <Text style={[s.tableCellNum, { width: '10%' }]}>{fmtInt(c.recipients)}</Text>
+                    <Text style={[s.tableCellNum, { width: '9%' }]}>{fmtPct(pickRate(c.open_rate, c.opens, c.delivered))}</Text>
+                    <Text style={[s.tableCellNum, { width: '9%' }]}>{fmtPct(pickRate(c.click_rate, c.clicks, c.delivered))}</Text>
+                    <View style={{ width: '17%' }}>
+                      <Text style={[s.tableCellNum, { width: '100%' }]}>{fmtInt(c.orders)}</Text>
+                      {hasRowBreakdown && (
+                        <Text style={[s.tableSubtext, { textAlign: 'right' }]}>
+                          {fmtInt(c.new_customer_orders || 0)} nuevos · {fmtInt(c.returning_customer_orders || 0)} recurr.
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={[s.tableCellNumEmph, { width: '14%' }]}>{fmtCurrency(c.revenue)}</Text>
                   </View>
-                  <Text style={[s.tableCell, { width: '10%' }]}>{fmtDateShort(c.sent_date)}</Text>
-                  <Text style={[s.tableCellNum, { width: '11%' }]}>{fmtInt(c.recipients)}</Text>
-                  <Text style={[s.tableCellNum, { width: '10%' }]}>{fmtPct(pickRate(c.open_rate, c.opens, c.delivered))}</Text>
-                  <Text style={[s.tableCellNum, { width: '10%' }]}>{fmtPct(pickRate(c.click_rate, c.clicks, c.delivered))}</Text>
-                  <Text style={[s.tableCellNum, { width: '9%' }]}>{fmtInt(c.orders)}</Text>
-                  <Text style={[s.tableCellNumEmph, { width: '16%' }]}>{fmtCurrency(c.revenue)}</Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </>
         )}

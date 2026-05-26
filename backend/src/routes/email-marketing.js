@@ -48,9 +48,10 @@ router.post('/:clientId', async (req, res) => {
         client_id, organization_id, campaign_name, subject, sent_date,
         recipients, delivered, opens, clicks, unsubscribes, orders, revenue, notes,
         delivery_rate, bounce_rate, open_rate, unsubscribe_rate, spam_rate,
-        click_rate, conversion_rate, sessions, unique_visitors, added_to_cart
+        click_rate, conversion_rate, sessions, unique_visitors, added_to_cart,
+        new_customer_orders, returning_customer_orders
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       req.params.clientId, orgId,
       b.campaign_name, b.subject || null, b.sent_date,
@@ -61,6 +62,7 @@ router.post('/:clientId', async (req, res) => {
       numeric(b.unsubscribe_rate), numeric(b.spam_rate),
       numeric(b.click_rate), numeric(b.conversion_rate),
       numeric(b.sessions), numeric(b.unique_visitors), numeric(b.added_to_cart),
+      numeric(b.new_customer_orders), numeric(b.returning_customer_orders),
     );
 
     const created = await db.prepare('SELECT * FROM email_marketing_campaigns WHERE id = ?')
@@ -90,6 +92,7 @@ router.put('/:clientId/:campaignId', async (req, res) => {
           unsubscribe_rate = ?, spam_rate = ?,
           click_rate = ?, conversion_rate = ?,
           sessions = ?, unique_visitors = ?, added_to_cart = ?,
+          new_customer_orders = ?, returning_customer_orders = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
@@ -114,6 +117,8 @@ router.put('/:clientId/:campaignId', async (req, res) => {
       numeric(b.sessions ?? existing.sessions),
       numeric(b.unique_visitors ?? existing.unique_visitors),
       numeric(b.added_to_cart ?? existing.added_to_cart),
+      numeric(b.new_customer_orders ?? existing.new_customer_orders),
+      numeric(b.returning_customer_orders ?? existing.returning_customer_orders),
       req.params.campaignId,
     );
 

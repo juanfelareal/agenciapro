@@ -40,10 +40,16 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
       clicks: acc.clicks + (c.clicks || 0),
       unsubscribes: acc.unsubscribes + (c.unsubscribes || 0),
       orders: acc.orders + (c.orders || 0),
+      new_customer_orders: acc.new_customer_orders + (c.new_customer_orders || 0),
+      returning_customer_orders: acc.returning_customer_orders + (c.returning_customer_orders || 0),
       revenue: acc.revenue + (c.revenue || 0),
     }),
-    { recipients: 0, delivered: 0, opens: 0, clicks: 0, unsubscribes: 0, orders: 0, revenue: 0 }
+    { recipients: 0, delivered: 0, opens: 0, clicks: 0, unsubscribes: 0, orders: 0, new_customer_orders: 0, returning_customer_orders: 0, revenue: 0 }
   );
+  // % de pedidos hechos por clientes nuevos sobre el total clasificado
+  const classifiedOrders = totals.new_customer_orders + totals.returning_customer_orders;
+  const pctNew = classifiedOrders > 0 ? (totals.new_customer_orders / classifiedOrders) * 100 : 0;
+  const hasBreakdown = classifiedOrders > 0;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
@@ -95,6 +101,29 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
               <Stat label="Tasa de clics" value={fmtPct(avgClick)} />
               <Stat label="Ventas totales" value={fmtCurrency(totals.revenue)} sub={`${fmtInt(totals.orders)} pedidos · ${fmtPct(avgConv)} conv.`} accent="text-emerald-600" />
             </div>
+            {hasBreakdown && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <Stat
+                  label="Pedidos de clientes nuevos"
+                  value={fmtInt(totals.new_customer_orders)}
+                  sub={`${fmtPct(pctNew)} del total clasificado`}
+                  accent="text-indigo-600"
+                />
+                <Stat
+                  label="Pedidos de clientes recurrentes"
+                  value={fmtInt(totals.returning_customer_orders)}
+                  sub={`${fmtPct(100 - pctNew)} del total clasificado`}
+                  accent="text-amber-600"
+                />
+                <Stat
+                  label="Total clasificado"
+                  value={fmtInt(classifiedOrders)}
+                  sub={classifiedOrders === totals.orders
+                    ? '100% de los pedidos del período'
+                    : `${fmtInt(totals.orders - classifiedOrders)} pedidos sin clasificar`}
+                />
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -121,7 +150,14 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
                       <td className="py-2 px-3 text-right">{fmtPct(pickRate(c.open_rate, c.opens, c.delivered))}</td>
                       <td className="py-2 px-3 text-right">{fmtPct(pickRate(c.click_rate, c.clicks, c.delivered))}</td>
                       <td className="py-2 px-3 text-right">{fmtPct(c.conversion_rate)}</td>
-                      <td className="py-2 px-3 text-right">{fmtInt(c.orders)}</td>
+                      <td className="py-2 px-3 text-right">
+                        {fmtInt(c.orders)}
+                        {(c.new_customer_orders > 0 || c.returning_customer_orders > 0) && (
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {fmtInt(c.new_customer_orders)} nuevos / {fmtInt(c.returning_customer_orders)} recurr.
+                          </p>
+                        )}
+                      </td>
                       <td className="py-2 pl-3 text-right font-semibold">{fmtCurrency(c.revenue)}</td>
                     </tr>
                   ))}

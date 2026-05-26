@@ -1495,6 +1495,9 @@ export const initializeDatabase = async () => {
       ['sessions', 'INTEGER DEFAULT 0'],
       ['unique_visitors', 'INTEGER DEFAULT 0'],
       ['added_to_cart', 'INTEGER DEFAULT 0'],
+      // Breakdown de orders por tipo de cliente (lo pidió Juan para los reportes)
+      ['new_customer_orders', 'INTEGER DEFAULT 0'],
+      ['returning_customer_orders', 'INTEGER DEFAULT 0'],
     ];
     for (const [col, type] of emailCampaignExtraColumns) {
       try {

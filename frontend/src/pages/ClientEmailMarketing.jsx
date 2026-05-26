@@ -34,6 +34,9 @@ const blankCampaign = {
   conversion_rate: 0,
   revenue: 0,
   orders: 0,
+  // Tipo de cliente que compró (breakdown de orders)
+  new_customer_orders: 0,
+  returning_customer_orders: 0,
   // Embudo de conversión
   opens: 0,
   unique_visitors: 0,
@@ -95,6 +98,8 @@ export default function ClientEmailMarketing() {
       conversion_rate: c.conversion_rate || 0,
       revenue: c.revenue || 0,
       orders: c.orders || 0,
+      new_customer_orders: c.new_customer_orders || 0,
+      returning_customer_orders: c.returning_customer_orders || 0,
       opens: c.opens || 0,
       unique_visitors: c.unique_visitors || 0,
       added_to_cart: c.added_to_cart || 0,
@@ -145,8 +150,10 @@ export default function ClientEmailMarketing() {
     clicks: acc.clicks + (c.clicks || 0),
     unsubscribes: acc.unsubscribes + (c.unsubscribes || 0),
     orders: acc.orders + (c.orders || 0),
+    new_customer_orders: acc.new_customer_orders + (c.new_customer_orders || 0),
+    returning_customer_orders: acc.returning_customer_orders + (c.returning_customer_orders || 0),
     revenue: acc.revenue + (c.revenue || 0),
-  }), { recipients: 0, delivered: 0, opens: 0, clicks: 0, unsubscribes: 0, orders: 0, revenue: 0 });
+  }), { recipients: 0, delivered: 0, opens: 0, clicks: 0, unsubscribes: 0, orders: 0, new_customer_orders: 0, returning_customer_orders: 0, revenue: 0 });
 
   if (loading) {
     return (
@@ -203,11 +210,15 @@ export default function ClientEmailMarketing() {
               { label: 'Tasa de conversión', value: fmtPct(avgConv) },
               { label: 'Tasa de rebote', value: fmtPct(avgBounce) },
               { label: 'Ventas totales', value: fmtCurrency(totals.revenue) },
-              { label: 'Pedidos', value: fmtInt(totals.orders) },
+              { label: 'Pedidos', value: fmtInt(totals.orders), sub: totals.orders > 0
+                ? `${fmtInt(totals.new_customer_orders)} nuevos · ${fmtInt(totals.returning_customer_orders)} recurrentes`
+                : null
+              },
             ].map((m, i) => (
               <div key={i} className="bg-white border border-gray-100 rounded-xl p-4">
                 <p className="text-xs text-gray-500">{m.label}</p>
                 <p className="text-lg font-bold text-[#1A1A2E] mt-1">{m.value}</p>
+                {m.sub && <p className="text-[11px] text-gray-400 mt-0.5">{m.sub}</p>}
               </div>
             ))}
           </div>
@@ -252,7 +263,14 @@ export default function ClientEmailMarketing() {
                     <td className="py-3 px-3 text-right">{fmtPct(pickRate(c.click_rate, c.clicks, c.delivered))}</td>
                     <td className="py-3 px-3 text-right">{fmtInt(c.sessions)}</td>
                     <td className="py-3 px-3 text-right">{fmtPct(c.conversion_rate)}</td>
-                    <td className="py-3 px-3 text-right">{fmtInt(c.orders)}</td>
+                    <td className="py-3 px-3 text-right">
+                      {fmtInt(c.orders)}
+                      {(c.new_customer_orders > 0 || c.returning_customer_orders > 0) && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          {fmtInt(c.new_customer_orders)} nuevos / {fmtInt(c.returning_customer_orders)} recurr.
+                        </p>
+                      )}
+                    </td>
                     <td className="py-3 px-3 text-right font-semibold">{fmtCurrency(c.revenue)}</td>
                     <td className="py-3 px-3 text-right">
                       <button onClick={() => openEdit(c)} className="text-gray-400 hover:text-blue-600 p-1 rounded">
@@ -283,6 +301,12 @@ function CampaignModal({ form, setForm, editingId, saving, onSave, onClose }) {
 
   // Derived helper: valor medio del pedido = revenue / orders
   const avgOrder = form.orders > 0 ? form.revenue / form.orders : 0;
+
+  // Validación visual: si el usuario llena nuevos + recurrentes pero no cuadran con orders,
+  // se lo señalamos en gris (no bloquea guardar — los datos pueden traerse en momentos distintos)
+  const breakdownTotal = (form.new_customer_orders || 0) + (form.returning_customer_orders || 0);
+  const breakdownMismatch =
+    breakdownTotal > 0 && form.orders > 0 && breakdownTotal !== form.orders;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -366,6 +390,36 @@ function CampaignModal({ form, setForm, editingId, saving, onSave, onClose }) {
                 <p className="text-[10px] text-gray-400 mt-0.5">Calculado: ventas / pedidos</p>
               </div>
             </div>
+          </div>
+
+          {/* Tipo de cliente que compró */}
+          <div className="border-t border-gray-100 pt-4">
+            <div className="flex items-baseline justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de cliente que compró</p>
+              {form.orders > 0 && (
+                <p className="text-[11px] text-gray-400">
+                  Total de pedidos: {form.orders.toLocaleString('es-CO')}
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <NumField label="Pedidos de clientes nuevos" value={form.new_customer_orders} onChange={(v) => setNumeric('new_customer_orders', v)} />
+              <NumField label="Pedidos de clientes recurrentes" value={form.returning_customer_orders} onChange={(v) => setNumeric('returning_customer_orders', v)} />
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">% de clientes nuevos</label>
+                <div className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">
+                  {breakdownTotal > 0
+                    ? `${((form.new_customer_orders / breakdownTotal) * 100).toFixed(1)}%`
+                    : '—'}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-0.5">Calculado: nuevos / (nuevos + recurrentes)</p>
+              </div>
+            </div>
+            {breakdownMismatch && (
+              <p className="text-[11px] text-amber-600 mt-2">
+                ⚠ Nuevos + recurrentes ({breakdownTotal.toLocaleString('es-CO')}) no cuadra con total de pedidos ({form.orders.toLocaleString('es-CO')}). Revisa que sumen igual.
+              </p>
+            )}
           </div>
 
           {/* Embudo de conversión */}
