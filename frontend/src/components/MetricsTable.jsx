@@ -170,7 +170,11 @@ function MetricsTable({
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors relative"
+                  // sticky top-0: el encabezado se queda visible al hacer scroll vertical
+                  // de la página, anclado al ancestro scrolleable más cercano.
+                  // z-20 va por encima del resizer (z-10) de columnas vecinas.
+                  // bg-gray-50 opaco para que el contenido no se transparente debajo.
+                  className="sticky top-0 z-20 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors relative shadow-[0_1px_0_0_rgba(0,0,0,0.04)]"
                   style={{ width: columnWidths[column.key] || defaultWidth }}
                   onClick={() => handleSort(column.key)}
                 >
