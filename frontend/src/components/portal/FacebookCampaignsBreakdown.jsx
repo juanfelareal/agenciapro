@@ -37,6 +37,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
   const [expandedCampaigns, setExpandedCampaigns] = useState(new Set());
   const [expandedAdsets, setExpandedAdsets] = useState(new Set());
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED'
+  const [objectiveFilter, setObjectiveFilter] = useState('all'); // 'all' | objective label string
 
   useEffect(() => {
     if (!startDate || !endDate) return;
@@ -114,6 +115,12 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
     // Only campaigns with spend > 0 (rule from user)
     list = list.filter((c) => c.spend > 0);
 
+    // List of available objectives (built BEFORE applying status/objective
+    // filters so the dropdown stays useful even when the user filters down).
+    const objectives = Array.from(
+      new Set(list.map((c) => c.objective).filter(Boolean))
+    ).sort();
+
     // Status filter
     if (statusFilter !== 'all') {
       list = list.filter((c) => {
@@ -124,9 +131,27 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
       });
     }
 
+    // Objective filter
+    if (objectiveFilter !== 'all') {
+      list = list.filter((c) => c.objective === objectiveFilter);
+    }
+
     list.sort((a, b) => b.spend - a.spend);
-    return { list, totalSpend };
-  }, [ads, statusFilter]);
+
+    // Totals for the currently filtered set — feeds the tfoot row.
+    const totals = list.reduce(
+      (acc, c) => ({
+        spend: acc.spend + (c.spend || 0),
+        conversions: acc.conversions + (c.conversions || 0),
+        revenue: acc.revenue + (c.revenue || 0),
+      }),
+      { spend: 0, conversions: 0, revenue: 0 }
+    );
+    totals.roas = totals.spend > 0 ? totals.revenue / totals.spend : 0;
+    totals.costPerConversion = totals.conversions > 0 ? totals.spend / totals.conversions : 0;
+
+    return { list, totalSpend, objectives, totals };
+  }, [ads, statusFilter, objectiveFilter]);
 
   const toggleCampaign = (id) => {
     setExpandedCampaigns((prev) => {
@@ -180,16 +205,30 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
             {campaigns.list.length} campaña{campaigns.list.length !== 1 ? 's' : ''} con inversión · Click para expandir
           </p>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
-        >
-          <option value="all">Todas</option>
-          <option value="ACTIVE">Activas</option>
-          <option value="PAUSED">Pausadas</option>
-          <option value="ARCHIVED">Archivadas</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={objectiveFilter}
+            onChange={(e) => setObjectiveFilter(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+            title="Filtrar por objetivo de campaña"
+          >
+            <option value="all">Todos los objetivos</option>
+            {campaigns.objectives?.map((obj) => (
+              <option key={obj} value={obj}>{obj}</option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+            title="Filtrar por estado"
+          >
+            <option value="all">Todas</option>
+            <option value="ACTIVE">Activas</option>
+            <option value="PAUSED">Pausadas</option>
+            <option value="ARCHIVED">Archivadas</option>
+          </select>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -299,6 +338,34 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
               );
             })}
           </tbody>
+          {campaigns.list.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold text-[#1A1A2E]">
+                <td className="py-3 px-4">
+                  Total
+                  <span className="ml-2 text-xs font-normal text-gray-500">
+                    ({campaigns.list.length} campaña{campaigns.list.length !== 1 ? 's' : ''})
+                  </span>
+                </td>
+                <td className="py-3 px-3" />
+                <td className="py-3 px-3" />
+                <td className="py-3 px-3 text-right">{fmtCurrency(campaigns.totals.spend)}</td>
+                <td className="py-3 px-3 text-right">
+                  {fmtInt(campaigns.totals.conversions)}
+                  {campaigns.totals.conversions > 0 && (
+                    <p className="text-[10px] text-gray-400 font-normal mt-0.5">
+                      {fmtCurrency(campaigns.totals.costPerConversion)} / conv.
+                    </p>
+                  )}
+                </td>
+                <td className="py-3 px-3 text-right">{fmtCurrency(campaigns.totals.revenue)}</td>
+                <td className={`py-3 px-3 text-right ${ROAS_CLASS(campaigns.totals.roas)}`}>
+                  {fmtRoas(campaigns.totals.roas)}
+                </td>
+                <td className="py-3 px-3" />
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
