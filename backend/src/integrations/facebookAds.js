@@ -130,6 +130,65 @@ class FacebookAdsIntegration {
   }
 
   /**
+   * Parse messaging conversations started from actions array.
+   *
+   * Facebook reports this metric under a few different action_type values
+   * depending on the surface (Messenger, IG DM, WhatsApp) and the API
+   * version. We check the most common ones and return the highest match
+   * so an ad doesn't get under-counted because it ran on multiple surfaces.
+   *
+   * Reference action types:
+   *   onsite_conversion.messaging_conversation_started_7d   (most reports)
+   *   onsite_conversion.total_messaging_connection
+   *   onsite_conversion.messaging_first_reply               (legacy)
+   *   total_messaging_connection
+   * @param {Array} actions
+   * @returns {number}
+   */
+  parseMessagingConversations(actions) {
+    if (!actions || !Array.isArray(actions)) return 0;
+    const types = [
+      'onsite_conversion.messaging_conversation_started_7d',
+      'onsite_conversion.total_messaging_connection',
+      'onsite_conversion.messaging_first_reply',
+      'total_messaging_connection',
+    ];
+    let best = 0;
+    for (const t of types) {
+      const entry = actions.find(a => a.action_type === t);
+      if (entry) {
+        const n = parseInt(entry.value) || 0;
+        if (n > best) best = n;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Pick the cost_per_action_type entry that matches the first action_type
+   * for which we found a value. Mirrors parseMessagingConversations'
+   * priority so the cost number lines up with the volume number.
+   */
+  parseCostPerMessagingConversation(costPerActionType, actions) {
+    if (!costPerActionType || !Array.isArray(costPerActionType)) return 0;
+    if (!actions || !Array.isArray(actions)) return 0;
+    const types = [
+      'onsite_conversion.messaging_conversation_started_7d',
+      'onsite_conversion.total_messaging_connection',
+      'onsite_conversion.messaging_first_reply',
+      'total_messaging_connection',
+    ];
+    for (const t of types) {
+      const actionEntry = actions.find(a => a.action_type === t);
+      if (actionEntry && parseInt(actionEntry.value) > 0) {
+        const costEntry = costPerActionType.find(c => c.action_type === t);
+        if (costEntry) return parseFloat(costEntry.value) || 0;
+      }
+    }
+    return 0;
+  }
+
+  /**
    * Parse landing page views from actions array
    * @param {Array} actions - Facebook actions array
    * @returns {number}
@@ -216,6 +275,12 @@ class FacebookAdsIntegration {
       const videoThruplayViews = this.parseThruplayViews(day.video_thruplay_watched_actions, day.actions);
       const hookRate = impressions > 0 ? (video3SecViews / impressions) * 100 : 0;
       const holdRate = video3SecViews > 0 ? (videoThruplayViews / video3SecViews) * 100 : 0;
+      // Messaging / interaction campaigns
+      const messagingConversations = this.parseMessagingConversations(day.actions);
+      const costPerMessagingConversation = messagingConversations > 0
+        ? (this.parseCostPerMessagingConversation(day.cost_per_action_type, day.actions)
+           || (spend / messagingConversations))
+        : 0;
 
       return {
         date: day.date_start,
@@ -236,7 +301,9 @@ class FacebookAdsIntegration {
         video3SecViews,
         videoThruplayViews,
         hookRate,
-        holdRate
+        holdRate,
+        messagingConversations,
+        costPerMessagingConversation,
       };
     });
   }
@@ -349,6 +416,11 @@ class FacebookAdsIntegration {
       const videoThruplayViews = this.parseThruplayViews(ad.video_thruplay_watched_actions, ad.actions);
       const hookRate = impressions > 0 ? (video3SecViews / impressions) * 100 : 0;
       const holdRate = video3SecViews > 0 ? (videoThruplayViews / video3SecViews) * 100 : 0;
+      const messagingConversations = this.parseMessagingConversations(ad.actions);
+      const costPerMessagingConversation = messagingConversations > 0
+        ? (this.parseCostPerMessagingConversation(ad.cost_per_action_type, ad.actions)
+           || (spend / messagingConversations))
+        : 0;
 
       return {
         ad_id: ad.ad_id,
@@ -372,7 +444,9 @@ class FacebookAdsIntegration {
         roas,
         cost_per_purchase: costPerPurchase,
         hook_rate: hookRate,
-        hold_rate: holdRate
+        hold_rate: holdRate,
+        messaging_conversations: messagingConversations,
+        cost_per_messaging_conversation: costPerMessagingConversation,
       };
     });
 

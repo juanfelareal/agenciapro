@@ -383,6 +383,11 @@ function ClientMetrics() {
     setDateRange({ start, end });
   };
 
+  // Show messaging conversation columns only when at least one day in the
+  // current range has data — otherwise they're noise for purchase-objective
+  // accounts that never run interaction campaigns.
+  const hasMessagingData = dailyMetrics.some(d => (d.fb_messaging_conversations || 0) > 0);
+
   // Daily table columns
   const dailyColumns = [
     { key: 'metric_date', label: 'Fecha', type: 'date' },
@@ -396,6 +401,10 @@ function ClientMetrics() {
     { key: 'ad_spend_percentage', label: '% Inversion', type: 'percent', align: 'right' },
     { key: 'fb_cpm', label: 'CPM', type: 'currency', align: 'right' },
     { key: 'fb_cost_per_purchase', label: 'Costo/Compra', type: 'currency', align: 'right' },
+    ...(hasMessagingData ? [
+      { key: 'fb_messaging_conversations', label: 'Conversaciones', type: 'integer', align: 'right' },
+      { key: 'fb_cost_per_messaging_conversation', label: 'Costo/Conv.', type: 'currency', align: 'right' },
+    ] : []),
     { key: 'fb_hook_rate', label: 'Hook Rate', type: 'percent', align: 'right' },
     { key: 'fb_hold_rate', label: 'Hold Rate', type: 'percent', align: 'right' }
   ];
@@ -1049,7 +1058,11 @@ function ClientMetrics() {
           </p>
         )}
 
-        {ads !== null && !adsLoading && ads.length > 0 && (
+        {ads !== null && !adsLoading && ads.length > 0 && (() => {
+          // Show messaging columns only when at least one ad reports
+          // conversations — keeps the table clean for pure ecommerce accounts.
+          const adsHaveMessagingData = ads.some(a => (a.messaging_conversations || 0) > 0);
+          return (
           <div className="overflow-x-auto">
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
@@ -1074,6 +1087,12 @@ function ClientMetrics() {
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Visitas página</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Resultados</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Resultado</th>
+                  {adsHaveMessagingData && (
+                    <>
+                      <th className="text-right py-3 px-3 font-medium text-gray-500">Conversaciones</th>
+                      <th className="text-right py-3 px-3 font-medium text-gray-500">Costo/Conv.</th>
+                    </>
+                  )}
                   <th className="text-right py-3 px-3 font-medium text-gray-500">ROAS</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Hook Rate</th>
                   <th className="text-right py-3 px-3 font-medium text-gray-500">Hold Rate</th>
@@ -1179,6 +1198,12 @@ function ClientMetrics() {
                       <td className="py-3 px-3 text-right">{fmtNumber(ad.landing_page_views)}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(ad.conversions)}</td>
                       <td className="py-3 px-3 text-right">{fmtCurrency(ad.cost_per_purchase)}</td>
+                      {adsHaveMessagingData && (
+                        <>
+                          <td className="py-3 px-3 text-right">{fmtNumber(ad.messaging_conversations)}</td>
+                          <td className="py-3 px-3 text-right">{fmtCurrency(ad.cost_per_messaging_conversation)}</td>
+                        </>
+                      )}
                       <td className="py-3 px-3 text-right font-medium">{(ad.roas || 0).toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(ad.hook_rate)}</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(ad.hold_rate)}</td>
@@ -1211,6 +1236,8 @@ function ClientMetrics() {
                   const totLandingPageViews = ads.reduce((s, a) => s + (a.landing_page_views || 0), 0);
                   const totConversions = ads.reduce((s, a) => s + a.conversions, 0);
                   const totRevenue = ads.reduce((s, a) => s + (a.revenue || 0), 0);
+                  const totMessagingConvs = ads.reduce((s, a) => s + (a.messaging_conversations || 0), 0);
+                  const avgCostPerMessagingConv = totMessagingConvs > 0 ? totSpend / totMessagingConvs : 0;
                   const avgCpm = totImpressions > 0 ? (totSpend / totImpressions) * 1000 : 0;
                   const avgFrequency = ads.length > 0 ? ads.reduce((s, a) => s + (a.frequency || 0), 0) / ads.length : 0;
                   const avgUniqueCtr = totImpressions > 0 ? (totClicks / totImpressions) * 100 : 0;
@@ -1236,6 +1263,12 @@ function ClientMetrics() {
                       <td className="py-3 px-3 text-right">{fmtNumber(totLandingPageViews)}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(totConversions)}</td>
                       <td className="py-3 px-3 text-right">{fmtCurrency(avgCostPerPurchase)}</td>
+                      {adsHaveMessagingData && (
+                        <>
+                          <td className="py-3 px-3 text-right">{fmtNumber(totMessagingConvs)}</td>
+                          <td className="py-3 px-3 text-right">{fmtCurrency(avgCostPerMessagingConv)}</td>
+                        </>
+                      )}
                       <td className="py-3 px-3 text-right">{avgRoas.toFixed(2)}x</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(avgHookRate)}</td>
                       <td className="py-3 px-3 text-right">{fmtPercent(avgHoldRate)}</td>
@@ -1246,7 +1279,8 @@ function ClientMetrics() {
               </tfoot>
             </table>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Tag Analysis */}

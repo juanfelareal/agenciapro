@@ -175,6 +175,8 @@ router.get('/:clientId/daily', async (req, res) => {
         fb_video_thruplay_views,
         fb_hook_rate,
         fb_hold_rate,
+        fb_messaging_conversations,
+        fb_cost_per_messaging_conversation,
         shopify_total_tax,
         shopify_total_discounts,
         shopify_sessions,

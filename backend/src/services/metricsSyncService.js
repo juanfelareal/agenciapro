@@ -142,6 +142,8 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
           fb_video_thruplay_views = ?,
           fb_hook_rate = ?,
           fb_hold_rate = ?,
+          fb_messaging_conversations = ?,
+          fb_cost_per_messaging_conversation = ?,
           total_revenue = ?,
           overall_roas = ?,
           cost_per_order = ?,
@@ -180,6 +182,8 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.fb_video_thruplay_views || 0,
       metrics.fb_hook_rate || 0,
       metrics.fb_hold_rate || 0,
+      metrics.fb_messaging_conversations || 0,
+      metrics.fb_cost_per_messaging_conversation || 0,
       metrics.total_revenue || 0,
       metrics.overall_roas || 0,
       metrics.cost_per_order || 0,
@@ -199,8 +203,9 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
         fb_cost_per_purchase, fb_landing_page_views, fb_link_clicks, fb_add_to_cart,
         fb_cost_per_landing_page_view,
         fb_video_3sec_views, fb_video_thruplay_views, fb_hook_rate, fb_hold_rate,
+        fb_messaging_conversations, fb_cost_per_messaging_conversation,
         total_revenue, overall_roas, cost_per_order, ad_spend_percentage
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       clientId, date,
       metrics.shopify_revenue || 0,
@@ -234,6 +239,8 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.fb_video_thruplay_views || 0,
       metrics.fb_hook_rate || 0,
       metrics.fb_hold_rate || 0,
+      metrics.fb_messaging_conversations || 0,
+      metrics.fb_cost_per_messaging_conversation || 0,
       metrics.total_revenue || 0,
       metrics.overall_roas || 0,
       metrics.cost_per_order || 0,
@@ -363,6 +370,8 @@ export async function syncClientForDate(clientId, date) {
     fb_video_thruplay_views: fbMetrics.videoThruplayViews,
     fb_hook_rate: fbMetrics.hookRate,
     fb_hold_rate: fbMetrics.holdRate,
+    fb_messaging_conversations: fbMetrics.messagingConversations,
+    fb_cost_per_messaging_conversation: fbMetrics.costPerMessagingConversation,
     ...derivedMetrics
   };
 

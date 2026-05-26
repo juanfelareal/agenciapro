@@ -1920,6 +1920,9 @@ export const initializeDatabase = async () => {
       { name: 'shopify_pending_orders', type: 'INTEGER DEFAULT 0' },
       { name: 'fb_link_clicks', type: 'INTEGER DEFAULT 0' },
       { name: 'fb_add_to_cart', type: 'INTEGER DEFAULT 0' },
+      // Messaging / interaction campaigns
+      { name: 'fb_messaging_conversations', type: 'INTEGER DEFAULT 0' },
+      { name: 'fb_cost_per_messaging_conversation', type: 'REAL DEFAULT 0' },
     ];
 
     for (const col of newMetricColumns) {
