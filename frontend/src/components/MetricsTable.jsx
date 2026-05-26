@@ -162,8 +162,11 @@ function MetricsTable({
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table — el wrapper scrollea horizontal Y vertical, así el
+          sticky-top del <thead> sí se ancla al hacer scroll. Sin
+          max-height el wrapper no scrolleaba en Y y el sticky no
+          tenía contenedor que respetar. */}
+      <div className="overflow-auto" style={{ maxHeight: '70vh' }}>
         <table style={{ tableLayout: 'fixed', width: totalWidth, minWidth: '100%' }}>
           <thead className="bg-gray-50">
             <tr>
