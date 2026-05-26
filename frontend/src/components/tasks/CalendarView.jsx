@@ -5,6 +5,7 @@ import {
   ChevronRight,
   List,
   Grid3X3,
+  X,
 } from 'lucide-react';
 import {
   format,
@@ -45,6 +46,9 @@ export default function CalendarView({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('month'); // 'month' or 'week'
   const [draggedTask, setDraggedTask] = useState(null);
+  // When the user clicks "+N más" on a day, we open a modal listing all
+  // tasks of that day. State holds {day: Date, tasks: Task[]} or null.
+  const [expandedDay, setExpandedDay] = useState(null);
 
   const getProjectName = (projectId) => {
     const project = projects.find((p) => p.id === projectId);
@@ -261,9 +265,16 @@ export default function CalendarView({
                     </div>
                   ))}
                   {dayTasks.length > (view === 'week' ? 10 : 3) && (
-                    <div className="text-xs text-gray-500 text-center">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedDay({ day, tasks: dayTasks });
+                      }}
+                      className="w-full text-xs text-gray-600 hover:text-[#1A1A2E] hover:bg-gray-100 rounded py-0.5 text-center font-medium transition-colors"
+                    >
                       +{dayTasks.length - (view === 'week' ? 10 : 3)} más
-                    </div>
+                    </button>
                   )}
                 </div>
               </div>
@@ -311,6 +322,73 @@ export default function CalendarView({
           </div>
         </div>
       </div>
+
+      {/* Day-detail modal — opens when user clicks "+N más" on a day. */}
+      {expandedDay && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setExpandedDay(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
+                  {format(expandedDay.day, "EEEE", { locale: es })}
+                </p>
+                <h3 className="text-lg font-semibold text-[#1A1A2E]">
+                  {format(expandedDay.day, "d 'de' MMMM, yyyy", { locale: es })}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {expandedDay.tasks.length} tarea{expandedDay.tasks.length === 1 ? '' : 's'}
+                </p>
+              </div>
+              <button
+                onClick={() => setExpandedDay(null)}
+                className="p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-3 space-y-2 flex-1">
+              {expandedDay.tasks.map((task) => (
+                <button
+                  key={task.id}
+                  type="button"
+                  onClick={() => {
+                    setExpandedDay(null);
+                    onTaskClick(task);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg border-l-2 ${statusColors[task.status]} bg-white border border-gray-100 hover:border-gray-300 hover:shadow-sm transition-all`}
+                >
+                  <div className="flex items-start gap-2">
+                    <span
+                      className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${priorityDots[task.priority]}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[#1A1A2E]">{task.title}</p>
+                      {task.project_id && (
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {getProjectName(task.project_id)}
+                        </p>
+                      )}
+                      {(task.assignees?.length > 0 || task.assigned_to_name) && (
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          👤 {task.assignees?.length > 0
+                            ? task.assignees.map((a) => a.name).join(', ')
+                            : task.assigned_to_name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
