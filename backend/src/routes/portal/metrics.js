@@ -140,7 +140,13 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const revenue = p(current?.total_revenue);
     const orders = p(current?.total_orders);
     const aov = orders > 0 ? revenue / orders : 0;
-    const customers = p(current?.total_customers);
+    // El daily metric guarda "clientes únicos por día" — sumarlos a través
+    // del período double-cuenta clientes que ordenaron en varios días.
+    // Como invariante de negocio clientes ≤ pedidos siempre, lo cap-eamos
+    // al número de pedidos confirmados del período. Es una aproximación
+    // segura por defecto que evita el bug visible "85 clientes / 66 pedidos".
+    const customersRaw = p(current?.total_customers);
+    const customers = orders > 0 ? Math.min(customersRaw, orders) : customersRaw;
     const landingPageViews = p(current?.total_landing_page_views);
     const linkClicks = p(current?.total_link_clicks);
     const addToCart = p(current?.total_add_to_cart);
@@ -168,7 +174,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const prevRevenue = p(previous?.total_revenue);
     const prevOrders = p(previous?.total_orders);
     const prevAov = prevOrders > 0 ? prevRevenue / prevOrders : 0;
-    const prevCustomers = p(previous?.total_customers);
+    const prevCustomersRaw = p(previous?.total_customers);
+    const prevCustomers = prevOrders > 0 ? Math.min(prevCustomersRaw, prevOrders) : prevCustomersRaw;
     const prevLandingPageViews = p(previous?.total_landing_page_views);
     const prevVideo3sec = p(previous?.total_video_3sec_views);
     const prevThruplay = p(previous?.total_video_thruplay_views);

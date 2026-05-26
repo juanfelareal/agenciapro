@@ -146,10 +146,6 @@ class ShopifyIntegration {
       const orderTotal = parseFloat(order.total_price) || 0;
       const orderSubtotal = parseFloat(order.subtotal_price) || 0;
 
-      // Track unique customers (by email or customer id)
-      const customerId = order.customer?.id || order.email;
-      if (customerId) uniqueCustomers.add(customerId);
-
       // "Venta total" = ALL non-cancelled orders (including pending)
       allOrdersRevenue += orderTotal;
       allOrderCount++;
@@ -167,6 +163,14 @@ class ShopifyIntegration {
         confirmedSubtotal += orderSubtotal;
         totalTax += parseFloat(order.total_tax) || 0;
         totalDiscounts += parseFloat(order.total_discounts) || 0;
+
+        // Track unique customers ONLY from paid orders so the count is
+        // consistent with `orders` (confirmedOrderCount). Antes se contaba
+        // sobre todos los no-cancelados incluidos pendientes, lo que
+        // producía clientes > pedidos (caso reportado: 85 clientes / 66
+        // pedidos de Amfit). Ahora clientes ≤ pedidos siempre.
+        const customerId = order.customer?.id || order.email;
+        if (customerId) uniqueCustomers.add(customerId);
 
         // Calculate shipping tax (needed to separate product tax from total tax)
         if (order.shipping_lines) {
