@@ -392,16 +392,35 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Team member not found' });
     }
 
+    const emailLower = email ? email.toLowerCase().trim() : existing.email;
+    const emailChanged = emailLower !== existing.email;
+
+    if (emailChanged) {
+      const takenUser = await db.get('SELECT id FROM users WHERE email = ? AND id != ?', [emailLower, existing.user_id || 0]);
+      const takenMember = await db.get('SELECT id FROM team_members WHERE email = ? AND id != ?', [emailLower, existing.id]);
+      if (takenUser || takenMember) {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+    }
+
     await db.run(`
       UPDATE team_members
       SET name = ?, email = ?, role = ?, position = ?, status = ?,
           hire_date = ?, birthday = ?, permissions = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `, [
-      name, email, role, position, status,
+      name, emailLower, role, position, status,
       hire_date, birthday, permissions ? JSON.stringify(permissions) : null,
       req.params.id, req.orgId
     ]);
+
+    // users.email es la llave de login: mantenerlo sincronizado con team_members.email
+    if (emailChanged && existing.user_id) {
+      await db.run(
+        'UPDATE users SET email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [emailLower, existing.user_id]
+      );
+    }
 
     const member = await db.get('SELECT * FROM team_members WHERE id = ?', [req.params.id]);
     res.json(member);
