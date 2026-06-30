@@ -545,12 +545,28 @@ function sleep(ms) {
  * @param {string} endDate - YYYY-MM-DD
  * @returns {Set<string>} Set of YYYY-MM-DD dates that have real data
  */
-async function getExistingDates(clientId, startDate, endDate) {
+async function getExistingDates(client, startDate, endDate) {
+  // A date is "complete" (safe to skip) only if EVERY source the client has
+  // connected has real data that day. This previously used OR, so a Shopify-only
+  // row marked the day complete and the Facebook ad spend was never backfilled
+  // for older days (the daily row exists from Shopify, but fb_spend stayed 0).
+  const hasShopify = !!(client.shopify_store_url && client.shopify_access_token);
+  const hasFb = !!(client.fb_ad_account_id && client.fb_access_token);
+
+  const conds = [];
+  if (hasShopify) conds.push('(shopify_revenue > 0 OR shopify_orders > 0)');
+  if (hasFb) conds.push('(fb_spend > 0 OR fb_impressions > 0)');
+
+  // Fallback (no known sources): keep the old "any data" behaviour.
+  const where = conds.length
+    ? conds.join(' AND ')
+    : '(shopify_revenue > 0 OR shopify_orders > 0 OR fb_spend > 0 OR fb_impressions > 0)';
+
   const rows = await db.prepare(`
     SELECT metric_date FROM client_daily_metrics
     WHERE client_id = ? AND metric_date BETWEEN ? AND ?
-      AND (shopify_revenue > 0 OR shopify_orders > 0 OR fb_spend > 0 OR fb_impressions > 0)
-  `).all(clientId, startDate, endDate);
+      AND ${where}
+  `).all(client.id, startDate, endDate);
 
   return new Set(rows.map(r => {
     const d = r.metric_date;
@@ -587,7 +603,7 @@ export async function syncAllClientsSmart(startDate = null, endDate = null) {
   for (const client of clients) {
     try {
       const clientName = client.name || client.company;
-      const existingDates = await getExistingDates(client.id, startDate, endDate);
+      const existingDates = await getExistingDates(client, startDate, endDate);
       // Always re-sync last 7 days to catch payment status changes and fix stale data
       const forceResyncDate = getColombiaDate(-7);
       const missingDates = allDates.filter(d => {
