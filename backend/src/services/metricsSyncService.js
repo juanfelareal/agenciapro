@@ -316,6 +316,7 @@ export async function syncClientForDate(clientId, date) {
 
   // Fetch Facebook Ads metrics
   if (hasFacebook) {
+    const systemFbToken = process.env.FACEBOOK_SYSTEM_USER_TOKEN;
     try {
       const facebook = new FacebookAdsIntegration(client.fb_access_token, client.fb_ad_account_id);
       const fbDailyMetrics = await facebook.getMetrics(date, date);
@@ -324,7 +325,29 @@ export async function syncClientForDate(clientId, date) {
       }
       fbOk = true;
     } catch (error) {
-      console.error(`Error syncing Facebook for client ${clientId} on ${date}:`, error.message);
+      // A client's personal token can be invalidated (expiry, password change,
+      // FB security) — error code 190 / OAuthException. When that happens, retry
+      // with the System User token, which can read any ad account shared to the
+      // agency's business. Accounts NOT shared to the business (e.g. the owner
+      // never granted access) keep failing and stay at 0 — that's correct.
+      const fbErr = error.response?.data?.error;
+      const isAuthError = fbErr?.code === 190 || fbErr?.type === 'OAuthException';
+      if (isAuthError && systemFbToken && client.fb_access_token !== systemFbToken) {
+        try {
+          const facebook = new FacebookAdsIntegration(systemFbToken, client.fb_ad_account_id);
+          const fbDailyMetrics = await facebook.getMetrics(date, date);
+          if (fbDailyMetrics.length > 0) {
+            fbMetrics = fbDailyMetrics[0];
+          }
+          fbOk = true;
+          console.log(`  ↪ Facebook ${date}: token personal inválido para cliente ${clientId}, usé el token de sistema`);
+        } catch (retryError) {
+          const rErr = retryError.response?.data?.error;
+          console.error(`Error syncing Facebook (fallback sistema) para cliente ${clientId} en ${date}:`, rErr?.message || retryError.message);
+        }
+      } else {
+        console.error(`Error syncing Facebook for client ${clientId} on ${date}:`, fbErr?.message || error.message);
+      }
     }
   }
 
