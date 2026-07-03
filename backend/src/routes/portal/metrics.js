@@ -227,10 +227,10 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const prevTtCostPerConversion = prevTtConversions > 0 ? prevTtSpend / prevTtConversions : 0;
     // Blended ad spend across Meta + Google + TikTok
     const totalAdSpend = fbSpend + gaSpend + ttSpend;
-    const prevTotalAdSpend = prevSpend + prevGaSpend + prevTtSpend;
 
     // Previous derived
     const prevSpend = p(previous?.total_ad_spend);
+    const prevTotalAdSpend = prevSpend + prevGaSpend + prevTtSpend;
     const prevConversions = p(previous?.total_conversions);
     const prevClicks = p(previous?.total_clicks);
     const prevImpressions = p(previous?.total_impressions);

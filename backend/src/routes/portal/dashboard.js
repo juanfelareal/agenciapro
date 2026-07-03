@@ -91,12 +91,12 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       JOIN projects p ON t.project_id = p.id
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       WHERE p.client_id = ? AND t.visible_to_client = 1
-        AND t.due_date IS NOT NULL
+        AND NULLIF(t.due_date, '') IS NOT NULL
         AND t.status != 'done'
       ORDER BY
-        CASE WHEN t.due_date::date >= CURRENT_DATE THEN 0 ELSE 1 END,
-        CASE WHEN t.due_date::date >= CURRENT_DATE THEN t.due_date::date END ASC NULLS LAST,
-        t.due_date::date DESC
+        CASE WHEN NULLIF(t.due_date, '')::date >= CURRENT_DATE THEN 0 ELSE 1 END,
+        CASE WHEN NULLIF(t.due_date, '')::date >= CURRENT_DATE THEN NULLIF(t.due_date, '')::date END ASC NULLS LAST,
+        NULLIF(t.due_date, '')::date DESC
       LIMIT 12
     `, [clientId]), []);
 
@@ -137,8 +137,8 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       WHERE p.client_id = ? AND t.visible_to_client = 1
         AND t.status != 'done'
       ORDER BY
-        CASE WHEN t.due_date IS NOT NULL AND t.due_date >= CURRENT_DATE THEN 0 ELSE 1 END,
-        t.due_date ASC NULLS LAST,
+        CASE WHEN NULLIF(t.due_date, '') IS NOT NULL AND NULLIF(t.due_date, '')::date >= CURRENT_DATE THEN 0 ELSE 1 END,
+        NULLIF(t.due_date, '')::date ASC NULLS LAST,
         t.updated_at DESC
       LIMIT 8
     `, [clientId]), []);
