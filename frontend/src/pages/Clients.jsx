@@ -1105,7 +1105,7 @@ const Clients = () => {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[#17181A]">Logo del cliente</p>
-                      <p className="text-xs text-gray-400">Se muestra en su portal (header y pantalla de acceso)</p>
+                      <p className="text-xs text-gray-400">Se muestra en su portal (header y acceso). Usa la versión oscura o a color del logo — la blanca no se ve sobre fondo claro.</p>
                     </div>
                     <div className="flex flex-col gap-1 items-end">
                       <label className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
