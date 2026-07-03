@@ -579,7 +579,7 @@ const Clients = () => {
       )}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Clientes</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Clientes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de la base de datos de clientes</p>
         </div>
         <div className="flex items-center gap-3">
@@ -589,7 +589,7 @@ const Clients = () => {
               onClick={() => setViewMode('lista')}
               className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                 viewMode === 'lista'
-                  ? 'bg-white text-[#1A1A2E] shadow-sm'
+                  ? 'bg-white text-[#17181A] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -599,7 +599,7 @@ const Clients = () => {
               onClick={() => setViewMode('portfolio')}
               className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                 viewMode === 'portfolio'
-                  ? 'bg-white text-[#1A1A2E] shadow-sm'
+                  ? 'bg-white text-[#17181A] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -610,7 +610,7 @@ const Clients = () => {
           {viewMode === 'lista' && (
             <button
               onClick={handleNew}
-              className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+              className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
             >
               <Plus size={20} />
               Nuevo Cliente
@@ -626,16 +626,16 @@ const Clients = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#BFFF00]/10 border border-[#BFFF00] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[#D7F653]/10 border border-[#D7F653] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-[#1A1A2E]" />
-            <span className="font-medium text-[#1A1A2E]">
+            <CheckSquare size={18} className="text-[#17181A]" />
+            <span className="font-medium text-[#17181A]">
               {selectedIds.size} cliente{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-[#1A1A2E]/20" />
+          <div className="h-6 w-px bg-[#17181A]/20" />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-[#1A1A2E]/70">Estado:</span>
+            <span className="text-sm text-[#17181A]/70">Estado:</span>
             <button
               onClick={() => handleBulkStatusChange('active')}
               disabled={bulkUpdating}
@@ -651,16 +651,16 @@ const Clients = () => {
               Inactivo
             </button>
           </div>
-          <div className="h-6 w-px bg-[#1A1A2E]/20" />
+          <div className="h-6 w-px bg-[#17181A]/20" />
           <button
             onClick={handleBulkFacturar}
             disabled={bulkUpdating}
-            className="px-3 py-1.5 text-sm bg-[#1A1A2E]/10 text-[#1A1A2E] rounded-lg hover:bg-[#1A1A2E]/20 disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-1.5 text-sm bg-[#17181A]/10 text-[#17181A] rounded-lg hover:bg-[#17181A]/20 disabled:opacity-50 flex items-center gap-1"
           >
             <FileText size={14} />
             Facturar
           </button>
-          <div className="h-6 w-px bg-[#1A1A2E]/20" />
+          <div className="h-6 w-px bg-[#17181A]/20" />
           <button
             onClick={handleBulkDelete}
             disabled={bulkUpdating}
@@ -671,7 +671,7 @@ const Clients = () => {
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-[#1A1A2E] hover:bg-[#1A1A2E]/10 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[#17181A] hover:bg-[#17181A]/10 rounded-lg"
           >
             Cancelar selección
           </button>
@@ -684,7 +684,7 @@ const Clients = () => {
           onClick={() => setActiveTab('active')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             activeTab === 'active'
-              ? 'bg-white text-[#1A1A2E] shadow-sm'
+              ? 'bg-white text-[#17181A] shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -699,7 +699,7 @@ const Clients = () => {
           onClick={() => setActiveTab('all')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             activeTab === 'all'
-              ? 'bg-white text-[#1A1A2E] shadow-sm'
+              ? 'bg-white text-[#17181A] shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -712,20 +712,20 @@ const Clients = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+      <div className="glass-card overflow-x-auto">
         <table ref={tableRef} className="min-w-[1300px]" style={{ tableLayout: 'fixed', width: Object.values(columnWidths).reduce((a, b) => a + b, 0) }}>
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-3 py-3 text-center relative" style={{ width: columnWidths.checkbox }}>
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-[#1A1A2E]"
+                  className="text-gray-500 hover:text-[#17181A]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-[#1A1A2E]" />
+                    <CheckSquare size={18} className="text-[#17181A]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-[#1A1A2E]" />
+                    <MinusSquare size={18} className="text-[#17181A]" />
                   ) : (
                     <Square size={18} />
                   )}
@@ -764,15 +764,15 @@ const Clients = () => {
             {filteredClients.map((client) => (
               <tr
                 key={client.id}
-                className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-[#BFFF00]/10' : ''}`}
+                className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-[#D7F653]/10' : ''}`}
               >
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(client.id)}
-                    className="text-gray-400 hover:text-[#1A1A2E]"
+                    className="text-gray-400 hover:text-[#17181A]"
                   >
                     {selectedIds.has(client.id) ? (
-                      <CheckSquare size={18} className="text-[#1A1A2E]" />
+                      <CheckSquare size={18} className="text-[#17181A]" />
                     ) : (
                       <Square size={18} />
                     )}
@@ -803,7 +803,7 @@ const Clients = () => {
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-4 font-medium text-[#1A1A2E] truncate" title={client.company || client.name}>{client.company || client.name}</td>
+                <td className="px-4 py-4 font-medium text-[#17181A] truncate" title={client.company || client.name}>{client.company || client.name}</td>
                 <td className="px-4 py-4 whitespace-nowrap text-center">
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/calls`)}
@@ -860,7 +860,7 @@ const Clients = () => {
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/plataformas`)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
+                    className="text-gray-400 hover:text-[#17181A] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
                     title="Configurar Plataformas (Facebook Ads / Shopify)"
                   >
                     <Settings size={16} />
@@ -871,7 +871,7 @@ const Clients = () => {
                     className={`p-1 rounded mr-0.5 transition-colors ${
                       client.siigo_id
                         ? 'text-emerald-600 hover:bg-emerald-50'
-                        : 'text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100'
+                        : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'
                     }`}
                     title={client.siigo_id ? 'Ya sincronizado con Siigo (clic para re-sincronizar)' : 'Sincronizar a Siigo'}
                   >
@@ -885,7 +885,7 @@ const Clients = () => {
                   </button>
                   <button
                     onClick={() => handleEdit(client)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
+                    className="text-gray-400 hover:text-[#17181A] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
                     title="Editar"
                   >
                     <Edit size={16} />
@@ -923,20 +923,20 @@ const Clients = () => {
       </div>
 
       {/* Commercial Dates Section */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
               <CalendarDays className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Fechas Comerciales</h2>
+              <h2 className="font-semibold text-[#17181A]">Fechas Comerciales</h2>
               <p className="text-xs text-gray-500">Fechas clave que aparecen en el portal de cada cliente</p>
             </div>
           </div>
           <button
             onClick={() => openDateModal()}
-            className="bg-[#1A1A2E] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors text-sm"
+            className="bg-[#17181A] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors text-sm"
           >
             <Plus size={16} />
             Nueva Fecha
@@ -959,7 +959,7 @@ const Clients = () => {
                     onClick={() => openDateModal(cd)}
                   >
                     <div className="text-center flex-shrink-0 w-12">
-                      <p className="text-lg font-bold text-[#1A1A2E] leading-tight">{d.getDate()}</p>
+                      <p className="text-lg font-bold text-[#17181A] leading-tight">{d.getDate()}</p>
                       <p className="text-[10px] text-gray-400 uppercase font-medium">
                         {d.toLocaleDateString('es-CO', { month: 'short' })}
                       </p>
@@ -989,7 +989,7 @@ const Clients = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-[#1A1A2E]">{editingDate ? 'Editar Fecha Comercial' : 'Nueva Fecha Comercial'}</h2>
+              <h2 className="text-lg font-semibold text-[#17181A]">{editingDate ? 'Editar Fecha Comercial' : 'Nueva Fecha Comercial'}</h2>
               <button onClick={() => setShowDateModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
                 <X size={20} className="text-gray-500" />
               </button>
@@ -1002,7 +1002,7 @@ const Clients = () => {
                   value={newDateTitle}
                   onChange={e => setNewDateTitle(e.target.value)}
                   placeholder="Ej: Día de la Madre"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
                 />
               </div>
               <div>
@@ -1011,7 +1011,7 @@ const Clients = () => {
                   type="date"
                   value={newDateDate}
                   onChange={e => setNewDateDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
                 />
               </div>
               <div>
@@ -1059,7 +1059,7 @@ const Clients = () => {
               <button
                 onClick={handleSaveCommercialDate}
                 disabled={!newDateTitle.trim() || !newDateDate || (!newDateAllClients && newDateClientIds.size === 0)}
-                className="w-full py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] disabled:opacity-50 transition-colors font-medium"
+                className="w-full py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] disabled:opacity-50 transition-colors font-medium"
               >
                 {editingDate ? 'Guardar Cambios' : 'Crear Fecha Comercial'}
               </button>
@@ -1083,7 +1083,7 @@ const Clients = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1094,10 +1094,10 @@ const Clients = () => {
               <div className="grid grid-cols-2 gap-4">
                 {/* PDF Upload Section - Only show when creating new client */}
                 {!editingClient && (
-                  <div className="col-span-2 bg-[#1A1A2E]/5 border-2 border-dashed border-[#1A1A2E]/20 rounded-xl p-4">
+                  <div className="col-span-2 bg-[#17181A]/5 border-2 border-dashed border-[#17181A]/20 rounded-xl p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-[#1A1A2E]">Cargar desde RUT (PDF)</h3>
+                        <h3 className="text-sm font-medium text-[#17181A]">Cargar desde RUT (PDF)</h3>
                         <p className="text-xs text-gray-500 mt-1">
                           Sube el PDF del RUT y extraeremos automáticamente la información con IA
                         </p>
@@ -1113,7 +1113,7 @@ const Clients = () => {
                         type="button"
                         onClick={() => pdfInputRef.current?.click()}
                         disabled={analyzingPdf}
-                        className="flex items-center gap-2 bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl hover:bg-[#252542] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-2 bg-[#17181A] text-white px-4 py-2.5 rounded-xl hover:bg-[#26282C] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                       >
                         {analyzingPdf ? (
                           <>
@@ -1268,7 +1268,7 @@ const Clients = () => {
                 </div>
                 {/* Recurring Billing Section */}
                 <div className="col-span-2 border-t border-gray-100 pt-4 mt-2">
-                  <h3 className="text-base font-semibold text-[#1A1A2E] mb-3">Facturación Recurrente</h3>
+                  <h3 className="text-base font-semibold text-[#17181A] mb-3">Facturación Recurrente</h3>
                   <div className="flex items-center gap-2 mb-4">
                     <input
                       type="checkbox"
@@ -1283,7 +1283,7 @@ const Clients = () => {
                   </div>
 
                   {formData.is_recurring && (
-                    <div className="grid grid-cols-2 gap-4 bg-[#1A1A2E]/5 p-4 rounded-xl">
+                    <div className="grid grid-cols-2 gap-4 bg-[#17181A]/5 p-4 rounded-xl">
                       <div>
                         <label className="block text-sm font-medium mb-1">Día de Facturación *</label>
                         <select
@@ -1316,8 +1316,8 @@ const Clients = () => {
                           Monto que se facturará mensualmente
                         </p>
                       </div>
-                      <div className="col-span-2 bg-[#BFFF00]/20 border border-[#BFFF00]/40 p-3 rounded-xl">
-                        <p className="text-sm text-[#1A1A2E]">
+                      <div className="col-span-2 bg-[#D7F653]/20 border border-[#D7F653]/40 p-3 rounded-xl">
+                        <p className="text-sm text-[#17181A]">
                           ℹ️ <strong>Importante:</strong> La primera factura se creará automáticamente el día {formData.billing_day} de este mes.
                           Las siguientes facturas se generarán automáticamente cada mes mientras el cliente esté activo.
                         </p>
@@ -1346,7 +1346,7 @@ const Clients = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
                 >
                   Guardar
                 </button>

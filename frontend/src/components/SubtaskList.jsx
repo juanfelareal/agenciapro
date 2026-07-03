@@ -152,6 +152,7 @@ const SubtaskList = ({ taskId, onProgressChange }) => {
               className="text-slate-300 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
             />
             <button
+              type="button"
               onClick={() => handleToggle(subtask)}
               className="flex-shrink-0"
             >
@@ -169,6 +170,7 @@ const SubtaskList = ({ taskId, onProgressChange }) => {
               {subtask.title}
             </span>
             <button
+              type="button"
               onClick={() => handleDelete(subtask.id)}
               className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
             >

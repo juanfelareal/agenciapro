@@ -43,7 +43,7 @@ function DealCard({ deal, onClick }) {
       onClick={() => onClick(deal)}
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="text-sm font-semibold text-[#1A1A2E] line-clamp-2 flex-1">{deal.name}</h4>
+        <h4 className="text-sm font-semibold text-[#17181A] line-clamp-2 flex-1">{deal.name}</h4>
         <div
           {...attributes}
           {...listeners}
@@ -73,7 +73,7 @@ function DealCard({ deal, onClick }) {
             </span>
           )}
           {deal.assigned_to_name && (
-            <div className="w-6 h-6 rounded-full bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-[10px] font-bold">
+            <div className="w-6 h-6 rounded-full bg-[#17181A] text-[#D7F653] flex items-center justify-center text-[10px] font-bold">
               {deal.assigned_to_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </div>
           )}
@@ -93,8 +93,8 @@ function DealCardOverlay({ deal }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border-2 border-[#BFFF00] shadow-lg p-3.5 w-[240px]">
-      <h4 className="text-sm font-semibold text-[#1A1A2E] line-clamp-2">{deal.name}</h4>
+    <div className="bg-white rounded-xl border-2 border-[#D7F653] shadow-lg p-3.5 w-[240px]">
+      <h4 className="text-sm font-semibold text-[#17181A] line-clamp-2">{deal.name}</h4>
       {deal.company && <p className="text-xs text-gray-500 mt-1">{deal.company}</p>}
       {deal.estimated_value > 0 && (
         <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full mt-2 inline-block">
@@ -122,7 +122,7 @@ function StageColumn({ stage, deals, onDealClick }) {
     <div
       ref={setNodeRef}
       className={`flex-shrink-0 w-[260px] flex flex-col max-h-full rounded-2xl transition-colors ${
-        isOver ? 'bg-[#BFFF00]/10' : 'bg-gray-50/80'
+        isOver ? 'bg-[#D7F653]/10' : 'bg-gray-50/80'
       }`}
     >
       {/* Column Header */}
@@ -130,7 +130,7 @@ function StageColumn({ stage, deals, onDealClick }) {
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-            <h3 className="text-sm font-semibold text-[#1A1A2E]">{stage.name}</h3>
+            <h3 className="text-sm font-semibold text-[#17181A]">{stage.name}</h3>
             <span className="text-xs text-gray-400 bg-white px-1.5 py-0.5 rounded-full">{deals.length}</span>
           </div>
         </div>
@@ -151,7 +151,7 @@ function StageColumn({ stage, deals, onDealClick }) {
         <div className="px-3 py-2.5 border-t border-gray-200/60">
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-400">Total</span>
-            <span className="text-xs font-bold text-[#1A1A2E]">
+            <span className="text-xs font-bold text-[#17181A]">
               {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(totalValue)}
             </span>
           </div>
@@ -304,7 +304,7 @@ export default function CRM() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight flex items-center gap-2">
             <Target className="w-6 h-6" /> CRM
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Pipeline de ventas</p>
@@ -317,12 +317,12 @@ export default function CRM() {
               placeholder="Buscar deals..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] w-[200px]"
+              className="pl-9 pr-4 py-2 glass-solid rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-[200px]"
             />
           </div>
           <button
             onClick={() => setShowNewDeal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542] transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors"
           >
             <Plus className="w-4 h-4" /> Nuevo Deal
           </button>
@@ -359,7 +359,7 @@ export default function CRM() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowNewDeal(false)}>
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-[#1A1A2E]">Nuevo Deal</h2>
+              <h2 className="text-lg font-semibold text-[#17181A]">Nuevo Deal</h2>
               <button onClick={() => setShowNewDeal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -373,7 +373,7 @@ export default function CRM() {
                   value={newDeal.name}
                   onChange={(e) => setNewDeal({ ...newDeal, name: e.target.value })}
                   placeholder="Ej: Tienda Shopify - Marca XYZ"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   required
                 />
               </div>
@@ -385,7 +385,7 @@ export default function CRM() {
                     type="text"
                     value={newDeal.client_name}
                     onChange={(e) => setNewDeal({ ...newDeal, client_name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
                 <div>
@@ -394,7 +394,7 @@ export default function CRM() {
                     type="text"
                     value={newDeal.company}
                     onChange={(e) => setNewDeal({ ...newDeal, company: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
               </div>
@@ -406,7 +406,7 @@ export default function CRM() {
                     type="email"
                     value={newDeal.email}
                     onChange={(e) => setNewDeal({ ...newDeal, email: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
                 <div>
@@ -415,7 +415,7 @@ export default function CRM() {
                     type="tel"
                     value={newDeal.phone}
                     onChange={(e) => setNewDeal({ ...newDeal, phone: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
               </div>
@@ -428,7 +428,7 @@ export default function CRM() {
                     value={newDeal.estimated_value}
                     onChange={(e) => setNewDeal({ ...newDeal, estimated_value: e.target.value })}
                     placeholder="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
                 <div>
@@ -436,7 +436,7 @@ export default function CRM() {
                   <select
                     value={newDeal.source}
                     onChange={(e) => setNewDeal({ ...newDeal, source: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   >
                     <option value="">Seleccionar...</option>
                     <option value="referido">Referido</option>
@@ -454,7 +454,7 @@ export default function CRM() {
                 <select
                   value={newDeal.assigned_to}
                   onChange={(e) => setNewDeal({ ...newDeal, assigned_to: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                 >
                   <option value="">Sin asignar</option>
                   {teamMembers.map(m => (
@@ -469,7 +469,7 @@ export default function CRM() {
                   value={newDeal.notes}
                   onChange={(e) => setNewDeal({ ...newDeal, notes: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] resize-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] resize-none"
                 />
               </div>
 
@@ -484,7 +484,7 @@ export default function CRM() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542] transition-colors disabled:opacity-50"
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear Deal'}
                 </button>

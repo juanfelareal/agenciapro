@@ -52,9 +52,9 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
   const hasBreakdown = classifiedOrders > 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+    <div className="glass-card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
           <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
             <Mail className="w-4 h-4 text-pink-600" />
           </div>
@@ -142,7 +142,7 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
                   {campaigns.map((c) => (
                     <tr key={c.id}>
                       <td className="py-2 pr-3">
-                        <p className="font-medium text-[#1A1A2E]">{c.campaign_name}</p>
+                        <p className="font-medium text-[#17181A]">{c.campaign_name}</p>
                         {c.subject && <p className="text-xs text-gray-400">{c.subject}</p>}
                       </td>
                       <td className="py-2 px-3 text-gray-600">{fmtDate(c.sent_date)}</td>
@@ -171,7 +171,7 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
   );
 }
 
-const Stat = ({ label, value, sub, accent = 'text-[#1A1A2E]' }) => (
+const Stat = ({ label, value, sub, accent = 'text-[#17181A]' }) => (
   <div className="bg-gray-50 rounded-xl p-3">
     <p className="text-xs text-gray-500">{label}</p>
     <p className={`text-lg font-bold ${accent}`}>{value}</p>

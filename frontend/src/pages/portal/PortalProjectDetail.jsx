@@ -67,9 +67,9 @@ export default function PortalProjectDetail() {
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-[#1A1A2E]">Proyecto no encontrado</h2>
+        <h2 className="text-xl font-semibold text-[#17181A]">Proyecto no encontrado</h2>
         <p className="text-gray-500 mt-2 mb-4">Este proyecto no existe o no tienes acceso.</p>
-        <Link to="/portal/projects" className="text-[#1A1A2E] hover:underline">
+        <Link to="/portal/projects" className="text-[#17181A] hover:underline">
           Volver a proyectos
         </Link>
       </div>
@@ -85,22 +85,22 @@ export default function PortalProjectDetail() {
       {/* Back Link */}
       <Link
         to="/portal/projects"
-        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#17181A] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Volver a proyectos</span>
       </Link>
 
       {/* Project Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+      <div className="glass-card p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <FolderKanban className="w-7 h-7 text-[#1A1A2E]" />
+              <FolderKanban className="w-7 h-7 text-[#17181A]" />
             </div>
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{project.name}</h1>
+                <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{project.name}</h1>
                 {project.stage_name && (
                   <span
                     className="px-3 py-1 rounded-full text-xs font-medium"
@@ -126,7 +126,7 @@ export default function PortalProjectDetail() {
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-500">Progreso</span>
-              <span className="text-lg font-bold text-[#1A1A2E]">{progress}%</span>
+              <span className="text-lg font-bold text-[#17181A]">{progress}%</span>
             </div>
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
@@ -142,7 +142,7 @@ export default function PortalProjectDetail() {
               <CheckCircle2 className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-lg font-bold text-[#1A1A2E]">
+              <p className="text-lg font-bold text-[#17181A]">
                 {completedTasks.length}/{tasks.length}
               </p>
               <p className="text-sm text-gray-500">Tareas completadas</p>
@@ -156,7 +156,7 @@ export default function PortalProjectDetail() {
                 <Calendar className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-lg font-bold text-[#1A1A2E]">
+                <p className="text-lg font-bold text-[#17181A]">
                   {new Date(project.due_date).toLocaleDateString('es-CO', {
                     month: 'short',
                     day: 'numeric',
@@ -186,9 +186,9 @@ export default function PortalProjectDetail() {
       )}
 
       {/* Tasks List */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-[#1A1A2E]">Tareas del Proyecto</h2>
+          <h2 className="font-semibold text-[#17181A]">Tareas del Proyecto</h2>
           <p className="text-sm text-gray-500">{tasks.length} tareas en total</p>
         </div>
 
@@ -211,7 +211,7 @@ export default function PortalProjectDetail() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-[#1A1A2E]">{task.title}</p>
+                    <p className="font-medium text-[#17181A]">{task.title}</p>
                     <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-gray-500">
                       {!!task.requires_client_approval && getApprovalBadge(task.client_approval_status)}
                       {(task.assignees?.length > 0 || task.assigned_to_name) && (

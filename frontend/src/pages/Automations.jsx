@@ -398,7 +398,7 @@ const Automations = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Automatizaciones</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Automatizaciones</h1>
           <p className="text-sm text-gray-500 mt-0.5">Configura reglas para automatizar tu flujo de trabajo</p>
         </div>
         <button
@@ -432,7 +432,7 @@ const Automations = () => {
               key={automation.id}
               className={`bg-white rounded-lg shadow p-5 border-l-4 transition-all ${
                 automation.is_active
-                  ? 'border-l-[#1A1A2E]'
+                  ? 'border-l-[#17181A]'
                   : 'border-l-gray-300 opacity-75'
               }`}
             >
@@ -441,7 +441,7 @@ const Automations = () => {
                   <div className="flex items-center gap-3 mb-2">
                     <Zap
                       size={20}
-                      className={automation.is_active ? 'text-[#1A1A2E]' : 'text-gray-400'}
+                      className={automation.is_active ? 'text-[#17181A]' : 'text-gray-400'}
                     />
                     <h3 className="text-lg font-semibold text-gray-800">
                       {automation.name}
@@ -631,7 +631,7 @@ const Automations = () => {
                 <input
                   type="checkbox"
                   id="is_active"
-                  className="w-5 h-5 rounded text-[#1A1A2E]"
+                  className="w-5 h-5 rounded text-[#17181A]"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 />

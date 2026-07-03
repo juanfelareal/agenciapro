@@ -225,7 +225,7 @@ const Agents = () => {
               <button
                 key={agent.slug}
                 onClick={() => navigate(`/app/agents/${agent.slug}`)}
-                className="group text-left p-6 bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200"
+                className="group text-left p-6 glass-card hover:border-gray-200 hover:shadow-md transition-all duration-200"
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
@@ -233,11 +233,11 @@ const Agents = () => {
                 >
                   {agent.icon}
                 </div>
-                <h3 className="font-semibold text-gray-800 group-hover:text-[#1A1A2E] transition-colors">
+                <h3 className="font-semibold text-gray-800 group-hover:text-[#17181A] transition-colors">
                   {agent.name}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{agent.description}</p>
-                <div className="mt-4 flex items-center gap-1.5 text-xs text-gray-400 group-hover:text-[#1A1A2E] transition-colors">
+                <div className="mt-4 flex items-center gap-1.5 text-xs text-gray-400 group-hover:text-[#17181A] transition-colors">
                   <Sparkles size={14} />
                   <span>Iniciar conversación</span>
                 </div>
@@ -318,7 +318,7 @@ const Agents = () => {
                       setInputValue(prompt);
                       inputRef.current?.focus();
                     }}
-                    className="w-full text-left px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm text-gray-600 hover:border-gray-200 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-4 py-3 glass-solid rounded-xl text-sm text-gray-600 hover:border-gray-200 hover:bg-gray-50 transition-colors"
                   >
                     {prompt}
                   </button>
@@ -342,7 +342,7 @@ const Agents = () => {
                 <div
                   className={`max-w-[80%] ${
                     msg.role === 'user'
-                      ? 'bg-[#1A1A2E] text-white rounded-2xl rounded-br-md px-4 py-3'
+                      ? 'bg-[#17181A] text-white rounded-2xl rounded-br-md px-4 py-3'
                       : 'flex-1 min-w-0'
                   }`}
                 >
@@ -377,7 +377,7 @@ const Agents = () => {
             placeholder={currentAgent ? `Pregúntale a ${currentAgent.name}...` : 'Escribe tu mensaje...'}
             rows={1}
             disabled={streaming}
-            className="flex-1 resize-none px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 max-h-32 disabled:opacity-50"
+            className="flex-1 resize-none px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 max-h-32 disabled:opacity-50"
             style={{ minHeight: '40px' }}
           />
           {streaming ? (
@@ -392,7 +392,7 @@ const Agents = () => {
             <button
               onClick={handleSend}
               disabled={!inputValue.trim()}
-              className="p-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#2A2A3E] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#2A2A3E] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <Send size={18} />
             </button>

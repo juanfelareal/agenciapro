@@ -382,7 +382,7 @@ const ProjectDetail = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="glass-card p-6">
         {/* Top bar */}
         <div className="flex items-center justify-between mb-4">
           <button
@@ -530,7 +530,7 @@ const ProjectDetail = () => {
       </div>
 
       {/* Tasks section */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="glass-card p-6">
         {/* View tabs and actions */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
@@ -1022,7 +1022,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
                 Cambiar plantilla
               </button>
             )}
-            <h2 className="text-lg font-semibold text-[#1A1A2E]">
+            <h2 className="text-lg font-semibold text-[#17181A]">
               {selected ? selected.name : 'Aplicar plantilla'}
             </h2>
           </div>
@@ -1066,7 +1066,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
                     className="text-left p-4 rounded-xl border border-gray-200 hover:border-[#163B3B] hover:shadow-sm transition-all group"
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="font-semibold text-[#1A1A2E] text-sm">{t.name}</p>
+                      <p className="font-semibold text-[#17181A] text-sm">{t.name}</p>
                       <ChevronRight size={16} className="text-gray-300 group-hover:text-[#163B3B] flex-shrink-0" />
                     </div>
                     {t.category && (
@@ -1111,7 +1111,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
                         {idx + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#1A1A2E]">{t.title}</p>
+                        <p className="text-sm font-medium text-[#17181A]">{t.title}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                             t.priority === 'urgent' ? 'bg-red-100 text-red-700'

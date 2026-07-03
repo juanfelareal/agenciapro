@@ -54,12 +54,12 @@ export default function PortalProjects() {
     <Link
       key={project.id}
       to={`/portal/projects/${project.id}`}
-      className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6
+      className="glass-card p-6
                hover:shadow-md hover:border-gray-200 transition-all group"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-          <FolderKanban className="w-6 h-6 text-[#1A1A2E]" />
+          <FolderKanban className="w-6 h-6 text-[#17181A]" />
         </div>
         {project.stage_name && (
           <span
@@ -74,7 +74,7 @@ export default function PortalProjects() {
         )}
       </div>
 
-      <h3 className="font-semibold text-[#1A1A2E] mb-2 group-hover:text-[#1A1A2E] transition-colors">
+      <h3 className="font-semibold text-[#17181A] mb-2 group-hover:text-[#17181A] transition-colors">
         {project.name}
       </h3>
 
@@ -88,7 +88,7 @@ export default function PortalProjects() {
       <div className="mb-4">
         <div className="flex items-center justify-between text-sm mb-1">
           <span className="text-gray-500">Progreso</span>
-          <span className="font-medium text-[#1A1A2E]">{project.progress || 0}%</span>
+          <span className="font-medium text-[#17181A]">{project.progress || 0}%</span>
         </div>
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -114,7 +114,7 @@ export default function PortalProjects() {
 
       <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
         <span className="text-sm text-gray-500">Ver detalles</span>
-        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#1A1A2E] group-hover:translate-x-1 transition-all" />
+        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#17181A] group-hover:translate-x-1 transition-all" />
       </div>
     </Link>
   );
@@ -122,7 +122,7 @@ export default function PortalProjects() {
   const renderSection = (title, items, emptyText) => (
     <section className="space-y-4">
       <div className="flex items-baseline gap-2">
-        <h2 className="text-lg font-semibold text-[#1A1A2E]">{title}</h2>
+        <h2 className="text-lg font-semibold text-[#17181A]">{title}</h2>
         <span className="text-sm text-gray-400">({items.length})</span>
       </div>
       {items.length > 0 ? (
@@ -139,7 +139,7 @@ export default function PortalProjects() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Mis Proyectos</h1>
+        <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Mis Proyectos</h1>
         <p className="text-sm text-gray-500 mt-0.5">Revisa el progreso de tus proyectos</p>
       </div>
 
@@ -151,17 +151,17 @@ export default function PortalProjects() {
           placeholder="Buscar proyectos..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl
+          className="w-full pl-10 pr-4 py-2.5 glass-solid rounded-xl
                    focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
       </div>
 
       {filteredProjects.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FolderKanban className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-[#1A1A2E] mb-2">No hay proyectos</h3>
+          <h3 className="text-lg font-semibold text-[#17181A] mb-2">No hay proyectos</h3>
           <p className="text-gray-500">
             {search
               ? 'No se encontraron proyectos con la búsqueda aplicada.'

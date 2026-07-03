@@ -213,7 +213,7 @@ export default function CRMDealDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Deal no encontrado</p>
-        <button onClick={() => navigate('/app/crm')} className="text-[#1A1A2E] underline mt-2">
+        <button onClick={() => navigate('/app/crm')} className="text-[#17181A] underline mt-2">
           Volver al CRM
         </button>
       </div>
@@ -232,7 +232,7 @@ export default function CRMDealDetail() {
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{deal.name}</h1>
+            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{deal.name}</h1>
             {deal.company && <p className="text-sm text-gray-500">{deal.company}</p>}
           </div>
         </div>
@@ -268,7 +268,7 @@ export default function CRMDealDetail() {
       </div>
 
       {/* Pipeline Indicator */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 overflow-x-auto">
+      <div className="glass-card p-4 overflow-x-auto">
         <div className="flex items-center gap-1 min-w-max">
           {stages.map((stage) => {
             const isCurrent = deal.stage_id === stage.id;
@@ -301,9 +301,9 @@ export default function CRMDealDetail() {
           {!editing ? (
             <>
               {/* Contact Card (read-only) */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+              <div className="glass-card p-5 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[#1A1A2E] uppercase tracking-wider">Contacto</h3>
+                  <h3 className="text-sm font-semibold text-[#17181A] uppercase tracking-wider">Contacto</h3>
                   <button onClick={startEditing} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Editar">
                     <Pencil className="w-4 h-4 text-gray-400" />
                   </button>
@@ -337,8 +337,8 @@ export default function CRMDealDetail() {
               </div>
 
               {/* Value Card (read-only) */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="text-sm font-semibold text-[#1A1A2E] uppercase tracking-wider mb-3">Valor</h3>
+              <div className="glass-card p-5">
+                <h3 className="text-sm font-semibold text-[#17181A] uppercase tracking-wider mb-3">Valor</h3>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(deal.estimated_value)}</p>
                 {deal.source && (
                   <p className="text-xs text-gray-500 mt-2">Fuente: <span className="font-medium">{deal.source}</span></p>
@@ -350,17 +350,17 @@ export default function CRMDealDetail() {
 
               {/* Notes (read-only) */}
               {deal.notes && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <h3 className="text-sm font-semibold text-[#1A1A2E] uppercase tracking-wider mb-2">Notas</h3>
+                <div className="glass-card p-5">
+                  <h3 className="text-sm font-semibold text-[#17181A] uppercase tracking-wider mb-2">Notas</h3>
                   <p className="text-sm text-gray-600 whitespace-pre-line">{deal.notes}</p>
                 </div>
               )}
             </>
           ) : (
             /* Edit Mode - full form */
-            <div className="bg-white rounded-2xl border-2 border-[#BFFF00] p-5 space-y-4">
+            <div className="bg-white rounded-2xl border-2 border-[#D7F653] p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[#1A1A2E] uppercase tracking-wider">Editar Deal</h3>
+                <h3 className="text-sm font-semibold text-[#17181A] uppercase tracking-wider">Editar Deal</h3>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={cancelEditing}
@@ -371,7 +371,7 @@ export default function CRMDealDetail() {
                   <button
                     onClick={saveDeal}
                     disabled={savingDeal}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-[#1A1A2E] text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-[#17181A] text-white rounded-lg text-xs font-medium disabled:opacity-50"
                   >
                     {savingDeal ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
                     Guardar
@@ -385,7 +385,7 @@ export default function CRMDealDetail() {
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                 />
               </div>
 
@@ -396,7 +396,7 @@ export default function CRMDealDetail() {
                     type="text"
                     value={editForm.client_name}
                     onChange={(e) => setEditForm({ ...editForm, client_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
                 <div>
@@ -405,7 +405,7 @@ export default function CRMDealDetail() {
                     type="text"
                     value={editForm.company}
                     onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
               </div>
@@ -417,7 +417,7 @@ export default function CRMDealDetail() {
                     type="email"
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
                 <div>
@@ -426,7 +426,7 @@ export default function CRMDealDetail() {
                     type="tel"
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
               </div>
@@ -438,7 +438,7 @@ export default function CRMDealDetail() {
                     type="number"
                     value={editForm.estimated_value}
                     onChange={(e) => setEditForm({ ...editForm, estimated_value: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   />
                 </div>
                 <div>
@@ -446,7 +446,7 @@ export default function CRMDealDetail() {
                   <select
                     value={editForm.source}
                     onChange={(e) => setEditForm({ ...editForm, source: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   >
                     <option value="">Seleccionar...</option>
                     <option value="referido">Referido</option>
@@ -464,7 +464,7 @@ export default function CRMDealDetail() {
                 <select
                   value={editForm.assigned_to}
                   onChange={(e) => setEditForm({ ...editForm, assigned_to: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                 >
                   <option value="">Sin asignar</option>
                   {teamMembers.map(m => (
@@ -479,7 +479,7 @@ export default function CRMDealDetail() {
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] resize-none"
                 />
               </div>
             </div>
@@ -543,12 +543,12 @@ export default function CRMDealDetail() {
 
         {/* Right Column: Activity Timeline */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="glass-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-[#1A1A2E] uppercase tracking-wider">Actividades</h3>
+              <h3 className="text-sm font-semibold text-[#17181A] uppercase tracking-wider">Actividades</h3>
               <button
                 onClick={() => setShowActivityForm(!showActivityForm)}
-                className="flex items-center gap-1 text-sm text-[#1A1A2E] font-medium hover:underline"
+                className="flex items-center gap-1 text-sm text-[#17181A] font-medium hover:underline"
               >
                 <Plus className="w-4 h-4" /> Agregar
               </button>
@@ -570,7 +570,7 @@ export default function CRMDealDetail() {
                       onClick={() => setActivityType(t.value)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         activityType === t.value
-                          ? 'bg-[#1A1A2E] text-white'
+                          ? 'bg-[#17181A] text-white'
                           : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
                       }`}
                     >
@@ -583,14 +583,14 @@ export default function CRMDealDetail() {
                   value={activityTitle}
                   onChange={(e) => setActivityTitle(e.target.value)}
                   placeholder="Título (opcional)"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                 />
                 <textarea
                   value={activityContent}
                   onChange={(e) => setActivityContent(e.target.value)}
                   placeholder="Detalles..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] resize-none"
                 />
                 <div className="flex gap-2 justify-end">
                   <button
@@ -603,7 +603,7 @@ export default function CRMDealDetail() {
                   <button
                     type="submit"
                     disabled={savingActivity}
-                    className="px-4 py-1.5 bg-[#1A1A2E] text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                    className="px-4 py-1.5 bg-[#17181A] text-white rounded-lg text-sm font-medium disabled:opacity-50"
                   >
                     {savingActivity ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
                   </button>
@@ -633,7 +633,7 @@ export default function CRMDealDetail() {
                       <div className="flex items-start justify-between">
                         <div>
                           {activity.title && (
-                            <p className="text-sm font-medium text-[#1A1A2E]">{activity.title}</p>
+                            <p className="text-sm font-medium text-[#17181A]">{activity.title}</p>
                           )}
                           {activity.content && (
                             <p className="text-sm text-gray-600 mt-0.5 whitespace-pre-line">{activity.content}</p>
@@ -664,7 +664,7 @@ export default function CRMDealDetail() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowTranscript(false)}>
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-[#1A1A2E]">Agregar Transcripción</h2>
+              <h2 className="text-lg font-semibold text-[#17181A]">Agregar Transcripción</h2>
               <button onClick={() => { setShowTranscript(false); setTranscriptResult(null); }} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -678,7 +678,7 @@ export default function CRMDealDetail() {
                 onChange={(e) => setTranscriptText(e.target.value)}
                 placeholder="Pegar transcripción aquí..."
                 rows={10}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] resize-none"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] resize-none"
               />
 
               {transcriptResult && (
@@ -706,7 +706,7 @@ export default function CRMDealDetail() {
                 <button
                   onClick={handleProcessTranscript}
                   disabled={processingTranscript || !transcriptText.trim()}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium disabled:opacity-50"
                 >
                   {processingTranscript ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   Procesar con IA

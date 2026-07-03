@@ -67,7 +67,7 @@ export default function SharedDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+      <div className="min-h-screen app-mist flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
       </div>
     );
@@ -75,10 +75,10 @@ export default function SharedDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+      <div className="min-h-screen app-mist flex items-center justify-center">
         <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center max-w-md">
           <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-[#1A1A2E] mb-2">Enlace no disponible</h2>
+          <h2 className="text-lg font-semibold text-[#17181A] mb-2">Enlace no disponible</h2>
           <p className="text-sm text-gray-500">{error}</p>
         </div>
       </div>
@@ -95,13 +95,13 @@ export default function SharedDashboard() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen app-mist">
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Dashboard de métricas</p>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">
+            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">
               {data.client?.company || data.client?.name || 'Dashboard'}
             </h1>
           </div>
@@ -115,7 +115,7 @@ export default function SharedDashboard() {
                 key={option.value}
                 onClick={() => setDateRange(option.value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  dateRange === option.value ? 'bg-[#1A1A2E] text-white' : 'text-gray-600 hover:bg-gray-100'
+                  dateRange === option.value ? 'bg-[#17181A] text-white' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 {option.label}
@@ -132,7 +132,7 @@ export default function SharedDashboard() {
                 <Lightbulb className="w-5 h-5 text-amber-500" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#1A1A2E] mb-1">Insight Semanal</h3>
+                <h3 className="font-semibold text-[#17181A] mb-1">Insight Semanal</h3>
                 <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{data.insight}</p>
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function SharedDashboard() {
         {/* Facebook Metrics */}
         {data.facebook && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                 <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -151,10 +151,10 @@ export default function SharedDashboard() {
               Facebook Ads
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <MetricCard label="Inversión" value={formatCurrency(data.facebook.spend)} change={data.facebook.spend_change} inverted icon={<DollarSign className="w-5 h-5" />} iconBg="bg-gray-100" iconColor="text-[#1A1A2E]" />
-              <MetricCard label="Impresiones" value={formatNumber(data.facebook.impressions)} change={data.facebook.impressions_change} icon={<Eye className="w-5 h-5" />} iconBg="bg-blue-100" iconColor="text-blue-600" />
-              <MetricCard label="Clics" value={formatNumber(data.facebook.clicks)} change={data.facebook.clicks_change} icon={<MousePointer className="w-5 h-5" />} iconBg="bg-green-100" iconColor="text-green-600" />
-              <MetricCard label="CTR" value={formatPercent(data.facebook.ctr)} change={data.facebook.ctr_change} icon={<TrendingUp className="w-5 h-5" />} iconBg="bg-amber-100" iconColor="text-amber-600" />
+              <MetricCard label="Inversión" value={formatCurrency(data.facebook.spend)} change={data.facebook.spend_change} inverted icon={<DollarSign className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Impresiones" value={formatNumber(data.facebook.impressions)} change={data.facebook.impressions_change} icon={<Eye className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Clics" value={formatNumber(data.facebook.clicks)} change={data.facebook.clicks_change} icon={<MousePointer className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="CTR" value={formatPercent(data.facebook.ctr)} change={data.facebook.ctr_change} icon={<TrendingUp className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SmallMetricCard label="Conversiones" value={formatNumber(data.facebook.conversions)} change={data.facebook.conversions_change} />
@@ -164,20 +164,73 @@ export default function SharedDashboard() {
           </div>
         )}
 
+        {/* Google Ads Metrics */}
+        {data.google && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
+              <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75z"/>
+                </svg>
+              </div>
+              Google Ads
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <MetricCard label="Inversión" value={formatCurrency(data.google.spend)} change={data.google.spend_change} inverted icon={<DollarSign className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Impresiones" value={formatNumber(data.google.impressions)} change={data.google.impressions_change} icon={<Eye className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Clics" value={formatNumber(data.google.clicks)} change={data.google.clicks_change} icon={<MousePointer className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="CTR" value={formatPercent(data.google.ctr)} change={data.google.ctr_change} icon={<TrendingUp className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <SmallMetricCard label="Conversiones" value={formatNumber(data.google.conversions)} change={data.google.conversions_change} />
+              <SmallMetricCard label="Costo por Conversión" value={formatCurrency(data.google.cost_per_conversion)} change={data.google.cost_per_conversion_change} inverted />
+              <SmallMetricCard label="ROAS" value={`${(data.google.roas || 0).toFixed(2)}x`} change={data.google.roas_change} />
+            </div>
+          </div>
+        )}
+
+        {/* TikTok Ads Metrics */}
+        {data.tiktok && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
+              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .58.04.85.13V9.4a6.33 6.33 0 0 0-1-.05A6.34 6.34 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/>
+                </svg>
+              </div>
+              TikTok Ads
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <MetricCard label="Inversión" value={formatCurrency(data.tiktok.spend)} change={data.tiktok.spend_change} inverted icon={<DollarSign className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Impresiones" value={formatNumber(data.tiktok.impressions)} change={data.tiktok.impressions_change} icon={<Eye className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-gray-900" />
+              <MetricCard label="Clics" value={formatNumber(data.tiktok.clicks)} change={data.tiktok.clicks_change} icon={<MousePointer className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="CTR" value={formatPercent(data.tiktok.ctr)} change={data.tiktok.ctr_change} icon={<TrendingUp className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <SmallMetricCard label="Conversiones" value={formatNumber(data.tiktok.conversions)} change={data.tiktok.conversions_change} />
+              <SmallMetricCard label="Costo por Conversión" value={formatCurrency(data.tiktok.cost_per_conversion)} change={data.tiktok.cost_per_conversion_change} inverted />
+              <SmallMetricCard label="ROAS" value={`${(data.tiktok.roas || 0).toFixed(2)}x`} change={data.tiktok.roas_change} />
+            </div>
+          </div>
+        )}
+
         {/* Shopify Metrics */}
         {data.shopify && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
                 <ShoppingCart className="w-4 h-4 text-green-600" />
               </div>
               Shopify
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <MetricCard label="Ingresos" value={formatCurrency(data.shopify.revenue)} change={data.shopify.revenue_change} icon={<DollarSign className="w-5 h-5" />} iconBg="bg-green-100" iconColor="text-green-600" />
-              <MetricCard label="Pedidos" value={formatNumber(data.shopify.orders)} change={data.shopify.orders_change} icon={<ShoppingCart className="w-5 h-5" />} iconBg="bg-blue-100" iconColor="text-blue-600" />
-              <MetricCard label="Ticket Promedio" value={formatCurrency(data.shopify.aov)} change={data.shopify.aov_change} icon={<BarChart3 className="w-5 h-5" />} iconBg="bg-gray-100" iconColor="text-[#1A1A2E]" />
-              <MetricCard label="Clientes" value={formatNumber(data.shopify.customers)} change={data.shopify.customers_change} icon={<Users className="w-5 h-5" />} iconBg="bg-amber-100" iconColor="text-amber-600" />
+              <MetricCard label="Ingresos" value={formatCurrency(data.shopify.revenue)} change={data.shopify.revenue_change} icon={<DollarSign className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Pedidos" value={formatNumber(data.shopify.orders)} change={data.shopify.orders_change} icon={<ShoppingCart className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Ticket Promedio" value={formatCurrency(data.shopify.aov)} change={data.shopify.aov_change} icon={<BarChart3 className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
+              <MetricCard label="Clientes" value={formatNumber(data.shopify.customers)} change={data.shopify.customers_change} icon={<Users className="w-5 h-5" />} iconBg="bg-[#17181A]" iconColor="text-[#D7F653]" />
             </div>
           </div>
         )}
@@ -185,8 +238,8 @@ export default function SharedDashboard() {
         {/* Charts */}
         {chartData.length > 1 && (
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h3 className="text-base font-semibold text-[#1A1A2E] mb-4">Ingresos vs Inversión Publicitaria</h3>
+            <div className="glass-card shadow-sm p-6">
+              <h3 className="text-base font-semibold text-[#17181A] mb-4">Ingresos vs Inversión Publicitaria</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -203,8 +256,8 @@ export default function SharedDashboard() {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h3 className="text-base font-semibold text-[#1A1A2E] mb-4">Tendencia ROAS</h3>
+            <div className="glass-card shadow-sm p-6">
+              <h3 className="text-base font-semibold text-[#17181A] mb-4">Tendencia ROAS</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={chartData}>
                   <defs>
@@ -239,7 +292,7 @@ export default function SharedDashboard() {
 // Reusable components for this page
 function MetricCard({ label, value, change, inverted, icon, iconBg, iconColor }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="glass-card shadow-sm p-5">
       <div className="flex items-center gap-3 mb-3">
         <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center ${iconColor}`}>
           {icon}
@@ -253,7 +306,7 @@ function MetricCard({ label, value, change, inverted, icon, iconBg, iconColor })
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold text-[#1A1A2E]">{value}</p>
+      <p className="text-2xl font-bold text-[#17181A]">{value}</p>
       <p className="text-sm text-gray-500 mt-1">{label}</p>
     </div>
   );
@@ -261,11 +314,11 @@ function MetricCard({ label, value, change, inverted, icon, iconBg, iconColor })
 
 function SmallMetricCard({ label, value, change, inverted }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <div className="glass-card shadow-sm p-5">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">{label}</p>
-          <p className="text-xl font-bold text-[#1A1A2E] mt-1">{value}</p>
+          <p className="text-xl font-bold text-[#17181A] mt-1">{value}</p>
         </div>
         {change !== undefined && (
           <span className={`inline-flex items-center gap-1 text-sm font-medium ${

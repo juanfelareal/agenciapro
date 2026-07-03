@@ -170,7 +170,7 @@ function MetricsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Métricas</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Métricas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Resumen de todos los clientes</p>
           {data.last_sync_at && (
             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
@@ -185,7 +185,7 @@ function MetricsDashboard() {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
         >
           {syncing ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Sincronizando...</>
@@ -200,7 +200,7 @@ function MetricsDashboard() {
         <button
           onClick={() => handleTabChange('general')}
           className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'general' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            activeTab === 'general' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
           }`}
         >
           General
@@ -208,7 +208,7 @@ function MetricsDashboard() {
         <button
           onClick={() => handleTabChange('growth')}
           className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'growth' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            activeTab === 'growth' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
           }`}
         >
           <Rocket className="w-4 h-4" />
@@ -219,7 +219,7 @@ function MetricsDashboard() {
       {activeTab === 'general' ? (
         <>
           {/* Date Range */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="glass rounded-xl p-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-gray-400" />
@@ -248,14 +248,14 @@ function MetricsDashboard() {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <MetricCard title="Venta Total" value={visibleTotals.display_revenue} icon={DollarSign} iconBgColor="bg-green-100" iconColor="text-green-600" format="currency" loading={loading} />
-            <MetricCard title="Inversion Publicidad" value={visibleTotals.total_ad_spend} icon={MousePointerClick} iconBgColor="bg-blue-100" iconColor="text-blue-600" format="currency" loading={loading} />
-            <MetricCard title="ROAS" value={visibleTotals.roas} icon={TrendingUp} iconBgColor="bg-purple-100" iconColor="text-purple-600" format="decimal" loading={loading} />
-            <MetricCard title="Pedidos" value={visibleTotals.total_orders} icon={ShoppingCart} iconBgColor="bg-orange-100" iconColor="text-orange-600" format="integer" loading={loading} />
+            <MetricCard title="Venta Total" value={visibleTotals.display_revenue} icon={DollarSign} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="currency" loading={loading} />
+            <MetricCard title="Inversion Publicidad" value={visibleTotals.total_ad_spend} icon={MousePointerClick} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="currency" loading={loading} />
+            <MetricCard title="ROAS" value={visibleTotals.roas} icon={TrendingUp} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="decimal" loading={loading} />
+            <MetricCard title="Pedidos" value={visibleTotals.total_orders} icon={ShoppingCart} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="integer" loading={loading} />
           </div>
 
           {/* Clients Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="glass rounded-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-800">Reporte General</h2>
               {hiddenCount > 0 && (
@@ -271,7 +271,7 @@ function MetricsDashboard() {
 
             {loading ? (
               <div className="p-8 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-[#1A1A2E] mx-auto mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#17181A] mx-auto mb-2" />
                 <p className="text-gray-500">Cargando métricas...</p>
               </div>
             ) : visibleClients.length === 0 ? (
@@ -333,7 +333,7 @@ function MetricsDashboard() {
                         <td className="px-6 py-4 text-right text-gray-600">{client.avg_ctr?.toFixed(2) || '0.00'}%</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="p-2 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors" title="Ver detalle">
+                            <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors" title="Ver detalle">
                               <ChevronRight className="w-5 h-5" />
                             </button>
                             <button onClick={() => navigate(`/app/clients/${client.client_id}/plataformas`)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Configurar plataformas">

@@ -60,7 +60,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+      <div className="glass-solid rounded-2xl shadow-glass-lg w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">Nueva Conversación</h2>
@@ -74,7 +74,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
           <button
             onClick={() => { setTab('direct'); setSelectedMembers([]); }}
             className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              tab === 'direct' ? 'text-[#1A1A2E] border-b-2 border-[#1A1A2E]' : 'text-gray-500'
+              tab === 'direct' ? 'text-[#17181A] border-b-2 border-[#17181A]' : 'text-gray-500'
             }`}
           >
             <User size={16} /> Directo
@@ -82,7 +82,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
           <button
             onClick={() => { setTab('group'); setSelectedMembers([]); }}
             className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              tab === 'group' ? 'text-[#1A1A2E] border-b-2 border-[#1A1A2E]' : 'text-gray-500'
+              tab === 'group' ? 'text-[#17181A] border-b-2 border-[#17181A]' : 'text-gray-500'
             }`}
           >
             <Users size={16} /> Grupo
@@ -97,7 +97,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               placeholder="Nombre del grupo"
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]"
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]"
             />
           </div>
         )}
@@ -111,7 +111,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar miembro..."
-              className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]"
+              className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]"
             />
           </div>
         </div>
@@ -122,7 +122,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
             {selectedMembers.map((m) => (
               <span
                 key={m.id}
-                className="inline-flex items-center gap-1 bg-[#1A1A2E] text-white text-xs px-2 py-1 rounded-full"
+                className="inline-flex items-center gap-1 bg-[#17181A] text-white text-xs px-2 py-1 rounded-full"
               >
                 {m.name}
                 <button onClick={() => toggleMember(m)} className="hover:text-red-300">
@@ -142,15 +142,15 @@ const NewConversationModal = ({ onClose, onCreated }) => {
                 key={m.id}
                 onClick={() => toggleMember(m)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  selected ? 'bg-[#1A1A2E]/10' : 'hover:bg-gray-50'
+                  selected ? 'bg-[#17181A]/10' : 'hover:bg-gray-50'
                 }`}
               >
-                <div className="w-8 h-8 rounded-full bg-[#1A1A2E] text-white flex items-center justify-center text-xs font-semibold">
+                <div className="w-8 h-8 rounded-full bg-[#17181A] text-white flex items-center justify-center text-xs font-semibold">
                   {m.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
                 <span className="flex-1 text-left">{m.name}</span>
                 {selected && (
-                  <span className="w-5 h-5 bg-[#1A1A2E] rounded-full flex items-center justify-center">
+                  <span className="w-5 h-5 bg-[#17181A] rounded-full flex items-center justify-center">
                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
@@ -172,7 +172,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
           <button
             onClick={handleCreate}
             disabled={loading || selectedMembers.length === 0 || (tab === 'group' && !groupName.trim())}
-            className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2A2A3E] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-lg hover:bg-[#2A2A3E] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creando...' : tab === 'direct' ? 'Iniciar Chat' : 'Crear Grupo'}
           </button>

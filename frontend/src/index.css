@@ -4,24 +4,67 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== DESIGN SYSTEM 2026 — Carbón + Lima · iOS Glass ===== */
+@layer components {
+  /* Fondo neblina con insinuación de lima — se aplica al contenedor raíz de la app */
+  .app-mist {
+    background:
+      radial-gradient(800px 500px at 15% -5%, rgba(215, 246, 83, 0.16), transparent 55%),
+      radial-gradient(700px 500px at 90% 20%, rgba(190, 196, 178, 0.32), transparent 55%),
+      linear-gradient(165deg, #F3F4EF 0%, #EBEDE4 55%, #F0F1EC 100%);
+    background-attachment: fixed;
+  }
+
+  /* Panel de vidrio: cards, tablas, modales */
+  .glass {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(26px) saturate(1.4);
+    -webkit-backdrop-filter: blur(26px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
+  }
+  .glass-card { @apply glass rounded-2xl; }
+  .glass-panel { @apply glass rounded-3xl; }
+
+  /* Variante más sólida para superficies con mucho texto/datos */
+  .glass-solid {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(26px) saturate(1.4);
+    -webkit-backdrop-filter: blur(26px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
+  }
+
+  /* Hover de filas dentro de un panel glass */
+  .glass-row-hover:hover { background: rgba(255, 255, 255, 0.5); }
+
+  /* Botón primario carbón (el lima va en iconos/acentos, no como fondo de texto largo) */
+  .btn-carbon {
+    @apply bg-dark text-white font-semibold rounded-full px-5 py-2.5 transition-colors;
+    box-shadow: 0 6px 20px rgba(23, 24, 26, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+  .btn-carbon:hover { background: #26282C; }
+}
+
+
 /* ===== CSS Variables - New Lime/Dark Design System ===== */
 :root {
   /* New design system */
-  --surface: #F8F9FA;
+  --surface: #F3F4EF;
   --card: #FFFFFF;
-  --dark: #1A1A2E;
-  --lime-400: #BFFF00;
+  --dark: #17181A;
+  --lime-400: #D7F653;
   --lime-500: #A3E635;
   --lime-600: #65A30D;
   --income: #10B981;
   --expense: #F97316;
-  --text-primary: #1A1A2E;
+  --text-primary: #17181A;
   --text-secondary: #6B7280;
 
   /* New shadows */
   --shadow-elevated: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
   --shadow-bento: 0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
-  --shadow-glow-lime: 0 0 20px rgba(191, 255, 0, 0.3);
+  --shadow-glow-lime: 0 0 20px rgba(215, 246, 83, 0.3);
 
   /* ===== LEGACY VARIABLES (to be removed in FASE 9) ===== */
   /* Warm cream base */
@@ -153,31 +196,34 @@ body {
   /* Glassmorphism Cards */
   .card {
     @apply rounded-3xl transition-all duration-200;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: var(--shadow-card);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(26px) saturate(1.4);
+    -webkit-backdrop-filter: blur(26px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
   }
 
   .card-solid {
-    @apply bg-white rounded-3xl transition-all duration-200;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    box-shadow: var(--shadow-card);
+    @apply rounded-3xl transition-all duration-200;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(26px) saturate(1.4);
+    -webkit-backdrop-filter: blur(26px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
   }
 
   .card-interactive {
     @apply rounded-3xl transition-all duration-200 cursor-pointer;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: var(--shadow-card);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(26px) saturate(1.4);
+    -webkit-backdrop-filter: blur(26px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
   }
 
   .card-interactive:hover {
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: var(--shadow-card-hover);
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 12px 40px rgba(40, 44, 30, 0.1);
     transform: translateY(-2px);
   }
 
@@ -188,12 +234,12 @@ body {
 
   .btn-primary {
     @apply btn text-white;
-    background: var(--ink-900);
-    box-shadow: var(--shadow-button);
+    background: var(--dark);
+    box-shadow: 0 6px 20px rgba(23, 24, 26, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: var(--ink-800);
+    background: #26282C;
     transform: scale(1.02);
   }
 
@@ -508,7 +554,7 @@ body {
   }
 
   .btn-dark:hover:not(:disabled) {
-    background: #252542;
+    background: #26282C;
     transform: scale(1.02);
   }
 
@@ -526,7 +572,7 @@ body {
   /* New Badges */
   .badge-lime {
     @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full;
-    background: rgba(191, 255, 0, 0.2);
+    background: rgba(215, 246, 83, 0.2);
     color: var(--lime-600);
   }
 

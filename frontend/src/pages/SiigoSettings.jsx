@@ -180,7 +180,7 @@ const SiigoSettings = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E]">Integración Siigo</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A]">Integración Siigo</h1>
           <p className="text-gray-500 text-sm mt-1">
             Configura la conexión con Siigo para facturación electrónica
           </p>
@@ -199,7 +199,7 @@ const SiigoSettings = () => {
       {/* Connection Status */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
             <Link2 size={20} />
             Estado de Conexión
           </h2>
@@ -220,19 +220,19 @@ const SiigoSettings = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-gray-500">Usuario</p>
-              <p className="font-medium text-[#1A1A2E]">{settings.username || '-'}</p>
+              <p className="font-medium text-[#17181A]">{settings.username || '-'}</p>
             </div>
             <div>
               <p className="text-gray-500">Token válido hasta</p>
-              <p className="font-medium text-[#1A1A2E]">{formatDate(settings.token_expires_at)}</p>
+              <p className="font-medium text-[#17181A]">{formatDate(settings.token_expires_at)}</p>
             </div>
             <div>
               <p className="text-gray-500">Última sincronización</p>
-              <p className="font-medium text-[#1A1A2E]">{formatDate(settings.last_sync_at)}</p>
+              <p className="font-medium text-[#17181A]">{formatDate(settings.last_sync_at)}</p>
             </div>
             <div>
               <p className="text-gray-500">Creado</p>
-              <p className="font-medium text-[#1A1A2E]">{formatDate(settings.created_at)}</p>
+              <p className="font-medium text-[#17181A]">{formatDate(settings.created_at)}</p>
             </div>
           </div>
         )}
@@ -285,7 +285,7 @@ const SiigoSettings = () => {
 
       {/* Credentials Form */}
       <div className="card p-6">
-        <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2 mb-4">
+        <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2 mb-4">
           <Key size={20} />
           Credenciales de API
         </h2>
@@ -355,7 +355,7 @@ const SiigoSettings = () => {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Document Types */}
           <div className="card p-4">
-            <h3 className="font-semibold text-[#1A1A2E] flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-[#17181A] flex items-center gap-2 mb-3">
               <FileText size={18} />
               Tipos de Documento ({referenceData.documentTypes.length})
             </h3>
@@ -371,7 +371,7 @@ const SiigoSettings = () => {
 
           {/* Payment Types */}
           <div className="card p-4">
-            <h3 className="font-semibold text-[#1A1A2E] flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-[#17181A] flex items-center gap-2 mb-3">
               <CreditCard size={18} />
               Métodos de Pago ({referenceData.paymentTypes.length})
             </h3>
@@ -387,7 +387,7 @@ const SiigoSettings = () => {
 
           {/* Taxes */}
           <div className="card p-4">
-            <h3 className="font-semibold text-[#1A1A2E] flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-[#17181A] flex items-center gap-2 mb-3">
               <Percent size={18} />
               Impuestos ({referenceData.taxes.length})
             </h3>

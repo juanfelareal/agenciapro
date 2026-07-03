@@ -17,7 +17,7 @@ export function PillSelect({ icon: Icon, dot, label, value, onChange, options, t
   const toneClasses =
     tone === 'nudge'
       ? 'border-dashed border-amber-300 bg-amber-50/60 text-amber-700 hover:bg-amber-50'
-      : 'border-gray-200 bg-white text-[#1A1A2E] hover:border-gray-300 hover:bg-gray-50';
+      : 'border-gray-200 bg-white text-[#17181A] hover:border-gray-300 hover:bg-gray-50';
 
   return (
     <div
@@ -50,7 +50,7 @@ export function DatePill({ icon: Icon, label, value, onChange, tone = 'neutral',
   const toneClasses =
     tone === 'nudge'
       ? 'border-dashed border-amber-300 bg-amber-50/60 text-amber-700 hover:bg-amber-50'
-      : 'border-gray-200 bg-white text-[#1A1A2E] hover:border-gray-300 hover:bg-gray-50';
+      : 'border-gray-200 bg-white text-[#17181A] hover:border-gray-300 hover:bg-gray-50';
 
   return (
     <div
@@ -84,12 +84,12 @@ export function Toggle({ checked, onChange, disabled = false }) {
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative w-9 h-[22px] rounded-full flex-shrink-0 transition-colors duration-200 ${
-        checked ? 'bg-[#1A1A2E]' : 'bg-gray-200'
+        checked ? 'bg-[#17181A]' : 'bg-gray-200'
       } ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
         className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full shadow-sm transition-all duration-200 ${
-          checked ? 'translate-x-[14px] bg-[#BFFF00]' : 'translate-x-0 bg-white'
+          checked ? 'translate-x-[14px] bg-[#D7F653]' : 'translate-x-0 bg-white'
         }`}
       />
     </button>
@@ -104,12 +104,12 @@ export function ToggleRow({ icon: Icon, label, hint, checked, onChange, disabled
     <div>
       <div className="flex items-center gap-3">
         {Icon && (
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${checked ? 'bg-[#1A1A2E] text-[#BFFF00]' : 'bg-gray-100 text-gray-400'} transition-colors`}>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${checked ? 'bg-[#17181A] text-[#D7F653]' : 'bg-gray-100 text-gray-400'} transition-colors`}>
             <Icon size={15} />
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[#1A1A2E]">{label}</p>
+          <p className="text-sm font-medium text-[#17181A]">{label}</p>
           {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
         </div>
         <Toggle checked={checked} onChange={onChange} disabled={disabled} />
@@ -137,7 +137,7 @@ export function Section({ icon: Icon, title, badge, defaultOpen = false, childre
           className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
         />
         {Icon && <Icon size={15} className="text-gray-400 flex-shrink-0" />}
-        <span className="text-[13px] font-semibold text-[#1A1A2E] tracking-wide">{title}</span>
+        <span className="text-[13px] font-semibold text-[#17181A] tracking-wide">{title}</span>
         {badge && (
           <span className="ml-auto text-[11px] font-medium text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
             {badge}

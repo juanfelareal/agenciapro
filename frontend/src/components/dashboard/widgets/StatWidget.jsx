@@ -1,33 +1,35 @@
 import { Users, FolderKanban, CheckSquare, DollarSign, AlertCircle } from 'lucide-react';
 
+// Estética unificada Carbón+Lima: chip carbón con icono lima.
+// Solo "Facturas Vencidas" conserva el rojo (es una alerta, debe gritar).
 const METRIC_CONFIG = {
   clients: {
     title: 'Clientes Activos',
     getValue: (stats) => stats?.clients?.active || 0,
     icon: Users,
-    iconBg: 'bg-blue-500/10',
-    iconColor: 'text-blue-600',
+    iconBg: 'bg-[#17181A]',
+    iconColor: 'text-[#D7F653]',
   },
   projects: {
     title: 'Proyectos Activos',
     getValue: (stats) => stats?.projects?.in_progress || 0,
     icon: FolderKanban,
-    iconBg: 'bg-green-500/10',
-    iconColor: 'text-green-600',
+    iconBg: 'bg-[#17181A]',
+    iconColor: 'text-[#D7F653]',
   },
   tasks: {
     title: 'Tareas Pendientes',
     getValue: (stats) => (stats?.tasks?.todo || 0) + (stats?.tasks?.in_progress || 0),
     icon: CheckSquare,
-    iconBg: 'bg-amber-500/10',
-    iconColor: 'text-amber-600',
+    iconBg: 'bg-[#17181A]',
+    iconColor: 'text-[#D7F653]',
   },
   income: {
     title: 'Ingresos Netos',
     getValue: (stats) => `$${(stats?.finances?.net_income || 0).toLocaleString('es-CO')}`,
     icon: DollarSign,
-    iconBg: 'bg-violet-500/10',
-    iconColor: 'text-violet-600',
+    iconBg: 'bg-[#17181A]',
+    iconColor: 'text-[#D7F653]',
   },
   invoices_overdue: {
     title: 'Facturas Vencidas',

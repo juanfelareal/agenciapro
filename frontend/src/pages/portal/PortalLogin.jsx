@@ -75,10 +75,10 @@ export default function PortalLogin() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#1A1A2E] rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#17181A] rounded-2xl mb-4">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Portal de Cliente</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Portal de Cliente</h1>
           <p className="text-gray-500 mt-2">
             Ingresa tu código de acceso para continuar
           </p>
@@ -122,7 +122,7 @@ export default function PortalLogin() {
               type="submit"
               disabled={loading || code.length < 9}
               className="w-full flex items-center justify-center gap-2 py-4 px-6
-                       bg-[#1A1A2E] text-white font-semibold rounded-xl
+                       bg-[#17181A] text-white font-semibold rounded-xl
                        hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
                        transition-all duration-200"
             >

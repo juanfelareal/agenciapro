@@ -653,7 +653,7 @@ const Notes = () => {
         <div
           className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group ${
             selectedFolder === folder.id
-              ? 'bg-gray-100 text-[#1A1A2E]'
+              ? 'bg-gray-100 text-[#17181A]'
               : 'hover:bg-slate-100 text-slate-700'
           }`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
@@ -800,7 +800,7 @@ const Notes = () => {
                 <button
                   onClick={handleSaveNote}
                   disabled={!formData.title.trim()}
-                  className="px-4 py-1.5 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:opacity-50"
+                  className="px-4 py-1.5 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50"
                 >
                   Guardar
                 </button>
@@ -924,7 +924,7 @@ const Notes = () => {
                       key={color.value}
                       onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
                       className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                        formData.color === color.value ? 'border-[#1A1A2E]' : 'border-slate-200'
+                        formData.color === color.value ? 'border-[#17181A]' : 'border-slate-200'
                       }`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}
@@ -1395,7 +1395,7 @@ const Notes = () => {
           <div
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
               selectedFolder === null && !showPrivateOnly
-                ? 'bg-gray-100 text-[#1A1A2E]'
+                ? 'bg-gray-100 text-[#17181A]'
                 : 'hover:bg-slate-100 text-slate-700'
             }`}
             onClick={() => { setSelectedFolder(null); setShowPrivateOnly(false); }}
@@ -1409,7 +1409,7 @@ const Notes = () => {
           <div
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
               selectedFolder === 'root' && !showPrivateOnly
-                ? 'bg-gray-100 text-[#1A1A2E]'
+                ? 'bg-gray-100 text-[#17181A]'
                 : 'hover:bg-slate-100 text-slate-700'
             }`}
             onClick={() => { setSelectedFolder('root'); setShowPrivateOnly(false); }}
@@ -1444,7 +1444,7 @@ const Notes = () => {
             <span className="text-xs font-medium text-slate-500 uppercase">Categorías</span>
             <button
               onClick={() => setShowCategoryModal(true)}
-              className="text-xs text-[#1A1A2E] hover:text-[#1A1A2E]"
+              className="text-xs text-[#17181A] hover:text-[#17181A]"
             >
               Gestionar
             </button>
@@ -1467,7 +1467,7 @@ const Notes = () => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight flex items-center gap-2">
               {showPrivateOnly && <Lock size={20} className="text-amber-600" />}
               {showPrivateOnly
                 ? 'Mis notas privadas'
@@ -1524,7 +1524,7 @@ const Notes = () => {
             {/* New Note */}
             <button
               onClick={handleCreateNote}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] transition-colors"
             >
               <Plus size={18} />
               Nueva Nota
@@ -1544,7 +1544,7 @@ const Notes = () => {
               <p className="text-slate-500 mb-4">No hay notas aquí</p>
               <button
                 onClick={handleCreateNote}
-                className="text-[#1A1A2E] hover:text-[#1A1A2E] font-medium"
+                className="text-[#17181A] hover:text-[#17181A] font-medium"
               >
                 Crear una nota
               </button>
@@ -1664,7 +1664,7 @@ const Notes = () => {
                       onClick={() => setFolderForm(prev => ({ ...prev, icon }))}
                       className={`w-10 h-10 text-xl rounded-lg border-2 transition-colors ${
                         folderForm.icon === icon
-                          ? 'border-[#1A1A2E] bg-gray-50'
+                          ? 'border-[#17181A] bg-gray-50'
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
@@ -1704,7 +1704,7 @@ const Notes = () => {
               <button
                 onClick={handleSaveFolder}
                 disabled={!folderForm.name.trim()}
-                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:opacity-50"
+                className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50"
               >
                 {editingFolder ? 'Guardar' : 'Crear'}
               </button>
@@ -1749,7 +1749,7 @@ const Notes = () => {
                 <button
                   onClick={handleSaveCategory}
                   disabled={!categoryForm.name.trim()}
-                  className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:opacity-50"
+                  className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50"
                 >
                   {editingCategory ? 'Guardar' : 'Agregar'}
                 </button>

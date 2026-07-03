@@ -3,7 +3,7 @@ import { X, ChevronDown, User, Flag, Calendar, Folder, Tag, Check, Building2 } f
 
 const priorityOptions = [
   { value: 'low', label: 'Baja', color: 'bg-gray-100 text-gray-600' },
-  { value: 'medium', label: 'Media', color: 'bg-[#1A1A2E]/10 text-[#1A1A2E]' },
+  { value: 'medium', label: 'Media', color: 'bg-[#17181A]/10 text-[#17181A]' },
   { value: 'high', label: 'Alta', color: 'bg-[#F97316]/10 text-[#F97316]' },
   { value: 'urgent', label: 'Urgente', color: 'bg-red-100 text-red-600' },
 ];
@@ -44,13 +44,13 @@ function MultiSelectDropdown({ label, icon: Icon, options, selected, onChange, r
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-sm hover:bg-gray-50 transition-colors ${
-          selected.length > 0 ? 'border-[#BFFF00] bg-[#BFFF00]/10' : 'border-gray-100 bg-white'
+          selected.length > 0 ? 'border-[#D7F653] bg-[#D7F653]/10' : 'border-gray-100 bg-white'
         }`}
       >
         <Icon size={16} className="text-gray-500" />
         <span>{label}</span>
         {selected.length > 0 && (
-          <span className="bg-[#1A1A2E] text-[#BFFF00] text-xs px-1.5 py-0.5 rounded-full">
+          <span className="bg-[#17181A] text-[#D7F653] text-xs px-1.5 py-0.5 rounded-full">
             {selected.length}
           </span>
         )}
@@ -58,7 +58,7 @@ function MultiSelectDropdown({ label, icon: Icon, options, selected, onChange, r
       </button>
 
       {isOpen && (
-        <div className="absolute z-20 mt-1 w-56 bg-white border border-gray-100 rounded-xl shadow-lg py-1 max-h-64 overflow-y-auto">
+        <div className="absolute z-20 mt-1 w-56 glass-solid rounded-xl shadow-lg py-1 max-h-64 overflow-y-auto">
           {options.map((option) => (
             <button
               key={option.value}
@@ -67,9 +67,9 @@ function MultiSelectDropdown({ label, icon: Icon, options, selected, onChange, r
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left"
             >
               <div className={`w-4 h-4 border rounded-md flex items-center justify-center ${
-                selected.includes(option.value) ? 'bg-[#1A1A2E] border-[#1A1A2E]' : 'border-gray-300'
+                selected.includes(option.value) ? 'bg-[#17181A] border-[#17181A]' : 'border-gray-300'
               }`}>
-                {selected.includes(option.value) && <Check size={12} className="text-[#BFFF00]" />}
+                {selected.includes(option.value) && <Check size={12} className="text-[#D7F653]" />}
               </div>
               {renderOption ? renderOption(option) : <span className="text-sm">{option.label}</span>}
             </button>
@@ -144,7 +144,7 @@ export default function TaskFilters({
   }));
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-4 mb-4">
+    <div className="glass-card p-4 mb-4">
       <div className="flex flex-wrap items-center gap-3">
         {/* Assignee Filter */}
         <MultiSelectDropdown
@@ -155,7 +155,7 @@ export default function TaskFilters({
           onChange={(value) => updateFilter('assignees', value)}
           renderOption={(option) => (
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-xs font-medium">
+              <div className="w-6 h-6 rounded-lg bg-[#17181A] text-[#D7F653] flex items-center justify-center text-xs font-medium">
                 {option.avatar}
               </div>
               <span className="text-sm">{option.label}</span>
@@ -184,7 +184,7 @@ export default function TaskFilters({
             type="date"
             value={filters.dueDateFrom || ''}
             onChange={(e) => updateFilter('dueDateFrom', e.target.value)}
-            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
             placeholder="Desde"
           />
           <span className="text-gray-400">-</span>
@@ -192,7 +192,7 @@ export default function TaskFilters({
             type="date"
             value={filters.dueDateTo || ''}
             onChange={(e) => updateFilter('dueDateTo', e.target.value)}
-            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
             placeholder="Hasta"
           />
         </div>

@@ -7,17 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ===== NEW DESIGN SYSTEM - Lime/Dark =====
+        // ===== DESIGN SYSTEM 2026 — Carbón + Lima (iOS glass) =====
         // Surface colors
-        surface: '#F8F9FA',
+        surface: '#F3F4EF',   // neblina cálida (base del fondo mist)
         card: '#FFFFFF',
-        dark: '#1A1A2E',
+        dark: '#17181A',      // carbón (antes navy #1A1A2E)
+        carbon: {
+          DEFAULT: '#17181A',
+          hover: '#26282C',
+        },
 
-        // Lime accent
+        // Lima mantequilla (antes neón #BFFF00)
         lime: {
-          400: '#BFFF00',
-          500: '#A3E635',
-          600: '#65A30D',
+          400: '#D7F653',
+          500: '#C3E23F',
+          600: '#5A7A16',
         },
 
         // Semantic colors for financials
@@ -25,7 +29,7 @@ export default {
         expense: '#F97316',
 
         // Text colors
-        'text-primary': '#1A1A2E',
+        'text-primary': '#17181A',
         'text-secondary': '#6B7280',
 
         // ===== LEGACY (to be removed in FASE 9) =====
@@ -143,10 +147,13 @@ export default {
         '4xl': '24px',
       },
       boxShadow: {
+        // Glass (design system 2026)
+        'glass': '0 8px 24px rgba(40, 44, 30, 0.08)',
+        'glass-lg': '0 12px 40px rgba(40, 44, 30, 0.1)',
         // New design system shadows
         'elevated': '0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05)',
         'bento': '0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
-        'glow-lime': '0 0 20px rgba(191, 255, 0, 0.3)',
+        'glow-lime': '0 0 20px rgba(215, 246, 83, 0.45)',
         // Legacy shadows (kept for compatibility)
         'soft': '0 2px 8px -2px rgba(0, 0, 0, 0.04), 0 4px 12px -4px rgba(0, 0, 0, 0.03)',
         'medium': '0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 8px 24px -4px rgba(0, 0, 0, 0.04)',

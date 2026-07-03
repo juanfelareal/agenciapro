@@ -176,12 +176,12 @@ export default function PortalDashboard() {
     <div className="space-y-6">
       {/* ─── Header card ─── */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-soft p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1A1A2E] to-[#3a3a5e] text-white flex items-center justify-center flex-shrink-0">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#17181A] to-[#3a3a5e] text-white flex items-center justify-center flex-shrink-0">
           <Building2 className="w-8 h-8" strokeWidth={1.5} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#1A1A2E]">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17181A]">
               {client?.nickname || client?.name || 'Cliente'}
             </h1>
             <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium inline-flex items-center gap-1.5">
@@ -219,7 +219,7 @@ export default function PortalDashboard() {
                 className="flex items-center justify-between gap-3 px-3 py-2 bg-white rounded-xl border border-amber-100 hover:border-amber-300 transition-colors"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[#1A1A2E] truncate">{t.title}</p>
+                  <p className="text-sm font-medium text-[#17181A] truncate">{t.title}</p>
                   <p className="text-xs text-gray-400 truncate">{t.project_name}</p>
                 </div>
                 <span className="text-xs text-amber-700 font-medium flex-shrink-0 inline-flex items-center gap-1">
@@ -236,7 +236,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={TrendingUp}
           iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
+          iconColor="text-[#D7F653]"
           label="Avance global"
           value={`${healthScore}%`}
           sub={`${tasksCompleted} de ${tasksTotal} tareas`}
@@ -244,7 +244,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={FolderKanban}
           iconBg="bg-blue-50"
-          iconColor="text-blue-600"
+          iconColor="text-[#D7F653]"
           label="Proyectos activos"
           value={projectsInProgress}
           sub={`${projectsCompleted} completados · ${projectsTotal} totales`}
@@ -252,7 +252,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={ClipboardList}
           iconBg="bg-amber-50"
-          iconColor="text-amber-600"
+          iconColor="text-[#D7F653]"
           label="Tareas pendientes"
           value={tasksPending}
           sub={data?.tasks?.pending_approval ? `${data.tasks.pending_approval} esperan tu aprobación` : 'Sin pendientes urgentes'}
@@ -260,7 +260,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={Calendar}
           iconBg="bg-violet-50"
-          iconColor="text-violet-600"
+          iconColor="text-[#D7F653]"
           label="Próxima entrega"
           value={nextDeadline ? formatShortDate(nextDeadline.date) : '—'}
           sub={nextDeadline ? nextDeadline.title : 'No hay entregas programadas'}
@@ -270,10 +270,10 @@ export default function PortalDashboard() {
       {/* ─── Summary row: avance por proyecto / estado de cuenta / próximas entregas ─── */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Avance por proyecto */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6 lg:col-span-1">
+        <div className="glass-card p-6 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Avance por proyecto</h2>
+              <h2 className="font-semibold text-[#17181A]">Avance por proyecto</h2>
               <p className="text-xs text-gray-400">{projectDetails.length} {projectDetails.length === 1 ? 'proyecto activo' : 'proyectos activos'}</p>
             </div>
             <FolderKanban className="w-5 h-5 text-gray-300" />
@@ -284,7 +284,7 @@ export default function PortalDashboard() {
                 <div key={p.id}>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-gray-700 truncate pr-3">{p.name}</span>
-                    <span className="font-semibold text-[#1A1A2E] tabular-nums flex-shrink-0">{p.progress || 0}%</span>
+                    <span className="font-semibold text-[#17181A] tabular-nums flex-shrink-0">{p.progress || 0}%</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -304,9 +304,9 @@ export default function PortalDashboard() {
         </div>
 
         {/* Próximas entregas */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+        <div className="glass-card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-[#1A1A2E]">Próximas entregas</h2>
+            <h2 className="font-semibold text-[#17181A]">Próximas entregas</h2>
             <Clock className="w-5 h-5 text-gray-300" />
           </div>
           {allDeadlines.length > 0 ? (
@@ -325,7 +325,7 @@ export default function PortalDashboard() {
                       <CheckCircle2 className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#1A1A2E] truncate">{item.title}</p>
+                      <p className="text-sm font-medium text-[#17181A] truncate">{item.title}</p>
                       <p className="text-xs text-gray-400 truncate">{item.subtitle}</p>
                     </div>
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap ${dayPill.cls}`}>
@@ -343,13 +343,13 @@ export default function PortalDashboard() {
 
       {/* Priorities */}
       {data?.priorities?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
               <Zap className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Top prioridades para {client?.nickname || client?.name}</h2>
+              <h2 className="font-semibold text-[#17181A]">Top prioridades para {client?.nickname || client?.name}</h2>
             </div>
           </div>
           <div className="divide-y divide-gray-50">
@@ -359,7 +359,7 @@ export default function PortalDashboard() {
               return (
                 <div key={task.id} className="flex items-center justify-between px-6 py-3.5">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1A1A2E] truncate">{task.title}</p>
+                    <p className="text-sm font-medium text-[#17181A] truncate">{task.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{task.project_name}</p>
                   </div>
                   {days !== null ? (
@@ -388,13 +388,13 @@ export default function PortalDashboard() {
 
       {/* Client Notes */}
       {data?.client_notes?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
               <StickyNote className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Notas para {client?.nickname || client?.name}</h2>
+              <h2 className="font-semibold text-[#17181A]">Notas para {client?.nickname || client?.name}</h2>
             </div>
           </div>
           <div className="divide-y divide-gray-50">
@@ -408,7 +408,7 @@ export default function PortalDashboard() {
                   {note.color && note.color !== '#FFFFFF' && (
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: note.color }} />
                   )}
-                  <p className="font-medium text-[#1A1A2E]">{note.title}</p>
+                  <p className="font-medium text-[#17181A]">{note.title}</p>
                   {note.category_name && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: note.category_color + '20', color: note.category_color }}>
                       {note.category_name}
@@ -427,13 +427,13 @@ export default function PortalDashboard() {
 
       {/* Client Briefs */}
       {data?.client_briefs?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center">
               <FileCode2 className="w-5 h-5 text-violet-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Briefs</h2>
+              <h2 className="font-semibold text-[#17181A]">Briefs</h2>
               <p className="text-sm text-gray-500">Documentos compartidos por tu equipo</p>
             </div>
           </div>
@@ -449,7 +449,7 @@ export default function PortalDashboard() {
                     <FileCode2 className="w-4 h-4 text-violet-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-[#1A1A2E] truncate">{brief.title}</p>
+                    <p className="font-medium text-[#17181A] truncate">{brief.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {new Date(brief.updated_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
@@ -464,7 +464,7 @@ export default function PortalDashboard() {
 
       {/* Commercial Dates */}
       {data?.commercial_dates?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <button
             type="button"
             onClick={() => setCommercialDatesOpen((v) => !v)}
@@ -474,7 +474,7 @@ export default function PortalDashboard() {
               <CalendarDays className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1 text-left">
-              <h2 className="font-semibold text-[#1A1A2E]">Fechas comerciales para {client?.nickname || client?.name}</h2>
+              <h2 className="font-semibold text-[#17181A]">Fechas comerciales para {client?.nickname || client?.name}</h2>
               <p className="text-xs text-gray-400 mt-0.5">{data.commercial_dates.length} {data.commercial_dates.length === 1 ? 'fecha' : 'fechas'}</p>
             </div>
             {commercialDatesOpen
@@ -494,7 +494,7 @@ export default function PortalDashboard() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-center flex-shrink-0 w-12">
-                      <p className="text-lg font-bold text-[#1A1A2E] leading-tight">
+                      <p className="text-lg font-bold text-[#17181A] leading-tight">
                         {new Date(cd.date + 'T12:00:00').getDate()}
                       </p>
                       <p className="text-[10px] text-gray-400 uppercase font-medium">
@@ -534,13 +534,13 @@ export default function PortalDashboard() {
 
       {/* Assigned Forms */}
       {data?.assigned_forms?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center">
               <ClipboardList className="w-5 h-5 text-violet-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Formularios para {client?.nickname || client?.name}</h2>
+              <h2 className="font-semibold text-[#17181A]">Formularios para {client?.nickname || client?.name}</h2>
               <p className="text-sm text-gray-500">Formularios asignados para completar</p>
             </div>
           </div>
@@ -557,7 +557,7 @@ export default function PortalDashboard() {
                   className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#1A1A2E]">{form.form_title}</p>
+                    <p className="font-medium text-[#17181A]">{form.form_title}</p>
                     {form.form_description && (
                       <p className="text-sm text-gray-400 truncate mt-0.5">{form.form_description}</p>
                     )}
@@ -584,13 +584,13 @@ export default function PortalDashboard() {
       )}
       {/* Reference Ads */}
       {referenceAds.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
               <Megaphone className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#1A1A2E]">Anuncios de referencia</h2>
+              <h2 className="font-semibold text-[#17181A]">Anuncios de referencia</h2>
               <p className="text-sm text-gray-500">
                 Inspiración curada por tu agencia · {referenceAds.length} {referenceAds.length === 1 ? 'referente' : 'referentes'}
               </p>
@@ -641,7 +641,7 @@ export default function PortalDashboard() {
                     </div>
                   </div>
                   <div className="p-3">
-                    <p className="text-sm font-medium text-[#1A1A2E] line-clamp-1 mb-0.5">
+                    <p className="text-sm font-medium text-[#17181A] line-clamp-1 mb-0.5">
                       {ad.title || 'Anuncio sin título'}
                     </p>
                     {ad.notes && (
@@ -658,10 +658,10 @@ export default function PortalDashboard() {
       {/* Commercial Date Response Modal */}
       {selectedDate && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
+          <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-[#1A1A2E]">{selectedDate.title}</h3>
+                <h3 className="text-lg font-semibold text-[#17181A]">{selectedDate.title}</h3>
                 <p className="text-sm text-gray-500">{formatDate(selectedDate.date)}</p>
               </div>
               <button onClick={() => setSelectedDate(null)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -711,7 +711,7 @@ export default function PortalDashboard() {
                       value={respondForm.offer_description}
                       onChange={e => setRespondForm(f => ({ ...f, offer_description: e.target.value }))}
                       placeholder="Describe la oferta (ej: 20% de descuento en toda la tienda, 2x1 en productos seleccionados...)"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] resize-none"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] resize-none"
                       rows={3}
                     />
                   )}
@@ -724,7 +724,7 @@ export default function PortalDashboard() {
                   value={respondForm.client_notes}
                   onChange={e => setRespondForm(f => ({ ...f, client_notes: e.target.value }))}
                   placeholder="Notas adicionales, comentarios o instrucciones..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] resize-none"
                   rows={3}
                 />
               </div>
@@ -732,7 +732,7 @@ export default function PortalDashboard() {
               <button
                 onClick={handleSaveResponse}
                 disabled={respondForm.will_participate === null || saving}
-                className="w-full py-3 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] disabled:opacity-50 transition-colors font-medium"
+                className="w-full py-3 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] disabled:opacity-50 transition-colors font-medium"
               >
                 {saving ? 'Guardando...' : 'Guardar respuesta'}
               </button>
@@ -761,7 +761,7 @@ export default function PortalDashboard() {
                   <FileCode2 className="w-4 h-4 text-violet-600" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-[#1A1A2E] truncate">{selectedBrief.title}</h3>
+                  <h3 className="font-semibold text-[#17181A] truncate">{selectedBrief.title}</h3>
                   <p className="text-xs text-gray-400">
                     {new Date(selectedBrief.updated_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
@@ -824,14 +824,14 @@ export default function PortalDashboard() {
 
 function KpiCard({ icon: Icon, iconBg, iconColor, label, value, sub }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+    <div className="glass-card p-5">
       <div className="flex items-center gap-2 mb-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg}`}>
           <Icon className={`w-4 h-4 ${iconColor}`} />
         </div>
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-[#1A1A2E] tracking-tight">{value}</p>
+      <p className="text-2xl font-bold text-[#17181A] tracking-tight">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1 truncate">{sub}</p>}
     </div>
   );
@@ -1194,7 +1194,7 @@ function NoteViewer({ note, onClose }) {
               >
                 <button
                   onClick={startInlineComment}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A1A2E] text-white rounded-lg shadow-lg text-xs font-medium hover:bg-[#252542] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#17181A] text-white rounded-lg shadow-lg text-xs font-medium hover:bg-[#26282C] transition-colors"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   Comentar
@@ -1247,7 +1247,7 @@ function NoteViewer({ note, onClose }) {
                         <button
                           onClick={handleSubmitComment}
                           disabled={!newCommentState.text.trim() || submitting}
-                          className="px-3 py-1 text-xs bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] disabled:opacity-50 flex items-center gap-1"
+                          className="px-3 py-1 text-xs bg-[#17181A] text-white rounded-lg hover:bg-[#26282C] disabled:opacity-50 flex items-center gap-1"
                         >
                           {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                           Comentar
@@ -1307,7 +1307,7 @@ function NoteViewer({ note, onClose }) {
                         <button
                           onClick={(e) => { e.stopPropagation(); handleEditComment(comment.id); }}
                           disabled={!editingComment.text.trim() || submitting}
-                          className="px-2 py-0.5 text-[11px] bg-[#1A1A2E] text-white rounded hover:bg-[#252542] disabled:opacity-50"
+                          className="px-2 py-0.5 text-[11px] bg-[#17181A] text-white rounded hover:bg-[#26282C] disabled:opacity-50"
                         >
                           Guardar
                         </button>
@@ -1362,7 +1362,7 @@ function NoteViewer({ note, onClose }) {
           {pendingCount > 0 && (
             <button
               onClick={handleAddGeneralComment}
-              className="w-12 h-12 bg-[#1A1A2E] text-white rounded-full shadow-lg flex items-center justify-center relative"
+              className="w-12 h-12 bg-[#17181A] text-white rounded-full shadow-lg flex items-center justify-center relative"
             >
               <MessageSquare className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">

@@ -166,18 +166,18 @@ const Settings = () => {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Mi Cuenta</h1>
+        <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Mi Cuenta</h1>
         <p className="text-sm text-gray-500 mt-0.5">Configura tu perfil y preferencias</p>
       </div>
 
       {/* Profile Info Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1A1A2E] flex items-center justify-center">
-              <User size={20} className="text-[#BFFF00]" />
+            <div className="w-10 h-10 rounded-xl bg-[#17181A] flex items-center justify-center">
+              <User size={20} className="text-[#D7F653]" />
             </div>
-            <h2 className="text-lg font-semibold text-[#1A1A2E]">Información Personal</h2>
+            <h2 className="text-lg font-semibold text-[#17181A]">Información Personal</h2>
           </div>
           {!isEditingProfile ? (
             <button
@@ -187,7 +187,7 @@ const Settings = () => {
                 setIsEditingProfile(true);
                 setProfileMessage(null);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-xl transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded-xl transition-colors"
             >
               <Pencil size={14} />
               Editar
@@ -197,7 +197,7 @@ const Settings = () => {
               <button
                 onClick={cancelEditProfile}
                 disabled={profileLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-xl transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded-xl transition-colors"
               >
                 <X size={14} />
                 Cancelar
@@ -205,7 +205,7 @@ const Settings = () => {
               <button
                 onClick={handleSaveProfile}
                 disabled={profileLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
               >
                 {profileLoading ? (
                   <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -236,16 +236,16 @@ const Settings = () => {
                 type="text"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
                 autoFocus
               />
             ) : (
-              <p className="text-sm font-medium text-[#1A1A2E]">{user?.name || '-'}</p>
+              <p className="text-sm font-medium text-[#17181A]">{user?.name || '-'}</p>
             )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Email</label>
-            <p className="text-sm font-medium text-[#1A1A2E]">{user?.email || '-'}</p>
+            <p className="text-sm font-medium text-[#17181A]">{user?.email || '-'}</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cargo</label>
@@ -255,17 +255,17 @@ const Settings = () => {
                 value={profilePosition}
                 onChange={(e) => setProfilePosition(e.target.value)}
                 placeholder="Ej: Diseñador, Manager..."
-                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
               />
             ) : (
-              <p className="text-sm font-medium text-[#1A1A2E]">{user?.position || '-'}</p>
+              <p className="text-sm font-medium text-[#17181A]">{user?.position || '-'}</p>
             )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Rol</label>
             <div className="flex items-center gap-2">
               <Shield size={14} className="text-gray-400" />
-              <p className="text-sm font-medium text-[#1A1A2E]">{roleLabels[user?.role] || user?.role || '-'}</p>
+              <p className="text-sm font-medium text-[#17181A]">{roleLabels[user?.role] || user?.role || '-'}</p>
             </div>
           </div>
         </div>
@@ -297,18 +297,18 @@ const Settings = () => {
                 )}
                 {logoLoading && (
                   <div className="absolute inset-0 rounded-xl bg-white/80 flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-[#1A1A2E]/20 border-t-[#1A1A2E] rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-[#17181A]/20 border-t-[#17181A] rounded-full animate-spin" />
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#1A1A2E]">{currentOrg.name}</p>
+                <p className="text-sm font-medium text-[#17181A]">{currentOrg.name}</p>
                 {isAdmin && (
                   <div className="flex items-center gap-2 mt-1">
                     <button
                       onClick={() => logoInputRef.current?.click()}
                       disabled={logoLoading}
-                      className="text-xs text-gray-500 hover:text-[#1A1A2E] transition-colors"
+                      className="text-xs text-gray-500 hover:text-[#17181A] transition-colors"
                     >
                       {currentOrg.logo_url ? 'Cambiar logo' : 'Subir logo'}
                     </button>
@@ -349,12 +349,12 @@ const Settings = () => {
       </div>
 
       {/* Change PIN Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="glass-card p-6">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-[#1A1A2E] flex items-center justify-center">
-            <Key size={20} className="text-[#BFFF00]" />
+          <div className="w-10 h-10 rounded-xl bg-[#17181A] flex items-center justify-center">
+            <Key size={20} className="text-[#D7F653]" />
           </div>
-          <h2 className="text-lg font-semibold text-[#1A1A2E]">Cambiar PIN</h2>
+          <h2 className="text-lg font-semibold text-[#17181A]">Cambiar PIN</h2>
         </div>
 
         {pinMessage && (
@@ -376,7 +376,7 @@ const Settings = () => {
                 value={currentPin}
                 onChange={(e) => setCurrentPin(e.target.value)}
                 required
-                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
               />
               <button
                 type="button"
@@ -397,7 +397,7 @@ const Settings = () => {
                 required
                 minLength={4}
                 placeholder="Mínimo 4 caracteres"
-                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
               />
               <button
                 type="button"
@@ -416,13 +416,13 @@ const Settings = () => {
               onChange={(e) => setConfirmPin(e.target.value)}
               required
               minLength={4}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
             />
           </div>
           <button
             type="submit"
             disabled={pinLoading}
-            className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {pinLoading ? (
               <>
@@ -476,7 +476,7 @@ const Settings = () => {
                 <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
                   <AlertTriangle size={20} className="text-red-600" />
                 </div>
-                <h2 className="text-lg font-semibold text-[#1A1A2E]">Confirmar salida</h2>
+                <h2 className="text-lg font-semibold text-[#17181A]">Confirmar salida</h2>
               </div>
 
               <p className="text-sm text-gray-600 mb-4">

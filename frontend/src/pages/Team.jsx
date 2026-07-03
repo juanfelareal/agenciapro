@@ -296,12 +296,12 @@ const Team = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Equipo</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Equipo</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de miembros del equipo</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
         >
           <Plus size={18} />
           Nuevo Miembro
@@ -310,14 +310,14 @@ const Team = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {members.map((member) => (
-          <div key={member.id} className="bg-white rounded-2xl border border-gray-100 p-5 group hover:shadow-lg transition-shadow">
+          <div key={member.id} className="glass-card p-5 group hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#1A1A2E] flex items-center justify-center text-[#BFFF00] font-semibold text-lg">
+                <div className="w-12 h-12 rounded-xl bg-[#17181A] flex items-center justify-center text-[#D7F653] font-semibold text-lg">
                   {member.name?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-[#1A1A2E]">{member.name}</h3>
+                  <h3 className="font-semibold text-[#17181A]">{member.name}</h3>
                   <p className="text-xs text-gray-500">{member.position || 'Sin cargo'}</p>
                 </div>
               </div>
@@ -367,7 +367,7 @@ const Team = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingMember ? 'Editar Miembro' : 'Nuevo Miembro'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -463,7 +463,7 @@ const Team = () => {
                             value={newMemberPin}
                             onChange={(e) => setNewMemberPin(e.target.value)}
                             placeholder="Mínimo 4 caracteres"
-                            className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                            className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
                           />
                           <button
                             type="button"
@@ -482,11 +482,11 @@ const Team = () => {
                           type="checkbox"
                           checked={sendWelcomeEmail}
                           onChange={(e) => setSendWelcomeEmail(e.target.checked)}
-                          className="w-4 h-4 accent-[#1A1A2E]"
+                          className="w-4 h-4 accent-[#17181A]"
                         />
                         <Mail size={18} className="text-blue-600" />
                         <div>
-                          <span className="text-sm font-medium text-[#1A1A2E]">Enviar email de bienvenida</span>
+                          <span className="text-sm font-medium text-[#17181A]">Enviar email de bienvenida</span>
                           <p className="text-xs text-gray-500">Se enviarán las credenciales de acceso al email del miembro</p>
                         </div>
                       </label>
@@ -511,14 +511,14 @@ const Team = () => {
                           onClick={() => applyTemplate(template)}
                           className={`px-3 py-1.5 text-sm rounded-xl border-2 flex items-center gap-1.5 transition ${
                             selectedTemplate === template.name
-                              ? 'border-[#BFFF00] bg-[#BFFF00]/10 text-[#1A1A2E]'
+                              ? 'border-[#D7F653] bg-[#D7F653]/10 text-[#17181A]'
                               : 'border-gray-200 hover:border-gray-300 text-gray-700'
                           }`}
                           title={template.description}
                         >
                           <span>{template.icon}</span>
                           <span>{template.name}</span>
-                          {selectedTemplate === template.name && <Check size={14} className="text-[#1A1A2E]" />}
+                          {selectedTemplate === template.name && <Check size={14} className="text-[#17181A]" />}
                         </button>
                       ))}
                     </div>
@@ -526,10 +526,10 @@ const Team = () => {
 
                   {/* Copy Permissions from Another Member */}
                   {getAvailableMembersForCopy().length > 0 && (
-                    <div className="mb-4 p-3 bg-[#1A1A2E]/5 rounded-xl border border-[#1A1A2E]/10">
+                    <div className="mb-4 p-3 bg-[#17181A]/5 rounded-xl border border-[#17181A]/10">
                       <div className="flex items-center gap-2 mb-2">
-                        <Users size={16} className="text-[#1A1A2E]" />
-                        <p className="text-sm font-medium text-[#1A1A2E]">
+                        <Users size={16} className="text-[#17181A]" />
+                        <p className="text-sm font-medium text-[#17181A]">
                           Mismos permisos que:
                         </p>
                       </div>
@@ -581,7 +581,7 @@ const Team = () => {
                             key={permission.key}
                             className={`flex items-center gap-2 p-2 rounded-xl border-2 cursor-pointer transition text-sm ${
                               formData.permissions[permission.key]
-                                ? 'border-[#BFFF00] bg-[#BFFF00]/10'
+                                ? 'border-[#D7F653] bg-[#D7F653]/10'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
@@ -598,7 +598,7 @@ const Team = () => {
                                 });
                                 setSelectedTemplate(null);
                               }}
-                              className="w-4 h-4 accent-[#1A1A2E]"
+                              className="w-4 h-4 accent-[#17181A]"
                             />
                             <span>{permission.icon}</span>
                             <span className="font-medium truncate">{permission.label}</span>
@@ -621,7 +621,7 @@ const Team = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
                 >
                   Guardar
                 </button>
@@ -637,7 +637,7 @@ const Team = () => {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center p-5 border-b border-gray-100">
               <div>
-                <h2 className="text-lg font-semibold text-[#1A1A2E]">Establecer PIN</h2>
+                <h2 className="text-lg font-semibold text-[#17181A]">Establecer PIN</h2>
                 <p className="text-sm text-gray-500">{pinMember.name}</p>
               </div>
               <button
@@ -656,7 +656,7 @@ const Team = () => {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-[#1A1A2E] mb-2">
+                <label className="block text-sm font-medium text-[#17181A] mb-2">
                   Nuevo PIN de acceso
                 </label>
                 <div className="relative">
@@ -665,7 +665,7 @@ const Team = () => {
                     value={pinValue}
                     onChange={(e) => setPinValue(e.target.value)}
                     placeholder="Mínimo 4 caracteres"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#BFFF00]/30 focus:border-[#BFFF00]"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
                     autoFocus
                   />
                   <button
@@ -692,7 +692,7 @@ const Team = () => {
               <button
                 onClick={handleSetPin}
                 disabled={pinLoading || pinValue.length < 4}
-                className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {pinLoading ? (
                   <>

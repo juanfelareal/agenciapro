@@ -193,7 +193,7 @@ const InvoiceDetail = () => {
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-[#1A1A2E]">
+              <h1 className="text-2xl font-semibold text-[#17181A]">
                 Factura {invoice.invoice_number}
               </h1>
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[invoice.status] || 'bg-gray-100'}`}>
@@ -236,7 +236,7 @@ const InvoiceDetail = () => {
             <DollarSign size={16} />
             Monto
           </div>
-          <p className="text-2xl font-bold text-[#1A1A2E]">
+          <p className="text-2xl font-bold text-[#17181A]">
             ${invoice.amount?.toLocaleString('es-CO')}
           </p>
           <p className="text-xs text-gray-400 mt-1">
@@ -249,7 +249,7 @@ const InvoiceDetail = () => {
             <User size={16} />
             Cliente
           </div>
-          <p className="font-semibold text-[#1A1A2E]">{invoice.client_name}</p>
+          <p className="font-semibold text-[#17181A]">{invoice.client_name}</p>
           {invoice.client_email && (
             <p className="text-xs text-gray-400 mt-1">{invoice.client_email}</p>
           )}
@@ -260,7 +260,7 @@ const InvoiceDetail = () => {
             <Calendar size={16} />
             Fecha emisión
           </div>
-          <p className="font-semibold text-[#1A1A2E]">{formatDate(invoice.issue_date)}</p>
+          <p className="font-semibold text-[#17181A]">{formatDate(invoice.issue_date)}</p>
           {invoice.paid_date && (
             <p className="text-xs text-emerald-600 mt-1">Pagada: {formatDate(invoice.paid_date)}</p>
           )}
@@ -271,7 +271,7 @@ const InvoiceDetail = () => {
             <FileText size={16} />
             Tipo
           </div>
-          <p className="font-semibold text-[#1A1A2E]">
+          <p className="font-semibold text-[#17181A]">
             {invoice.invoice_type === 'con_iva' ? 'Con IVA' : 'Sin IVA'}
           </p>
           {invoice.is_recurring === 1 && (
@@ -288,7 +288,7 @@ const InvoiceDetail = () => {
 
       {/* Siigo / DIAN Status */}
       <div className="card p-6">
-        <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2 mb-4">
+        <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2 mb-4">
           <Link2 size={20} />
           Estado Siigo / DIAN
         </h2>
@@ -305,7 +305,7 @@ const InvoiceDetail = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Número Siigo</p>
-                <p className="font-semibold text-[#1A1A2E] mt-1">{siigoNumber || invoice.siigo_id}</p>
+                <p className="font-semibold text-[#17181A] mt-1">{siigoNumber || invoice.siigo_id}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Estado DIAN</p>
@@ -408,7 +408,7 @@ const InvoiceDetail = () => {
       {/* Details */}
       <div className="grid md:grid-cols-2 gap-6">
         <div className="card p-6">
-          <h2 className="text-lg font-semibold text-[#1A1A2E] mb-4">Detalles</h2>
+          <h2 className="text-lg font-semibold text-[#17181A] mb-4">Detalles</h2>
           <dl className="space-y-3">
             {invoice.project_name && (
               <div className="flex justify-between">
@@ -475,14 +475,14 @@ const InvoiceDetail = () => {
         <div className="space-y-6">
           {invoice.notes && (
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-[#1A1A2E] mb-3">Notas</h2>
+              <h2 className="text-lg font-semibold text-[#17181A] mb-3">Notas</h2>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{invoice.notes}</p>
             </div>
           )}
 
           {invoice.payment_proof && (
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-[#1A1A2E] mb-3">Comprobante de pago</h2>
+              <h2 className="text-lg font-semibold text-[#17181A] mb-3">Comprobante de pago</h2>
               <img
                 src={invoice.payment_proof}
                 alt="Comprobante de pago"
@@ -496,7 +496,7 @@ const InvoiceDetail = () => {
       {/* Status History */}
       {history.length > 0 && (
         <div className="card p-6">
-          <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2 mb-4">
             <Clock size={20} />
             Historial de cambios
           </h2>
@@ -527,7 +527,7 @@ const InvoiceDetail = () => {
       {emailModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
-            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-[#17181A] mb-4 flex items-center gap-2">
               <Mail size={20} />
               Enviar factura electrónica
             </h3>
@@ -552,7 +552,7 @@ const InvoiceDetail = () => {
               <button
                 onClick={handleSendEmail}
                 disabled={sendingEmail || !emailValue}
-                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {sendingEmail ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
                 {sendingEmail ? 'Enviando...' : 'Enviar'}

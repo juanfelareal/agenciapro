@@ -315,7 +315,7 @@ const Comisiones = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Comisiones</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Comisiones</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de comisiones del equipo</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -343,7 +343,7 @@ const Comisiones = () => {
           </select>
           <button
             onClick={handleNew}
-            className="bg-[#1A1A2E] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#1A1A2E]"
+            className="bg-[#17181A] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#17181A]"
           >
             <Plus size={20} />
             Agregar
@@ -390,7 +390,7 @@ const Comisiones = () => {
               setFilterMember('');
               setFilterClient('');
             }}
-            className="text-sm text-[#1A1A2E] hover:text-[#1A1A2E] underline"
+            className="text-sm text-[#17181A] hover:text-[#17181A] underline"
           >
             Limpiar filtros
           </button>
@@ -399,7 +399,7 @@ const Comisiones = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="glass rounded-lg p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 rounded-lg">
               <TrendingUp className="text-blue-600" size={24} />
@@ -410,7 +410,7 @@ const Comisiones = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="glass rounded-lg p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-green-100 rounded-lg">
               <DollarSign className="text-green-600" size={24} />
@@ -421,7 +421,7 @@ const Comisiones = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="glass rounded-lg p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-yellow-100 rounded-lg">
               <Clock className="text-yellow-600" size={24} />
@@ -432,7 +432,7 @@ const Comisiones = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="glass rounded-lg p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-emerald-100 rounded-lg">
               <CheckCircle className="text-emerald-600" size={24} />
@@ -713,7 +713,7 @@ const Comisiones = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E]"
+                  className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A]"
                 >
                   Guardar
                 </button>
@@ -729,7 +729,7 @@ const Comisiones = () => {
           <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <UserPlus size={24} className="text-[#1A1A2E]" />
+                <UserPlus size={24} className="text-[#17181A]" />
                 Nuevo Cliente
               </h2>
               <button onClick={() => setShowNewClientModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -803,7 +803,7 @@ const Comisiones = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E]"
+                  className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A]"
                 >
                   Crear Cliente
                 </button>

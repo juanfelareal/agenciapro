@@ -132,7 +132,7 @@ const VideoEmbedModal = ({ isOpen, onClose, onInsert }) => {
           <button
             onClick={handleInsert}
             disabled={!parsedVideo}
-            className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Insertar Video
           </button>

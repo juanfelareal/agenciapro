@@ -42,8 +42,8 @@ export default function PortalCallDetail() {
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-[#1A1A2E]">Llamada no encontrada</h2>
-        <Link to="/portal/calls" className="text-gray-500 hover:text-[#1A1A2E] mt-4">
+        <h2 className="text-xl font-semibold text-[#17181A]">Llamada no encontrada</h2>
+        <Link to="/portal/calls" className="text-gray-500 hover:text-[#17181A] mt-4">
           Volver a llamadas
         </Link>
       </div>
@@ -54,20 +54,20 @@ export default function PortalCallDetail() {
     <div className="space-y-6">
       <Link
         to="/portal/calls"
-        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#17181A] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Volver a llamadas</span>
       </Link>
 
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+      <div className="glass-card p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
             <Phone className="w-6 h-6 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{call.title}</h1>
+            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{call.title}</h1>
             <div className="flex items-center gap-4 mt-2 flex-wrap">
               <span className="text-sm text-gray-500 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
@@ -92,7 +92,7 @@ export default function PortalCallDetail() {
           <button
             onClick={() => setActiveTab('summary')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'summary' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'summary' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Resumen
@@ -102,7 +102,7 @@ export default function PortalCallDetail() {
           <button
             onClick={() => setActiveTab('transcription')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'transcription' ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'transcription' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Transcripción
@@ -111,7 +111,7 @@ export default function PortalCallDetail() {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+      <div className="glass-card p-6">
         {activeTab === 'summary' && call.summary && (
           <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
             {call.summary}

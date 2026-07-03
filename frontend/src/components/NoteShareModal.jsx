@@ -222,7 +222,7 @@ const NoteShareModal = ({ isOpen, onClose, noteId, noteTitle }) => {
             <button
               onClick={handleCreateShare}
               disabled={creating}
-              className="w-full py-2.5 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {creating ? (
                 <>

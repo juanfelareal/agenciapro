@@ -271,7 +271,7 @@ export default function CalendarView({
                         e.stopPropagation();
                         setExpandedDay({ day, tasks: dayTasks });
                       }}
-                      className="w-full text-xs text-gray-600 hover:text-[#1A1A2E] hover:bg-gray-100 rounded py-0.5 text-center font-medium transition-colors"
+                      className="w-full text-xs text-gray-600 hover:text-[#17181A] hover:bg-gray-100 rounded py-0.5 text-center font-medium transition-colors"
                     >
                       +{dayTasks.length - (view === 'week' ? 10 : 3)} más
                     </button>
@@ -338,7 +338,7 @@ export default function CalendarView({
                 <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
                   {format(expandedDay.day, "EEEE", { locale: es })}
                 </p>
-                <h3 className="text-lg font-semibold text-[#1A1A2E]">
+                <h3 className="text-lg font-semibold text-[#17181A]">
                   {format(expandedDay.day, "d 'de' MMMM, yyyy", { locale: es })}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -368,7 +368,7 @@ export default function CalendarView({
                       className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${priorityDots[task.priority]}`}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[#1A1A2E]">{task.title}</p>
+                      <p className="text-sm font-medium text-[#17181A]">{task.title}</p>
                       {task.project_id && (
                         <p className="text-xs text-gray-500 truncate mt-0.5">
                           {getProjectName(task.project_id)}

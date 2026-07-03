@@ -233,7 +233,7 @@ const NoteCommentsSidebar = ({
               <button
                 onClick={() => handleReplySubmit(comment.id)}
                 disabled={!replyContent.trim() || (isPublicView && !authorName.trim())}
-                className="px-2 py-1.5 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2 py-1.5 bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send size={12} />
               </button>
@@ -342,7 +342,7 @@ const NoteCommentsSidebar = ({
             <button
               type="submit"
               disabled={!newComment.trim() || (isPublicView && !authorName.trim())}
-              className="px-3 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send size={16} />
             </button>

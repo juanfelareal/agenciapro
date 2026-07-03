@@ -171,13 +171,13 @@ export default function ClientEmailMarketing() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Email Marketing</h1>
+            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Email Marketing</h1>
             <p className="text-sm text-gray-500">{client?.company || client?.name}</p>
           </div>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] text-sm font-medium"
         >
           <Plus size={16} />
           Registrar campaña
@@ -215,9 +215,9 @@ export default function ClientEmailMarketing() {
                 : null
               },
             ].map((m, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-xl p-4">
+              <div key={i} className="glass-solid rounded-xl p-4">
                 <p className="text-xs text-gray-500">{m.label}</p>
-                <p className="text-lg font-bold text-[#1A1A2E] mt-1">{m.value}</p>
+                <p className="text-lg font-bold text-[#17181A] mt-1">{m.value}</p>
                 {m.sub && <p className="text-[11px] text-gray-400 mt-0.5">{m.sub}</p>}
               </div>
             ))}
@@ -227,13 +227,13 @@ export default function ClientEmailMarketing() {
 
       {/* Tabla */}
       {campaigns.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center text-gray-500">
+        <div className="glass-card p-16 text-center text-gray-500">
           <Mail className="w-10 h-10 mx-auto text-gray-300 mb-2" />
           <p className="text-sm">Aún no hay campañas registradas para este cliente.</p>
           <p className="text-xs text-gray-400 mt-1">Registra tus campañas de Shopify Email para verlas reflejadas en el portal y en los reportes PDF.</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
@@ -254,7 +254,7 @@ export default function ClientEmailMarketing() {
                 {campaigns.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="py-3 px-4">
-                      <p className="font-medium text-[#1A1A2E]">{c.campaign_name}</p>
+                      <p className="font-medium text-[#17181A]">{c.campaign_name}</p>
                       {c.subject && <p className="text-xs text-gray-500 mt-0.5">{c.subject}</p>}
                     </td>
                     <td className="py-3 px-3 text-gray-600">{fmtDate(c.sent_date)}</td>
@@ -313,7 +313,7 @@ function CampaignModal({ form, setForm, editingId, saving, onSave, onClose }) {
       <div className="bg-white rounded-2xl w-full max-w-3xl shadow-xl max-h-[92vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[#1A1A2E]">
+            <h2 className="text-lg font-semibold text-[#17181A]">
               {editingId ? 'Editar campaña' : 'Registrar campaña'}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">Mismas métricas que muestra Shopify Email</p>
@@ -452,7 +452,7 @@ function CampaignModal({ form, setForm, editingId, saving, onSave, onClose }) {
           <button
             onClick={onSave}
             disabled={saving}
-            className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 bg-[#17181A] text-white rounded-xl text-sm font-medium flex items-center gap-2 disabled:opacity-50"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {saving ? 'Guardando…' : 'Guardar'}

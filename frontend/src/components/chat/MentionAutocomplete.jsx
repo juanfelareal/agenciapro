@@ -42,7 +42,7 @@ const MentionAutocomplete = ({ query, onSelect, onClose, position }) => {
   return (
     <div
       ref={ref}
-      className="absolute bottom-full mb-1 left-0 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+      className="absolute bottom-full mb-1 left-0 w-80 glass-solid rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
       style={position}
     >
       {loading ? (

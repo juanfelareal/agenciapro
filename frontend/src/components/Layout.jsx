@@ -136,8 +136,8 @@ const Layout = ({ children }) => {
         to={item.path}
         className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
           active
-            ? 'bg-[#1A1A2E] text-[#BFFF00]'
-            : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100'
+            ? 'bg-[#17181A] text-[#D7F653]'
+            : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
         }`}
         title={sidebarCollapsed ? item.name : ''}
       >
@@ -154,7 +154,7 @@ const Layout = ({ children }) => {
 
         {/* Tooltip for collapsed state */}
         {sidebarCollapsed && (
-          <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+          <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
             {item.name}
           </div>
         )}
@@ -163,15 +163,15 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen bg-[#F8F9FA]">
-      {/* Sidebar - Clean white */}
+    <div className="flex h-screen app-mist">
+      {/* Sidebar — panel de vidrio flotante */}
       <div
-        className={`fixed left-0 top-0 h-full flex flex-col z-40 transition-all duration-300 ease-in-out bg-white border-r border-gray-100 ${
+        className={`fixed left-4 top-4 bottom-4 flex flex-col z-40 transition-all duration-300 ease-in-out glass rounded-3xl overflow-hidden ${
           sidebarCollapsed ? 'w-[72px]' : 'w-[220px]'
         }`}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center px-3 border-b border-gray-100">
+        <div className="h-16 flex items-center px-3 border-b border-white/60">
           {currentOrg?.logo_url ? (
             <img
               src={currentOrg.logo_url}
@@ -185,22 +185,22 @@ const Layout = ({ children }) => {
 
         {/* Organization Switcher */}
         {!sidebarCollapsed && currentOrg && (
-          <div className="px-3 py-2" style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}>
+          <div className="px-3 py-2 border-b border-white/60">
             <OrgSwitcher />
           </div>
         )}
 
         {/* User Info */}
         {!sidebarCollapsed && user && (
-          <div className="p-3 border-b border-gray-100">
+          <div className="p-3 border-b border-white/60">
             <div className="flex items-center gap-3">
               <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-[#BFFF00] font-semibold text-sm flex-shrink-0 bg-[#1A1A2E]"
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-[#D7F653] font-semibold text-sm flex-shrink-0 bg-[#17181A]"
               >
                 {getUserInitials(user.name)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-[#1A1A2E] truncate">{user.name}</p>
+                <p className="text-sm font-medium text-[#17181A] truncate">{user.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user.position || user.role}</p>
               </div>
             </div>
@@ -220,8 +220,8 @@ const Layout = ({ children }) => {
                   onClick={() => setFinanzasExpanded(!finanzasExpanded)}
                   className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     isFinanzasActive
-                      ? 'bg-[#1A1A2E] text-[#BFFF00]'
-                      : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100'
+                      ? 'bg-[#17181A] text-[#D7F653]'
+                      : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
                   }`}
                   title={sidebarCollapsed ? 'Finanzas' : ''}
                 >
@@ -240,7 +240,7 @@ const Layout = ({ children }) => {
 
                   {/* Tooltip for collapsed state */}
                   {sidebarCollapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                       Finanzas
                     </div>
                   )}
@@ -248,7 +248,7 @@ const Layout = ({ children }) => {
 
                 {/* Submenú */}
                 {(finanzasExpanded || sidebarCollapsed) && !sidebarCollapsed && (
-                  <div className="mt-1 ml-3 pl-3 border-l border-gray-200 space-y-1">
+                  <div className="mt-1 ml-3 pl-3 border-l border-white/70 space-y-1">
                     {filteredFinanzas.map((item) => {
                       const Icon = item.icon;
                       const active = isActive(item.path);
@@ -258,8 +258,8 @@ const Layout = ({ children }) => {
                           to={item.path}
                           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                             active
-                              ? 'bg-gray-100 text-[#1A1A2E]'
-                              : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-50'
+                              ? 'bg-white/70 text-[#17181A]'
+                              : 'text-gray-500 hover:text-[#17181A] hover:bg-white/50'
                           }`}
                         >
                           <Icon size={18} className="flex-shrink-0" />
@@ -272,7 +272,7 @@ const Layout = ({ children }) => {
 
                 {/* Popup menú para estado colapsado */}
                 {sidebarCollapsed && (
-                  <div className="absolute left-full ml-2 top-0 bg-white border border-gray-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2 min-w-[160px]">
+                  <div className="absolute left-full ml-2 top-0 glass-solid rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2 min-w-[160px]">
                     <div className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase">Finanzas</div>
                     {filteredFinanzas.map((item) => {
                       const Icon = item.icon;
@@ -282,7 +282,7 @@ const Layout = ({ children }) => {
                           key={item.path}
                           to={item.path}
                           className={`flex items-center gap-2 px-3 py-2 text-sm ${
-                            active ? 'text-[#1A1A2E] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
+                            active ? 'text-[#17181A] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
                           <Icon size={16} />
@@ -301,21 +301,21 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 space-y-1 border-t border-gray-100">
+        <div className="p-3 space-y-1 border-t border-white/60">
           {/* Settings Link */}
           <Link
             to="/app/settings"
             className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               isActive('/app/settings')
-                ? 'bg-[#1A1A2E] text-[#BFFF00]'
-                : 'text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100'
+                ? 'bg-[#17181A] text-[#D7F653]'
+                : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
             }`}
             title={sidebarCollapsed ? 'Mi Cuenta' : ''}
           >
             <Settings size={20} className="flex-shrink-0" />
             {!sidebarCollapsed && <span>Mi Cuenta</span>}
             {sidebarCollapsed && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[#1A1A2E] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mi Cuenta
               </div>
             )}
@@ -334,7 +334,7 @@ const Layout = ({ children }) => {
           {/* Collapse Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#1A1A2E] hover:bg-gray-100 transition-all duration-150"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#17181A] hover:bg-gray-100 transition-all duration-150"
           >
             {sidebarCollapsed ? (
               <ChevronRight size={20} />
@@ -351,13 +351,13 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <div
         className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'ml-[72px]' : 'ml-[220px]'
+          sidebarCollapsed ? 'ml-[104px]' : 'ml-[252px]'
         }`}
       >
         {/* Top Header Bar - Clean white.
             Altura h-16 para que coincida con el header del sidebar (también h-16);
             así las dos border-b se alinean en la misma línea horizontal. */}
-        <header className="sticky top-0 z-30 h-16 px-6 flex items-center justify-end bg-white border-b border-gray-100">
+        <header className="sticky top-0 z-30 h-16 px-6 flex items-center justify-end bg-transparent" style={{ background: 'linear-gradient(180deg, rgba(243,244,239,0.85) 0%, rgba(243,244,239,0.55) 70%, transparent 100%)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
           <div className="flex items-center gap-4">
             <GlobalSearch />
             <NotificationBell />
@@ -365,7 +365,7 @@ const Layout = ({ children }) => {
             {/* User Avatar */}
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-[#1A1A2E]">
+                <p className="text-sm font-medium text-[#17181A]">
                   {user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -376,7 +376,7 @@ const Layout = ({ children }) => {
                     : 'Miembro'}
                 </p>
               </div>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#BFFF00] font-semibold text-sm bg-[#1A1A2E]">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#D7F653] font-semibold text-sm bg-[#17181A]">
                 {getUserInitials(user?.name || 'U')}
               </div>
             </div>

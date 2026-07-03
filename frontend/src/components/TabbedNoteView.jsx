@@ -145,7 +145,7 @@ function TabbedNoteView({ content, onTabChange }) {
             onClick={() => { setActiveTab(idx); setActiveSubTab(0); setActiveSubSubTab(0); }}
             className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors flex-shrink-0 ${
               activeTab === idx
-                ? 'bg-white text-[#1A1A2E] border border-slate-200 border-b-white -mb-px'
+                ? 'bg-white text-[#17181A] border border-slate-200 border-b-white -mb-px'
                 : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             }`}
           >
@@ -162,7 +162,7 @@ function TabbedNoteView({ content, onTabChange }) {
               onClick={() => { setActiveSubTab(-1); setActiveSubSubTab(0); }}
               className={`px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-full transition-colors flex-shrink-0 ${
                 activeSubTab === -1
-                  ? 'bg-[#1A1A2E] text-white'
+                  ? 'bg-[#17181A] text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -175,7 +175,7 @@ function TabbedNoteView({ content, onTabChange }) {
               onClick={() => { setActiveSubTab(idx); setActiveSubSubTab(0); }}
               className={`px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-full transition-colors flex-shrink-0 ${
                 activeSubTab === idx
-                  ? 'bg-[#1A1A2E] text-white'
+                  ? 'bg-[#17181A] text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >

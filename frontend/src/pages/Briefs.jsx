@@ -144,12 +144,12 @@ const Briefs = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Briefs</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Briefs</h1>
           <p className="text-sm text-gray-500 mt-0.5">Archivos HTML por cliente</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
         >
           <Plus size={20} />
           Nuevo Brief
@@ -162,7 +162,7 @@ const Briefs = () => {
         <select
           value={filterClient}
           onChange={e => setFilterClient(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
         >
           <option value="all">Todos los clientes</option>
           {clients.map(c => (
@@ -174,27 +174,27 @@ const Briefs = () => {
 
       {/* Briefs grouped by client */}
       {Object.keys(grouped).length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <FileCode className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500">No hay briefs creados</p>
           <p className="text-sm text-gray-400 mt-1">Sube archivos HTML para cada marca</p>
         </div>
       ) : (
         Object.entries(grouped).map(([clientId, group]) => (
-          <div key={clientId} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div key={clientId} className="glass-card overflow-hidden">
             <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
-              <h3 className="font-semibold text-[#1A1A2E]">{group.name}</h3>
+              <h3 className="font-semibold text-[#17181A]">{group.name}</h3>
             </div>
             <div className="divide-y divide-gray-50">
               {group.briefs.map(brief => (
                 <div key={brief.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-9 h-9 bg-[#1A1A2E]/5 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <FileCode className="w-4 h-4 text-[#1A1A2E]" />
+                    <div className="w-9 h-9 bg-[#17181A]/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <FileCode className="w-4 h-4 text-[#17181A]" />
                     </div>
                     <div className="min-w-0">
                       <p
-                        className="font-medium text-[#1A1A2E] cursor-pointer hover:underline truncate"
+                        className="font-medium text-[#17181A] cursor-pointer hover:underline truncate"
                         onClick={() => setPreviewBrief(brief)}
                       >
                         {brief.title}
@@ -250,7 +250,7 @@ const Briefs = () => {
           <div className={`bg-white shadow-xl flex flex-col ${fullscreen ? 'w-full h-full' : 'rounded-2xl w-full max-w-5xl h-[85vh]'}`}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
               <div>
-                <h3 className="font-semibold text-[#1A1A2E]">{previewBrief.title}</h3>
+                <h3 className="font-semibold text-[#17181A]">{previewBrief.title}</h3>
                 <p className="text-xs text-gray-400">{clientName(previewBrief)}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -307,7 +307,7 @@ const Briefs = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingBrief ? 'Editar Brief' : 'Nuevo Brief'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
@@ -321,7 +321,7 @@ const Briefs = () => {
                   required
                   value={formData.client_id}
                   onChange={e => setFormData({ ...formData, client_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
                 >
                   <option value="">Seleccionar cliente...</option>
                   {clients.map(c => (
@@ -338,14 +338,14 @@ const Briefs = () => {
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Ej: Brief Campaña Navidad 2026"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Archivo HTML</label>
                 <div
-                  className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#1A1A2E]/30 transition-colors"
+                  className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#17181A]/30 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <input
@@ -389,7 +389,7 @@ const Briefs = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
                 >
                   Guardar
                 </button>

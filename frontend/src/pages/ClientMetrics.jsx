@@ -28,6 +28,8 @@ import {
   ChevronRight,
   Mail,
   Facebook,
+  Chrome,
+  Music2,
   ShoppingBag
 } from 'lucide-react';
 import {
@@ -415,7 +417,7 @@ function ClientMetrics() {
   if (!client) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1A1A2E]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#17181A]" />
       </div>
     );
   }
@@ -432,7 +434,7 @@ function ClientMetrics() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">{client.nickname || client.company || client.name}</h1>
+            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{client.nickname || client.company || client.name}</h1>
             <p className="text-sm text-gray-500 mt-0.5">{client.company || client.name}</p>
           </div>
         </div>
@@ -454,7 +456,7 @@ function ClientMetrics() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
           >
             {syncing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -467,7 +469,7 @@ function ClientMetrics() {
       </div>
 
       {/* Date Range */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="glass rounded-xl p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-gray-400" />
@@ -507,7 +509,7 @@ function ClientMetrics() {
               onClick={() => setCompareMode(!compareMode)}
               className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors border ${
                 compareMode
-                  ? 'bg-[#1A1A2E] text-white border-[#1A1A2E]'
+                  ? 'bg-[#17181A] text-white border-[#17181A]'
                   : 'text-gray-600 hover:bg-gray-100 border-gray-200'
               }`}
             >
@@ -520,9 +522,9 @@ function ClientMetrics() {
 
       {/* Compare period info */}
       {compareMode && (
-        <div className="bg-[#1A1A2E]/5 border border-[#1A1A2E]/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
-          <ArrowLeftRight className="w-4 h-4 text-[#1A1A2E]" />
-          <span className="text-sm text-[#1A1A2E]">
+        <div className="bg-[#17181A]/5 border border-[#17181A]/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+          <ArrowLeftRight className="w-4 h-4 text-[#17181A]" />
+          <span className="text-sm text-[#17181A]">
             Comparando con periodo anterior: <strong>{getPreviousPeriod().start}</strong> a <strong>{getPreviousPeriod().end}</strong>
           </span>
         </div>
@@ -533,7 +535,7 @@ function ClientMetrics() {
         <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
           <BarChart3 className="w-4 h-4 text-violet-600" />
         </div>
-        <h2 className="text-lg font-semibold text-[#1A1A2E]">Métricas Combinadas</h2>
+        <h2 className="text-lg font-semibold text-[#17181A]">Métricas Combinadas</h2>
       </div>
 
       {/* Revenue Metrics - 3 types — higher is better */}
@@ -663,13 +665,13 @@ function ClientMetrics() {
       </div>
 
       {/* ============ EMAIL MARKETING (no colapsable, debajo de Combinadas) ============ */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+      <div className="glass rounded-xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center">
               <Mail className="w-4 h-4 text-pink-600" />
             </div>
-            <h2 className="text-lg font-semibold text-[#1A1A2E]">Email Marketing</h2>
+            <h2 className="text-lg font-semibold text-[#17181A]">Email Marketing</h2>
           </div>
           <span className="text-xs text-gray-400">
             Datos manuales desde Shopify Email
@@ -693,16 +695,16 @@ function ClientMetrics() {
       >
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <MetricCard
-            title="Inversión Publicidad"
-            value={metrics?.total_ad_spend}
+            title="Inversión Meta"
+            value={metrics?.total_fb_spend}
             icon={MousePointerClick}
             iconBgColor="bg-blue-100"
             iconColor="text-blue-600"
             format="currency"
             loading={loading}
             invertChange
-            change={compareMode ? calcChange(metrics?.total_ad_spend, compareMetrics?.total_ad_spend) : null}
-            compareValue={compareMode ? compareMetrics?.total_ad_spend : null}
+            change={compareMode ? calcChange(metrics?.total_fb_spend, compareMetrics?.total_fb_spend) : null}
+            compareValue={compareMode ? compareMetrics?.total_fb_spend : null}
             changeLabel={compareMode ? 'vs anterior' : ''}
           />
           <MetricCard
@@ -729,6 +731,182 @@ function ClientMetrics() {
             invertChange
             change={compareMode ? calcChange(metrics?.cost_per_purchase, compareMetrics?.cost_per_purchase) : null}
             compareValue={compareMode ? compareMetrics?.cost_per_purchase : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+        </div>
+      </CollapsibleSection>
+
+      {/* ============ GOOGLE ADS (colapsable) ============ */}
+      <CollapsibleSection
+        id="google-ads"
+        title="Google Ads"
+        icon={Chrome}
+        iconBg="bg-amber-100"
+        iconColor="text-amber-600"
+        defaultOpen={false}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="Inversión Google"
+            value={metrics?.google?.spend}
+            icon={MousePointerClick}
+            iconBgColor="bg-amber-100"
+            iconColor="text-amber-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.google?.spend, compareMetrics?.google?.spend) : null}
+            compareValue={compareMode ? compareMetrics?.google?.spend : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="ROAS Google"
+            value={metrics?.google?.roas}
+            icon={Target}
+            iconBgColor="bg-green-100"
+            iconColor="text-green-600"
+            format="decimal"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.google?.roas, compareMetrics?.google?.roas) : null}
+            compareValue={compareMode ? compareMetrics?.google?.roas : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Conversiones"
+            value={metrics?.google?.conversions}
+            icon={Check}
+            iconBgColor="bg-emerald-100"
+            iconColor="text-emerald-600"
+            format="decimal"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.google?.conversions, compareMetrics?.google?.conversions) : null}
+            compareValue={compareMode ? compareMetrics?.google?.conversions : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Costo/Conversión"
+            value={metrics?.google?.cost_per_conversion}
+            icon={Target}
+            iconBgColor="bg-rose-100"
+            iconColor="text-rose-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.google?.cost_per_conversion, compareMetrics?.google?.cost_per_conversion) : null}
+            compareValue={compareMode ? compareMetrics?.google?.cost_per_conversion : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="CPM"
+            value={metrics?.google?.cpm}
+            icon={Eye}
+            iconBgColor="bg-sky-100"
+            iconColor="text-sky-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.google?.cpm, compareMetrics?.google?.cpm) : null}
+            compareValue={compareMode ? compareMetrics?.google?.cpm : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Clics"
+            value={metrics?.google?.clicks}
+            icon={MousePointerClick}
+            iconBgColor="bg-indigo-100"
+            iconColor="text-indigo-600"
+            format="integer"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.google?.clicks, compareMetrics?.google?.clicks) : null}
+            compareValue={compareMode ? compareMetrics?.google?.clicks : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+        </div>
+      </CollapsibleSection>
+
+      {/* ============ TIKTOK ADS (colapsable) ============ */}
+      <CollapsibleSection
+        id="tiktok-ads"
+        title="TikTok Ads"
+        icon={Music2}
+        iconBg="bg-gray-900"
+        iconColor="text-white"
+        defaultOpen={false}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="Inversión TikTok"
+            value={metrics?.tiktok?.spend}
+            icon={MousePointerClick}
+            iconBgColor="bg-gray-100"
+            iconColor="text-gray-900"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.tiktok?.spend, compareMetrics?.tiktok?.spend) : null}
+            compareValue={compareMode ? compareMetrics?.tiktok?.spend : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="ROAS TikTok"
+            value={metrics?.tiktok?.roas}
+            icon={Target}
+            iconBgColor="bg-green-100"
+            iconColor="text-green-600"
+            format="decimal"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.tiktok?.roas, compareMetrics?.tiktok?.roas) : null}
+            compareValue={compareMode ? compareMetrics?.tiktok?.roas : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Conversiones"
+            value={metrics?.tiktok?.conversions}
+            icon={Check}
+            iconBgColor="bg-emerald-100"
+            iconColor="text-emerald-600"
+            format="decimal"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.tiktok?.conversions, compareMetrics?.tiktok?.conversions) : null}
+            compareValue={compareMode ? compareMetrics?.tiktok?.conversions : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Costo/Conversión"
+            value={metrics?.tiktok?.cost_per_conversion}
+            icon={Target}
+            iconBgColor="bg-rose-100"
+            iconColor="text-rose-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.tiktok?.cost_per_conversion, compareMetrics?.tiktok?.cost_per_conversion) : null}
+            compareValue={compareMode ? compareMetrics?.tiktok?.cost_per_conversion : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="CPM"
+            value={metrics?.tiktok?.cpm}
+            icon={Eye}
+            iconBgColor="bg-sky-100"
+            iconColor="text-sky-600"
+            format="currency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.tiktok?.cpm, compareMetrics?.tiktok?.cpm) : null}
+            compareValue={compareMode ? compareMetrics?.tiktok?.cpm : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          <MetricCard
+            title="Clics"
+            value={metrics?.tiktok?.clicks}
+            icon={MousePointerClick}
+            iconBgColor="bg-indigo-100"
+            iconColor="text-indigo-600"
+            format="integer"
+            loading={loading}
+            change={compareMode ? calcChange(metrics?.tiktok?.clicks, compareMetrics?.tiktok?.clicks) : null}
+            compareValue={compareMode ? compareMetrics?.tiktok?.clicks : null}
             changeLabel={compareMode ? 'vs anterior' : ''}
           />
         </div>
@@ -821,9 +999,9 @@ function ClientMetrics() {
       </CollapsibleSection>
 
       {/* Top Products */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="glass rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
             <Package className="w-5 h-5 text-green-500" />
             Productos Más Vendidos
           </h3>
@@ -831,7 +1009,7 @@ function ClientMetrics() {
             <button
               onClick={loadTopProducts}
               disabled={topProductsLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
             >
               {topProductsLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -874,7 +1052,7 @@ function ClientMetrics() {
                   return (
                     <tr key={product.product_id || idx} className="border-b border-gray-50 hover:bg-gray-50/50">
                       <td className="py-3 px-3 text-gray-400 font-medium">{idx + 1}</td>
-                      <td className="py-3 px-3 font-medium text-[#1A1A2E]">{product.title}</td>
+                      <td className="py-3 px-3 font-medium text-[#17181A]">{product.title}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(product.quantity)}</td>
                       <td className="py-3 px-3 text-right font-medium">{fmtCurrency(product.revenue)}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(product.orders)}</td>
@@ -894,7 +1072,7 @@ function ClientMetrics() {
           .map(d => ({
             date: d.metric_date,
             venta: d.shopify_net_revenue || 0,
-            inversion: d.fb_spend || 0,
+            inversion: (d.fb_spend || 0) + (d.ga_spend || 0) + (d.tt_spend || 0),
             roas: d.overall_roas || 0,
             costoCompra: d.fb_cost_per_purchase || 0,
             costoPedido: d.cost_per_order || 0,
@@ -918,8 +1096,8 @@ function ClientMetrics() {
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             {/* 1. Venta vs Inversión */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Venta vs Inversión</h3>
+            <div className="glass rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-[#17181A] mb-4">Venta vs Inversión</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -938,8 +1116,8 @@ function ClientMetrics() {
             </div>
 
             {/* 2. ROAS */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">ROAS</h3>
+            <div className="glass rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-[#17181A] mb-4">ROAS</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chartData}>
                   <defs>
@@ -962,8 +1140,8 @@ function ClientMetrics() {
             </div>
 
             {/* 3. Costo por Compra (Meta+Shopify blend) */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Costo por Compra vs Costo por Pedido</h3>
+            <div className="glass rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-[#17181A] mb-4">Costo por Compra vs Costo por Pedido</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -982,8 +1160,8 @@ function ClientMetrics() {
             </div>
 
             {/* 4. CPM */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">CPM</h3>
+            <div className="glass rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-[#17181A] mb-4">CPM</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chartData}>
                   <defs>
@@ -1006,8 +1184,8 @@ function ClientMetrics() {
             </div>
 
             {/* 6. Pedidos diarios */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <h3 className="text-sm font-semibold text-[#1A1A2E] mb-4">Pedidos por Día</h3>
+            <div className="glass rounded-xl p-5">
+              <h3 className="text-sm font-semibold text-[#17181A] mb-4">Pedidos por Día</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -1027,9 +1205,9 @@ function ClientMetrics() {
       })()}
 
       {/* Ad-Level Performance */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="glass rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-500" />
             Rendimiento por Anuncio
           </h3>
@@ -1037,7 +1215,7 @@ function ClientMetrics() {
             <button
               onClick={loadAds}
               disabled={adsLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
             >
               {adsLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1237,7 +1415,7 @@ function ClientMetrics() {
                                   />
                                   <button
                                     onClick={() => handleCreateValueAndAssign(ad.ad_id, cat.id)}
-                                    className="px-2 py-1 text-xs bg-[#1A1A2E] text-white rounded-md hover:bg-[#252542]"
+                                    className="px-2 py-1 text-xs bg-[#17181A] text-white rounded-md hover:bg-[#26282C]"
                                   >
                                     <Plus className="w-3 h-3" />
                                   </button>
@@ -1309,7 +1487,7 @@ function ClientMetrics() {
                   const adsWithHold = filteredAds.filter(a => a.hold_rate > 0);
                   const avgHoldRate = adsWithHold.length > 0 ? adsWithHold.reduce((s, a) => s + a.hold_rate, 0) / adsWithHold.length : 0;
                   return (
-                    <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#1A1A2E]">
+                    <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#17181A]">
                       <td className="py-3 px-3">Total</td>
                       <td className="py-3 px-3"></td>
                       {tagCategories.map(cat => <td key={cat.id} className="py-3 px-3"></td>)}
@@ -1346,9 +1524,9 @@ function ClientMetrics() {
 
       {/* Tag Analysis */}
       {ads !== null && ads.length > 0 && tagCategories.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="glass rounded-xl p-6">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <h3 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-purple-500" />
               Análisis por Etiquetas
             </h3>

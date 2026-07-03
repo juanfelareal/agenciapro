@@ -281,7 +281,7 @@ const Collections = () => {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1A1A2E]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#17181A]"></div>
       </div>
     );
   }
@@ -297,11 +297,11 @@ const Collections = () => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-3">
             {reminderStep === 'preview' && !reminderResult && (
-              <button onClick={() => setReminderStep('edit')} className="text-gray-400 hover:text-[#1A1A2E] transition-colors">
+              <button onClick={() => setReminderStep('edit')} className="text-gray-400 hover:text-[#17181A] transition-colors">
                 <ChevronLeft size={20} />
               </button>
             )}
-            <h3 className="text-lg font-bold text-[#1A1A2E]">
+            <h3 className="text-lg font-bold text-[#17181A]">
               {reminderResult ? (reminderResult.success ? 'Enviado' : 'Error') : reminderStep === 'edit' ? 'Enviar Estado de Cuenta' : 'Preview del Correo'}
             </h3>
           </div>
@@ -316,7 +316,7 @@ const Collections = () => {
             </div>
             {reminderResult.success && (
               <div className="flex justify-end mt-4 pb-4">
-                <button onClick={() => setShowReminderModal(false)} className="px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium">Cerrar</button>
+                <button onClick={() => setShowReminderModal(false)} className="px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium">Cerrar</button>
               </div>
             )}
           </div>
@@ -328,7 +328,7 @@ const Collections = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Cliente</p>
-                <p className="font-medium text-[#1A1A2E]">{selectedClient?.client_name}</p>
+                <p className="font-medium text-[#17181A]">{selectedClient?.client_name}</p>
               </div>
 
               <div>
@@ -368,13 +368,13 @@ const Collections = () => {
                       })}
                       className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
                         reminderData.selectedTemplate === tpl.id
-                          ? 'bg-[#1A1A2E] text-[#BFFF00] border-[#1A1A2E]'
+                          ? 'bg-[#17181A] text-[#D7F653] border-[#17181A]'
                           : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <span className="block">{tpl.label}</span>
                       <span className={`block text-xs mt-0.5 ${
-                        reminderData.selectedTemplate === tpl.id ? 'text-[#BFFF00]/70' : 'text-gray-400'
+                        reminderData.selectedTemplate === tpl.id ? 'text-[#D7F653]/70' : 'text-gray-400'
                       }`}>{tpl.description}</span>
                     </button>
                   ))}
@@ -403,7 +403,7 @@ const Collections = () => {
 
               <div className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
-                <p className="text-sm font-medium text-[#1A1A2E] mt-1">Estefania Hernandez - Administración y Cartera</p>
+                <p className="text-sm font-medium text-[#17181A] mt-1">Estefania Hernandez - Administración y Cartera</p>
               </div>
             </div>
 
@@ -417,7 +417,7 @@ const Collections = () => {
               <button
                 onClick={loadPreview}
                 disabled={loadingPreview || !reminderData.email_to}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
               >
                 <Eye size={16} />
                 {loadingPreview ? 'Cargando...' : 'Ver Preview'}
@@ -433,11 +433,11 @@ const Collections = () => {
             <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-gray-500">Para:</span>
-                <span className="font-medium text-[#1A1A2E]">{reminderData.email_to}</span>
+                <span className="font-medium text-[#17181A]">{reminderData.email_to}</span>
               </div>
               <div className="flex items-center gap-2 text-sm mt-1">
                 <span className="text-gray-500">Asunto:</span>
-                <span className="font-medium text-[#1A1A2E]">{previewSubject}</span>
+                <span className="font-medium text-[#17181A]">{previewSubject}</span>
               </div>
             </div>
 
@@ -491,7 +491,7 @@ const Collections = () => {
                 <button
                   onClick={sendReminder}
                   disabled={sendingReminder || (scheduleMode && !scheduleDate)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
                 >
                   {scheduleMode ? <Clock size={16} /> : <Send size={16} />}
                   {sendingReminder ? 'Procesando...' : scheduleMode ? 'Programar Envio' : 'Confirmar y Enviar'}
@@ -508,7 +508,7 @@ const Collections = () => {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNoteModal(false)}>
       <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#1A1A2E]">Agregar Nota de Seguimiento</h3>
+          <h3 className="text-lg font-bold text-[#17181A]">Agregar Nota de Seguimiento</h3>
           <button onClick={() => setShowNoteModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <div className="space-y-4">
@@ -537,7 +537,7 @@ const Collections = () => {
           <button
             onClick={addNote}
             disabled={!noteData.note.trim()}
-            className="px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50"
           >
             Guardar Nota
           </button>
@@ -556,7 +556,7 @@ const Collections = () => {
         {/* Back button */}
         <button
           onClick={() => { setView('overview'); setClientDetail(null); }}
-          className="flex items-center gap-2 text-gray-500 hover:text-[#1A1A2E] mb-6 transition-colors"
+          className="flex items-center gap-2 text-gray-500 hover:text-[#17181A] mb-6 transition-colors"
         >
           <ChevronLeft size={20} />
           <span className="text-sm font-medium">Volver a Cartera</span>
@@ -565,7 +565,7 @@ const Collections = () => {
         {/* Client Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#1A1A2E]">{client.company || client.name}</h1>
+            <h1 className="text-2xl font-bold text-[#17181A]">{client.company || client.name}</h1>
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
               {client.nit && <span>NIT: {client.nit}</span>}
               {client.email && <span>{client.email}</span>}
@@ -585,7 +585,7 @@ const Collections = () => {
             </button>
             <button
               onClick={() => openReminderModal({ client_id: client.id, client_email: client.email, client_name: client.company || client.name, total_owed: totalOwed })}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A1A2E] text-[#BFFF00] text-sm font-medium hover:bg-[#2D2D4E] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] transition-colors"
             >
               <Send size={16} />
               Enviar Estado de Cuenta
@@ -594,16 +594,16 @@ const Collections = () => {
         </div>
 
         {/* Total Card */}
-        <div className="bg-gradient-to-r from-[#1A1A2E] to-[#2D2D4E] rounded-2xl p-6 mb-6">
+        <div className="bg-gradient-to-r from-[#17181A] to-[#2D2D4E] rounded-2xl p-6 mb-6">
           <p className="text-white/60 text-sm uppercase tracking-wider">Saldo Pendiente Total</p>
-          <p className="text-[#BFFF00] text-3xl font-extrabold mt-1">{formatCurrency(totalOwed)}</p>
+          <p className="text-[#D7F653] text-3xl font-extrabold mt-1">{formatCurrency(totalOwed)}</p>
           <p className="text-white/50 text-sm mt-1">{invoices.length} factura{invoices.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Invoices */}
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+        <div className="glass-card overflow-hidden mb-6">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-[#1A1A2E]">Facturas Pendientes</h2>
+            <h2 className="text-lg font-bold text-[#17181A]">Facturas Pendientes</h2>
           </div>
           <table className="w-full">
             <thead>
@@ -620,11 +620,11 @@ const Collections = () => {
             <tbody>
               {invoices.map((inv) => (
                 <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-[#1A1A2E]">{inv.invoice_number}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-[#17181A]">{inv.invoice_number}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{inv.project_name || '-'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{formatDate(inv.issue_date)}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{formatDate(inv.due_date)}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-[#1A1A2E] text-right">{formatCurrency(inv.amount)}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-[#17181A] text-right">{formatCurrency(inv.amount)}</td>
                   <td className="px-6 py-4 text-center">{getAgingBadge(inv.due_date)}</td>
                   <td className="px-6 py-4 text-center">
                     <button
@@ -643,9 +643,9 @@ const Collections = () => {
         {/* Two columns: Notes + Reminder History */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Notes */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="glass-card overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#1A1A2E]">Notas de Seguimiento</h2>
+              <h2 className="text-lg font-bold text-[#17181A]">Notas de Seguimiento</h2>
             </div>
             <div className="p-6">
               {clientNotes.length === 0 ? (
@@ -673,9 +673,9 @@ const Collections = () => {
           </div>
 
           {/* Reminder History */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="glass-card overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-[#1A1A2E]">Recordatorios Enviados</h2>
+              <h2 className="text-lg font-bold text-[#17181A]">Recordatorios Enviados</h2>
             </div>
             <div className="p-6">
               {reminders.length === 0 ? (
@@ -686,7 +686,7 @@ const Collections = () => {
                     <div key={r.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-sm font-medium text-[#1A1A2E]">{r.subject}</p>
+                          <p className="text-sm font-medium text-[#17181A]">{r.subject}</p>
                           <p className="text-xs text-gray-500 mt-1">Para: {r.sent_to}</p>
                         </div>
                         <span className="text-xs text-gray-400">{formatDateTime(r.sent_at)}</span>
@@ -708,7 +708,7 @@ const Collections = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setMarkPaidInvoice(null)}>
             <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-[#1A1A2E]">Marcar como Pagada</h3>
+                <h3 className="text-lg font-bold text-[#17181A]">Marcar como Pagada</h3>
                 <button onClick={() => setMarkPaidInvoice(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
               </div>
               <p className="text-sm text-gray-600 mb-4">
@@ -744,7 +744,7 @@ const Collections = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-[#1A1A2E]">Cartera</h1>
+          <h1 className="text-2xl font-bold text-[#17181A]">Cartera</h1>
           <p className="text-sm text-gray-500 mt-1">Gestión de cobros y estados de cuenta</p>
         </div>
         <div className="flex gap-2">
@@ -774,31 +774,31 @@ const Collections = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
               <DollarSign size={20} className="text-blue-600" />
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider">Total Pendiente</p>
-              <p className="text-xl font-bold text-[#1A1A2E]">{formatCurrency(stats.total_amount)}</p>
+              <p className="text-xl font-bold text-[#17181A]">{formatCurrency(stats.total_amount)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center">
               <Clock size={20} className="text-yellow-600" />
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider">Facturas Pendientes</p>
-              <p className="text-xl font-bold text-[#1A1A2E]">{stats.total_invoices || 0}</p>
+              <p className="text-xl font-bold text-[#17181A]">{stats.total_invoices || 0}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
               <AlertTriangle size={20} className="text-red-600" />
@@ -810,23 +810,23 @@ const Collections = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
               <CheckCircle size={20} className="text-green-600" />
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider">Clientes por Cobrar</p>
-              <p className="text-xl font-bold text-[#1A1A2E]">{debtors.length}</p>
+              <p className="text-xl font-bold text-[#17181A]">{debtors.length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Client List */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+      <div className="glass-card overflow-hidden mb-6">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-[#1A1A2E]">Clientes con Saldo Pendiente</h2>
+          <h2 className="text-lg font-bold text-[#17181A]">Clientes con Saldo Pendiente</h2>
         </div>
 
         {debtors.length === 0 ? (
@@ -856,7 +856,7 @@ const Collections = () => {
                   {/* Client info */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => loadClientDetail(client.client_id)}>
                     <div className="flex items-center gap-3">
-                      <h3 className="text-sm font-semibold text-[#1A1A2E] truncate">{client.client_name}</h3>
+                      <h3 className="text-sm font-semibold text-[#17181A] truncate">{client.client_name}</h3>
                       {isOverdue && (
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                           {daysOverdue}d vencida
@@ -882,14 +882,14 @@ const Collections = () => {
 
                   {/* Amount */}
                   <div className="text-right w-36 shrink-0">
-                    <p className="text-lg font-bold text-[#1A1A2E]">{formatCurrency(client.total_owed)}</p>
+                    <p className="text-lg font-bold text-[#17181A]">{formatCurrency(client.total_owed)}</p>
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => openReminderModal(client)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1A2E] text-[#BFFF00] text-xs font-medium hover:bg-[#2D2D4E] transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#17181A] text-[#D7F653] text-xs font-medium hover:bg-[#2D2D4E] transition-colors"
                       title="Enviar estado de cuenta"
                     >
                       <Send size={14} />
@@ -897,7 +897,7 @@ const Collections = () => {
                     </button>
                     <button
                       onClick={() => loadClientDetail(client.client_id)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 transition-colors"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-[#17181A] hover:bg-gray-100 transition-colors"
                       title="Ver detalle"
                     >
                       <ChevronRight size={18} />
@@ -912,9 +912,9 @@ const Collections = () => {
 
       {/* Recently Paid */}
       {recentlyPaid.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-[#1A1A2E]">Pagos Recientes (30 dias)</h2>
+            <h2 className="text-lg font-bold text-[#17181A]">Pagos Recientes (30 dias)</h2>
           </div>
           <div className="divide-y divide-gray-50">
             {recentlyPaid.map((inv) => (
@@ -944,7 +944,7 @@ const Collections = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowHistory(false)}>
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-[#1A1A2E]">Historial de Recordatorios</h3>
+              <h3 className="text-lg font-bold text-[#17181A]">Historial de Recordatorios</h3>
               <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
@@ -956,12 +956,12 @@ const Collections = () => {
                     <div key={r.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-[#1A1A2E]">{r.client_name}</p>
+                          <p className="text-sm font-semibold text-[#17181A]">{r.client_name}</p>
                           <p className="text-xs text-gray-500 mt-1">{r.subject}</p>
                           <p className="text-xs text-gray-400 mt-0.5">Para: {r.sent_to}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-[#1A1A2E]">{formatCurrency(r.total_amount)}</p>
+                          <p className="text-sm font-bold text-[#17181A]">{formatCurrency(r.total_amount)}</p>
                           <p className="text-xs text-gray-400 mt-1">{formatDateTime(r.sent_at)}</p>
                         </div>
                       </div>
@@ -977,12 +977,12 @@ const Collections = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowScheduled(false)}>
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-[#1A1A2E]">Correos Programados</h3>
+              <h3 className="text-lg font-bold text-[#17181A]">Correos Programados</h3>
               <div className="flex items-center gap-2">
                 <button
                   onClick={retryScheduled}
                   disabled={processingScheduled}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1A1A2E] text-[#BFFF00] text-xs font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#17181A] text-[#D7F653] text-xs font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
                 >
                   <RefreshCw size={14} className={processingScheduled ? 'animate-spin' : ''} />
                   {processingScheduled ? 'Procesando...' : 'Reintentar fallidos'}
@@ -999,7 +999,7 @@ const Collections = () => {
                     <div key={s.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-[#1A1A2E]">{s.client_name}</p>
+                          <p className="text-sm font-semibold text-[#17181A]">{s.client_name}</p>
                           <p className="text-xs text-gray-500 mt-1">Para: {s.email_to}</p>
                           <p className="text-xs text-gray-400 mt-0.5">Programado: {formatDateTime(s.scheduled_for)}</p>
                           {s.error_message && <p className="text-xs text-red-500 mt-1">Error: {s.error_message}</p>}

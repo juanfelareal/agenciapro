@@ -9,7 +9,7 @@ function MetricCard({
   subtitle,
   value,
   icon: Icon,
-  iconBgColor = 'bg-[#BFFF00]/20',
+  iconBgColor = 'bg-[#D7F653]/20',
   iconColor = 'text-[#65A30D]',
   change = null,
   changeLabel = '',
@@ -19,7 +19,7 @@ function MetricCard({
   prefix = '',
   suffix = '',
   loading = false,
-  valueColor = 'text-[#1A1A2E]'
+  valueColor = 'text-[#17181A]'
 }) {
   // Format value based on type
   const formatValue = (val) => {
@@ -78,7 +78,7 @@ function MetricCard({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+      <div className="glass-card p-5 animate-pulse">
         <div className="flex items-center justify-between mb-4">
           <div className="h-4 bg-gray-200 rounded-lg w-24"></div>
           <div className="w-11 h-11 bg-gray-200 rounded-xl"></div>
@@ -90,7 +90,7 @@ function MetricCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 group hover:shadow-lg transition-all duration-200">
+    <div className="glass-card p-5 group hover:shadow-lg transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
         <div>
           <span className="text-xs font-medium uppercase tracking-wider text-gray-500">{title}</span>

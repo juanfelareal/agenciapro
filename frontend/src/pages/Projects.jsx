@@ -739,14 +739,14 @@ const Projects = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Proyectos</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Proyectos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de proyectos y presupuestos</p>
         </div>
         <div className="flex items-center gap-3">
           <select
             value={clientFilter}
             onChange={(e) => setClientFilter(e.target.value)}
-            className="border border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] bg-white"
+            className="border border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] bg-white"
           >
             <option value="">Todos los clientes</option>
             <option value="none">Sin cliente</option>
@@ -756,7 +756,7 @@ const Projects = () => {
           </select>
           <button
             onClick={handleNew}
-            className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+            className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
           >
             <Plus size={20} />
             Nuevo Proyecto
@@ -766,16 +766,16 @@ const Projects = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#BFFF00]/10 border border-[#BFFF00] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[#D7F653]/10 border border-[#D7F653] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-[#1A1A2E]" />
-            <span className="font-medium text-[#1A1A2E]">
+            <CheckSquare size={18} className="text-[#17181A]" />
+            <span className="font-medium text-[#17181A]">
               {selectedIds.size} proyecto{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-[#1A1A2E]/20" />
+          <div className="h-6 w-px bg-[#17181A]/20" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#1A1A2E]/70">Cliente:</span>
+            <span className="text-sm text-[#17181A]/70">Cliente:</span>
             <select
               onChange={(e) => handleBulkClientChange(e.target.value)}
               disabled={bulkUpdating}
@@ -791,7 +791,7 @@ const Projects = () => {
               ))}
             </select>
           </div>
-          <div className="h-6 w-px bg-[#1A1A2E]/20" />
+          <div className="h-6 w-px bg-[#17181A]/20" />
           <button
             onClick={handleBulkDelete}
             disabled={bulkUpdating}
@@ -802,27 +802,27 @@ const Projects = () => {
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-[#1A1A2E] hover:bg-[#1A1A2E]/10 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[#17181A] hover:bg-[#17181A]/10 rounded-lg"
           >
             Cancelar selección
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="px-3 py-3 text-center w-12">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-[#1A1A2E]"
+                  className="text-gray-500 hover:text-[#17181A]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-[#1A1A2E]" />
+                    <CheckSquare size={18} className="text-[#17181A]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-[#1A1A2E]" />
+                    <MinusSquare size={18} className="text-[#17181A]" />
                   ) : (
                     <Square size={18} />
                   )}
@@ -859,25 +859,25 @@ const Projects = () => {
               return (
               <Fragment key={project.id}>
               <tr
-                className={`hover:bg-gray-50 ${selectedIds.has(project.id) ? 'bg-[#BFFF00]/10' : ''}`}
+                className={`hover:bg-gray-50 ${selectedIds.has(project.id) ? 'bg-[#D7F653]/10' : ''}`}
               >
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(project.id)}
-                    className="text-gray-400 hover:text-[#1A1A2E]"
+                    className="text-gray-400 hover:text-[#17181A]"
                   >
                     {selectedIds.has(project.id) ? (
-                      <CheckSquare size={18} className="text-[#1A1A2E]" />
+                      <CheckSquare size={18} className="text-[#17181A]" />
                     ) : (
                       <Square size={18} />
                     )}
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#17181A]">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleExpand(project.id)}
-                      className="text-gray-400 hover:text-[#1A1A2E] p-0.5 rounded transition-colors"
+                      className="text-gray-400 hover:text-[#17181A] p-0.5 rounded transition-colors"
                       title={isExpanded ? 'Colapsar' : 'Desglosar tareas'}
                     >
                       {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -906,7 +906,7 @@ const Projects = () => {
                     <span className="text-xs text-gray-400">—</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#17181A]">
                   <button
                     onClick={() => toggleExpand(project.id)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
@@ -939,14 +939,14 @@ const Projects = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => navigate(`/app/projects/${project.id}`)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
+                    className="text-gray-400 hover:text-[#17181A] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
                     title="Ver tablero del proyecto"
                   >
                     <FolderKanban size={18} />
                   </button>
                   <button
                     onClick={() => handleEdit(project)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
+                    className="text-gray-400 hover:text-[#17181A] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
                   >
                     <Edit size={18} />
                   </button>
@@ -982,7 +982,7 @@ const Projects = () => {
                                 onClick={() => openEditTask(project, task)}
                                 title="Editar tarea"
                               >
-                                <td className="py-2 text-[#1A1A2E]">{task.title}</td>
+                                <td className="py-2 text-[#17181A]">{task.title}</td>
                                 <td className="py-2 text-gray-500">
                                   {task.due_date
                                     ? new Date(task.due_date).toLocaleDateString('es-CO', {
@@ -1009,7 +1009,7 @@ const Projects = () => {
                       )}
                       <button
                         onClick={() => openQuickTask(project)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#1A1A2E] bg-white border border-gray-200 rounded-lg hover:border-[#1A1A2E] hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#17181A] bg-white border border-gray-200 rounded-lg hover:border-[#17181A] hover:bg-gray-50 transition-colors"
                       >
                         <Plus size={14} />
                         Nueva tarea
@@ -1043,14 +1043,14 @@ const Projects = () => {
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-[#1A1A2E]">Eliminar proyecto</h2>
+                <h2 className="text-xl font-semibold text-[#17181A]">Eliminar proyecto</h2>
                 <button onClick={closeDeleteModal} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                   <X size={20} className="text-gray-500" />
                 </button>
               </div>
 
               <p className="text-sm text-gray-600 mb-4">
-                Vas a eliminar <span className="font-semibold text-[#1A1A2E]">{deletingProject.name}</span>.
+                Vas a eliminar <span className="font-semibold text-[#17181A]">{deletingProject.name}</span>.
                 {taskCount > 0
                   ? ` Tiene ${taskCount} tarea${taskCount === 1 ? '' : 's'}. ¿Qué quieres hacer con ${taskCount === 1 ? 'ella' : 'ellas'}?`
                   : ' Este proyecto no tiene tareas asociadas.'}
@@ -1068,13 +1068,13 @@ const Projects = () => {
                       className="mt-1"
                     />
                     <div className="flex-1">
-                      <div className="font-medium text-[#1A1A2E]">Mover las tareas a otro proyecto</div>
+                      <div className="font-medium text-[#17181A]">Mover las tareas a otro proyecto</div>
                       <div className="text-xs text-gray-500 mb-2">Se conservan todas las tareas, solo cambian de proyecto.</div>
                       {deleteAction === 'move' && (
                         <select
                           value={moveTargetId}
                           onChange={(e) => setMoveTargetId(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                         >
                           <option value="">Selecciona un proyecto destino…</option>
                           {otherProjects.map((p) => (
@@ -1136,7 +1136,7 @@ const Projects = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingTaskId ? 'Editar tarea' : 'Nueva tarea'}
               </h2>
               <button onClick={closeQuickTask} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1153,7 +1153,7 @@ const Projects = () => {
                   onChange={(e) => setQuickTaskForm({ ...quickTaskForm, title: e.target.value })}
                   required
                   autoFocus
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                   placeholder="Ej. Diseñar landing"
                 />
               </div>
@@ -1166,7 +1166,7 @@ const Projects = () => {
                     <select
                       value={quickTaskForm.project_id || ''}
                       onChange={(e) => setQuickTaskForm({ ...quickTaskForm, project_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                     >
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -1188,7 +1188,7 @@ const Projects = () => {
                     type="date"
                     value={quickTaskForm.due_date}
                     onChange={(e) => setQuickTaskForm({ ...quickTaskForm, due_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -1196,7 +1196,7 @@ const Projects = () => {
                   <select
                     value={quickTaskForm.priority}
                     onChange={(e) => setQuickTaskForm({ ...quickTaskForm, priority: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                   >
                     <option value="low">Baja</option>
                     <option value="medium">Media</option>
@@ -1212,7 +1212,7 @@ const Projects = () => {
                   <select
                     value={quickTaskForm.status}
                     onChange={(e) => setQuickTaskForm({ ...quickTaskForm, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                   >
                     <option value="todo">Por hacer</option>
                     <option value="in_progress">En progreso</option>
@@ -1231,7 +1231,7 @@ const Projects = () => {
                         assignee_ids: v ? [Number(v)] : [],
                       });
                     }}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                   >
                     <option value="">Sin asignar</option>
                     {teamMembers.map((m) => (
@@ -1284,7 +1284,7 @@ const Projects = () => {
                         value={quickTaskForm.delivery_url}
                         onChange={(e) => setQuickTaskForm({ ...quickTaskForm, delivery_url: e.target.value })}
                         placeholder="https://drive.google.com/..."
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                       />
                     </div>
                     {taskFilesList.length === 0 && !(quickTaskForm.delivery_url || '').trim() && (
@@ -1357,13 +1357,13 @@ const Projects = () => {
                         const customTitle = f.file_name && f.file_name !== f.file_path ? f.file_name : null;
                         if (isEditing) {
                           return (
-                            <div key={f.id} className="p-3 border border-[#1A1A2E] rounded-xl bg-white space-y-2">
+                            <div key={f.id} className="p-3 border border-[#17181A] rounded-xl bg-white space-y-2">
                               <input
                                 type="text"
                                 value={editingFileTitle}
                                 onChange={(e) => setEditingFileTitle(e.target.value)}
                                 placeholder="Título"
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                                 autoFocus
                               />
                               <textarea
@@ -1371,7 +1371,7 @@ const Projects = () => {
                                 onChange={(e) => setEditingFileDescription(e.target.value)}
                                 placeholder="Descripción para el cliente (opcional)"
                                 rows={2}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent resize-none"
+                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent resize-none"
                               />
                               <div className="flex justify-end gap-2">
                                 <button
@@ -1386,7 +1386,7 @@ const Projects = () => {
                                   type="button"
                                   onClick={saveEditFile}
                                   disabled={savingFileEdit}
-                                  className="px-3 py-1.5 text-xs bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E]/90 disabled:opacity-50 inline-flex items-center gap-1"
+                                  className="px-3 py-1.5 text-xs bg-[#17181A] text-white rounded-lg hover:bg-[#17181A]/90 disabled:opacity-50 inline-flex items-center gap-1"
                                 >
                                   {savingFileEdit ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                                   Guardar
@@ -1406,7 +1406,7 @@ const Projects = () => {
                               ) : (
                                 <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{embed?.label || 'Link'}</p>
                               )}
-                              <p className={`text-sm font-medium ${isLegacyFile ? 'text-gray-400' : 'text-[#1A1A2E]'}`}>
+                              <p className={`text-sm font-medium ${isLegacyFile ? 'text-gray-400' : 'text-[#17181A]'}`}>
                                 {customTitle || (isLegacyFile ? f.file_name : (embed?.label || 'Link'))}
                               </p>
                               {f.description && (
@@ -1428,7 +1428,7 @@ const Projects = () => {
                               <button
                                 type="button"
                                 onClick={() => startEditFile(f)}
-                                className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                                className="p-1.5 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                                 title="Editar título y descripción"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -1439,7 +1439,7 @@ const Projects = () => {
                                 href={f.file_path}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                                className="p-1.5 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                                 title="Abrir"
                               >
                                 <ExternalLink className="w-4 h-4" />
@@ -1464,7 +1464,7 @@ const Projects = () => {
                       value={newDeliverableTitle}
                       onChange={(e) => setNewDeliverableTitle(e.target.value)}
                       placeholder="Título (ej: Pieza para correo de bienvenida)"
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                       disabled={addingLink}
                     />
                     <textarea
@@ -1472,7 +1472,7 @@ const Projects = () => {
                       onChange={(e) => setNewDeliverableDescription(e.target.value)}
                       placeholder="Descripción para el cliente (opcional)"
                       rows={2}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent resize-none"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent resize-none"
                       disabled={addingLink}
                     />
                     <div className="flex gap-2">
@@ -1487,14 +1487,14 @@ const Projects = () => {
                           }
                         }}
                         placeholder="https://drive.google.com/file/d/... o link de Figma, Loom, YouTube…"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                         disabled={addingLink}
                       />
                       <button
                         type="button"
                         onClick={handleAddDeliverableLink}
                         disabled={addingLink || !newDeliverableUrl.trim()}
-                        className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 disabled:opacity-50 inline-flex items-center gap-1.5"
+                        className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 disabled:opacity-50 inline-flex items-center gap-1.5"
                       >
                         {addingLink ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                         Agregar
@@ -1509,7 +1509,7 @@ const Projects = () => {
               {editingTaskId && (
                 <div className="border-t border-gray-100 pt-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-[#1A1A2E]">Comentarios</h3>
+                    <h3 className="text-sm font-semibold text-[#17181A]">Comentarios</h3>
                     <span className="text-xs text-gray-400">{taskComments.length}</span>
                   </div>
                   {loadingTaskComments ? (
@@ -1528,7 +1528,7 @@ const Projects = () => {
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-[#1A1A2E] text-xs">{c.user_name || 'Anónimo'}</span>
+                            <span className="font-medium text-[#17181A] text-xs">{c.user_name || 'Anónimo'}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               c.author_type === 'client' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
                             }`}>
@@ -1549,12 +1549,12 @@ const Projects = () => {
                       value={newCommentText}
                       onChange={(e) => setNewCommentText(e.target.value)}
                       placeholder="Escribe un comentario para el cliente o el equipo…"
-                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
                     />
                     <button
                       type="submit"
                       disabled={postingComment || !newCommentText.trim()}
-                      className="px-3 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50"
+                      className="px-3 py-2 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 transition-colors disabled:opacity-50"
                     >
                       {postingComment ? '…' : 'Enviar'}
                     </button>
@@ -1586,7 +1586,7 @@ const Projects = () => {
                   <button
                     type="submit"
                     disabled={creatingTask || !quickTaskForm.title.trim()}
-                    className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                    className="px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
                   >
                     {creatingTask && <Loader2 size={16} className="animate-spin" />}
                     {editingTaskId ? 'Guardar cambios' : 'Crear tarea'}
@@ -1602,7 +1602,7 @@ const Projects = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1642,7 +1642,7 @@ const Projects = () => {
                     <button
                       type="button"
                       onClick={handleCreateStage}
-                      className="text-xs text-[#1A1A2E] hover:underline"
+                      className="text-xs text-[#17181A] hover:underline"
                     >
                       + Nueva etapa
                     </button>
@@ -1711,7 +1711,7 @@ const Projects = () => {
                     </div>
 
                     {useTemplate && (
-                      <div className="bg-[#1A1A2E]/5 p-4 rounded-xl">
+                      <div className="bg-[#17181A]/5 p-4 rounded-xl">
                         {/* Source Selector */}
                         <div className="flex gap-2 mb-4">
                           <button
@@ -1723,7 +1723,7 @@ const Projects = () => {
                             }}
                             className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                               templateSource === 'template'
-                                ? 'bg-[#1A1A2E] text-white'
+                                ? 'bg-[#17181A] text-white'
                                 : 'bg-white border border-gray-100 hover:bg-gray-50'
                             }`}
                           >
@@ -1739,7 +1739,7 @@ const Projects = () => {
                             }}
                             className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                               templateSource === 'project'
-                                ? 'bg-[#1A1A2E] text-white'
+                                ? 'bg-[#17181A] text-white'
                                 : 'bg-white border border-gray-100 hover:bg-gray-50'
                             }`}
                           >
@@ -1754,7 +1754,7 @@ const Projects = () => {
                             <label className="block text-sm font-medium mb-1">Seleccionar plantilla</label>
                             {templates.length === 0 ? (
                               <p className="text-sm text-gray-600 bg-white p-3 rounded-xl border border-gray-100">
-                                No hay plantillas disponibles. <a href="/plantillas-proyecto" className="text-[#1A1A2E] font-medium hover:underline">Crear una plantilla</a>
+                                No hay plantillas disponibles. <a href="/plantillas-proyecto" className="text-[#17181A] font-medium hover:underline">Crear una plantilla</a>
                               </p>
                             ) : (
                               <select
@@ -1815,11 +1815,11 @@ const Projects = () => {
                                     className="bg-white p-2 rounded-xl border border-gray-100 text-sm"
                                   >
                                     <div className="flex justify-between items-center mb-2">
-                                      <span className="font-medium text-[#1A1A2E]">{task.title}</span>
+                                      <span className="font-medium text-[#17181A]">{task.title}</span>
                                       <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
                                         task.priority === 'urgent' ? 'bg-red-100 text-red-600' :
                                         task.priority === 'high' ? 'bg-[#F97316]/10 text-[#F97316]' :
-                                        task.priority === 'medium' ? 'bg-[#1A1A2E]/10 text-[#1A1A2E]' :
+                                        task.priority === 'medium' ? 'bg-[#17181A]/10 text-[#17181A]' :
                                         'bg-gray-100 text-gray-600'
                                       }`}>
                                         {task.priority}
@@ -1874,7 +1874,7 @@ const Projects = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
                 >
                   Guardar
                 </button>
@@ -1887,8 +1887,8 @@ const Projects = () => {
       {/* Deliverable prompt — second step after confirming approval */}
       {deliverablePrompt && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-1">Entregable para el cliente</h3>
+          <div className="glass-solid rounded-2xl shadow-glass-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-[#17181A] mb-1">Entregable para el cliente</h3>
             <p className="text-sm text-gray-500 mb-5">
               Pega el link del entregable (Drive, Figma, Loom, YouTube, etc.). El cliente verá la previsualización embebida en su portal.
             </p>
@@ -1900,7 +1900,7 @@ const Projects = () => {
                 value={deliverableLink}
                 onChange={(e) => setDeliverableLink(e.target.value)}
                 placeholder="https://drive.google.com/file/d/..."
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#1A1A2E] focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent text-sm"
                 autoFocus
               />
               <p className="text-xs text-gray-400 mt-1.5">Tip: en Drive, asegúrate de poner "cualquier persona con el enlace puede ver".</p>
@@ -1919,7 +1919,7 @@ const Projects = () => {
                 type="button"
                 onClick={submitDeliverableAndApprove}
                 disabled={submittingDeliverable || !deliverableLink.trim()}
-                className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {submittingDeliverable && <Loader2 className="w-4 h-4 animate-spin" />}
                 Enviar al cliente
@@ -1932,8 +1932,8 @@ const Projects = () => {
       {/* Approval prompt — shown when marking a task as Completada from quick modal */}
       {doneApprovalPrompt && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-2">
+          <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-[#17181A] mb-2">
               ¿Necesita aprobación del cliente?
             </h3>
             <p className="text-sm text-gray-600 mb-5">
@@ -1950,7 +1950,7 @@ const Projects = () => {
               <button
                 type="button"
                 onClick={confirmDoneWithApproval}
-                className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-xl hover:bg-[#1A1A2E]/90 transition-colors"
+                className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 transition-colors"
               >
                 Sí, pedir aprobación al cliente
               </button>

@@ -395,7 +395,7 @@ const SharedNoteView = () => {
               ) : (
                 <button
                   onClick={handleStartEditing}
-                  className="px-3 py-1.5 text-sm bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 text-sm bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors flex items-center gap-1"
                 >
                   <Edit3 size={14} />
                   Editar
@@ -439,7 +439,7 @@ const SharedNoteView = () => {
             )}
 
             {/* Note content */}
-            <div ref={contentRef} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+            <div ref={contentRef} className="glass rounded-xl overflow-hidden shadow-sm">
               {tabbedView && !isEditing && parsedContent ? (
                 <div className="p-6">
                   <TabbedNoteView content={parsedContent} />

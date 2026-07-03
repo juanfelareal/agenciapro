@@ -70,8 +70,8 @@ const Landing = () => {
 
   // Orbit Logo SVG Component — matches app design system
   const OrbitLogoIcon = ({ size = 40, variant = 'dark' }) => {
-    const color = variant === 'light' ? '#FFFFFF' : '#1A1A2E';
-    const accent = '#BFFF00';
+    const color = variant === 'light' ? '#FFFFFF' : '#17181A';
+    const accent = '#D7F653';
 
     return (
       <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -85,7 +85,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen app-mist">
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Background Gradients */}
@@ -93,7 +93,7 @@ const Landing = () => {
           className="absolute inset-0 pointer-events-none"
           style={{
             background: `
-              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(191, 255, 0, 0.08) 0%, transparent 50%),
+              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(215, 246, 83, 0.08) 0%, transparent 50%),
               radial-gradient(ellipse 60% 40% at 80% 60%, rgba(26, 26, 46, 0.04) 0%, transparent 50%)
             `,
           }}
@@ -103,11 +103,11 @@ const Landing = () => {
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
             className="absolute w-96 h-96 rounded-full border opacity-[0.04]"
-            style={{ top: '10%', right: '-10%', borderColor: '#1A1A2E', borderWidth: '2px' }}
+            style={{ top: '10%', right: '-10%', borderColor: '#17181A', borderWidth: '2px' }}
           />
           <div
             className="absolute w-64 h-64 rounded-full border opacity-[0.06] hidden md:block"
-            style={{ bottom: '20%', left: '-5%', borderColor: '#BFFF00', borderWidth: '2px' }}
+            style={{ bottom: '20%', left: '-5%', borderColor: '#D7F653', borderWidth: '2px' }}
           />
         </div>
 
@@ -116,22 +116,22 @@ const Landing = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <OrbitLogoIcon size={36} variant="dark" />
-              <span className="text-xl font-semibold tracking-tight text-[#1A1A2E]" style={{ letterSpacing: '-0.02em' }}>
+              <span className="text-xl font-semibold tracking-tight text-[#17181A]" style={{ letterSpacing: '-0.02em' }}>
                 Orbit
               </span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm font-medium text-gray-500 hover:text-[#1A1A2E] transition-colors">
+              <a href="#features" className="text-sm font-medium text-gray-500 hover:text-[#17181A] transition-colors">
                 Funciones
               </a>
-              <a href="#faq" className="text-sm font-medium text-gray-500 hover:text-[#1A1A2E] transition-colors">
+              <a href="#faq" className="text-sm font-medium text-gray-500 hover:text-[#17181A] transition-colors">
                 FAQ
               </a>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 to="/login"
-                className="text-sm font-medium px-3 py-2 sm:px-4 rounded-xl text-[#1A1A2E] transition-all duration-150 hover:bg-gray-100"
+                className="text-sm font-medium px-3 py-2 sm:px-4 rounded-xl text-[#17181A] transition-all duration-150 hover:bg-gray-100"
               >
                 Iniciar sesión
               </Link>
@@ -156,7 +156,7 @@ const Landing = () => {
 
             {/* Headline */}
             <h1
-              className="text-4xl md:text-6xl lg:text-7xl font-semibold text-[#1A1A2E] mb-5 md:mb-6"
+              className="text-4xl md:text-6xl lg:text-7xl font-semibold text-[#17181A] mb-5 md:mb-6"
               style={{ letterSpacing: '-0.03em', lineHeight: '1.05' }}
             >
               Tu negocio
@@ -181,7 +181,7 @@ const Landing = () => {
               </Link>
               <a
                 href="#features"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-medium px-8 py-3.5 md:py-4 rounded-xl bg-white border border-gray-200 text-[#1A1A2E] transition-all duration-150 hover:border-gray-300 hover:shadow-sm"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-medium px-8 py-3.5 md:py-4 rounded-xl bg-white border border-gray-200 text-[#17181A] transition-all duration-150 hover:border-gray-300 hover:shadow-sm"
               >
                 Ver cómo funciona
                 <ChevronRight size={18} />
@@ -197,7 +197,7 @@ const Landing = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-3xl mx-auto">
               {stats.map((stat, index) => (
                 <div key={index} className="text-center">
-                  <div className="text-2xl md:text-4xl font-bold text-[#1A1A2E] mb-0.5" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-2xl md:text-4xl font-bold text-[#17181A] mb-0.5" style={{ letterSpacing: '-0.02em' }}>
                     {stat.value}
                   </div>
                   <div className="text-xs md:text-sm text-gray-500">{stat.label}</div>
@@ -209,7 +209,7 @@ const Landing = () => {
 
         {/* App Preview */}
         <div className="relative z-10 max-w-6xl mx-auto px-5 pb-6 md:px-6 md:pb-12">
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden" style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)' }}>
+          <div className="glass-card overflow-hidden" style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)' }}>
             <div className="p-1.5 md:p-2">
               <div className="rounded-xl overflow-hidden bg-[#F8F9FA]">
                 {/* Mock Dashboard */}
@@ -218,7 +218,7 @@ const Landing = () => {
                   <div className="w-48 p-3 hidden md:block bg-white border-r border-gray-100">
                     <div className="flex items-center gap-2.5 mb-5">
                       <OrbitLogoIcon size={28} variant="dark" />
-                      <span className="font-semibold text-sm text-[#1A1A2E]">Orbit</span>
+                      <span className="font-semibold text-sm text-[#17181A]">Orbit</span>
                     </div>
                     <div className="space-y-1">
                       {['Dashboard', 'Clientes', 'Proyectos', 'Tareas', 'Facturas', 'Reportes'].map((item, i) => (
@@ -226,8 +226,8 @@ const Landing = () => {
                           key={item}
                           className="px-3 py-2 rounded-xl text-sm"
                           style={{
-                            background: i === 0 ? '#1A1A2E' : 'transparent',
-                            color: i === 0 ? '#BFFF00' : '#6B7280',
+                            background: i === 0 ? '#17181A' : 'transparent',
+                            color: i === 0 ? '#D7F653' : '#6B7280',
                           }}
                         >
                           {item}
@@ -238,7 +238,7 @@ const Landing = () => {
                   {/* Content Mock */}
                   <div className="flex-1 p-4 md:p-6">
                     <div className="mb-4 md:mb-5">
-                      <h3 className="text-base md:text-lg font-semibold mb-0.5 text-[#1A1A2E]">Dashboard</h3>
+                      <h3 className="text-base md:text-lg font-semibold mb-0.5 text-[#17181A]">Dashboard</h3>
                       <p className="text-xs md:text-sm text-gray-500">Resumen general de tu negocio</p>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-5">
@@ -250,7 +250,7 @@ const Landing = () => {
                       ].map((metric, i) => (
                         <div key={i} className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white border border-gray-100">
                           <div className="flex items-end justify-between mb-0.5">
-                            <span className="text-lg md:text-2xl font-semibold text-[#1A1A2E]">{metric.value}</span>
+                            <span className="text-lg md:text-2xl font-semibold text-[#17181A]">{metric.value}</span>
                             <span className={`text-[10px] md:text-xs font-medium ${metric.trend.startsWith('+') ? 'text-green-500' : 'text-amber-500'}`}>
                               {metric.trend}
                             </span>
@@ -268,7 +268,7 @@ const Landing = () => {
                             className="flex-1 rounded-t-md md:rounded-t-lg transition-all duration-500"
                             style={{
                               height: `${h}%`,
-                              background: i === 11 ? '#BFFF00' : `rgba(191, 255, 0, ${0.15 + (h / 300)})`,
+                              background: i === 11 ? '#D7F653' : `rgba(215, 246, 83, ${0.15 + (h / 300)})`,
                             }}
                           />
                         ))}
@@ -286,7 +286,7 @@ const Landing = () => {
       <section className="py-14 md:py-20">
         <div className="max-w-7xl mx-auto px-5 md:px-6">
           <div className="text-center mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-5xl font-semibold text-[#1A1A2E] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
+            <h2 className="text-2xl md:text-5xl font-semibold text-[#17181A] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
               ¿Suena familiar?
             </h2>
             <p className="text-base md:text-lg max-w-2xl mx-auto text-gray-500">
@@ -302,7 +302,7 @@ const Landing = () => {
             ].map((pain, index) => (
               <div key={index} className="p-5 md:p-6 rounded-2xl bg-white border border-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <div className="text-2xl md:text-3xl mb-2 md:mb-3">{pain.emoji}</div>
-                <h3 className="text-base md:text-lg font-semibold mb-1.5 md:mb-2 text-[#1A1A2E]">{pain.title}</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-1.5 md:mb-2 text-[#17181A]">{pain.title}</h3>
                 <p className="text-sm text-gray-500">{pain.description}</p>
               </div>
             ))}
@@ -314,7 +314,7 @@ const Landing = () => {
       <section id="features" className="py-14 md:py-20 relative">
         <div className="relative z-10 max-w-7xl mx-auto px-5 md:px-6">
           <div className="text-center mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-5xl font-semibold text-[#1A1A2E] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
+            <h2 className="text-2xl md:text-5xl font-semibold text-[#17181A] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
               Todo lo que necesitas
               <br />
               <span className="text-[#65A30D]">en una sola órbita</span>
@@ -332,14 +332,14 @@ const Landing = () => {
                 <div
                   key={index}
                   className={`p-5 md:p-6 rounded-2xl transition-all duration-300 cursor-pointer bg-white border ${
-                    activeFeature === index ? 'border-[#BFFF00] shadow-lg -translate-y-1' : 'border-gray-100 hover:border-gray-200'
+                    activeFeature === index ? 'border-[#D7F653] shadow-lg -translate-y-1' : 'border-gray-100 hover:border-gray-200'
                   }`}
                   onMouseEnter={() => setActiveFeature(index)}
                 >
                   <div className={`w-10 h-10 md:w-11 md:h-11 ${feature.iconBg} rounded-xl flex items-center justify-center mb-3 md:mb-4`}>
                     <Icon size={20} className={feature.iconColor} />
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold mb-1.5 md:mb-2 text-[#1A1A2E]" style={{ letterSpacing: '-0.01em' }}>
+                  <h3 className="text-base md:text-lg font-semibold mb-1.5 md:mb-2 text-[#17181A]" style={{ letterSpacing: '-0.01em' }}>
                     {feature.title}
                   </h3>
                   <p className="text-sm leading-relaxed text-gray-500">{feature.description}</p>
@@ -364,7 +364,7 @@ const Landing = () => {
               return (
                 <div key={index} className="flex items-center gap-2.5 p-3 md:p-4 rounded-xl bg-white border border-gray-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
                   <Icon size={16} className="text-[#65A30D] flex-shrink-0" />
-                  <span className="text-xs md:text-sm font-medium text-[#1A1A2E]">{item.text}</span>
+                  <span className="text-xs md:text-sm font-medium text-[#17181A]">{item.text}</span>
                 </div>
               );
             })}
@@ -373,9 +373,9 @@ const Landing = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-14 md:py-20 relative overflow-hidden bg-[#1A1A2E]">
+      <section className="py-14 md:py-20 relative overflow-hidden bg-[#17181A]">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute w-[600px] h-[600px] rounded-full border opacity-10 hidden md:block" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', borderColor: '#BFFF00', borderWidth: '1px' }} />
+          <div className="absolute w-[600px] h-[600px] rounded-full border opacity-10 hidden md:block" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', borderColor: '#D7F653', borderWidth: '1px' }} />
           <div className="absolute w-[400px] h-[400px] rounded-full border opacity-10 hidden md:block" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(30deg)', borderColor: '#FFFFFF', borderWidth: '1px' }} />
         </div>
 
@@ -383,7 +383,7 @@ const Landing = () => {
           <div className="text-center mb-10 md:mb-14">
             <h2 className="text-2xl md:text-5xl font-semibold text-white mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
               ¿Cómo funciona
-              {' '}<span className="text-[#BFFF00]">Orbit?</span>
+              {' '}<span className="text-[#D7F653]">Orbit?</span>
             </h2>
             <p className="text-base md:text-lg max-w-2xl mx-auto text-white/60">
               Tres pasos para poner tu negocio en órbita. Sin complicaciones.
@@ -397,8 +397,8 @@ const Landing = () => {
               { step: '03', title: 'Trabaja mejor', description: 'Todo conectado, automático. Enfócate en lo que importa: hacer crecer tu negocio.' },
             ].map((item, index) => (
               <div key={index} className="text-center">
-                <div className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-2xl mb-4 md:mb-6" style={{ background: 'rgba(191, 255, 0, 0.15)', border: '1px solid rgba(191, 255, 0, 0.3)' }}>
-                  <span className="text-xl md:text-2xl font-semibold text-[#BFFF00]">{item.step}</span>
+                <div className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-2xl mb-4 md:mb-6" style={{ background: 'rgba(215, 246, 83, 0.15)', border: '1px solid rgba(215, 246, 83, 0.3)' }}>
+                  <span className="text-xl md:text-2xl font-semibold text-[#D7F653]">{item.step}</span>
                 </div>
                 <h3 className="text-lg md:text-xl font-semibold text-white mb-2 md:mb-3">{item.title}</h3>
                 <p className="text-sm md:text-base text-white/60">{item.description}</p>
@@ -412,7 +412,7 @@ const Landing = () => {
       <section className="py-14 md:py-20 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-5 md:px-6">
           <div className="text-center mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-5xl font-semibold text-[#1A1A2E] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
+            <h2 className="text-2xl md:text-5xl font-semibold text-[#17181A] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
               ¿Para quién es{' '}
               <span className="text-[#65A30D]">Orbit?</span>
             </h2>
@@ -420,7 +420,7 @@ const Landing = () => {
           <div className="grid md:grid-cols-2 gap-5 md:gap-8 max-w-5xl mx-auto">
             <div className="p-6 md:p-8 rounded-2xl bg-white border border-gray-100">
               <div className="text-3xl md:text-4xl mb-3 md:mb-4">🚀</div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-[#1A1A2E]">Agencias Digitales</h3>
+              <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-[#17181A]">Agencias Digitales</h3>
               <p className="text-sm mb-4 text-gray-500">
                 Marketing, diseño, desarrollo, consultoría. Si manejas múltiples clientes y proyectos, Orbit es tu centro de control.
               </p>
@@ -428,14 +428,14 @@ const Landing = () => {
                 {['CRM + Proyectos + Facturación', 'Control de horas y rentabilidad', 'Portal para tus clientes', 'Facturación automática'].map((item, i) => (
                   <li key={i} className="flex items-center gap-2">
                     <Check size={14} className="text-[#65A30D] flex-shrink-0" />
-                    <span className="text-sm text-[#1A1A2E]">{item}</span>
+                    <span className="text-sm text-[#17181A]">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="p-6 md:p-8 rounded-2xl bg-white border border-gray-100">
               <div className="text-3xl md:text-4xl mb-3 md:mb-4">🏢</div>
-              <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-[#1A1A2E]">Equipos y Empresas</h3>
+              <h3 className="text-lg md:text-xl font-semibold mb-2 md:mb-3 text-[#17181A]">Equipos y Empresas</h3>
               <p className="text-sm mb-4 text-gray-500">
                 Startups, PyMEs, departamentos internos. Si necesitas organizar proyectos y equipos, Orbit te simplifica la vida.
               </p>
@@ -443,7 +443,7 @@ const Landing = () => {
                 {['Tareas Kanban y calendario', 'Asignaciones y carga de trabajo', 'Dashboard con métricas reales', 'Colaboración sin fricciones'].map((item, i) => (
                   <li key={i} className="flex items-center gap-2">
                     <Check size={14} className="text-[#65A30D] flex-shrink-0" />
-                    <span className="text-sm text-[#1A1A2E]">{item}</span>
+                    <span className="text-sm text-[#17181A]">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -456,7 +456,7 @@ const Landing = () => {
       <section id="faq" className="py-14 md:py-20">
         <div className="max-w-3xl mx-auto px-5 md:px-6">
           <div className="text-center mb-10 md:mb-14">
-            <h2 className="text-2xl md:text-5xl font-semibold text-[#1A1A2E] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
+            <h2 className="text-2xl md:text-5xl font-semibold text-[#17181A] mb-3 md:mb-4" style={{ letterSpacing: '-0.02em' }}>
               Preguntas{' '}
               <span className="text-[#65A30D]">frecuentes</span>
             </h2>
@@ -475,7 +475,7 @@ const Landing = () => {
                   onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
                   className="w-full flex items-center justify-between p-4 md:p-5 text-left"
                 >
-                  <span className="font-medium text-sm md:text-base text-[#1A1A2E] pr-4">{faq.q}</span>
+                  <span className="font-medium text-sm md:text-base text-[#17181A] pr-4">{faq.q}</span>
                   <ChevronDown
                     size={20}
                     className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${openFAQ === index ? 'rotate-180' : ''}`}
@@ -494,13 +494,13 @@ const Landing = () => {
 
       {/* CTA Section */}
       <section className="py-14 md:py-20 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(191, 255, 0, 0.06) 0%, transparent 50%)' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(215, 246, 83, 0.06) 0%, transparent 50%)' }} />
 
         <div className="relative z-10 max-w-4xl mx-auto px-5 md:px-6 text-center">
           <div className="inline-flex mb-6 md:mb-8">
             <OrbitLogoIcon size={56} variant="dark" />
           </div>
-          <h2 className="text-2xl md:text-5xl font-semibold text-[#1A1A2E] mb-4 md:mb-6" style={{ letterSpacing: '-0.02em' }}>
+          <h2 className="text-2xl md:text-5xl font-semibold text-[#17181A] mb-4 md:mb-6" style={{ letterSpacing: '-0.02em' }}>
             ¿Listo para dejar{' '}
             <span className="text-[#65A30D]">el caos atrás?</span>
           </h2>
@@ -517,7 +517,7 @@ const Landing = () => {
             </Link>
             <a
               href="#features"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-medium px-8 py-3.5 md:py-4 rounded-xl bg-white border border-gray-200 text-[#1A1A2E] transition-all duration-150 hover:border-gray-300 hover:shadow-sm"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-medium px-8 py-3.5 md:py-4 rounded-xl bg-white border border-gray-200 text-[#17181A] transition-all duration-150 hover:border-gray-300 hover:shadow-sm"
             >
               Ver cómo funciona
               <ChevronRight size={18} />
@@ -527,7 +527,7 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 md:py-16 bg-[#1A1A2E]">
+      <footer className="py-12 md:py-16 bg-[#17181A]">
         <div className="max-w-7xl mx-auto px-5 md:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-10 md:mb-12">
             <div className="col-span-2 md:col-span-1">
@@ -544,7 +544,7 @@ const Landing = () => {
               <ul className="space-y-2">
                 {['Funciones', 'Changelog'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-sm text-white/60 hover:text-[#BFFF00] transition-colors">{item}</a>
+                    <a href="#" className="text-sm text-white/60 hover:text-[#D7F653] transition-colors">{item}</a>
                   </li>
                 ))}
               </ul>
@@ -554,7 +554,7 @@ const Landing = () => {
               <ul className="space-y-2">
                 {['Documentación', 'Blog', 'Guías', 'Soporte'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-sm text-white/60 hover:text-[#BFFF00] transition-colors">{item}</a>
+                    <a href="#" className="text-sm text-white/60 hover:text-[#D7F653] transition-colors">{item}</a>
                   </li>
                 ))}
               </ul>
@@ -564,7 +564,7 @@ const Landing = () => {
               <ul className="space-y-2">
                 {['Privacidad', 'Términos', 'Cookies'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-sm text-white/60 hover:text-[#BFFF00] transition-colors">{item}</a>
+                    <a href="#" className="text-sm text-white/60 hover:text-[#D7F653] transition-colors">{item}</a>
                   </li>
                 ))}
               </ul>
@@ -574,7 +574,7 @@ const Landing = () => {
             <p className="text-sm text-white/40">© 2026 Orbit. Todos los derechos reservados.</p>
             <div className="flex items-center gap-2">
               <span className="text-sm text-white/40">Hecho con</span>
-              <span className="text-[#BFFF00]">♥</span>
+              <span className="text-[#D7F653]">♥</span>
               <span className="text-sm text-white/40">en LATAM</span>
             </div>
           </div>

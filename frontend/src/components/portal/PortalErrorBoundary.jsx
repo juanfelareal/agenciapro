@@ -32,7 +32,7 @@ export default class PortalErrorBoundary extends Component {
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
-            <h2 className="text-xl font-semibold text-[#1A1A2E] mb-2">Algo salio mal</h2>
+            <h2 className="text-xl font-semibold text-[#17181A] mb-2">Algo salio mal</h2>
             <p className="text-gray-500 mb-6">
               Ocurrio un error inesperado. Intenta recargar la pagina o cierra sesion e ingresa de nuevo.
             </p>
@@ -40,7 +40,7 @@ export default class PortalErrorBoundary extends Component {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReload}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl
                          hover:bg-gray-800 transition-colors font-medium"
               >
                 <RefreshCw className="w-4 h-4" />

@@ -135,7 +135,7 @@ function MetricsTable({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="glass rounded-xl p-4">
         {title && <div className="h-6 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>}
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -147,7 +147,7 @@ function MetricsTable({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="glass rounded-xl overflow-hidden">
       {/* Header */}
       {title && (
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">

@@ -67,7 +67,7 @@ const EntityPreviewCard = ({ type, id }) => {
   return (
     <>
       <button onClick={() => setShowDetail(true)} className="block mt-1.5 w-full text-left group/card">
-        <div className="p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer">
+        <div className="p-3 glass-solid rounded-xl hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer">
           <div className="flex items-start gap-2.5">
             <div className={`p-1.5 ${accentBg} rounded-lg flex-shrink-0 mt-0.5`}>
               <Icon size={14} className={accentText} />
@@ -204,7 +204,7 @@ const MessageBubble = ({ message, isOwn, showSender, apiBase = '' }) => {
         <div
           className={`px-3 py-2 rounded-2xl ${
             isOwn
-              ? 'bg-[#1A1A2E] text-white rounded-br-md'
+              ? 'bg-[#17181A] text-white rounded-br-md'
               : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
           }`}
         >

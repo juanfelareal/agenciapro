@@ -119,7 +119,7 @@ export default function GrowthDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1A1A2E]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#17181A]" />
       </div>
     );
   }
@@ -151,14 +151,14 @@ export default function GrowthDashboard() {
           <button onClick={() => changePeriod(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <ChevronLeft className="w-5 h-5 text-gray-500" />
           </button>
-          <span className="text-lg font-semibold text-[#1A1A2E] min-w-[160px] text-center">{getPeriodLabel(period)}</span>
+          <span className="text-lg font-semibold text-[#17181A] min-w-[160px] text-center">{getPeriodLabel(period)}</span>
           <button onClick={() => changePeriod(1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <ChevronRight className="w-5 h-5 text-gray-500" />
           </button>
         </div>
         <button
           onClick={() => setShowAddClient(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors text-sm"
         >
           <Plus className="w-4 h-4" /> Agregar cliente
         </button>
@@ -192,12 +192,12 @@ export default function GrowthDashboard() {
           <Zap className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">No hay clientes Growth configurados</p>
           <p className="text-sm text-gray-400 mt-1">Agrega clientes para comenzar a hacer seguimiento</p>
-          <button onClick={() => setShowAddClient(true)} className="mt-4 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl text-sm">
+          <button onClick={() => setShowAddClient(true)} className="mt-4 px-4 py-2 bg-[#17181A] text-white rounded-xl text-sm">
             <Plus className="w-4 h-4 inline mr-1" /> Agregar cliente
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="glass rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-800">Todos los clientes Growth</h2>
           </div>
@@ -240,7 +240,7 @@ export default function GrowthDashboard() {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
-                            className="p-2 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
                           >
                             <ChevronRight className="w-5 h-5" />
                           </button>
@@ -267,7 +267,7 @@ export default function GrowthDashboard() {
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setShowAddClient(false)}>
           <div className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
-              <h3 className="font-semibold text-[#1A1A2E]">Agregar cliente a Growth</h3>
+              <h3 className="font-semibold text-[#17181A]">Agregar cliente a Growth</h3>
             </div>
             <div className="max-h-80 overflow-y-auto p-2">
               {availableClients.length === 0 ? (
@@ -305,9 +305,9 @@ export default function GrowthDashboard() {
 // ─── KPI Card ───
 function KpiCard({ label, value, accent }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4">
+    <div className="glass-solid rounded-xl p-4">
       <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">{label}</p>
-      <p className={`text-2xl font-bold ${accent ? 'text-green-600' : 'text-[#1A1A2E]'}`}>{value}</p>
+      <p className={`text-2xl font-bold ${accent ? 'text-green-600' : 'text-[#17181A]'}`}>{value}</p>
     </div>
   );
 }
@@ -332,7 +332,7 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
           <ChevronLeft className="w-5 h-5 text-gray-500" />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-[#1A1A2E]">{client.nickname || client.name}</h2>
+          <h2 className="text-xl font-bold text-[#17181A]">{client.nickname || client.name}</h2>
           <p className="text-sm text-gray-400">{client.company} · {getPeriodLabel(period)}</p>
         </div>
       </div>
@@ -346,7 +346,7 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1 justify-center ${
-                activeTab === tab.key ? 'bg-white text-[#1A1A2E] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                activeTab === tab.key ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -390,9 +390,9 @@ function FinancieroTab({ metrics, objectives, formatCOP, clientId, period, onRef
         <SectionHeader label="Revenue & Performance" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {kpis.map((kpi) => (
-            <div key={kpi.label} className="bg-white border border-gray-100 rounded-xl p-4 hover:border-green-200 transition-colors">
+            <div key={kpi.label} className="glass-solid rounded-xl p-4 hover:border-green-200 transition-colors">
               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">{kpi.label}</p>
-              <p className={`text-xl font-bold ${kpi.color || 'text-[#1A1A2E]'}`}>{kpi.value}</p>
+              <p className={`text-xl font-bold ${kpi.color || 'text-[#17181A]'}`}>{kpi.value}</p>
             </div>
           ))}
         </div>
@@ -445,10 +445,10 @@ function ScenarioCard({ title, actual, conservador, base, optimista, format }) {
   ];
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5">
+    <div className="glass-solid rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="font-semibold text-sm text-[#1A1A2E]">{title}</p>
-        <span className="text-xs text-gray-400">Actual: <strong className="text-[#1A1A2E]">{format(actual)}</strong></span>
+        <p className="font-semibold text-sm text-[#17181A]">{title}</p>
+        <span className="text-xs text-gray-400">Actual: <strong className="text-[#17181A]">{format(actual)}</strong></span>
       </div>
       <div className="space-y-3">
         {scenarios.map((s) => (
@@ -459,7 +459,7 @@ function ScenarioCard({ title, actual, conservador, base, optimista, format }) {
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden relative">
               <div className={`h-full rounded-full ${s.color}`} style={{ width: `${pct(s.val)}%` }} />
-              <div className="absolute top-0 h-full w-0.5 bg-[#1A1A2E]" style={{ left: `${pct(actual)}%` }} />
+              <div className="absolute top-0 h-full w-0.5 bg-[#17181A]" style={{ left: `${pct(actual)}%` }} />
             </div>
           </div>
         ))}
@@ -496,13 +496,13 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5">
+    <div className="glass-solid rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="font-semibold text-sm text-[#1A1A2E]">Escenarios pactados</p>
+        <p className="font-semibold text-sm text-[#17181A]">Escenarios pactados</p>
         {editing ? (
           <div className="flex gap-2">
             <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-[#1A1A2E] text-white rounded-lg"><Save className="w-3 h-3" /> Guardar</button>
+            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-[#17181A] text-white rounded-lg"><Save className="w-3 h-3" /> Guardar</button>
           </div>
         ) : (
           <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Editar</button>
@@ -572,23 +572,23 @@ function PalancasTab({ palancas, clientId, period, onRefresh }) {
     <div className="space-y-4">
       <SectionHeader label="Palancas de crecimiento priorizadas" />
       {palancas.length === 0 && !showForm && (
-        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center">
+        <div className="glass-solid rounded-xl p-8 text-center">
           <Zap className="w-8 h-8 text-gray-300 mx-auto mb-2" />
           <p className="text-gray-400 text-sm">No hay palancas definidas para este período</p>
         </div>
       )}
       <div className="space-y-2">
         {palancas.map((p) => (
-          <div key={p.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-4 hover:border-green-200 transition-colors">
+          <div key={p.id} className="glass-solid rounded-xl p-4 flex items-center gap-4 hover:border-green-200 transition-colors">
             <span className="text-2xl font-bold text-gray-200 w-8 text-center">{p.rank}</span>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-[#1A1A2E]">{p.nombre}</p>
+              <p className="font-medium text-sm text-[#17181A]">{p.nombre}</p>
               <p className="text-xs text-gray-400 mt-0.5">{p.estado}</p>
             </div>
             {p.kpi_label && (
               <div className="text-right flex-shrink-0">
                 <p className="text-xs text-gray-400">{p.kpi_label}</p>
-                <p className="font-bold text-sm text-[#1A1A2E]">{p.kpi_valor}</p>
+                <p className="font-bold text-sm text-[#17181A]">{p.kpi_valor}</p>
               </div>
             )}
             <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded font-medium flex-shrink-0 ${impactoColors[p.impacto] || impactoColors.medio}`}>
@@ -602,7 +602,7 @@ function PalancasTab({ palancas, clientId, period, onRefresh }) {
       </div>
 
       {showForm ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="glass-solid rounded-xl p-4 space-y-3">
           <input value={form.nombre} onChange={(e) => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre de la palanca" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <input value={form.estado} onChange={(e) => setForm(f => ({ ...f, estado: e.target.value }))} placeholder="Estado (ej: Activa · Optimizando creativos)" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <div className="grid grid-cols-3 gap-2">
@@ -616,11 +616,11 @@ function PalancasTab({ palancas, clientId, period, onRefresh }) {
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-lg">Agregar</button>
+            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-lg">Agregar</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#1A1A2E] transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#17181A] transition-colors">
           <Plus className="w-4 h-4" /> Agregar palanca
         </button>
       )}
@@ -668,10 +668,10 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
 
       {/* Progress bar */}
       {milestones.length > 0 && (
-        <div className="bg-white border border-gray-100 rounded-xl p-4">
+        <div className="glass-solid rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">Progreso</span>
-            <span className="text-sm font-bold text-[#1A1A2E]">{completedCount}/{milestones.length} ({progressPct}%)</span>
+            <span className="text-sm font-bold text-[#17181A]">{completedCount}/{milestones.length} ({progressPct}%)</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
@@ -681,12 +681,12 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
 
       <div className="space-y-2">
         {milestones.map((ms) => (
-          <div key={ms.id} className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-3 hover:border-green-200 transition-colors">
+          <div key={ms.id} className="glass-solid rounded-xl p-4 flex items-center gap-3 hover:border-green-200 transition-colors">
             <button onClick={() => handleToggleStatus(ms)} className="flex-shrink-0" title="Cambiar estado">
               {statusIcons[ms.status]}
             </button>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${ms.status === 'done' ? 'line-through text-gray-400' : 'text-[#1A1A2E]'}`}>{ms.nombre}</p>
+              <p className={`text-sm font-medium ${ms.status === 'done' ? 'line-through text-gray-400' : 'text-[#17181A]'}`}>{ms.nombre}</p>
               {ms.meta && <p className="text-xs text-gray-400 mt-0.5">{ms.meta}</p>}
             </div>
             <span className={`text-[10px] px-2 py-1 rounded font-medium flex-shrink-0 ${
@@ -702,7 +702,7 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
       </div>
 
       {showForm ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="glass-solid rounded-xl p-4 space-y-3">
           <input value={form.nombre} onChange={(e) => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del milestone" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <div className="grid grid-cols-2 gap-2">
             <input value={form.meta} onChange={(e) => setForm(f => ({ ...f, meta: e.target.value }))} placeholder="Meta (ej: Semana 2 — Abril)" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
@@ -713,11 +713,11 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-lg">Agregar</button>
+            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-lg">Agregar</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#1A1A2E] transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#17181A] transition-colors">
           <Plus className="w-4 h-4" /> Agregar milestone
         </button>
       )}
@@ -757,7 +757,7 @@ function AlertasTab({ banderas, clientId, period, onRefresh }) {
       <SectionHeader label="Banderas activas" />
 
       {banderas.length === 0 && !showForm && (
-        <div className="bg-white border border-gray-100 rounded-xl p-8 text-center">
+        <div className="glass-solid rounded-xl p-8 text-center">
           <Flag className="w-8 h-8 text-gray-300 mx-auto mb-2" />
           <p className="text-gray-400 text-sm">Sin banderas activas</p>
         </div>
@@ -775,7 +775,7 @@ function AlertasTab({ banderas, clientId, period, onRefresh }) {
                     {nivelLabels[b.nivel]}
                   </span>
                 </div>
-                <p className="font-medium text-sm text-[#1A1A2E]">{b.titulo}</p>
+                <p className="font-medium text-sm text-[#17181A]">{b.titulo}</p>
                 {b.descripcion && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{b.descripcion}</p>}
               </div>
               <button onClick={() => handleDelete(b.id)} className="p-1.5 text-gray-300 hover:text-red-500 rounded transition-colors flex-shrink-0">
@@ -787,7 +787,7 @@ function AlertasTab({ banderas, clientId, period, onRefresh }) {
       </div>
 
       {showForm ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="glass-solid rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-4 gap-2">
             <input value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Título de la bandera" className="col-span-3 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             <select value={form.nivel} onChange={(e) => setForm(f => ({ ...f, nivel: e.target.value }))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
@@ -799,11 +799,11 @@ function AlertasTab({ banderas, clientId, period, onRefresh }) {
           <textarea value={form.descripcion} onChange={(e) => setForm(f => ({ ...f, descripcion: e.target.value }))} placeholder="Descripción" rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <div className="flex gap-2">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#1A1A2E] text-white rounded-lg">Agregar</button>
+            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-lg">Agregar</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#1A1A2E] transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#17181A] transition-colors">
           <Plus className="w-4 h-4" /> Agregar bandera
         </button>
       )}

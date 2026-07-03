@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { Plus, Trash2, ListChecks } from 'lucide-react';
 
 const columns = [
-  { id: 'todo', title: 'Por Hacer', color: 'bg-gray-50', borderColor: 'border-gray-200' },
-  { id: 'in_progress', title: 'En Progreso', color: 'bg-blue-50', borderColor: 'border-blue-200' },
-  { id: 'review', title: 'En Revisión', color: 'bg-amber-50', borderColor: 'border-amber-200' },
-  { id: 'done', title: 'Completado', color: 'bg-[#10B981]/5', borderColor: 'border-[#10B981]/30' },
+  { id: 'todo', title: 'Por Hacer', color: 'bg-white/30 backdrop-blur-xl', borderColor: 'border-white/60' },
+  { id: 'in_progress', title: 'En Progreso', color: 'bg-white/30 backdrop-blur-xl', borderColor: 'border-white/60' },
+  { id: 'review', title: 'En Revisión', color: 'bg-white/30 backdrop-blur-xl', borderColor: 'border-white/60' },
+  { id: 'done', title: 'Completado', color: 'bg-white/30 backdrop-blur-xl', borderColor: 'border-white/60' },
 ];
 
 const priorityColors = {
   low: 'bg-gray-100 text-gray-600',
-  medium: 'bg-[#1A1A2E]/10 text-[#1A1A2E]',
+  medium: 'bg-[#17181A]/10 text-[#17181A]',
   high: 'bg-[#F97316]/10 text-[#F97316]',
   urgent: 'bg-red-100 text-red-600',
 };
@@ -63,21 +63,21 @@ export default function KanbanView({
         <div
           key={column.id}
           className={`${column.color} rounded-2xl p-4 min-h-[500px] transition-all border ${column.borderColor} ${
-            draggedTask && draggedTask.status !== column.id ? 'ring-2 ring-[#BFFF00] ring-opacity-50' : ''
+            draggedTask && draggedTask.status !== column.id ? 'ring-2 ring-[#D7F653] ring-opacity-50' : ''
           }`}
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, column.id)}
         >
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-[#1A1A2E]">{column.title}</h3>
+              <h3 className="font-semibold text-[#17181A]">{column.title}</h3>
               <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-100">
                 {tasks.filter((task) => task.status === column.id).length}
               </span>
             </div>
             <button
               onClick={() => onAddTask(column.id)}
-              className="text-gray-500 hover:text-[#1A1A2E] hover:bg-white p-1.5 rounded-lg transition-colors"
+              className="text-gray-500 hover:text-[#17181A] hover:bg-white p-1.5 rounded-lg transition-colors"
             >
               <Plus size={18} />
             </button>
@@ -91,16 +91,16 @@ export default function KanbanView({
                   draggable
                   onDragStart={(e) => handleDragStart(e, task)}
                   onDragEnd={handleDragEnd}
-                  className={`bg-white p-3 rounded-xl border border-gray-100 cursor-move hover:shadow-md transition-all group ${
+                  className={`glass-solid p-3 rounded-xl cursor-move hover:shadow-glass-lg transition-all group ${
                     draggedTask?.id === task.id ? 'opacity-50 scale-95' : 'opacity-100'
                   }`}
                   onClick={() => onTaskClick(task)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-[#1A1A2E] flex-1 pr-2">{task.title}</h4>
+                    <h4 className="font-medium text-[#17181A] flex-1 pr-2">{task.title}</h4>
                     <div className="flex items-center gap-1">
                       {!!task.is_recurring && (
-                        <span className="text-[#BFFF00]" title="Tarea Recurrente">🔄</span>
+                        <span className="text-[#D7F653]" title="Tarea Recurrente">🔄</span>
                       )}
                       <button
                         onClick={(e) => handleDeleteClick(e, task.id)}
@@ -151,7 +151,7 @@ export default function KanbanView({
                           {task.assignees.slice(0, 3).map((a) => (
                             <span
                               key={a.id}
-                              className="w-5 h-5 rounded-full bg-[#1A1A2E] text-[#BFFF00] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
+                              className="w-5 h-5 rounded-full bg-[#17181A] text-[#D7F653] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
                               title={a.name}
                             >
                               {a.name.charAt(0).toUpperCase()}

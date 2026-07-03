@@ -109,7 +109,7 @@ export default function TaskHistory({ taskId, defaultOpen = false }) {
             <History size={15} className="text-gray-600" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-[#1A1A2E]">Historial</p>
+            <p className="text-sm font-medium text-[#17181A]">Historial</p>
             <p className="text-xs text-gray-500">
               {loaded
                 ? `${entries.length} ${entries.length === 1 ? 'evento' : 'eventos'}`
@@ -163,7 +163,7 @@ export default function TaskHistory({ taskId, defaultOpen = false }) {
 
                     <div className="text-sm">
                       <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className={`font-medium ${e.author_type === 'client' ? 'text-pink-700' : 'text-[#1A1A2E]'}`}>
+                        <span className={`font-medium ${e.author_type === 'client' ? 'text-pink-700' : 'text-[#17181A]'}`}>
                           {e.author_name}
                         </span>
                         {e.author_type === 'client' && (

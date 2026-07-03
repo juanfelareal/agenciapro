@@ -25,7 +25,7 @@ export default function CollapsibleSection({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+    <div className="glass rounded-xl mb-6 overflow-hidden">
       <button
         onClick={toggle}
         className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
@@ -36,7 +36,7 @@ export default function CollapsibleSection({
               <Icon className={`w-4 h-4 ${iconColor}`} />
             </div>
           )}
-          <h2 className="text-lg font-semibold text-[#1A1A2E]">{title}</h2>
+          <h2 className="text-lg font-semibold text-[#17181A]">{title}</h2>
         </div>
         {open ? (
           <ChevronDown className="w-5 h-5 text-gray-400" />

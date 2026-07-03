@@ -371,7 +371,7 @@ const SOPs = () => {
             </div>
             <button
               onClick={() => handleOpenModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] transition-colors ml-4"
+              className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] transition-colors ml-4"
             >
               <Plus size={20} />
               Nuevo SOP
@@ -389,7 +389,7 @@ const SOPs = () => {
               <p className="text-slate-500 mb-4">No hay SOPs aún</p>
               <button
                 onClick={() => handleOpenModal()}
-                className="text-[#1A1A2E] hover:text-[#1A1A2E]"
+                className="text-[#17181A] hover:text-[#17181A]"
               >
                 Crear tu primer SOP
               </button>
@@ -411,7 +411,7 @@ const SOPs = () => {
                               <Pin size={14} className="text-amber-500 fill-amber-500 flex-shrink-0" />
                             )}
                             <h3
-                              className="font-semibold text-slate-800 cursor-pointer hover:text-[#1A1A2E] truncate"
+                              className="font-semibold text-slate-800 cursor-pointer hover:text-[#17181A] truncate"
                               onClick={() => handleViewSOP(sop)}
                             >
                               {sop.title}
@@ -460,14 +460,14 @@ const SOPs = () => {
                         <div className="flex items-center gap-1 ml-4">
                           <button
                             onClick={() => handleViewSOP(sop)}
-                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-[#1A1A2E]"
+                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-[#17181A]"
                             title="Ver"
                           >
                             <Eye size={18} />
                           </button>
                           <button
                             onClick={() => handleOpenModal(sop)}
-                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-[#1A1A2E]"
+                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-[#17181A]"
                             title="Editar"
                           >
                             <Edit3 size={18} />
@@ -572,7 +572,7 @@ const SOPs = () => {
                       <button
                         onClick={handleInlineCategoryCreate}
                         disabled={!inlineCategoryName.trim()}
-                        className="px-2 py-1 text-xs bg-[#1A1A2E] text-white rounded hover:bg-[#1A1A2E] disabled:opacity-50"
+                        className="px-2 py-1 text-xs bg-[#17181A] text-white rounded hover:bg-[#17181A] disabled:opacity-50"
                       >
                         Crear
                       </button>
@@ -650,7 +650,7 @@ const SOPs = () => {
                     onClick={() => setFormData(prev => ({ ...prev, editor_mode: 'freeform' }))}
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       formData.editor_mode === 'freeform'
-                        ? 'bg-white shadow-sm text-[#1A1A2E]'
+                        ? 'bg-white shadow-sm text-[#17181A]'
                         : 'text-slate-600 hover:text-slate-800'
                     }`}
                   >
@@ -662,7 +662,7 @@ const SOPs = () => {
                     onClick={() => setFormData(prev => ({ ...prev, editor_mode: 'steps' }))}
                     className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       formData.editor_mode === 'steps'
-                        ? 'bg-white shadow-sm text-[#1A1A2E]'
+                        ? 'bg-white shadow-sm text-[#17181A]'
                         : 'text-slate-600 hover:text-slate-800'
                     }`}
                   >
@@ -704,7 +704,7 @@ const SOPs = () => {
               <button
                 onClick={handleSave}
                 disabled={!formData.title.trim()}
-                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingSOP ? 'Guardar' : 'Crear SOP'}
               </button>
@@ -792,7 +792,7 @@ const SOPs = () => {
                   {JSON.parse(viewingSOP.steps).map((step, index) => (
                     <div key={step.id || index} className="bg-slate-50 rounded-xl p-5 border border-slate-200">
                       <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#1A1A2E] text-white flex items-center justify-center font-bold text-lg">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#17181A] text-white flex items-center justify-center font-bold text-lg">
                           {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -881,7 +881,7 @@ const SOPs = () => {
                 <button
                   onClick={handleSaveCategory}
                   disabled={!categoryForm.name.trim()}
-                  className="w-full px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50"
                 >
                   {editingCategory ? 'Actualizar' : 'Agregar Categoría'}
                 </button>

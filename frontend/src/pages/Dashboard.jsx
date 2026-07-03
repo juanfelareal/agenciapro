@@ -141,7 +141,7 @@ const Dashboard = () => {
                     onClick={() => setPeriod(key)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                       period === key
-                        ? 'bg-[#1A1A2E] text-white'
+                        ? 'bg-[#17181A] text-white'
                         : 'bg-white text-ink-600 hover:bg-ink-100 border border-ink-200'
                     }`}
                   >

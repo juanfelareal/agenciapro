@@ -234,6 +234,16 @@ export const portalMetricsAPI = {
     return response.data;
   },
 
+  getGoogleCampaigns: async (params = {}) => {
+    const response = await portalApi.get('/metrics/google-campaigns', { params });
+    return response.data;
+  },
+
+  getTiktokCampaigns: async (params = {}) => {
+    const response = await portalApi.get('/metrics/tiktok-campaigns', { params });
+    return response.data;
+  },
+
   getAdPreview: async (adId, format = 'MOBILE_FEED_STANDARD') => {
     const response = await portalApi.get(`/metrics/ads/${adId}/preview`, { params: { format } });
     return response.data;

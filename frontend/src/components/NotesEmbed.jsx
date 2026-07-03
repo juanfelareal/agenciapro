@@ -161,7 +161,7 @@ const NotesEmbed = ({ entityType, entityId, entityName }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div className="glass rounded-xl overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"

@@ -781,12 +781,12 @@ const Invoices = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Facturas</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Facturas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de facturas e ingresos</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
         >
           <Plus size={20} />
           Nueva Factura
@@ -794,14 +794,14 @@ const Invoices = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="glass-card p-4">
         <div className="flex items-center gap-2 mb-3">
           <Filter size={18} className="text-gray-500" />
-          <span className="font-medium text-[#1A1A2E]">Filtros</span>
+          <span className="font-medium text-[#17181A]">Filtros</span>
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-[#1A1A2E]"
+              className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-[#17181A]"
             >
               <RotateCcw size={14} />
               Limpiar filtros
@@ -812,7 +812,7 @@ const Invoices = () => {
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Cliente</label>
             <select
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
               value={filters.client_id}
               onChange={(e) => setFilters({ ...filters, client_id: e.target.value })}
             >
@@ -827,7 +827,7 @@ const Invoices = () => {
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Estado</label>
             <select
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
@@ -841,7 +841,7 @@ const Invoices = () => {
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Tipo</label>
             <select
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
               value={filters.invoice_type}
               onChange={(e) => setFilters({ ...filters, invoice_type: e.target.value })}
             >
@@ -876,7 +876,7 @@ const Invoices = () => {
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       isActive
-                        ? 'bg-[#1A1A2E] text-white'
+                        ? 'bg-[#17181A] text-white'
                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                   >
@@ -889,14 +889,14 @@ const Invoices = () => {
               <div className="flex items-center gap-2 mt-2">
                 <input
                   type="date"
-                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   value={filters.date_from}
                   onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
                 />
                 <span className="text-gray-400 text-xs">a</span>
                 <input
                   type="date"
-                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   value={filters.date_to}
                   onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
                 />
@@ -913,16 +913,16 @@ const Invoices = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#BFFF00]/10 border border-[#BFFF00]/30 rounded-2xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[#D7F653]/10 border border-[#D7F653]/30 rounded-2xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
             <CheckSquare size={18} className="text-[#65A30D]" />
-            <span className="font-medium text-[#1A1A2E]">
+            <span className="font-medium text-[#17181A]">
               {selectedIds.size} factura{selectedIds.size !== 1 ? 's' : ''} seleccionada{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-[#BFFF00]/30" />
+          <div className="h-6 w-px bg-[#D7F653]/30" />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-[#1A1A2E]">Cambiar estado:</span>
+            <span className="text-sm text-[#17181A]">Cambiar estado:</span>
             <button
               onClick={() => handleBulkStatusChange('draft')}
               disabled={bulkUpdating}
@@ -954,7 +954,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#1A1A2E]">Tipo:</span>
+            <span className="text-sm text-[#17181A]">Tipo:</span>
             <button
               onClick={() => handleBulkTypeChange('con_iva')}
               disabled={bulkUpdating}
@@ -972,7 +972,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#1A1A2E]">Fecha:</span>
+            <span className="text-sm text-[#17181A]">Fecha:</span>
             <input
               type="date"
               value={bulkDateValue}
@@ -989,7 +989,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#1A1A2E]">Monto:</span>
+            <span className="text-sm text-[#17181A]">Monto:</span>
             <div className="flex items-center">
               <span className="text-gray-500 text-sm mr-1">$</span>
               <input
@@ -1030,14 +1030,14 @@ const Invoices = () => {
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-[#1A1A2E] hover:bg-gray-100 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[#17181A] hover:bg-gray-100 rounded-lg"
           >
             Cancelar selección
           </button>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+      <div className="glass-card overflow-x-auto">
         <table className="invoices-table" style={{ tableLayout: 'fixed', width: tableWidth }}>
           <colgroup>
             <col style={{ width: columnWidths.select }} />
@@ -1055,13 +1055,13 @@ const Invoices = () => {
               <th className="px-3 py-3 text-center relative">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-[#1A1A2E]"
+                  className="text-gray-500 hover:text-[#17181A]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-[#1A1A2E]" />
+                    <CheckSquare size={18} className="text-[#17181A]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-[#1A1A2E]" />
+                    <MinusSquare size={18} className="text-[#17181A]" />
                   ) : (
                     <Square size={18} />
                   )}
@@ -1118,10 +1118,10 @@ const Invoices = () => {
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(invoice.id)}
-                    className="text-gray-400 hover:text-[#1A1A2E]"
+                    className="text-gray-400 hover:text-[#17181A]"
                   >
                     {selectedIds.has(invoice.id) ? (
-                      <CheckSquare size={18} className="text-[#1A1A2E]" />
+                      <CheckSquare size={18} className="text-[#17181A]" />
                     ) : (
                       <Square size={18} />
                     )}
@@ -1437,7 +1437,7 @@ const Invoices = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
             <div className="flex justify-between items-center p-6 pb-4 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingInvoice ? 'Editar Factura' : 'Nueva Factura'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1472,7 +1472,7 @@ const Invoices = () => {
                         type="button"
                         onClick={handleCreateClient}
                         disabled={creatingClient || !newClientName.trim()}
-                        className="px-3 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#1A1A2E] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {creatingClient ? '...' : 'Crear'}
                       </button>
@@ -1515,7 +1515,7 @@ const Invoices = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewClient(true)}
-                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-[#1A1A2E] flex items-center gap-1"
+                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-[#17181A] flex items-center gap-1"
                         title="Crear nuevo cliente"
                       >
                         <Plus size={16} />
@@ -1648,11 +1648,11 @@ const Invoices = () => {
                           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                             <div>
                               <span className="text-gray-500">Cliente:</span>
-                              <span className="ml-2 font-medium text-[#1A1A2E]">{selectedClient?.company || selectedClient?.name || '-'}</span>
+                              <span className="ml-2 font-medium text-[#17181A]">{selectedClient?.company || selectedClient?.name || '-'}</span>
                             </div>
                             <div>
                               <span className="text-gray-500">NIT / Cédula:</span>
-                              <span className="ml-2 font-medium text-[#1A1A2E]">{nitDisplay}</span>
+                              <span className="ml-2 font-medium text-[#17181A]">{nitDisplay}</span>
                             </div>
                             <div>
                               <span className="text-gray-500">Tipo persona:</span>
@@ -1674,15 +1674,15 @@ const Invoices = () => {
                           <div className="border-t border-gray-200 pt-3 grid grid-cols-3 gap-4 text-center">
                             <div>
                               <p className="text-gray-500 text-xs uppercase">Subtotal</p>
-                              <p className="font-bold text-[#1A1A2E]">${baseAmount.toLocaleString('es-CO')}</p>
+                              <p className="font-bold text-[#17181A]">${baseAmount.toLocaleString('es-CO')}</p>
                             </div>
                             <div>
                               <p className="text-gray-500 text-xs uppercase">IVA (19%)</p>
-                              <p className="font-bold text-[#1A1A2E]">{isWithIva ? `$${taxAmount.toLocaleString('es-CO')}` : '$0'}</p>
+                              <p className="font-bold text-[#17181A]">{isWithIva ? `$${taxAmount.toLocaleString('es-CO')}` : '$0'}</p>
                             </div>
                             <div>
                               <p className="text-gray-500 text-xs uppercase">Total</p>
-                              <p className="font-bold text-lg text-[#1A1A2E]">${total.toLocaleString('es-CO')}</p>
+                              <p className="font-bold text-lg text-[#17181A]">${total.toLocaleString('es-CO')}</p>
                             </div>
                           </div>
                         </div>
@@ -1707,7 +1707,7 @@ const Invoices = () => {
                           setFormData({ ...formData, is_recurring: isChecked, next_recurrence_date: '' });
                         }
                       }}
-                      className="w-4 h-4 text-[#1A1A2E] border-gray-300 rounded focus:ring-[#1A1A2E]"
+                      className="w-4 h-4 text-[#17181A] border-gray-300 rounded focus:ring-[#17181A]"
                     />
                     <Repeat size={16} className="text-gray-500" />
                     <span className="text-sm font-medium">Factura Recurrente</span>
@@ -1849,7 +1849,7 @@ const Invoices = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
                 >
                   Guardar
                 </button>
@@ -1863,7 +1863,7 @@ const Invoices = () => {
       {siigoConfirmInvoice && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
-            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-4">Enviar a Siigo</h3>
+            <h3 className="text-lg font-semibold text-[#17181A] mb-4">Enviar a Siigo</h3>
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Factura</span>
@@ -1947,14 +1947,14 @@ const Invoices = () => {
               </button>
               <button
                 onClick={() => confirmSendToSiigo(false)}
-                className="px-4 py-2 border-2 border-[#1A1A2E] text-[#1A1A2E] rounded-xl hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border-2 border-[#17181A] text-[#17181A] rounded-xl hover:bg-gray-50 transition-colors"
                 title="Se crea en Siigo como borrador para revisar antes de enviar a la DIAN"
               >
                 Borrador
               </button>
               <button
                 onClick={() => confirmSendToSiigo(true)}
-                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                className="px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
               >
                 Enviar a DIAN
               </button>
@@ -2004,7 +2004,7 @@ const Invoices = () => {
       {emailModalInvoice && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
-            <h3 className="text-lg font-semibold text-[#1A1A2E] mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-[#17181A] mb-4 flex items-center gap-2">
               <Mail size={20} />
               Enviar factura electrónica
             </h3>
@@ -2029,7 +2029,7 @@ const Invoices = () => {
               <button
                 onClick={handleSendSiigoEmail}
                 disabled={sendingEmail || !emailValue}
-                className="px-4 py-2 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {sendingEmail ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
                 {sendingEmail ? 'Enviando...' : 'Enviar'}

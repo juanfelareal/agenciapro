@@ -182,7 +182,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
 
   if (loading) {
     return (
-      <div className="mt-6 bg-white border border-gray-100 rounded-2xl p-8 flex items-center justify-center">
+      <div className="mt-6 glass-card p-8 flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
         <span className="ml-3 text-sm text-gray-500">Cargando campañas…</span>
       </div>
@@ -200,7 +200,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
 
   if (campaigns.list.length === 0) {
     return (
-      <div className="mt-6 bg-white border border-gray-100 rounded-2xl p-8 text-center text-gray-500">
+      <div className="mt-6 glass-card p-8 text-center text-gray-500">
         <Target className="w-10 h-10 mx-auto text-gray-300 mb-2" />
         <p className="text-sm">Sin campañas con inversión en el período seleccionado.</p>
       </div>
@@ -208,11 +208,11 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
   }
 
   return (
-    <div className="mt-6 bg-white border border-gray-100 rounded-2xl overflow-hidden">
+    <div className="mt-6 glass-card overflow-hidden">
       {/* Header + filter */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50">
         <div>
-          <h3 className="text-sm font-semibold text-[#1A1A2E]">Detalle por campaña</h3>
+          <h3 className="text-sm font-semibold text-[#17181A]">Detalle por campaña</h3>
           <p className="text-xs text-gray-500 mt-0.5">
             {campaigns.list.length} campaña{campaigns.list.length !== 1 ? 's' : ''} con inversión · Click para expandir
           </p>
@@ -277,7 +277,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                       <div className="flex items-center gap-2">
                         {isOpen ? <ChevronDown size={16} className="text-gray-400 shrink-0" /> : <ChevronRight size={16} className="text-gray-400 shrink-0" />}
                         <div className="min-w-0">
-                          <p className="font-medium text-[#1A1A2E] truncate">{c.campaign_name}</p>
+                          <p className="font-medium text-[#17181A] truncate">{c.campaign_name}</p>
                           <div className="h-1 mt-1.5 bg-gray-100 rounded-full overflow-hidden" style={{ width: 140 }}>
                             <div className="h-full bg-blue-500" style={{ width: `${Math.min(pct, 100)}%` }} />
                           </div>
@@ -293,7 +293,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                       )}
                     </td>
                     <td className="py-3 px-3">{statusBadge(c.status)}</td>
-                    <td className="py-3 px-3 text-right font-semibold text-[#1A1A2E]">{fmtCurrency(c.spend)}</td>
+                    <td className="py-3 px-3 text-right font-semibold text-[#17181A]">{fmtCurrency(c.spend)}</td>
                     <td className="py-3 px-3 text-right">{fmtInt(c.conversions)}</td>
                     {campaigns.hasMessagingData && (
                       <>
@@ -376,7 +376,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
           </tbody>
           {campaigns.list.length > 0 && (
             <tfoot>
-              <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold text-[#1A1A2E]">
+              <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold text-[#17181A]">
                 <td className="py-3 px-4">
                   Total
                   <span className="ml-2 text-xs font-normal text-gray-500">

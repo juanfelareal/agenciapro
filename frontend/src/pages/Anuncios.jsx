@@ -255,7 +255,7 @@ function AdCard({ ad, onEdit, onDelete }) {
   const total = (ad.audience_count ?? 0);
 
   return (
-    <div className="group bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md hover:border-gray-300 transition-all">
+    <div className="group glass-solid rounded-xl overflow-hidden hover:shadow-md hover:border-gray-300 transition-all">
       <div className="relative bg-gray-100 aspect-video overflow-hidden">
         {ad.thumbnail_url ? (
           <img
@@ -630,7 +630,7 @@ function GroupsTab({ groups, loading, onNew, onEdit, onDelete }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {groups.map(g => (
-            <div key={g.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm hover:border-gray-300 transition-all group">
+            <div key={g.id} className="glass-solid rounded-xl p-4 hover:shadow-sm hover:border-gray-300 transition-all group">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div

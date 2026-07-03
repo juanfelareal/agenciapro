@@ -138,16 +138,16 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-semibold text-[#1A1A2E]">Generar Propuesta</h2>
+            <h2 className="text-lg font-semibold text-[#17181A]">Generar Propuesta</h2>
             <div className="flex items-center gap-2 mt-2">
               {STEPS.map((s, i) => (
                 <div key={i} className="flex items-center gap-1">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    i <= step ? 'bg-[#1A1A2E] text-[#BFFF00]' : 'bg-gray-200 text-gray-500'
+                    i <= step ? 'bg-[#17181A] text-[#D7F653]' : 'bg-gray-200 text-gray-500'
                   }`}>
                     {i < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
                   </div>
-                  <span className={`text-xs ${i <= step ? 'text-[#1A1A2E] font-medium' : 'text-gray-400'} hidden sm:inline`}>
+                  <span className={`text-xs ${i <= step ? 'text-[#17181A] font-medium' : 'text-gray-400'} hidden sm:inline`}>
                     {s}
                   </span>
                   {i < STEPS.length - 1 && <ChevronRight className="w-4 h-4 text-gray-300" />}
@@ -177,14 +177,14 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                       onClick={() => handleSelectTemplate(t)}
                       className={`text-left p-5 rounded-xl border-2 transition-all ${
                         selectedTemplate?.id === t.id
-                          ? 'border-[#BFFF00] bg-[#BFFF00]/5'
+                          ? 'border-[#D7F653] bg-[#D7F653]/5'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mb-3">
-                        <FileText className="w-5 h-5 text-[#1A1A2E]" />
+                        <FileText className="w-5 h-5 text-[#17181A]" />
                       </div>
-                      <h4 className="font-semibold text-[#1A1A2E] text-sm">{t.name}</h4>
+                      <h4 className="font-semibold text-[#17181A] text-sm">{t.name}</h4>
                       <p className="text-xs text-gray-500 mt-1">{t.description}</p>
                     </button>
                   ))}
@@ -194,7 +194,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                     onClick={handleSelectCustom}
                     className={`text-left p-5 rounded-xl border-2 transition-all ${
                       isCustom
-                        ? 'border-[#BFFF00] bg-[#BFFF00]/5'
+                        ? 'border-[#D7F653] bg-[#D7F653]/5'
                         : 'border-dashed border-gray-300 hover:border-gray-400'
                     }`}
                   >
@@ -203,7 +203,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                     }`}>
                       <Wand2 className={`w-5 h-5 ${isCustom ? 'text-purple-600' : 'text-gray-500'}`} />
                     </div>
-                    <h4 className="font-semibold text-[#1A1A2E] text-sm">Personalizada</h4>
+                    <h4 className="font-semibold text-[#17181A] text-sm">Personalizada</h4>
                     <p className="text-xs text-gray-500 mt-1">Describe los servicios y la IA genera la presentación completa</p>
                   </button>
                 </div>
@@ -236,7 +236,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                       type="text"
                       value={variables[varName] || ''}
                       onChange={(e) => setVariables({ ...variables, [varName]: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                       placeholder={`{{${varName}}}`}
                     />
                   </div>
@@ -255,7 +255,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                 value={customDescription}
                 onChange={(e) => setCustomDescription(e.target.value)}
                 placeholder="Ej: CRM personalizado, Landing pages por servicio/destino, Formularios inteligentes que filtren leads, Metodología REAL para acompañamiento estratégico mensual..."
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] resize-none"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] resize-none"
                 rows={6}
               />
               <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
@@ -307,14 +307,14 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                         value={repoName}
                         onChange={(e) => setRepoName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
                         placeholder="propuesta-cliente-xyz"
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                       />
                     </div>
                   </div>
                   <button
                     onClick={handleDeploy}
                     disabled={deploying || !repoName.trim()}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542] disabled:opacity-50 w-full justify-center"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] disabled:opacity-50 w-full justify-center"
                   >
                     {deploying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
                     Publicar en GitHub Pages
@@ -325,7 +325,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
                   <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto">
                     <Check className="w-8 h-8 text-green-600" />
                   </div>
-                  <h3 className="text-lg font-semibold text-[#1A1A2E]">Propuesta publicada</h3>
+                  <h3 className="text-lg font-semibold text-[#17181A]">Propuesta publicada</h3>
                   <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-2">
                     <input
                       type="text"
@@ -367,7 +367,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
           {step === 0 && canProceedStep0 && (
             <button
               onClick={() => setStep(1)}
-              className="flex items-center gap-1 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542]"
+              className="flex items-center gap-1 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C]"
             >
               Siguiente <ChevronRight className="w-4 h-4" />
             </button>
@@ -377,7 +377,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
             <button
               onClick={handleGenerate}
               disabled={generating || !canProceedStep1}
-              className="flex items-center gap-1 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542] disabled:opacity-50"
+              className="flex items-center gap-1 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] disabled:opacity-50"
             >
               {generating ? (
                 <>
@@ -396,7 +396,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
           {step === 2 && (
             <button
               onClick={() => setStep(3)}
-              className="flex items-center gap-1 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542]"
+              className="flex items-center gap-1 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C]"
             >
               Publicar <ChevronRight className="w-4 h-4" />
             </button>
@@ -405,7 +405,7 @@ export default function ProposalGenerator({ dealId, onClose, onProposalSent }) {
           {step === 3 && deployResult && (
             <button
               onClick={onClose}
-              className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542]"
+              className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C]"
             >
               Cerrar
             </button>

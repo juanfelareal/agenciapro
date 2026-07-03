@@ -357,7 +357,7 @@ export default function Forms() {
                       <input type="text" readOnly value={`${window.location.origin}/f/${shareToken}`}
                         className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-600" />
                       <button onClick={handleShare}
-                        className="px-3 py-2 bg-[#1A1A2E] text-white rounded-lg text-xs hover:bg-[#2a2a3e]">
+                        className="px-3 py-2 bg-[#17181A] text-white rounded-lg text-xs hover:bg-[#2a2a3e]">
                         {shareCopied ? 'Copiado!' : 'Copiar'}
                       </button>
                     </div>
@@ -386,7 +386,7 @@ export default function Forms() {
                 )}
               </button>
             )}
-            <button onClick={saveForm} disabled={saving || !formTitle.trim()} className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 text-sm">
+            <button onClick={saveForm} disabled={saving || !formTitle.trim()} className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 text-sm">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
@@ -401,11 +401,11 @@ export default function Forms() {
         )}
 
         {/* Form title & description */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+        <div className="glass rounded-xl p-6 mb-6">
           <input
             type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)}
             placeholder="Título del formulario"
-            className="w-full text-2xl font-bold text-slate-800 border-0 border-b border-slate-200 pb-3 mb-3 focus:outline-none focus:border-[#1A1A2E] placeholder:text-slate-300"
+            className="w-full text-2xl font-bold text-slate-800 border-0 border-b border-slate-200 pb-3 mb-3 focus:outline-none focus:border-[#17181A] placeholder:text-slate-300"
           />
           <textarea
             value={formDescription} onChange={e => setFormDescription(e.target.value)}
@@ -426,7 +426,7 @@ export default function Forms() {
 
         {/* Sections */}
         {sections.map((section, sIdx) => (
-          <div key={sIdx} className="bg-white rounded-xl border border-slate-200 mb-4 overflow-hidden">
+          <div key={sIdx} className="glass rounded-xl mb-4 overflow-hidden">
             <div className="flex items-center gap-3 p-4 bg-slate-50 border-b border-slate-200">
               <GripVertical size={16} className="text-slate-400" />
               <input
@@ -456,7 +456,7 @@ export default function Forms() {
                       <input
                         type="text" value={field.label} onChange={e => updateField(sIdx, fIdx, 'label', e.target.value)}
                         placeholder="Pregunta"
-                        className="flex-1 text-sm font-medium border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                        className="flex-1 text-sm font-medium border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#17181A]"
                       />
                       <select value={field.field_type} onChange={e => updateField(sIdx, fIdx, 'field_type', e.target.value)}
                         className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white">
@@ -486,20 +486,20 @@ export default function Forms() {
                 </div>
               ))}
 
-              <button onClick={() => addField(sIdx)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#1A1A2E] py-2">
+              <button onClick={() => addField(sIdx)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#17181A] py-2">
                 <Plus size={16} /> Agregar campo
               </button>
             </div>
           </div>
         ))}
 
-        <button onClick={addSection} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#1A1A2E] py-3 px-4 border border-dashed border-slate-300 rounded-xl w-full justify-center hover:border-slate-400">
+        <button onClick={addSection} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#17181A] py-3 px-4 border border-dashed border-slate-300 rounded-xl w-full justify-center hover:border-slate-400">
           <Plus size={16} /> Agregar sección
         </button>
 
         {/* Responses Section — always visible when form has responses */}
         {editingForm && (assignments.some(a => a.status === 'submitted') || publicResponses.length > 0) && (
-          <div className="bg-white rounded-xl border border-slate-200 mt-6 overflow-hidden">
+          <div className="glass rounded-xl mt-6 overflow-hidden">
             <div className="p-4 bg-green-50 border-b border-green-100">
               <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                 <FileText size={18} className="text-green-600" />
@@ -563,12 +563,12 @@ export default function Forms() {
               <div className="p-5 space-y-5 overflow-y-auto flex-1">
                 <div className="space-y-3">
                   <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]">
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]">
                     <option value="">Seleccionar cliente</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}{c.company && c.nickname ? ` — ${c.company}` : ''}</option>)}
                   </select>
                   <button onClick={assignForm} disabled={!selectedClient}
-                    className="w-full px-5 py-2.5 bg-[#1A1A2E] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3e] disabled:opacity-50">
+                    className="w-full px-5 py-2.5 bg-[#17181A] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3e] disabled:opacity-50">
                     Asignar
                   </button>
                 </div>
@@ -650,7 +650,7 @@ export default function Forms() {
           <h1 className="text-2xl font-bold text-slate-800">Formularios</h1>
           <p className="text-sm text-slate-500 mt-1">Crea y asigna formularios a tus clientes</p>
         </div>
-        <button onClick={() => openBuilder()} className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#2a2a3e] text-sm">
+        <button onClick={() => openBuilder()} className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] text-sm">
           <Plus size={18} /> Nuevo formulario
         </button>
       </div>
@@ -661,7 +661,7 @@ export default function Forms() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar formularios..."
-            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]" />
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]" />
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
@@ -685,9 +685,9 @@ export default function Forms() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {forms.map(form => (
             <div key={form.id} onClick={() => openBuilder(form)}
-              className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow cursor-pointer group">
+              className="glass rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer group">
               <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-slate-800 group-hover:text-[#1A1A2E] line-clamp-1">{form.title}</h3>
+                <h3 className="font-semibold text-slate-800 group-hover:text-[#17181A] line-clamp-1">{form.title}</h3>
                 <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${STATUS_LABELS[form.status]?.color || 'bg-slate-100'}`}>
                   {STATUS_LABELS[form.status]?.label || form.status}
                 </span>
@@ -748,7 +748,7 @@ function OptionsEditor({ options, onChange }) {
           <button onClick={() => removeOption(idx)} className="text-slate-400 hover:text-red-500"><X size={12} /></button>
         </div>
       ))}
-      <button onClick={addOption} className="text-xs text-slate-400 hover:text-[#1A1A2E] flex items-center gap-1 pt-1">
+      <button onClick={addOption} className="text-xs text-slate-400 hover:text-[#17181A] flex items-center gap-1 pt-1">
         <Plus size={12} /> Agregar opción
       </button>
     </div>
@@ -767,7 +767,7 @@ function ResponseViewer({ data, onBack }) {
         <ChevronLeft size={20} /> Volver
       </button>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+      <div className="glass rounded-xl p-6 mb-6">
         <div className="flex items-center gap-3 mb-2">
           <h1 className="text-2xl font-bold text-slate-800">{assignment.form_title}</h1>
           <span className={`text-xs px-2 py-0.5 rounded-full ${ASSIGNMENT_STATUS[assignment.status]?.color}`}>
@@ -784,7 +784,7 @@ function ResponseViewer({ data, onBack }) {
       </div>
 
       {sections.map(section => (
-        <div key={section.id} className="bg-white rounded-xl border border-slate-200 mb-4 overflow-hidden">
+        <div key={section.id} className="glass rounded-xl mb-4 overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-200">
             <h2 className="font-semibold text-slate-700">{section.title}</h2>
             {section.description && <p className="text-sm text-slate-500 mt-1">{section.description}</p>}

@@ -120,11 +120,11 @@ const Inbox = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1A1A2E] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#17181A] flex items-center justify-center">
               <Bell size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Inbox</h1>
+              <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Inbox</h1>
               <p className="text-sm text-gray-500">
                 {totalUnread > 0
                   ? `${totalUnread} sin leer en total`
@@ -146,7 +146,7 @@ const Inbox = () => {
             {totalUnread > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-3 py-2 bg-[#1A1A2E] text-white text-sm rounded-lg hover:bg-[#2a2a44] transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-[#17181A] text-white text-sm rounded-lg hover:bg-[#2a2a44] transition-colors"
               >
                 <CheckCheck size={16} />
                 Marcar todas
@@ -167,7 +167,7 @@ const Inbox = () => {
               onClick={() => setActiveCategory(tab.id)}
               className={`relative inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 isActive
-                  ? `border-[#1A1A2E] text-[#1A1A2E]`
+                  ? `border-[#17181A] text-[#17181A]`
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -175,7 +175,7 @@ const Inbox = () => {
               <span>{tab.label}</span>
               {tab.count > 0 && (
                 <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  highlight ? 'bg-pink-500 text-white' : (isActive ? 'bg-[#1A1A2E] text-white' : 'bg-gray-200 text-gray-700')
+                  highlight ? 'bg-pink-500 text-white' : (isActive ? 'bg-[#17181A] text-white' : 'bg-gray-200 text-gray-700')
                 }`}>
                   {tab.count}
                 </span>
@@ -238,7 +238,7 @@ const Inbox = () => {
                       {!n.is_read && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
-                          className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-[#1A1A2E] font-medium"
+                          className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-[#17181A] font-medium"
                         >
                           <Check size={12} />
                           Marcar leída

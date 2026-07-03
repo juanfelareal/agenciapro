@@ -21,7 +21,7 @@ const Login = () => {
   // Redirect if already authenticated
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+      <div className="min-h-screen app-mist flex items-center justify-center">
         <div className="card p-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
           <p className="mt-4 text-ink-600 text-center">Verificando sesión...</p>
@@ -53,11 +53,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-4">
+    <div className="min-h-screen app-mist flex items-center justify-center p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#D7F653]/25 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#D7F653]/15 rounded-full blur-3xl"></div>
       </div>
 
       <div className="w-full max-w-md relative">
@@ -94,7 +94,7 @@ const Login = () => {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[#1A1A2E] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[#17181A] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                   placeholder="tu@email.com"
                   required
                   autoComplete="email"
@@ -116,7 +116,7 @@ const Login = () => {
                   id="pin"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[#1A1A2E] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[#17181A] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                   placeholder="Tu PIN de acceso"
                   required
                   autoComplete="current-password"
@@ -128,7 +128,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[#1A1A2E] to-ink-800 hover:from-ink-800 hover:to-ink-700 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-[#1A1A2E]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-[#17181A] to-ink-800 hover:from-ink-800 hover:to-ink-700 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-[#17181A]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

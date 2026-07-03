@@ -203,7 +203,7 @@ export default function AssignmentFormFill() {
     const value = getFieldValue(field.id);
     const isMissing = missingFields.includes(field.id);
     const isReadOnly = submitted;
-    const base = `w-full px-4 py-2.5 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] transition-colors ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`;
+    const base = `w-full px-4 py-2.5 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] transition-colors ${isReadOnly ? 'opacity-60 cursor-not-allowed' : ''}`;
     const border = isMissing ? 'border-red-400' : 'border-gray-200';
 
     switch (field.field_type) {
@@ -218,11 +218,11 @@ export default function AssignmentFormFill() {
           <div className="space-y-2">
             {parseOptions(field.options).map((option, idx) => (
               <label key={idx} className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${
-                value === option ? 'border-[#1A1A2E] bg-[#1A1A2E]/5' : isMissing ? 'border-red-400 bg-white' : 'border-gray-200 bg-white hover:border-gray-300'
+                value === option ? 'border-[#17181A] bg-[#17181A]/5' : isMissing ? 'border-red-400 bg-white' : 'border-gray-200 bg-white hover:border-gray-300'
               } ${isReadOnly ? 'opacity-60 pointer-events-none' : ''}`}>
                 <input type="radio" name={`field-${field.id}`} value={option} checked={value === option}
                   onChange={() => handleFieldChange(field.id, option)} disabled={isReadOnly}
-                  className="w-4 h-4 text-[#1A1A2E] border-gray-300" />
+                  className="w-4 h-4 text-[#17181A] border-gray-300" />
                 <span className="text-gray-700">{option}</span>
               </label>
             ))}
@@ -233,11 +233,11 @@ export default function AssignmentFormFill() {
           <div className="flex gap-3">
             {['Sí', 'No'].map(option => (
               <label key={option} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-colors font-medium ${
-                value === option ? 'border-[#1A1A2E] bg-[#1A1A2E]/5 text-[#1A1A2E]' : isMissing ? 'border-red-400 bg-white text-gray-600' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                value === option ? 'border-[#17181A] bg-[#17181A]/5 text-[#17181A]' : isMissing ? 'border-red-400 bg-white text-gray-600' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
               } ${isReadOnly ? 'opacity-60 pointer-events-none' : ''}`}>
                 <input type="radio" name={`field-${field.id}`} value={option} checked={value === option}
                   onChange={() => handleFieldChange(field.id, option)} disabled={isReadOnly}
-                  className="w-4 h-4 text-[#1A1A2E] border-gray-300" />
+                  className="w-4 h-4 text-[#17181A] border-gray-300" />
                 {option}
               </label>
             ))}
@@ -252,7 +252,7 @@ export default function AssignmentFormFill() {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen app-mist flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
       </div>
     );
@@ -261,7 +261,7 @@ export default function AssignmentFormFill() {
   // Error (form not found)
   if (!form) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen app-mist flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
@@ -276,10 +276,10 @@ export default function AssignmentFormFill() {
   // Respondent selection step
   if (step === 'respondent') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen app-mist flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <div className="w-12 h-12 bg-[#1A1A2E] rounded-xl flex items-center justify-center mb-6">
+            <div className="w-12 h-12 bg-[#17181A] rounded-xl flex items-center justify-center mb-6">
               <User className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-1">{form.title}</h1>
@@ -299,12 +299,12 @@ export default function AssignmentFormFill() {
                     onClick={() => { setRespondentName(name); setStep('form'); }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors text-left ${
                       respondentName === name
-                        ? 'border-[#1A1A2E] bg-[#1A1A2E]/5'
+                        ? 'border-[#17181A] bg-[#17181A]/5'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#1A1A2E]/10 flex items-center justify-center flex-shrink-0">
-                      <User className="w-4 h-4 text-[#1A1A2E]" />
+                    <div className="w-8 h-8 rounded-full bg-[#17181A]/10 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-[#17181A]" />
                     </div>
                     <span className="text-gray-800 font-medium">{name}</span>
                   </button>
@@ -335,7 +335,7 @@ export default function AssignmentFormFill() {
                 }}
                 placeholder="Tu nombre completo"
                 autoFocus={knownRespondents.length === 0}
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] transition-colors"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] transition-colors"
               />
               <button
                 onClick={() => {
@@ -345,7 +345,7 @@ export default function AssignmentFormFill() {
                   }
                 }}
                 disabled={!newRespondentName.trim()}
-                className="px-4 py-3 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-3 bg-[#17181A] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -359,7 +359,7 @@ export default function AssignmentFormFill() {
 
   // Form view
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen app-mist">
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -379,7 +379,7 @@ export default function AssignmentFormFill() {
               )}
             </div>
             {!submitted && respondentName && (
-              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm">
+              <div className="flex items-center gap-2 glass-solid rounded-xl px-3 py-2 text-sm">
                 <User className="w-4 h-4 text-gray-400" />
                 <span className="text-gray-700 font-medium">{respondentName}</span>
                 <button onClick={() => setStep('respondent')} className="text-xs text-blue-600 hover:text-blue-700 ml-1">
@@ -408,7 +408,7 @@ export default function AssignmentFormFill() {
 
         {/* Sections */}
         {sections.map(section => (
-          <div key={section.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
+          <div key={section.id} className="glass-card shadow-sm mb-4 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-800">{section.title}</h2>
               {section.description && <p className="text-sm text-gray-500 mt-1">{section.description}</p>}
@@ -446,7 +446,7 @@ export default function AssignmentFormFill() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex items-center justify-center gap-2 px-8 py-3 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-8 py-3 bg-[#17181A] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               {submitting ? 'Enviando...' : 'Enviar formulario'}

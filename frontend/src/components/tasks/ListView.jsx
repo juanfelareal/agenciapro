@@ -508,7 +508,7 @@ export default function ListView({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="glass-panel overflow-hidden">
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
         <div className="bg-[#163B3B]/5 border-b border-[#163B3B]/10 px-4 py-2.5 flex items-center gap-3 flex-wrap">
@@ -558,7 +558,7 @@ export default function ListView({
               <User size={12} />
               Asignar
             </button>
-            <div className="absolute z-30 top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg py-1 w-48 max-h-48 overflow-y-auto hidden group-hover/assign:block">
+            <div className="absolute z-30 top-full left-0 mt-1 glass-solid rounded-xl shadow-lg py-1 w-48 max-h-48 overflow-y-auto hidden group-hover/assign:block">
               <button
                 onClick={() => handleBulkAssign(null)}
                 className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
@@ -612,7 +612,7 @@ export default function ListView({
             <col style={{ width: columnWidths.created_by }} />
             <col style={{ width: columnWidths.actions }} />
           </colgroup>
-          <thead className="bg-gray-50 border-b border-gray-100">
+          <thead className="bg-white/40 border-b border-white/60">
             <tr>
               <th className="relative px-3 py-3 text-center">
                 <button onClick={toggleSelectAll} className="text-gray-400 hover:text-[#163B3B]">
@@ -702,7 +702,7 @@ export default function ListView({
               <tr
                 key={task.id}
                 onClick={() => onTaskClick && onTaskClick(task)}
-                className={`hover:bg-gray-50 transition-colors group cursor-pointer ${selectedIds.has(task.id) ? 'bg-[#163B3B]/5' : ''}`}
+                className={`hover:bg-white/50 transition-colors group cursor-pointer ${selectedIds.has(task.id) ? 'bg-[#163B3B]/5' : ''}`}
               >
                 {/* Checkbox */}
                 <td className="px-3 py-3 text-center">
@@ -799,7 +799,7 @@ export default function ListView({
                   {assigneeDropdownTaskId === task.id && (
                     <div
                       ref={assigneeDropdownRef}
-                      className="absolute z-20 mt-1 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 max-h-48 overflow-y-auto"
+                      className="absolute z-20 mt-1 left-0 w-48 glass-solid rounded-xl shadow-lg py-1 max-h-48 overflow-y-auto"
                     >
                       <div
                         onClick={async (e) => {

@@ -115,7 +115,7 @@ export default function ClientCalls() {
             <ArrowLeft size={20} className="text-gray-500" />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">
+            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">
               Llamadas — {client?.company || client?.name}
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">Transcripciones y resúmenes de reuniones</p>
@@ -123,7 +123,7 @@ export default function ClientCalls() {
         </div>
         <button
           onClick={handleNew}
-          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
         >
           <Plus size={20} />
           Nueva Llamada
@@ -132,17 +132,17 @@ export default function ClientCalls() {
 
       {/* Calls List */}
       {calls.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Phone className="w-8 h-8 text-gray-400" />
           </div>
-          <h2 className="text-lg font-semibold text-[#1A1A2E]">Sin llamadas registradas</h2>
+          <h2 className="text-lg font-semibold text-[#17181A]">Sin llamadas registradas</h2>
           <p className="text-gray-500 mt-2">Agrega la primera llamada con el botón de arriba.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {calls.map((call) => (
-            <div key={call.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div key={call.id} className="glass-card overflow-hidden">
               <div
                 className="flex items-center gap-4 p-5 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => setExpandedId(expandedId === call.id ? null : call.id)}
@@ -151,7 +151,7 @@ export default function ClientCalls() {
                   <Phone className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-[#1A1A2E] truncate">{call.title}</h3>
+                  <h3 className="font-medium text-[#17181A] truncate">{call.title}</h3>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-xs text-gray-500 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
@@ -171,7 +171,7 @@ export default function ClientCalls() {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleEdit(call); }}
-                    className="p-1.5 text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 rounded-lg"
+                    className="p-1.5 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg"
                     title="Editar"
                   >
                     <Edit size={16} />
@@ -218,7 +218,7 @@ export default function ClientCalls() {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editing ? 'Editar Llamada' : 'Nueva Llamada'}
               </h2>
               <button onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-gray-100 rounded-xl">
@@ -233,7 +233,7 @@ export default function ClientCalls() {
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
                   placeholder="Ej: Reunión de kickoff, Revisión mensual..."
                 />
               </div>
@@ -244,7 +244,7 @@ export default function ClientCalls() {
                   type="datetime-local"
                   value={form.call_date}
                   onChange={(e) => setForm({ ...form, call_date: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E]"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
                 />
               </div>
 
@@ -254,7 +254,7 @@ export default function ClientCalls() {
                   value={form.summary}
                   onChange={(e) => setForm({ ...form, summary: e.target.value })}
                   rows={4}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] resize-none"
                   placeholder="Puntos clave de la llamada..."
                 />
               </div>
@@ -265,7 +265,7 @@ export default function ClientCalls() {
                   value={form.transcription}
                   onChange={(e) => setForm({ ...form, transcription: e.target.value })}
                   rows={8}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1A1A2E]/20 focus:border-[#1A1A2E] resize-none font-mono text-sm"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] resize-none font-mono text-sm"
                   placeholder="Pega la transcripción completa aquí..."
                 />
               </div>
@@ -273,7 +273,7 @@ export default function ClientCalls() {
               <button
                 onClick={handleSave}
                 disabled={!form.title.trim()}
-                className="w-full py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="w-full py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 {editing ? 'Guardar Cambios' : 'Crear Llamada'}
               </button>

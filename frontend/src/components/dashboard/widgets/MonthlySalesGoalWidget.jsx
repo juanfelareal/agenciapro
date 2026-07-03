@@ -303,7 +303,7 @@ const MonthlySalesGoalWidget = () => {
               <button
                 onClick={handleSaveGoals}
                 disabled={savingGoals}
-                className="px-4 py-2 text-sm font-medium bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] flex items-center gap-2"
               >
                 <Save size={16} />
                 {savingGoals ? 'Guardando…' : 'Guardar metas'}

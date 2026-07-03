@@ -86,23 +86,23 @@ export default function PortalInvoices() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Mis Facturas</h1>
+        <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Mis Facturas</h1>
         <p className="text-sm text-gray-500 mt-0.5">Historial de facturación y pagos</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#1A1A2E]" />
+              <FileText className="w-5 h-5 text-[#17181A]" />
             </div>
-            <span className="text-xl font-bold text-[#1A1A2E]">{formatCurrency(summary.total)}</span>
+            <span className="text-xl font-bold text-[#17181A]">{formatCurrency(summary.total)}</span>
           </div>
           <p className="mt-3 text-sm text-gray-500">Total Facturado</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -112,7 +112,7 @@ export default function PortalInvoices() {
           <p className="mt-3 text-sm text-gray-500">Pagado</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
               <Clock className="w-5 h-5 text-amber-600" />
@@ -122,7 +122,7 @@ export default function PortalInvoices() {
           <p className="mt-3 text-sm text-gray-500">Pendiente</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
               <AlertCircle className="w-5 h-5 text-red-600" />
@@ -142,14 +142,14 @@ export default function PortalInvoices() {
             placeholder="Buscar por número o concepto..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl
+            className="w-full pl-10 pr-4 py-2.5 glass-solid rounded-xl
                      focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl appearance-none
+          className="px-4 py-2.5 glass-solid rounded-xl appearance-none
                    focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         >
           <option value="all">Todos los estados</option>
@@ -161,7 +161,7 @@ export default function PortalInvoices() {
 
       {/* Invoices List */}
       {filteredInvoices.length > 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden">
+        <div className="glass-card overflow-hidden">
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
@@ -188,12 +188,12 @@ export default function PortalInvoices() {
                 {filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <span className="font-mono font-medium text-[#1A1A2E]">
+                      <span className="font-mono font-medium text-[#17181A]">
                         {invoice.invoice_number || `#${invoice.id}`}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[#1A1A2E] line-clamp-1">{invoice.concept || 'Sin concepto'}</p>
+                      <p className="text-[#17181A] line-clamp-1">{invoice.concept || 'Sin concepto'}</p>
                       {invoice.project_name && (
                         <p className="text-sm text-gray-500">{invoice.project_name}</p>
                       )}
@@ -207,7 +207,7 @@ export default function PortalInvoices() {
                           })
                         : '-'}
                     </td>
-                    <td className="px-6 py-4 font-semibold text-[#1A1A2E]">
+                    <td className="px-6 py-4 font-semibold text-[#17181A]">
                       {formatCurrency(invoice.total)}
                     </td>
                     <td className="px-6 py-4">
@@ -225,7 +225,7 @@ export default function PortalInvoices() {
               <div key={invoice.id} className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="font-mono font-medium text-[#1A1A2E]">
+                    <p className="font-mono font-medium text-[#17181A]">
                       {invoice.invoice_number || `#${invoice.id}`}
                     </p>
                     <p className="text-sm text-gray-500 mt-0.5">
@@ -241,17 +241,17 @@ export default function PortalInvoices() {
                   {getStatusBadge(invoice.status)}
                 </div>
                 <p className="text-gray-700 mb-2">{invoice.concept || 'Sin concepto'}</p>
-                <p className="text-lg font-bold text-[#1A1A2E]">{formatCurrency(invoice.total)}</p>
+                <p className="text-lg font-bold text-[#17181A]">{formatCurrency(invoice.total)}</p>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-[#1A1A2E] mb-2">No hay facturas</h3>
+          <h3 className="text-lg font-semibold text-[#17181A] mb-2">No hay facturas</h3>
           <p className="text-gray-500">
             {search || statusFilter !== 'all'
               ? 'No se encontraron facturas con los filtros aplicados.'

@@ -120,26 +120,26 @@ const Expenses = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A2E] tracking-tight">Gastos</h1>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Gastos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Registro de gastos y egresos</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-[#1A1A2E] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#252542] transition-colors"
+          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
         >
           <Plus size={20} />
           Nuevo Gasto
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="glass-card p-6">
         <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Total de Gastos</p>
         <p className="text-4xl font-black text-[#F97316] tabular-nums">
           ${totalExpenses.toLocaleString('es-CO')}
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -169,7 +169,7 @@ const Expenses = () => {
           <tbody className="divide-y divide-gray-100">
             {expenses.map((expense) => (
               <tr key={expense.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#1A1A2E]">{expense.description}</td>
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#17181A]">{expense.description}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {expense.category && (
                     <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs">
@@ -186,7 +186,7 @@ const Expenses = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleEdit(expense)}
-                    className="text-gray-400 hover:text-[#1A1A2E] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
+                    className="text-gray-400 hover:text-[#17181A] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
                   >
                     <Edit size={18} />
                   </button>
@@ -207,7 +207,7 @@ const Expenses = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
+              <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingExpense ? 'Editar Gasto' : 'Nuevo Gasto'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -313,7 +313,7 @@ const Expenses = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
                 >
                   Guardar
                 </button>

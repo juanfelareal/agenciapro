@@ -131,10 +131,10 @@ const InlineDropdown = ({ value, options, colorMap, configMap, onSelect, placeho
                   value={newValue}
                   onChange={e => setNewValue(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddNew(); if (e.key === 'Escape') { setAdding(false); setNewValue(''); } }}
-                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#17181A]"
                   placeholder="Nuevo estado..."
                 />
-                <button onClick={handleAddNew} className="p-1 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542]">
+                <button onClick={handleAddNew} className="p-1 bg-[#17181A] text-white rounded-lg hover:bg-[#26282C]">
                   <Check size={12} />
                 </button>
               </div>
@@ -198,10 +198,10 @@ const InlineDropdown = ({ value, options, colorMap, configMap, onSelect, placeho
                 value={newValue}
                 onChange={e => setNewValue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleAddNew(); if (e.key === 'Escape') { setAdding(false); setNewValue(''); } }}
-                className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#17181A]"
                 placeholder="Nuevo tipo..."
               />
-              <button onClick={handleAddNew} className="p-1 bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542]">
+              <button onClick={handleAddNew} className="p-1 bg-[#17181A] text-white rounded-lg hover:bg-[#26282C]">
                 <Check size={12} />
               </button>
             </div>
@@ -240,7 +240,7 @@ const InlineValue = ({ value, onSave }) => {
         onChange={e => setLocalVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-32 text-right focus:outline-none focus:ring-1 focus:ring-[#1A1A2E]"
+        className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-32 text-right focus:outline-none focus:ring-1 focus:ring-[#17181A]"
       />
     );
   }
@@ -248,7 +248,7 @@ const InlineValue = ({ value, onSave }) => {
   return (
     <span
       onClick={() => { setLocalVal(value || 0); setEditing(true); }}
-      className="font-semibold text-[#1A1A2E] cursor-pointer hover:bg-gray-100 rounded-lg px-2 py-1 -mx-2 transition-colors"
+      className="font-semibold text-[#17181A] cursor-pointer hover:bg-gray-100 rounded-lg px-2 py-1 -mx-2 transition-colors"
     >
       {formatCurrency(value)}
     </span>
@@ -285,7 +285,7 @@ const InlineText = ({ value, onSave, placeholder = 'Agregar...', disabled = fals
         onChange={e => setLocalVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); } if (e.key === 'Escape') setEditing(false); }}
-        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-full min-w-[180px] focus:outline-none focus:ring-1 focus:ring-[#1A1A2E] resize-none"
+        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-full min-w-[180px] focus:outline-none focus:ring-1 focus:ring-[#17181A] resize-none"
         rows={2}
         placeholder={placeholder}
       />
@@ -442,7 +442,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
               />
             );
           })}
-          <text x={size / 2} y={size / 2 - 8} textAnchor="middle" className="text-2xl font-bold fill-[#1A1A2E]" fontSize="24">{total}</text>
+          <text x={size / 2} y={size / 2 - 8} textAnchor="middle" className="text-2xl font-bold fill-[#17181A]" fontSize="24">{total}</text>
           <text x={size / 2} y={size / 2 + 12} textAnchor="middle" className="fill-gray-400" fontSize="11">clientes</text>
         </svg>
         <div className="space-y-1.5">
@@ -450,7 +450,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             <div key={i} className="flex items-center gap-2 text-sm">
               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
               <span className="text-gray-600">{d.name}</span>
-              <span className="font-semibold text-[#1A1A2E] ml-auto">{d.count}</span>
+              <span className="font-semibold text-[#17181A] ml-auto">{d.count}</span>
             </div>
           ))}
         </div>
@@ -462,47 +462,47 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-[#10B981]/10 rounded-xl flex items-center justify-center">
               <DollarSign className="w-5 h-5 text-[#10B981]" />
             </div>
             <span className="text-sm text-gray-500">Facturación Fija</span>
           </div>
-          <p className="text-2xl font-bold text-[#1A1A2E]">{formatCurrency(kpis.facturacionFija)}</p>
+          <p className="text-2xl font-bold text-[#17181A]">{formatCurrency(kpis.facturacionFija)}</p>
           <p className="text-xs text-gray-400 mt-1">mensual contratada</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
               <Users className="w-5 h-5 text-blue-500" />
             </div>
             <span className="text-sm text-gray-500">Total Clientes</span>
           </div>
-          <p className="text-2xl font-bold text-[#1A1A2E]">{kpis.total}</p>
+          <p className="text-2xl font-bold text-[#17181A]">{kpis.total}</p>
           <p className="text-xs text-gray-400 mt-1">activos</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-purple-500" />
             </div>
             <span className="text-sm text-gray-500">Ticket Promedio</span>
           </div>
-          <p className="text-2xl font-bold text-[#1A1A2E]">{formatCurrency(kpis.ticketPromedio)}</p>
+          <p className="text-2xl font-bold text-[#17181A]">{formatCurrency(kpis.ticketPromedio)}</p>
           <p className="text-xs text-gray-400 mt-1">por cliente</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
               <Percent className="w-5 h-5 text-amber-500" />
             </div>
             <span className="text-sm text-gray-500">Con Comisión</span>
           </div>
-          <p className="text-2xl font-bold text-[#1A1A2E]">{kpis.conComision} <span className="text-base font-normal text-gray-400">({kpis.pctComision}%)</span></p>
+          <p className="text-2xl font-bold text-[#17181A]">{kpis.conComision} <span className="text-base font-normal text-gray-400">({kpis.pctComision}%)</span></p>
           <p className="text-xs text-gray-400 mt-1">de {kpis.total} clientes</p>
         </div>
       </div>
@@ -510,14 +510,14 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donut: Tipo de Negociación */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="font-semibold text-[#1A1A2E] mb-4">Tipo de Negociación</h3>
+        <div className="glass-card p-6">
+          <h3 className="font-semibold text-[#17181A] mb-4">Tipo de Negociación</h3>
           <DonutChart data={tipoDistribution} />
         </div>
 
         {/* Estado Actual Summary */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="font-semibold text-[#1A1A2E] mb-4">Estado Actual</h3>
+        <div className="glass-card p-6">
+          <h3 className="font-semibold text-[#17181A] mb-4">Estado Actual</h3>
           <div className="space-y-2.5">
             {estadoDistribution.map((d, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -542,7 +542,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
           onClick={() => { setFilterTipo('all'); setFilterEstado('all'); }}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             filterTipo === 'all' && filterEstado === 'all'
-              ? 'bg-[#1A1A2E] text-white'
+              ? 'bg-[#17181A] text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
@@ -592,8 +592,8 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
       </div>
 
       {/* Bar Chart: Valor Contratado */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h3 className="font-semibold text-[#1A1A2E] mb-4">Valor Contratado por Cliente</h3>
+      <div className="glass-card p-6">
+        <h3 className="font-semibold text-[#17181A] mb-4">Valor Contratado por Cliente</h3>
         {sortedByValor.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">No hay clientes con valor contratado asignado</p>
         ) : (
@@ -641,7 +641,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
               return (
                 <div key={client.id} className="bg-white rounded-xl p-4 border border-red-100 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-[#1A1A2E]">{client.nickname || client.company || client.name}</p>
+                    <p className="font-medium text-[#17181A]">{client.nickname || client.company || client.name}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span
                         className="text-xs px-2 py-0.5 rounded-lg font-medium"
@@ -654,7 +654,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
                       )}
                     </div>
                   </div>
-                  <p className="font-bold text-[#1A1A2E]">{formatCurrency(client.valor_contratado)}</p>
+                  <p className="font-bold text-[#17181A]">{formatCurrency(client.valor_contratado)}</p>
                 </div>
               );
             })}
@@ -663,9 +663,9 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
       )}
 
       {/* Client Detail Table (editable) */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-[#1A1A2E]">Detalle de Clientes</h3>
+          <h3 className="font-semibold text-[#17181A]">Detalle de Clientes</h3>
           <span className="text-sm text-gray-400">{filteredClients.length} clientes</span>
         </div>
         <div className="overflow-x-auto">
@@ -683,7 +683,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             <tbody className="divide-y divide-gray-50">
               {filteredClients.map(client => (
                 <tr key={client.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-[#1A1A2E]">
+                  <td className="px-4 py-3 text-sm font-medium text-[#17181A]">
                     {client.nickname || client.company || client.name}
                   </td>
                   <td className="px-4 py-3">
@@ -715,7 +715,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
                       onClick={() => quickUpdate(client.id, 'has_comision', client.has_comision ? 0 : 1)}
                       className={`text-xs px-2.5 py-1 rounded-lg font-medium cursor-pointer transition-colors ${
                         client.has_comision
-                          ? 'bg-[#BFFF00]/20 text-[#1A1A2E] hover:bg-[#BFFF00]/30'
+                          ? 'bg-[#D7F653]/20 text-[#17181A] hover:bg-[#D7F653]/30'
                           : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                       }`}
                     >

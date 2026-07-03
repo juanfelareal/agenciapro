@@ -471,6 +471,12 @@ export const platformCredentialsAPI = {
   connectFacebook: (data) => api.post('/platform-credentials/facebook', data),
   testFacebook: (id) => api.post(`/platform-credentials/facebook/${id}/test`),
   disconnectFacebook: (id) => api.delete(`/platform-credentials/facebook/${id}`),
+  // Google Ads
+  testGoogleAds: (id) => api.post(`/platform-credentials/google-ads/${id}/test`),
+  disconnectGoogleAds: (id) => api.delete(`/platform-credentials/google-ads/${id}`),
+  // TikTok Ads
+  testTiktok: (id) => api.post(`/platform-credentials/tiktok/${id}/test`),
+  disconnectTiktok: (id) => api.delete(`/platform-credentials/tiktok/${id}`),
   // Shopify
   connectShopify: (data) => api.post('/platform-credentials/shopify', data),
   testShopify: (id) => api.post(`/platform-credentials/shopify/${id}/test`),
@@ -493,6 +499,10 @@ export const clientMetricsAPI = {
     api.get('/client-metrics/sync-status', { params: { start_date: startDate, end_date: endDate } }),
   getAds: (clientId, startDate, endDate) =>
     api.get(`/client-metrics/${clientId}/ads`, { params: { start_date: startDate, end_date: endDate } }),
+  getGoogleCampaigns: (clientId, startDate, endDate) =>
+    api.get(`/client-metrics/${clientId}/google-campaigns`, { params: { start_date: startDate, end_date: endDate } }),
+  getTiktokCampaigns: (clientId, startDate, endDate) =>
+    api.get(`/client-metrics/${clientId}/tiktok-campaigns`, { params: { start_date: startDate, end_date: endDate } }),
   getTopProducts: (clientId, startDate, endDate) =>
     api.get(`/client-metrics/${clientId}/top-products`, { params: { start_date: startDate, end_date: endDate } }),
 };
@@ -535,6 +545,22 @@ export const facebookOAuthAPI = {
   getAdAccounts: (sessionId) => api.get(`/oauth/facebook/ad-accounts?session_id=${sessionId}`),
   linkAccounts: (data) => api.post('/oauth/facebook/link-accounts', data),
   unlinkAccount: (credentialId) => api.delete(`/oauth/facebook/unlink/${credentialId}`),
+};
+
+// Google Ads OAuth API
+export const googleAdsOAuthAPI = {
+  getAuthUrl: (clientId) => api.get(`/oauth/google-ads/url?client_id=${clientId}`),
+  getCustomers: (sessionId) => api.get(`/oauth/google-ads/customers?session_id=${sessionId}`),
+  linkAccounts: (data) => api.post('/oauth/google-ads/link-accounts', data),
+  unlinkAccount: (credentialId) => api.delete(`/oauth/google-ads/unlink/${credentialId}`),
+};
+
+// TikTok Ads OAuth API
+export const tiktokOAuthAPI = {
+  getAuthUrl: (clientId) => api.get(`/oauth/tiktok/url?client_id=${clientId}`),
+  getAdvertisers: (sessionId) => api.get(`/oauth/tiktok/advertisers?session_id=${sessionId}`),
+  linkAccounts: (data) => api.post('/oauth/tiktok/link-accounts', data),
+  unlinkAccount: (credentialId) => api.delete(`/oauth/tiktok/unlink/${credentialId}`),
 };
 
 // Shopify OAuth API

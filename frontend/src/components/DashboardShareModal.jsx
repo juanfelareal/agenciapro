@@ -67,7 +67,7 @@ export default function DashboardShareModal({ clientId, onClose }) {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-[#1A1A2E] flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
             <Share2 className="w-5 h-5" /> Compartir Dashboard
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
@@ -84,7 +84,7 @@ export default function DashboardShareModal({ clientId, onClose }) {
               <select
                 value={expiresInDays}
                 onChange={(e) => setExpiresInDays(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
               >
                 <option value="">Sin expiración</option>
                 <option value="7">Expira en 7 días</option>
@@ -94,7 +94,7 @@ export default function DashboardShareModal({ clientId, onClose }) {
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="flex items-center gap-2 px-4 py-2 bg-[#1A1A2E] text-white rounded-xl text-sm font-medium hover:bg-[#252542] disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] disabled:opacity-50"
               >
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
                 Generar
@@ -115,7 +115,7 @@ export default function DashboardShareModal({ clientId, onClose }) {
               {activeShares.map((share) => (
                 <div key={share.id} className="bg-gray-50 rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <code className="text-sm font-mono text-[#1A1A2E]">{share.token}</code>
+                    <code className="text-sm font-mono text-[#17181A]">{share.token}</code>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleCopy(share.token)}
