@@ -178,6 +178,16 @@ router.get('/public/:token', async (req, res) => {
         COALESCE(SUM(fb_video_3sec_views), 0) as total_video_3sec_views,
         COALESCE(SUM(fb_video_thruplay_views), 0) as total_video_thruplay_views,
         COALESCE(SUM(fb_landing_page_views), 0) as total_landing_page_views,
+        COALESCE(SUM(ga_spend), 0) as total_google_spend,
+        COALESCE(SUM(ga_impressions), 0) as total_google_impressions,
+        COALESCE(SUM(ga_clicks), 0) as total_google_clicks,
+        COALESCE(SUM(ga_conversions), 0) as total_google_conversions,
+        COALESCE(SUM(ga_revenue), 0) as total_google_revenue,
+        COALESCE(SUM(tt_spend), 0) as total_tiktok_spend,
+        COALESCE(SUM(tt_impressions), 0) as total_tiktok_impressions,
+        COALESCE(SUM(tt_clicks), 0) as total_tiktok_clicks,
+        COALESCE(SUM(tt_conversions), 0) as total_tiktok_conversions,
+        COALESCE(SUM(tt_revenue), 0) as total_tiktok_revenue,
         COALESCE(SUM(shopify_total_tax), 0) as total_tax,
         COALESCE(SUM(shopify_total_discounts), 0) as total_discounts,
         COALESCE(SUM(shopify_sessions), 0) as total_sessions
@@ -198,6 +208,16 @@ router.get('/public/:token', async (req, res) => {
         COALESCE(SUM(fb_video_3sec_views), 0) as total_video_3sec_views,
         COALESCE(SUM(fb_video_thruplay_views), 0) as total_video_thruplay_views,
         COALESCE(SUM(fb_landing_page_views), 0) as total_landing_page_views,
+        COALESCE(SUM(ga_spend), 0) as total_google_spend,
+        COALESCE(SUM(ga_impressions), 0) as total_google_impressions,
+        COALESCE(SUM(ga_clicks), 0) as total_google_clicks,
+        COALESCE(SUM(ga_conversions), 0) as total_google_conversions,
+        COALESCE(SUM(ga_revenue), 0) as total_google_revenue,
+        COALESCE(SUM(tt_spend), 0) as total_tiktok_spend,
+        COALESCE(SUM(tt_impressions), 0) as total_tiktok_impressions,
+        COALESCE(SUM(tt_clicks), 0) as total_tiktok_clicks,
+        COALESCE(SUM(tt_conversions), 0) as total_tiktok_conversions,
+        COALESCE(SUM(tt_revenue), 0) as total_tiktok_revenue,
         COALESCE(SUM(shopify_total_tax), 0) as total_tax,
         COALESCE(SUM(shopify_total_discounts), 0) as total_discounts,
         COALESCE(SUM(shopify_sessions), 0) as total_sessions
@@ -234,6 +254,28 @@ router.get('/public/:token', async (req, res) => {
     const totalTax = p(current?.total_tax);
     const totalDiscounts = p(current?.total_discounts);
     const sessions = p(current?.total_sessions);
+    // Google Ads
+    const gaSpend = p(current?.total_google_spend);
+    const gaImpressions = p(current?.total_google_impressions);
+    const gaClicks = p(current?.total_google_clicks);
+    const gaConversions = p(current?.total_google_conversions);
+    const gaRevenue = p(current?.total_google_revenue);
+    const prevGaSpend = p(previous?.total_google_spend);
+    const prevGaImpressions = p(previous?.total_google_impressions);
+    const prevGaClicks = p(previous?.total_google_clicks);
+    const prevGaConversions = p(previous?.total_google_conversions);
+    const prevGaRevenue = p(previous?.total_google_revenue);
+    // TikTok Ads
+    const ttSpend = p(current?.total_tiktok_spend);
+    const ttImpressions = p(current?.total_tiktok_impressions);
+    const ttClicks = p(current?.total_tiktok_clicks);
+    const ttConversions = p(current?.total_tiktok_conversions);
+    const ttRevenue = p(current?.total_tiktok_revenue);
+    const prevTtSpend = p(previous?.total_tiktok_spend);
+    const prevTtImpressions = p(previous?.total_tiktok_impressions);
+    const prevTtClicks = p(previous?.total_tiktok_clicks);
+    const prevTtConversions = p(previous?.total_tiktok_conversions);
+    const prevTtRevenue = p(previous?.total_tiktok_revenue);
 
     const response = {
       client: {
@@ -278,6 +320,66 @@ router.get('/public/:token', async (req, res) => {
         hook_rate_change: calcChange(fbImpressions > 0 ? (video3sec / fbImpressions) * 100 : 0, prevImpressions > 0 ? (p(previous?.total_video_3sec_views) / prevImpressions) * 100 : 0),
         hold_rate: video3sec > 0 ? (thruplay / video3sec) * 100 : 0,
         hold_rate_change: calcChange(video3sec > 0 ? (thruplay / video3sec) * 100 : 0, p(previous?.total_video_3sec_views) > 0 ? (p(previous?.total_video_thruplay_views) / p(previous?.total_video_3sec_views)) * 100 : 0),
+      };
+    }
+
+    if (gaSpend > 0 || gaImpressions > 0) {
+      const gaCtr = gaImpressions > 0 ? (gaClicks / gaImpressions) * 100 : 0;
+      const gaCpc = gaClicks > 0 ? gaSpend / gaClicks : 0;
+      const gaCpm = gaImpressions > 0 ? (gaSpend / gaImpressions) * 1000 : 0;
+      const gaRoas = gaSpend > 0 ? gaRevenue / gaSpend : 0;
+      const gaCostPerConv = gaConversions > 0 ? gaSpend / gaConversions : 0;
+      const prevGaCtr = prevGaImpressions > 0 ? (prevGaClicks / prevGaImpressions) * 100 : 0;
+      const prevGaRoas = prevGaSpend > 0 ? prevGaRevenue / prevGaSpend : 0;
+      const prevGaCostPerConv = prevGaConversions > 0 ? prevGaSpend / prevGaConversions : 0;
+
+      response.google = {
+        spend: gaSpend,
+        spend_change: calcChange(gaSpend, prevGaSpend),
+        impressions: gaImpressions,
+        impressions_change: calcChange(gaImpressions, prevGaImpressions),
+        clicks: gaClicks,
+        clicks_change: calcChange(gaClicks, prevGaClicks),
+        ctr: gaCtr,
+        ctr_change: calcChange(gaCtr, prevGaCtr),
+        conversions: gaConversions,
+        conversions_change: calcChange(gaConversions, prevGaConversions),
+        roas: gaRoas,
+        roas_change: calcChange(gaRoas, prevGaRoas),
+        cpc: gaCpc,
+        cpm: gaCpm,
+        cost_per_conversion: gaCostPerConv,
+        cost_per_conversion_change: calcChange(gaCostPerConv, prevGaCostPerConv),
+      };
+    }
+
+    if (ttSpend > 0 || ttImpressions > 0) {
+      const ttCtr = ttImpressions > 0 ? (ttClicks / ttImpressions) * 100 : 0;
+      const ttCpc = ttClicks > 0 ? ttSpend / ttClicks : 0;
+      const ttCpm = ttImpressions > 0 ? (ttSpend / ttImpressions) * 1000 : 0;
+      const ttRoas = ttSpend > 0 ? ttRevenue / ttSpend : 0;
+      const ttCostPerConv = ttConversions > 0 ? ttSpend / ttConversions : 0;
+      const prevTtCtr = prevTtImpressions > 0 ? (prevTtClicks / prevTtImpressions) * 100 : 0;
+      const prevTtRoas = prevTtSpend > 0 ? prevTtRevenue / prevTtSpend : 0;
+      const prevTtCostPerConv = prevTtConversions > 0 ? prevTtSpend / prevTtConversions : 0;
+
+      response.tiktok = {
+        spend: ttSpend,
+        spend_change: calcChange(ttSpend, prevTtSpend),
+        impressions: ttImpressions,
+        impressions_change: calcChange(ttImpressions, prevTtImpressions),
+        clicks: ttClicks,
+        clicks_change: calcChange(ttClicks, prevTtClicks),
+        ctr: ttCtr,
+        ctr_change: calcChange(ttCtr, prevTtCtr),
+        conversions: ttConversions,
+        conversions_change: calcChange(ttConversions, prevTtConversions),
+        roas: ttRoas,
+        roas_change: calcChange(ttRoas, prevTtRoas),
+        cpc: ttCpc,
+        cpm: ttCpm,
+        cost_per_conversion: ttCostPerConv,
+        cost_per_conversion_change: calcChange(ttCostPerConv, prevTtCostPerConv),
       };
     }
 

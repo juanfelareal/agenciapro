@@ -2,6 +2,8 @@ import express from 'express';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
 import FacebookAdsIntegration from '../../integrations/facebookAds.js';
+import GoogleAdsIntegration from '../../integrations/googleAds.js';
+import TikTokAdsIntegration from '../../integrations/tiktokAds.js';
 import ShopifyIntegration from '../../integrations/shopify.js';
 
 const router = express.Router();
@@ -78,6 +80,16 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(fb_conversions), 0) as total_conversions,
         AVG(fb_roas) as avg_roas,
         AVG(overall_roas) as avg_overall_roas,
+        COALESCE(SUM(ga_spend), 0) as total_google_spend,
+        COALESCE(SUM(ga_impressions), 0) as total_google_impressions,
+        COALESCE(SUM(ga_clicks), 0) as total_google_clicks,
+        COALESCE(SUM(ga_conversions), 0) as total_google_conversions,
+        COALESCE(SUM(ga_revenue), 0) as total_google_revenue,
+        COALESCE(SUM(tt_spend), 0) as total_tiktok_spend,
+        COALESCE(SUM(tt_impressions), 0) as total_tiktok_impressions,
+        COALESCE(SUM(tt_clicks), 0) as total_tiktok_clicks,
+        COALESCE(SUM(tt_conversions), 0) as total_tiktok_conversions,
+        COALESCE(SUM(tt_revenue), 0) as total_tiktok_revenue,
         COALESCE(SUM(shopify_customers), 0) as total_customers,
         COALESCE(SUM(fb_video_3sec_views), 0) as total_video_3sec_views,
         COALESCE(SUM(fb_video_thruplay_views), 0) as total_video_thruplay_views,
@@ -108,6 +120,16 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(fb_clicks), 0) as total_clicks,
         COALESCE(SUM(fb_conversions), 0) as total_conversions,
         AVG(fb_roas) as avg_roas,
+        COALESCE(SUM(ga_spend), 0) as total_google_spend,
+        COALESCE(SUM(ga_impressions), 0) as total_google_impressions,
+        COALESCE(SUM(ga_clicks), 0) as total_google_clicks,
+        COALESCE(SUM(ga_conversions), 0) as total_google_conversions,
+        COALESCE(SUM(ga_revenue), 0) as total_google_revenue,
+        COALESCE(SUM(tt_spend), 0) as total_tiktok_spend,
+        COALESCE(SUM(tt_impressions), 0) as total_tiktok_impressions,
+        COALESCE(SUM(tt_clicks), 0) as total_tiktok_clicks,
+        COALESCE(SUM(tt_conversions), 0) as total_tiktok_conversions,
+        COALESCE(SUM(tt_revenue), 0) as total_tiktok_revenue,
         COALESCE(SUM(shopify_customers), 0) as total_customers,
         COALESCE(SUM(fb_video_3sec_views), 0) as total_video_3sec_views,
         COALESCE(SUM(fb_video_thruplay_views), 0) as total_video_thruplay_views,
@@ -163,6 +185,50 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     const conversionRate = sessions > 0 ? (orders / sessions) * 100 : 0;
     const pendingOrders = p(current?.total_pending_orders);
 
+    // Google Ads (current)
+    const gaSpend = p(current?.total_google_spend);
+    const gaImpressions = p(current?.total_google_impressions);
+    const gaClicks = p(current?.total_google_clicks);
+    const gaConversions = p(current?.total_google_conversions);
+    const gaRevenue = p(current?.total_google_revenue);
+    const gaCtr = gaImpressions > 0 ? (gaClicks / gaImpressions) * 100 : 0;
+    const gaCpc = gaClicks > 0 ? gaSpend / gaClicks : 0;
+    const gaCpm = gaImpressions > 0 ? (gaSpend / gaImpressions) * 1000 : 0;
+    const gaRoas = gaSpend > 0 ? gaRevenue / gaSpend : 0;
+    const gaCostPerConversion = gaConversions > 0 ? gaSpend / gaConversions : 0;
+    // Google Ads (previous)
+    const prevGaSpend = p(previous?.total_google_spend);
+    const prevGaImpressions = p(previous?.total_google_impressions);
+    const prevGaClicks = p(previous?.total_google_clicks);
+    const prevGaConversions = p(previous?.total_google_conversions);
+    const prevGaRevenue = p(previous?.total_google_revenue);
+    const prevGaCtr = prevGaImpressions > 0 ? (prevGaClicks / prevGaImpressions) * 100 : 0;
+    const prevGaRoas = prevGaSpend > 0 ? prevGaRevenue / prevGaSpend : 0;
+    const prevGaCostPerConversion = prevGaConversions > 0 ? prevGaSpend / prevGaConversions : 0;
+    // TikTok Ads (current)
+    const ttSpend = p(current?.total_tiktok_spend);
+    const ttImpressions = p(current?.total_tiktok_impressions);
+    const ttClicks = p(current?.total_tiktok_clicks);
+    const ttConversions = p(current?.total_tiktok_conversions);
+    const ttRevenue = p(current?.total_tiktok_revenue);
+    const ttCtr = ttImpressions > 0 ? (ttClicks / ttImpressions) * 100 : 0;
+    const ttCpc = ttClicks > 0 ? ttSpend / ttClicks : 0;
+    const ttCpm = ttImpressions > 0 ? (ttSpend / ttImpressions) * 1000 : 0;
+    const ttRoas = ttSpend > 0 ? ttRevenue / ttSpend : 0;
+    const ttCostPerConversion = ttConversions > 0 ? ttSpend / ttConversions : 0;
+    // TikTok Ads (previous)
+    const prevTtSpend = p(previous?.total_tiktok_spend);
+    const prevTtImpressions = p(previous?.total_tiktok_impressions);
+    const prevTtClicks = p(previous?.total_tiktok_clicks);
+    const prevTtConversions = p(previous?.total_tiktok_conversions);
+    const prevTtRevenue = p(previous?.total_tiktok_revenue);
+    const prevTtCtr = prevTtImpressions > 0 ? (prevTtClicks / prevTtImpressions) * 100 : 0;
+    const prevTtRoas = prevTtSpend > 0 ? prevTtRevenue / prevTtSpend : 0;
+    const prevTtCostPerConversion = prevTtConversions > 0 ? prevTtSpend / prevTtConversions : 0;
+    // Blended ad spend across Meta + Google + TikTok
+    const totalAdSpend = fbSpend + gaSpend + ttSpend;
+    const prevTotalAdSpend = prevSpend + prevGaSpend + prevTtSpend;
+
     // Previous derived
     const prevSpend = p(previous?.total_ad_spend);
     const prevConversions = p(previous?.total_conversions);
@@ -197,6 +263,18 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       WHERE client_id = ? AND status = 'active'
     `, [clientId]);
 
+    const googleAccounts = await db.all(`
+      SELECT customer_name, status, last_sync_at
+      FROM client_google_ads_credentials
+      WHERE client_id = ? AND status = 'active'
+    `, [clientId]);
+
+    const tiktokAccounts = await db.all(`
+      SELECT advertiser_name, status, last_sync_at
+      FROM client_tiktok_credentials
+      WHERE client_id = ? AND status = 'active'
+    `, [clientId]);
+
     const shopifyStore = await db.get(`
       SELECT store_url, status, last_sync_at
       FROM client_shopify_credentials
@@ -208,6 +286,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     // Most recent successful sync across this client's connected platforms
     const allSyncTimes = [
       ...facebookAccounts.map(a => a.last_sync_at).filter(Boolean),
+      ...googleAccounts.map(a => a.last_sync_at).filter(Boolean),
+      ...tiktokAccounts.map(a => a.last_sync_at).filter(Boolean),
       shopifyStore?.last_sync_at,
     ].filter(Boolean);
     const lastSyncAt = allSyncTimes.length
@@ -222,9 +302,61 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       last_sync_at: lastSyncAt,
       connected_platforms: {
         facebook: facebookAccounts,
+        google_ads: googleAccounts,
+        tiktok: tiktokAccounts,
         shopify: shopifyStore
       }
     };
+
+    // Include tiktok object if there's TikTok data or credentials
+    if (tiktokAccounts.length > 0 || ttSpend > 0 || ttImpressions > 0) {
+      response.tiktok = {
+        spend: ttSpend,
+        impressions: ttImpressions,
+        clicks: ttClicks,
+        ctr: ttCtr,
+        cpc: ttCpc,
+        cpm: ttCpm,
+        conversions: ttConversions,
+        revenue: ttRevenue,
+        roas: ttRoas,
+        cost_per_conversion: ttCostPerConversion,
+        ...(hasComparison && {
+          spend_change: calcChange(ttSpend, prevTtSpend),
+          impressions_change: calcChange(ttImpressions, prevTtImpressions),
+          clicks_change: calcChange(ttClicks, prevTtClicks),
+          ctr_change: calcChange(ttCtr, prevTtCtr),
+          conversions_change: calcChange(ttConversions, prevTtConversions),
+          roas_change: calcChange(ttRoas, prevTtRoas),
+          cost_per_conversion_change: calcChange(ttCostPerConversion, prevTtCostPerConversion),
+        }),
+      };
+    }
+
+    // Include google object if there's Google data or credentials
+    if (googleAccounts.length > 0 || gaSpend > 0 || gaImpressions > 0) {
+      response.google = {
+        spend: gaSpend,
+        impressions: gaImpressions,
+        clicks: gaClicks,
+        ctr: gaCtr,
+        cpc: gaCpc,
+        cpm: gaCpm,
+        conversions: gaConversions,
+        revenue: gaRevenue,
+        roas: gaRoas,
+        cost_per_conversion: gaCostPerConversion,
+        ...(hasComparison && {
+          spend_change: calcChange(gaSpend, prevGaSpend),
+          impressions_change: calcChange(gaImpressions, prevGaImpressions),
+          clicks_change: calcChange(gaClicks, prevGaClicks),
+          ctr_change: calcChange(gaCtr, prevGaCtr),
+          conversions_change: calcChange(gaConversions, prevGaConversions),
+          roas_change: calcChange(gaRoas, prevGaRoas),
+          cost_per_conversion_change: calcChange(gaCostPerConversion, prevGaCostPerConversion),
+        }),
+      };
+    }
 
     // Include facebook object if there's FB data or FB credentials
     if (facebookAccounts.length > 0 || fbSpend > 0 || fbImpressions > 0) {
@@ -322,27 +454,30 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
     // Use the portal-configured revenue for blended too
     const blendedRevenue = response.shopify?.revenue || revenue;
     const prevBlendedRevenue = response.shopify ? (revenueMetric === 'total' ? (previous?.total_all_orders_revenue || 0) : revenueMetric === 'net_confirmed' ? (previous?.total_net_revenue || 0) : prevRevenue) : prevRevenue;
-    if (response.facebook && response.shopify && blendedRevenue > 0 && fbSpend > 0) {
-      const overallRoas = blendedRevenue / fbSpend;
-      const costPerOrder = orders > 0 ? fbSpend / orders : 0;
-      const adSpendPercentage = blendedRevenue > 0 ? (fbSpend / blendedRevenue) * 100 : 0;
-      const marginAfterAds = blendedRevenue - fbSpend;
+    if ((response.facebook || response.google || response.tiktok) && response.shopify && blendedRevenue > 0 && totalAdSpend > 0) {
+      const overallRoas = blendedRevenue / totalAdSpend;
+      const costPerOrder = orders > 0 ? totalAdSpend / orders : 0;
+      const adSpendPercentage = blendedRevenue > 0 ? (totalAdSpend / blendedRevenue) * 100 : 0;
+      const marginAfterAds = blendedRevenue - totalAdSpend;
 
-      const prevOverallRoas = prevBlendedRevenue > 0 && prevSpend > 0 ? prevBlendedRevenue / prevSpend : 0;
-      const prevCostPerOrder = prevOrders > 0 ? prevSpend / prevOrders : 0;
-      const prevAdSpendPercentage = prevBlendedRevenue > 0 ? (prevSpend / prevBlendedRevenue) * 100 : 0;
-      const prevMarginAfterAds = prevBlendedRevenue - prevSpend;
+      const prevOverallRoas = prevBlendedRevenue > 0 && prevTotalAdSpend > 0 ? prevBlendedRevenue / prevTotalAdSpend : 0;
+      const prevCostPerOrder = prevOrders > 0 ? prevTotalAdSpend / prevOrders : 0;
+      const prevAdSpendPercentage = prevBlendedRevenue > 0 ? (prevTotalAdSpend / prevBlendedRevenue) * 100 : 0;
+      const prevMarginAfterAds = prevBlendedRevenue - prevTotalAdSpend;
 
       response.blended = {
         total_revenue: blendedRevenue,
-        total_ad_spend: fbSpend,
+        total_ad_spend: totalAdSpend,
+        fb_spend: fbSpend,
+        google_spend: gaSpend,
+        tiktok_spend: ttSpend,
         overall_roas: overallRoas,
         cost_per_order: costPerOrder,
         ad_spend_percentage: adSpendPercentage,
         margin_after_ads: marginAfterAds,
         ...(hasComparison && {
           total_revenue_change: calcChange(blendedRevenue, prevBlendedRevenue),
-          total_ad_spend_change: calcChange(fbSpend, prevSpend),
+          total_ad_spend_change: calcChange(totalAdSpend, prevTotalAdSpend),
           overall_roas_change: calcChange(overallRoas, prevOverallRoas),
           cost_per_order_change: calcChange(costPerOrder, prevCostPerOrder),
           ad_spend_percentage_change: calcChange(adSpendPercentage, prevAdSpendPercentage),
@@ -445,6 +580,72 @@ router.get('/ads', clientAuthMiddleware, requirePortalPermission('can_view_metri
   } catch (error) {
     console.error('Error fetching portal ad-level insights:', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al cargar anuncios' });
+  }
+});
+
+/**
+ * GET /api/portal/metrics/google-campaigns
+ * Get Google Ads campaign-level insights (on-demand from Google Ads API)
+ */
+router.get('/google-campaigns', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { startDate, endDate } = resolveRange(req.query);
+
+    const gaCred = await db.get(
+      'SELECT refresh_token, customer_id, login_customer_id FROM client_google_ads_credentials WHERE client_id = ?',
+      [clientId]
+    );
+
+    if (!gaCred || !gaCred.customer_id) {
+      return res.json({ campaigns: [], message: 'Sin conexión Google Ads' });
+    }
+
+    const refreshToken = gaCred.refresh_token || process.env.GOOGLE_ADS_REFRESH_TOKEN;
+    if (!refreshToken) {
+      return res.json({ campaigns: [], message: 'Sin token de acceso Google Ads' });
+    }
+
+    const google = new GoogleAdsIntegration(refreshToken, gaCred.customer_id, gaCred.login_customer_id);
+    const campaigns = await google.getCampaignInsights(startDate, endDate);
+
+    res.json({ campaigns });
+  } catch (error) {
+    console.error('Error fetching portal Google Ads campaigns:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar campañas de Google Ads' });
+  }
+});
+
+/**
+ * GET /api/portal/metrics/tiktok-campaigns
+ * Get TikTok Ads campaign-level insights (on-demand from TikTok API)
+ */
+router.get('/tiktok-campaigns', clientAuthMiddleware, requirePortalPermission('can_view_metrics'), async (req, res) => {
+  try {
+    const clientId = req.client.id;
+    const { startDate, endDate } = resolveRange(req.query);
+
+    const ttCred = await db.get(
+      'SELECT access_token, advertiser_id FROM client_tiktok_credentials WHERE client_id = ?',
+      [clientId]
+    );
+
+    if (!ttCred || !ttCred.advertiser_id) {
+      return res.json({ campaigns: [], message: 'Sin conexión TikTok' });
+    }
+
+    const accessToken = ttCred.access_token || process.env.TIKTOK_SYSTEM_ACCESS_TOKEN;
+    if (!accessToken) {
+      return res.json({ campaigns: [], message: 'Sin token de acceso TikTok' });
+    }
+
+    const tiktok = new TikTokAdsIntegration(accessToken, ttCred.advertiser_id);
+    const campaigns = await tiktok.getCampaignInsights(startDate, endDate);
+
+    res.json({ campaigns });
+  } catch (error) {
+    console.error('Error fetching portal TikTok campaigns:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al cargar campañas de TikTok' });
   }
 });
 

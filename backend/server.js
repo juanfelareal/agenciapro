@@ -46,6 +46,8 @@ import { checkDueDateAutomations } from './src/services/automationEngine.js';
 import platformCredentialsRoutes from './src/routes/platform-credentials.js';
 import clientMetricsRoutes from './src/routes/client-metrics.js';
 import facebookOAuthRoutes from './src/routes/facebook-oauth.js';
+import googleAdsOAuthRoutes from './src/routes/google-ads-oauth.js';
+import tiktokOAuthRoutes from './src/routes/tiktok-oauth.js';
 import shopifyOAuthRoutes from './src/routes/shopify-oauth.js';
 import { syncAllClientsForDate } from './src/services/metricsSyncService.js';
 // PDF Analysis (RUT extraction with Claude AI)
@@ -214,6 +216,16 @@ app.use('/api/oauth/facebook', (req, res, next) => {
   if (req.path === '/callback') return next();
   teamAuthMiddleware(req, res, next);
 }, facebookOAuthRoutes);
+// Google Ads OAuth: callback must be public (redirect from Google has no auth token)
+app.use('/api/oauth/google-ads', (req, res, next) => {
+  if (req.path === '/callback') return next();
+  teamAuthMiddleware(req, res, next);
+}, googleAdsOAuthRoutes);
+// TikTok OAuth: callback must be public (redirect from TikTok has no auth token)
+app.use('/api/oauth/tiktok', (req, res, next) => {
+  if (req.path === '/callback') return next();
+  teamAuthMiddleware(req, res, next);
+}, tiktokOAuthRoutes);
 // Shopify OAuth: callback + callback-status must be public
 // (callback: redirect from Shopify; callback-status: polling from frontend during OAuth)
 app.use('/api/oauth/shopify', (req, res, next) => {

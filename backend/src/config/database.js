@@ -752,6 +752,41 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Google Ads credentials
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_google_ads_credentials (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        refresh_token TEXT,
+        customer_id TEXT NOT NULL,
+        customer_name TEXT,
+        login_customer_id TEXT,
+        status TEXT CHECK(status IN ('active', 'inactive', 'expired', 'error')) DEFAULT 'active',
+        last_sync_at TEXT,
+        last_error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, customer_id)
+      )
+    `);
+
+    // TikTok Ads credentials
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_tiktok_credentials (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        access_token TEXT,
+        advertiser_id TEXT NOT NULL,
+        advertiser_name TEXT,
+        status TEXT CHECK(status IN ('active', 'inactive', 'expired', 'error')) DEFAULT 'active',
+        last_sync_at TEXT,
+        last_error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, advertiser_id)
+      )
+    `);
+
     // Shopify credentials
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_shopify_credentials (
@@ -801,7 +836,7 @@ export const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS metrics_sync_jobs (
         id SERIAL PRIMARY KEY,
         client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
-        job_type TEXT CHECK(job_type IN ('facebook', 'shopify', 'all')) NOT NULL,
+        job_type TEXT CHECK(job_type IN ('facebook', 'google', 'tiktok', 'shopify', 'all')) NOT NULL,
         status TEXT CHECK(status IN ('pending', 'running', 'completed', 'failed')) DEFAULT 'pending',
         started_at TEXT,
         completed_at TEXT,
@@ -1355,7 +1390,7 @@ export const initializeDatabase = async () => {
       'notifications', 'activity_log', 'time_entries',
       // Client portal and integrations
       'client_access_tokens', 'client_portal_settings', 'client_comments', 'client_notifications',
-      'client_facebook_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
+      'client_facebook_credentials', 'client_google_ads_credentials', 'client_tiktok_credentials', 'client_shopify_credentials', 'client_daily_metrics', 'metrics_sync_jobs',
       'ad_tag_categories', 'ad_tag_values', 'ad_tag_assignments',
       // Client groups & reference ads library
       'client_groups', 'reference_ads',
@@ -1949,6 +1984,28 @@ export const initializeDatabase = async () => {
       // Messaging / interaction campaigns
       { name: 'fb_messaging_conversations', type: 'INTEGER DEFAULT 0' },
       { name: 'fb_cost_per_messaging_conversation', type: 'REAL DEFAULT 0' },
+      // Google Ads metrics
+      { name: 'ga_spend', type: 'REAL DEFAULT 0' },
+      { name: 'ga_impressions', type: 'INTEGER DEFAULT 0' },
+      { name: 'ga_clicks', type: 'INTEGER DEFAULT 0' },
+      { name: 'ga_ctr', type: 'REAL DEFAULT 0' },
+      { name: 'ga_cpc', type: 'REAL DEFAULT 0' },
+      { name: 'ga_cpm', type: 'REAL DEFAULT 0' },
+      { name: 'ga_conversions', type: 'REAL DEFAULT 0' },
+      { name: 'ga_revenue', type: 'REAL DEFAULT 0' },
+      { name: 'ga_roas', type: 'REAL DEFAULT 0' },
+      { name: 'ga_cost_per_conversion', type: 'REAL DEFAULT 0' },
+      // TikTok Ads metrics
+      { name: 'tt_spend', type: 'REAL DEFAULT 0' },
+      { name: 'tt_impressions', type: 'INTEGER DEFAULT 0' },
+      { name: 'tt_clicks', type: 'INTEGER DEFAULT 0' },
+      { name: 'tt_ctr', type: 'REAL DEFAULT 0' },
+      { name: 'tt_cpc', type: 'REAL DEFAULT 0' },
+      { name: 'tt_cpm', type: 'REAL DEFAULT 0' },
+      { name: 'tt_conversions', type: 'REAL DEFAULT 0' },
+      { name: 'tt_revenue', type: 'REAL DEFAULT 0' },
+      { name: 'tt_roas', type: 'REAL DEFAULT 0' },
+      { name: 'tt_cost_per_conversion', type: 'REAL DEFAULT 0' },
     ];
 
     for (const col of newMetricColumns) {

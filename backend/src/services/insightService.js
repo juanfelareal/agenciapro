@@ -19,7 +19,7 @@ export async function generateWeeklyInsight(clientId, orgId) {
       SELECT
         COALESCE(SUM(shopify_revenue), 0) as revenue,
         COALESCE(SUM(shopify_orders), 0) as orders,
-        COALESCE(SUM(fb_spend), 0) as ad_spend,
+        COALESCE(SUM(fb_spend + COALESCE(ga_spend, 0) + COALESCE(tt_spend, 0)), 0) as ad_spend,
         COALESCE(SUM(fb_impressions), 0) as impressions,
         COALESCE(SUM(fb_clicks), 0) as clicks,
         COALESCE(SUM(fb_conversions), 0) as conversions,
@@ -39,7 +39,7 @@ export async function generateWeeklyInsight(clientId, orgId) {
       SELECT
         COALESCE(SUM(shopify_revenue), 0) as revenue,
         COALESCE(SUM(shopify_orders), 0) as orders,
-        COALESCE(SUM(fb_spend), 0) as ad_spend,
+        COALESCE(SUM(fb_spend + COALESCE(ga_spend, 0) + COALESCE(tt_spend, 0)), 0) as ad_spend,
         COALESCE(SUM(fb_impressions), 0) as impressions,
         COALESCE(SUM(fb_clicks), 0) as clicks,
         COALESCE(SUM(fb_conversions), 0) as conversions,

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import db from '../config/database.js';
 import FacebookAdsIntegration from '../integrations/facebookAds.js';
+import GoogleAdsIntegration from '../integrations/googleAds.js';
+import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
 
 const router = Router();
@@ -31,6 +33,20 @@ router.get('/client/:clientId', async (req, res) => {
       WHERE client_id = ?
     `).all(clientId);
 
+    // Get all Google Ads accounts for this client (can have multiple)
+    const googleAds = await db.prepare(`
+      SELECT id, client_id, customer_id, customer_name, login_customer_id, status, last_sync_at, last_error, created_at
+      FROM client_google_ads_credentials
+      WHERE client_id = ?
+    `).all(clientId);
+
+    // Get all TikTok Ads accounts for this client (can have multiple)
+    const tiktok = await db.prepare(`
+      SELECT id, client_id, advertiser_id, advertiser_name, status, last_sync_at, last_error, created_at
+      FROM client_tiktok_credentials
+      WHERE client_id = ?
+    `).all(clientId);
+
     const shopify = await db.prepare(`
       SELECT id, client_id, store_url, status, last_sync_at, last_error, created_at,
         CASE WHEN shopify_api_key IS NOT NULL AND shopify_api_key != '' THEN true ELSE false END as has_custom_app,
@@ -41,6 +57,8 @@ router.get('/client/:clientId', async (req, res) => {
 
     res.json({
       facebook: facebook || [],
+      google_ads: googleAds || [],
+      tiktok: tiktok || [],
       shopify: shopify || null
     });
   } catch (error) {
@@ -192,6 +210,165 @@ router.delete('/facebook/:id', async (req, res) => {
     res.json({ message: 'Facebook Ads desconectado exitosamente' });
   } catch (error) {
     console.error('Error deleting Facebook credentials:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// GOOGLE ADS CREDENTIALS
+// ============================================
+
+/**
+ * POST /api/platform-credentials/google-ads/:id/test
+ * Test Google Ads connection
+ */
+router.post('/google-ads/:id/test', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { id } = req.params;
+
+    // Verify credential belongs to a client in this org
+    const credentials = await db.prepare(`
+      SELECT cgc.refresh_token, cgc.customer_id, cgc.login_customer_id
+      FROM client_google_ads_credentials cgc
+      JOIN clients c ON cgc.client_id = c.id
+      WHERE cgc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
+
+    if (!credentials) {
+      return res.status(404).json({ error: 'Credenciales no encontradas' });
+    }
+
+    const google = new GoogleAdsIntegration(
+      credentials.refresh_token,
+      credentials.customer_id,
+      credentials.login_customer_id
+    );
+    const result = await google.testConnection();
+
+    if (result.success) {
+      await db.prepare(`
+        UPDATE client_google_ads_credentials
+        SET status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(id);
+    } else {
+      await db.prepare(`
+        UPDATE client_google_ads_credentials
+        SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(result.error, id);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error testing Google Ads connection:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/platform-credentials/google-ads/:id
+ * Disconnect a Google Ads account from client
+ */
+router.delete('/google-ads/:id', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { id } = req.params;
+
+    const credential = await db.prepare(`
+      SELECT cgc.id
+      FROM client_google_ads_credentials cgc
+      JOIN clients c ON cgc.client_id = c.id
+      WHERE cgc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
+
+    if (!credential) {
+      return res.status(404).json({ error: 'Credenciales no encontradas' });
+    }
+
+    await db.prepare('DELETE FROM client_google_ads_credentials WHERE id = ? AND organization_id = ?').run(id, orgId);
+
+    res.json({ message: 'Google Ads desconectado exitosamente' });
+  } catch (error) {
+    console.error('Error deleting Google Ads credentials:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// TIKTOK ADS CREDENTIALS
+// ============================================
+
+/**
+ * POST /api/platform-credentials/tiktok/:id/test
+ * Test TikTok Ads connection
+ */
+router.post('/tiktok/:id/test', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { id } = req.params;
+
+    const credentials = await db.prepare(`
+      SELECT ctc.access_token, ctc.advertiser_id
+      FROM client_tiktok_credentials ctc
+      JOIN clients c ON ctc.client_id = c.id
+      WHERE ctc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
+
+    if (!credentials) {
+      return res.status(404).json({ error: 'Credenciales no encontradas' });
+    }
+
+    const tiktok = new TikTokAdsIntegration(credentials.access_token, credentials.advertiser_id);
+    const result = await tiktok.testConnection();
+
+    if (result.success) {
+      await db.prepare(`
+        UPDATE client_tiktok_credentials
+        SET status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(id);
+    } else {
+      await db.prepare(`
+        UPDATE client_tiktok_credentials
+        SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(result.error, id);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error testing TikTok connection:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/platform-credentials/tiktok/:id
+ * Disconnect a TikTok Ads account from client
+ */
+router.delete('/tiktok/:id', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { id } = req.params;
+
+    const credential = await db.prepare(`
+      SELECT ctc.id
+      FROM client_tiktok_credentials ctc
+      JOIN clients c ON ctc.client_id = c.id
+      WHERE ctc.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
+
+    if (!credential) {
+      return res.status(404).json({ error: 'Credenciales no encontradas' });
+    }
+
+    await db.prepare('DELETE FROM client_tiktok_credentials WHERE id = ? AND organization_id = ?').run(id, orgId);
+
+    res.json({ message: 'TikTok Ads desconectado exitosamente' });
+  } catch (error) {
+    console.error('Error deleting TikTok credentials:', error);
     res.status(500).json({ error: error.message });
   }
 });

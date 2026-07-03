@@ -1,5 +1,7 @@
 import db from '../config/database.js';
 import FacebookAdsIntegration from '../integrations/facebookAds.js';
+import GoogleAdsIntegration from '../integrations/googleAds.js';
+import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
 import siigoService from './siigoService.js';
 
@@ -10,7 +12,7 @@ import siigoService from './siigoService.js';
  */
 export async function runIntegrationHealthCheck() {
   const startedAt = new Date();
-  const summary = { facebook: { ok: 0, fail: 0 }, shopify: { ok: 0, fail: 0 }, siigo: { ok: 0, fail: 0 } };
+  const summary = { facebook: { ok: 0, fail: 0 }, google: { ok: 0, fail: 0 }, tiktok: { ok: 0, fail: 0 }, shopify: { ok: 0, fail: 0 }, siigo: { ok: 0, fail: 0 } };
   const failures = [];
 
   // -------- Facebook Ads --------
@@ -53,6 +55,96 @@ export async function runIntegrationHealthCheck() {
         platform: 'Facebook Ads',
         client: a.company || a.client_name,
         account: a.ad_account_name || a.ad_account_id,
+        error: err.message,
+      });
+    }
+  }
+
+  // -------- Google Ads --------
+  const gaAccounts = await db.prepare(`
+    SELECT cgc.id, cgc.client_id, cgc.refresh_token, cgc.customer_id, cgc.customer_name, cgc.login_customer_id,
+           c.organization_id, c.name as client_name, c.company
+    FROM client_google_ads_credentials cgc
+    JOIN clients c ON cgc.client_id = c.id
+  `).all();
+
+  for (const a of gaAccounts) {
+    const refreshToken = a.refresh_token || process.env.GOOGLE_ADS_REFRESH_TOKEN;
+    try {
+      const google = new GoogleAdsIntegration(refreshToken, a.customer_id, a.login_customer_id);
+      const result = await google.testConnection();
+      if (result?.success) {
+        summary.google.ok++;
+        await db.prepare(
+          "UPDATE client_google_ads_credentials SET status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+        ).run(a.id);
+      } else {
+        summary.google.fail++;
+        const msg = result?.error || 'Unknown error';
+        await db.prepare(
+          "UPDATE client_google_ads_credentials SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+        ).run(msg, a.id);
+        failures.push({
+          platform: 'Google Ads',
+          client: a.company || a.client_name,
+          account: a.customer_name || a.customer_id,
+          error: msg,
+        });
+      }
+    } catch (err) {
+      summary.google.fail++;
+      await db.prepare(
+        "UPDATE client_google_ads_credentials SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+      ).run(err.message, a.id);
+      failures.push({
+        platform: 'Google Ads',
+        client: a.company || a.client_name,
+        account: a.customer_name || a.customer_id,
+        error: err.message,
+      });
+    }
+  }
+
+  // -------- TikTok Ads --------
+  const ttAccounts = await db.prepare(`
+    SELECT ctc.id, ctc.client_id, ctc.access_token, ctc.advertiser_id, ctc.advertiser_name,
+           c.organization_id, c.name as client_name, c.company
+    FROM client_tiktok_credentials ctc
+    JOIN clients c ON ctc.client_id = c.id
+  `).all();
+
+  for (const a of ttAccounts) {
+    const token = a.access_token || process.env.TIKTOK_SYSTEM_ACCESS_TOKEN;
+    try {
+      const tiktok = new TikTokAdsIntegration(token, a.advertiser_id);
+      const result = await tiktok.testConnection();
+      if (result?.success) {
+        summary.tiktok.ok++;
+        await db.prepare(
+          "UPDATE client_tiktok_credentials SET status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+        ).run(a.id);
+      } else {
+        summary.tiktok.fail++;
+        const msg = result?.error || 'Unknown error';
+        await db.prepare(
+          "UPDATE client_tiktok_credentials SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+        ).run(msg, a.id);
+        failures.push({
+          platform: 'TikTok Ads',
+          client: a.company || a.client_name,
+          account: a.advertiser_name || a.advertiser_id,
+          error: msg,
+        });
+      }
+    } catch (err) {
+      summary.tiktok.fail++;
+      await db.prepare(
+        "UPDATE client_tiktok_credentials SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+      ).run(err.message, a.id);
+      failures.push({
+        platform: 'TikTok Ads',
+        client: a.company || a.client_name,
+        account: a.advertiser_name || a.advertiser_id,
         error: err.message,
       });
     }
@@ -128,6 +220,8 @@ export async function runIntegrationHealthCheck() {
   console.log('[HealthCheck]', {
     durationMs,
     facebook: summary.facebook,
+    google: summary.google,
+    tiktok: summary.tiktok,
     shopify: summary.shopify,
     siigo: summary.siigo,
     failureCount: failures.length,
