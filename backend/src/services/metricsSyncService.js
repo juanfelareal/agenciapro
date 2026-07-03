@@ -1,5 +1,7 @@
 import db from '../config/database.js';
 import FacebookAdsIntegration from '../integrations/facebookAds.js';
+import GoogleAdsIntegration from '../integrations/googleAds.js';
+import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
 
 /**
@@ -13,6 +15,8 @@ import ShopifyIntegration from '../integrations/shopify.js';
  */
 export async function getClientsWithCredentials() {
   const systemToken = process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+  const systemGoogleRefresh = process.env.GOOGLE_ADS_REFRESH_TOKEN;
+  const systemTiktokToken = process.env.TIKTOK_SYSTEM_ACCESS_TOKEN;
 
   const query = `
     SELECT
@@ -22,27 +26,34 @@ export async function getClientsWithCredentials() {
       fb.access_token as fb_access_token,
       fb.ad_account_id as fb_ad_account_id,
       fb.status as fb_status,
+      ga.refresh_token as ga_refresh_token,
+      ga.customer_id as ga_customer_id,
+      ga.login_customer_id as ga_login_customer_id,
+      ga.status as ga_status,
+      tt.access_token as tt_access_token,
+      tt.advertiser_id as tt_advertiser_id,
+      tt.status as tt_status,
       sh.store_url as shopify_store_url,
       sh.access_token as shopify_access_token,
       sh.status as shopify_status
     FROM clients c
     LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id
+    LEFT JOIN client_google_ads_credentials ga ON c.id = ga.client_id
+    LEFT JOIN client_tiktok_credentials tt ON c.id = tt.client_id
     LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id
     WHERE c.status = 'active'
-      AND (fb.id IS NOT NULL OR sh.id IS NOT NULL)
+      AND (fb.id IS NOT NULL OR ga.id IS NOT NULL OR tt.id IS NOT NULL OR sh.id IS NOT NULL)
   `;
 
   const clients = await db.prepare(query).all();
 
-  // Use System User token as fallback when client has ad_account_id but no personal token
-  if (systemToken) {
-    return clients.map(c => ({
-      ...c,
-      fb_access_token: c.fb_access_token || (c.fb_ad_account_id ? systemToken : null)
-    }));
-  }
-
-  return clients;
+  // Use system-level tokens as fallback when a client has an account id but no personal token
+  return clients.map(c => ({
+    ...c,
+    fb_access_token: systemToken ? (c.fb_access_token || (c.fb_ad_account_id ? systemToken : null)) : c.fb_access_token,
+    ga_refresh_token: c.ga_refresh_token || (c.ga_customer_id ? systemGoogleRefresh : null),
+    tt_access_token: c.tt_access_token || (c.tt_advertiser_id ? systemTiktokToken : null),
+  }));
 }
 
 /**
@@ -144,6 +155,26 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
           fb_hold_rate = ?,
           fb_messaging_conversations = ?,
           fb_cost_per_messaging_conversation = ?,
+          ga_spend = ?,
+          ga_impressions = ?,
+          ga_clicks = ?,
+          ga_ctr = ?,
+          ga_cpc = ?,
+          ga_cpm = ?,
+          ga_conversions = ?,
+          ga_revenue = ?,
+          ga_roas = ?,
+          ga_cost_per_conversion = ?,
+          tt_spend = ?,
+          tt_impressions = ?,
+          tt_clicks = ?,
+          tt_ctr = ?,
+          tt_cpc = ?,
+          tt_cpm = ?,
+          tt_conversions = ?,
+          tt_revenue = ?,
+          tt_roas = ?,
+          tt_cost_per_conversion = ?,
           total_revenue = ?,
           overall_roas = ?,
           cost_per_order = ?,
@@ -184,6 +215,26 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.fb_hold_rate || 0,
       metrics.fb_messaging_conversations || 0,
       metrics.fb_cost_per_messaging_conversation || 0,
+      metrics.ga_spend || 0,
+      metrics.ga_impressions || 0,
+      metrics.ga_clicks || 0,
+      metrics.ga_ctr || 0,
+      metrics.ga_cpc || 0,
+      metrics.ga_cpm || 0,
+      metrics.ga_conversions || 0,
+      metrics.ga_revenue || 0,
+      metrics.ga_roas || 0,
+      metrics.ga_cost_per_conversion || 0,
+      metrics.tt_spend || 0,
+      metrics.tt_impressions || 0,
+      metrics.tt_clicks || 0,
+      metrics.tt_ctr || 0,
+      metrics.tt_cpc || 0,
+      metrics.tt_cpm || 0,
+      metrics.tt_conversions || 0,
+      metrics.tt_revenue || 0,
+      metrics.tt_roas || 0,
+      metrics.tt_cost_per_conversion || 0,
       metrics.total_revenue || 0,
       metrics.overall_roas || 0,
       metrics.cost_per_order || 0,
@@ -204,8 +255,12 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
         fb_cost_per_landing_page_view,
         fb_video_3sec_views, fb_video_thruplay_views, fb_hook_rate, fb_hold_rate,
         fb_messaging_conversations, fb_cost_per_messaging_conversation,
+        ga_spend, ga_impressions, ga_clicks, ga_ctr, ga_cpc, ga_cpm,
+        ga_conversions, ga_revenue, ga_roas, ga_cost_per_conversion,
+        tt_spend, tt_impressions, tt_clicks, tt_ctr, tt_cpc, tt_cpm,
+        tt_conversions, tt_revenue, tt_roas, tt_cost_per_conversion,
         total_revenue, overall_roas, cost_per_order, ad_spend_percentage
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       clientId, date,
       metrics.shopify_revenue || 0,
@@ -241,6 +296,26 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.fb_hold_rate || 0,
       metrics.fb_messaging_conversations || 0,
       metrics.fb_cost_per_messaging_conversation || 0,
+      metrics.ga_spend || 0,
+      metrics.ga_impressions || 0,
+      metrics.ga_clicks || 0,
+      metrics.ga_ctr || 0,
+      metrics.ga_cpc || 0,
+      metrics.ga_cpm || 0,
+      metrics.ga_conversions || 0,
+      metrics.ga_revenue || 0,
+      metrics.ga_roas || 0,
+      metrics.ga_cost_per_conversion || 0,
+      metrics.tt_spend || 0,
+      metrics.tt_impressions || 0,
+      metrics.tt_clicks || 0,
+      metrics.tt_ctr || 0,
+      metrics.tt_cpc || 0,
+      metrics.tt_cpm || 0,
+      metrics.tt_conversions || 0,
+      metrics.tt_revenue || 0,
+      metrics.tt_roas || 0,
+      metrics.tt_cost_per_conversion || 0,
       metrics.total_revenue || 0,
       metrics.overall_roas || 0,
       metrics.cost_per_order || 0,
@@ -250,14 +325,17 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
 }
 
 /**
- * Calculate derived metrics from Shopify and Facebook data
+ * Calculate derived metrics from Shopify, Facebook, Google and TikTok data.
+ * Ad spend is blended across all connected ad platforms (Meta + Google + TikTok).
  * @param {object} shopifyMetrics
  * @param {object} fbMetrics
+ * @param {object} [googleMetrics]
+ * @param {object} [tiktokMetrics]
  * @returns {object}
  */
-export function calculateDerivedMetrics(shopifyMetrics, fbMetrics) {
+export function calculateDerivedMetrics(shopifyMetrics, fbMetrics, googleMetrics = {}, tiktokMetrics = {}) {
   const totalRevenue = shopifyMetrics.revenue || 0;
-  const adSpend = fbMetrics.spend || 0;
+  const adSpend = (fbMetrics.spend || 0) + (googleMetrics.spend || 0) + (tiktokMetrics.spend || 0);
   const orders = shopifyMetrics.orders || 0;
 
   return {
@@ -276,15 +354,24 @@ export function calculateDerivedMetrics(shopifyMetrics, fbMetrics) {
  */
 export async function syncClientForDate(clientId, date) {
   // Don't filter by status — we need credentials even if a previous day set status to 'error'
+  const systemGoogleRefresh = process.env.GOOGLE_ADS_REFRESH_TOKEN;
+  const systemTiktokToken = process.env.TIKTOK_SYSTEM_ACCESS_TOKEN;
   const client = await db.prepare(`
     SELECT
       c.id, c.name,
       fb.access_token as fb_access_token,
       fb.ad_account_id as fb_ad_account_id,
+      ga.refresh_token as ga_refresh_token,
+      ga.customer_id as ga_customer_id,
+      ga.login_customer_id as ga_login_customer_id,
+      tt.access_token as tt_access_token,
+      tt.advertiser_id as tt_advertiser_id,
       sh.store_url as shopify_store_url,
       sh.access_token as shopify_access_token
     FROM clients c
     LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id
+    LEFT JOIN client_google_ads_credentials ga ON c.id = ga.client_id
+    LEFT JOIN client_tiktok_credentials tt ON c.id = tt.client_id
     LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id
     WHERE c.id = ?
   `).get(clientId);
@@ -295,10 +382,18 @@ export async function syncClientForDate(clientId, date) {
 
   let shopifyMetrics = { revenue: 0, orders: 0, aov: 0, refunds: 0, netRevenue: 0, totalTax: 0, totalDiscounts: 0, sessions: 0, conversionRate: 0, pendingOrders: 0, allOrdersRevenue: 0, allOrderCount: 0, customers: 0 };
   let fbMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerPurchase: 0, costPerLandingPageView: 0, landingPageViews: 0, video3SecViews: 0, videoThruplayViews: 0, hookRate: 0, holdRate: 0 };
+  let googleMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerConversion: 0 };
+  let tiktokMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerConversion: 0 };
   let shopifyOk = false;
   let fbOk = false;
+  let googleOk = false;
+  let tiktokOk = false;
+  const gaRefreshToken = client.ga_refresh_token || (client.ga_customer_id ? systemGoogleRefresh : null);
+  const ttAccessToken = client.tt_access_token || (client.tt_advertiser_id ? systemTiktokToken : null);
   const hasShopify = !!(client.shopify_store_url && client.shopify_access_token);
   const hasFacebook = !!(client.fb_access_token && client.fb_ad_account_id);
+  const hasGoogle = !!(gaRefreshToken && client.ga_customer_id);
+  const hasTiktok = !!(ttAccessToken && client.tt_advertiser_id);
 
   // Fetch Shopify metrics
   if (hasShopify) {
@@ -351,14 +446,42 @@ export async function syncClientForDate(clientId, date) {
     }
   }
 
+  // Fetch Google Ads metrics
+  if (hasGoogle) {
+    try {
+      const google = new GoogleAdsIntegration(gaRefreshToken, client.ga_customer_id, client.ga_login_customer_id);
+      const gaDailyMetrics = await google.getMetrics(date, date);
+      if (gaDailyMetrics.length > 0) {
+        googleMetrics = gaDailyMetrics[0];
+      }
+      googleOk = true;
+    } catch (error) {
+      console.error(`Error syncing Google Ads for client ${clientId} on ${date}:`, error.message);
+    }
+  }
+
+  // Fetch TikTok Ads metrics
+  if (hasTiktok) {
+    try {
+      const tiktok = new TikTokAdsIntegration(ttAccessToken, client.tt_advertiser_id);
+      const ttDailyMetrics = await tiktok.getMetrics(date, date);
+      if (ttDailyMetrics.length > 0) {
+        tiktokMetrics = ttDailyMetrics[0];
+      }
+      tiktokOk = true;
+    } catch (error) {
+      console.error(`Error syncing TikTok for client ${clientId} on ${date}:`, error.message);
+    }
+  }
+
   // Only save if at least one API call succeeded (avoid storing empty records from failures)
-  const anyApiSucceeded = (hasShopify && shopifyOk) || (hasFacebook && fbOk) || (!hasShopify && !hasFacebook);
+  const anyApiSucceeded = (hasShopify && shopifyOk) || (hasFacebook && fbOk) || (hasGoogle && googleOk) || (hasTiktok && tiktokOk) || (!hasShopify && !hasFacebook && !hasGoogle && !hasTiktok);
   if (!anyApiSucceeded) {
     return { success: false, error: `API calls failed for ${date}` };
   }
 
-  // Calculate derived metrics
-  const derivedMetrics = calculateDerivedMetrics(shopifyMetrics, fbMetrics);
+  // Calculate derived metrics (ad spend blended across Meta + Google + TikTok)
+  const derivedMetrics = calculateDerivedMetrics(shopifyMetrics, fbMetrics, googleMetrics, tiktokMetrics);
 
   // Save to database
   const metricsToSave = {
@@ -395,6 +518,26 @@ export async function syncClientForDate(clientId, date) {
     fb_hold_rate: fbMetrics.holdRate,
     fb_messaging_conversations: fbMetrics.messagingConversations,
     fb_cost_per_messaging_conversation: fbMetrics.costPerMessagingConversation,
+    ga_spend: googleMetrics.spend,
+    ga_impressions: googleMetrics.impressions,
+    ga_clicks: googleMetrics.clicks,
+    ga_ctr: googleMetrics.ctr,
+    ga_cpc: googleMetrics.cpc,
+    ga_cpm: googleMetrics.cpm,
+    ga_conversions: googleMetrics.conversions,
+    ga_revenue: googleMetrics.revenue,
+    ga_roas: googleMetrics.roas,
+    ga_cost_per_conversion: googleMetrics.costPerConversion,
+    tt_spend: tiktokMetrics.spend,
+    tt_impressions: tiktokMetrics.impressions,
+    tt_clicks: tiktokMetrics.clicks,
+    tt_ctr: tiktokMetrics.ctr,
+    tt_cpc: tiktokMetrics.cpc,
+    tt_cpm: tiktokMetrics.cpm,
+    tt_conversions: tiktokMetrics.conversions,
+    tt_revenue: tiktokMetrics.revenue,
+    tt_roas: tiktokMetrics.roas,
+    tt_cost_per_conversion: tiktokMetrics.costPerConversion,
     ...derivedMetrics
   };
 
@@ -406,6 +549,12 @@ export async function syncClientForDate(clientId, date) {
   }
   if (hasFacebook && fbOk) {
     await updateCredentialStatus('client_facebook_credentials', clientId, 'active');
+  }
+  if (hasGoogle && googleOk) {
+    await updateCredentialStatus('client_google_ads_credentials', clientId, 'active');
+  }
+  if (hasTiktok && tiktokOk) {
+    await updateCredentialStatus('client_tiktok_credentials', clientId, 'active');
   }
 
   return { success: true };
@@ -547,20 +696,25 @@ function sleep(ms) {
  */
 async function getExistingDates(client, startDate, endDate) {
   // A date is "complete" (safe to skip) only if EVERY source the client has
-  // connected has real data that day. This previously used OR, so a Shopify-only
-  // row marked the day complete and the Facebook ad spend was never backfilled
-  // for older days (the daily row exists from Shopify, but fb_spend stayed 0).
+  // connected has real data that day. This previously used OR across all
+  // sources, so a Shopify-only row marked the day complete and the ad spend
+  // (Facebook/Google/TikTok) was never backfilled for older days.
   const hasShopify = !!(client.shopify_store_url && client.shopify_access_token);
   const hasFb = !!(client.fb_ad_account_id && client.fb_access_token);
+  const hasGa = !!(client.ga_customer_id && client.ga_refresh_token);
+  const hasTt = !!(client.tt_advertiser_id && client.tt_access_token);
 
   const conds = [];
   if (hasShopify) conds.push('(shopify_revenue > 0 OR shopify_orders > 0)');
   if (hasFb) conds.push('(fb_spend > 0 OR fb_impressions > 0)');
+  if (hasGa) conds.push('(ga_spend > 0 OR ga_impressions > 0)');
+  if (hasTt) conds.push('(tt_spend > 0 OR tt_impressions > 0)');
 
-  // Fallback (no known sources): keep the old "any data" behaviour.
+  // Fallback (no known sources): keep the old "any data" behaviour so we don't
+  // re-sync forever.
   const where = conds.length
     ? conds.join(' AND ')
-    : '(shopify_revenue > 0 OR shopify_orders > 0 OR fb_spend > 0 OR fb_impressions > 0)';
+    : '(shopify_revenue > 0 OR shopify_orders > 0 OR fb_spend > 0 OR fb_impressions > 0 OR ga_spend > 0 OR ga_impressions > 0 OR tt_spend > 0 OR tt_impressions > 0)';
 
   const rows = await db.prepare(`
     SELECT metric_date FROM client_daily_metrics
