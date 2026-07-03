@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI, taskViewsAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2, Edit2, Check, Bookmark, Star, MoreHorizontal, Save } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2, Edit2, Check, Bookmark, Star, MoreHorizontal, Save, Building2, FolderOpen, ChevronRight, Flag, CalendarDays, UserPlus, Eye, Repeat, Tag, Send, CircleDashed } from 'lucide-react';
 import { getEmbed } from '../utils/embedUrl';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
@@ -12,6 +12,21 @@ import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
 import CalendarView from '../components/tasks/CalendarView';
 import TaskHistory from '../components/tasks/TaskHistory';
+import { PillSelect, DatePill, ToggleRow, Section } from '../components/tasks/TaskModalKit';
+
+// Config visual de estados y prioridades (pills del modal)
+const STATUS_META = {
+  todo: { label: 'Por Hacer', dot: '#9CA3AF' },
+  in_progress: { label: 'En Progreso', dot: '#3B82F6' },
+  review: { label: 'En Revisión', dot: '#F59E0B' },
+  done: { label: 'Completado', dot: '#10B981' },
+};
+const PRIORITY_META = {
+  low: { label: 'Baja', color: '#9CA3AF' },
+  medium: { label: 'Media', color: '#3B82F6' },
+  high: { label: 'Alta', color: '#F97316' },
+  urgent: { label: 'Urgente', color: '#EF4444' },
+};
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -31,6 +46,10 @@ const Tasks = () => {
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [creatingProject, setCreatingProject] = useState(false);
+
+  // Subtareas borrador al CREAR una tarea (aún no existe taskId; se crean al guardar)
+  const [draftSubtasks, setDraftSubtasks] = useState([]);
+  const [newDraftSubtask, setNewDraftSubtask] = useState('');
 
   // Confirmación al marcar tarea como Completada: ¿necesita aprobación del cliente?
   const [doneApprovalPrompt, setDoneApprovalPrompt] = useState(false);
@@ -339,6 +358,15 @@ const Tasks = () => {
         await tagsAPI.setTaskTags(taskId, selectedTagIds);
       }
 
+      // Crear las subtareas borrador (solo aplica al crear una tarea nueva)
+      if (!editingTask && taskId && draftSubtasks.length > 0) {
+        await Promise.all(
+          draftSubtasks.map((title, i) =>
+            subtasksAPI.create({ task_id: taskId, title, position: i })
+          )
+        );
+      }
+
       setShowModal(false);
       setEditingTask(null);
       resetForm();
@@ -453,6 +481,8 @@ const Tasks = () => {
     });
     setSelectedTagIds([]);
     setSubtaskProgress({ total: 0, completed: 0, progress: 0 });
+    setDraftSubtasks([]);
+    setNewDraftSubtask('');
     setShowNewProject(false);
     setNewProjectName('');
     setTaskFilesList([]);
@@ -562,6 +592,17 @@ const Tasks = () => {
     if (!formData.client_id) return [];
     return projects.filter(p => p.client_id === Number(formData.client_id));
   }, [projects, formData.client_id]);
+
+  // Selector de cliente del modal: solo clientes activos.
+  // Se incluye el ya seleccionado (aunque esté inactivo) para no romper la edición de tareas viejas.
+  const selectableClients = useMemo(() => {
+    return clients.filter(
+      (c) => c.status === 'active' || String(c.id) === String(formData.client_id)
+    );
+  }, [clients, formData.client_id]);
+
+  // Nombre a mostrar del cliente: nombre/marca (nickname) primero — nunca preferir la razón social
+  const clientDisplayName = (c) => c?.nickname || c?.name || c?.company || '';
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) return;
@@ -947,58 +988,83 @@ const Tasks = () => {
               ? 'w-full h-full'
               : 'rounded-2xl w-full max-w-2xl max-h-[90vh]'
           }`}>
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-[#1A1A2E]">
-                {editingTask ? 'Editar Tarea' : 'Nueva Tarea'}
-              </h2>
+            <div className="flex justify-between items-center px-6 py-3.5 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center gap-1.5 bg-[#1A1A2E] text-[#BFFF00] text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md">
+                  <CircleDashed size={12} />
+                  {editingTask ? 'Editar tarea' : 'Nueva tarea'}
+                </span>
+                {editingTask && (
+                  <span className="text-xs text-gray-400 hidden sm:inline">
+                    #{editingTask.id}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => setModalExpanded(!modalExpanded)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                  {modalExpanded ? <Minimize2 size={20} className="text-gray-500" /> : <Maximize2 size={20} className="text-gray-500" />}
+                <button onClick={() => setModalExpanded(!modalExpanded)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title={modalExpanded ? 'Contraer' : 'Expandir'}>
+                  {modalExpanded ? <Minimize2 size={18} className="text-gray-400" /> : <Maximize2 size={18} className="text-gray-400" />}
                 </button>
                 <button onClick={() => { setShowModal(false); setModalExpanded(false); }} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                  <X size={20} className="text-gray-500" />
+                  <X size={18} className="text-gray-400" />
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmit} className={`flex-1 min-h-0 flex ${modalExpanded ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'}`}>
+            <form
+              onSubmit={handleSubmit}
+              onKeyDown={(e) => {
+                // ⌘+Enter / Ctrl+Enter para guardar rápido
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  e.currentTarget.requestSubmit();
+                }
+              }}
+              className={`flex-1 min-h-0 flex ${modalExpanded ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'}`}
+            >
               {/* When expanded: left sidebar with fields, right side with description */}
               <div className={`${modalExpanded ? 'w-[400px] flex-shrink-0 border-r border-gray-100 overflow-y-auto p-6' : 'p-6'}`}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Título *</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                </div>
-                <div className="col-span-2 grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Cliente *</label>
-                  <select
-                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+              <div className="space-y-4">
+                {/* Título — hero, sin bordes */}
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="¿Qué hay que hacer?"
+                  className="w-full text-[22px] leading-snug font-bold text-[#1A1A2E] placeholder-gray-300 bg-transparent focus:outline-none"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+
+                {/* Contexto: Cliente › Proyecto */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <PillSelect
+                    icon={Building2}
+                    tone={formData.client_id ? 'neutral' : 'nudge'}
+                    title="Cliente"
+                    label={(() => {
+                      const c = clients.find((cl) => String(cl.id) === String(formData.client_id));
+                      return c ? clientDisplayName(c) : 'Cliente';
+                    })()}
                     value={formData.client_id}
                     onChange={(e) => setFormData({ ...formData, client_id: e.target.value, project_id: '' })}
-                  >
-                    <option value="">Seleccionar cliente...</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.nickname || client.company || client.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Proyecto</label>
+                    options={[
+                      { value: '', label: 'Seleccionar cliente…' },
+                      ...selectableClients.map((client) => ({
+                        value: client.id,
+                        label: clientDisplayName(client),
+                      })),
+                    ]}
+                  />
+                  <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
                   {!formData.client_id ? (
-                    <p className="text-sm text-gray-400 py-2.5">Selecciona un cliente primero</p>
+                    <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-dashed border-gray-200 text-[13px] font-medium text-gray-300 select-none" title="Selecciona un cliente primero">
+                      <FolderOpen size={14} className="opacity-50" />
+                      Proyecto
+                    </span>
                   ) : showNewProject ? (
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5">
                       <input
                         type="text"
-                        className="flex-1 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                        className="h-9 w-52 border border-gray-200 rounded-lg px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
                         placeholder="Nombre del nuevo proyecto"
                         value={newProjectName}
                         onChange={(e) => setNewProjectName(e.target.value)}
@@ -1017,9 +1083,9 @@ const Tasks = () => {
                         type="button"
                         onClick={handleCreateProject}
                         disabled={creatingProject || !newProjectName.trim()}
-                        className="px-3 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-9 px-3 bg-[#1A1A2E] text-white text-[13px] font-medium rounded-lg hover:bg-[#252542] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {creatingProject ? '...' : 'Crear'}
+                        {creatingProject ? '…' : 'Crear'}
                       </button>
                       <button
                         type="button"
@@ -1027,40 +1093,74 @@ const Tasks = () => {
                           setShowNewProject(false);
                           setNewProjectName('');
                         }}
-                        className="px-3 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50"
+                        className="h-9 w-9 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50"
                       >
-                        <X size={16} />
+                        <X size={14} />
                       </button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <select
-                        className="flex-1 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                    <>
+                      <PillSelect
+                        icon={FolderOpen}
+                        title="Proyecto"
+                        label={(() => {
+                          const p = filteredProjects.find((pr) => String(pr.id) === String(formData.project_id));
+                          return p ? p.name : 'Proyecto';
+                        })()}
                         value={formData.project_id}
                         onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-                      >
-                        <option value="">{filteredProjects.length === 0 ? 'Sin proyectos para este cliente' : 'Seleccionar proyecto...'}</option>
-                        {filteredProjects.map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: filteredProjects.length === 0 ? 'Sin proyectos para este cliente' : 'Seleccionar proyecto…' },
+                          ...filteredProjects.map((project) => ({ value: project.id, label: project.name })),
+                        ]}
+                      />
                       <button
                         type="button"
                         onClick={() => setShowNewProject(true)}
-                        className="px-3 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 text-[#1A1A2E] flex items-center gap-1"
+                        className="h-9 w-9 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-[#1A1A2E] transition-colors"
                         title="Crear nuevo proyecto"
                       >
-                        <Plus size={16} />
+                        <Plus size={15} />
                       </button>
-                    </div>
+                    </>
                   )}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Asignado a</label>
-                  <select
-                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+
+                {/* Barra de propiedades: estado · prioridad · fecha · responsables */}
+                <div className="flex items-center gap-2 flex-wrap py-3 border-y border-gray-100">
+                  <PillSelect
+                    dot={STATUS_META[formData.status]?.dot}
+                    title="Estado"
+                    label={STATUS_META[formData.status]?.label || 'Estado'}
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    options={Object.entries(STATUS_META).map(([value, meta]) => ({ value, label: meta.label }))}
+                  />
+                  <PillSelect
+                    dot={PRIORITY_META[formData.priority]?.color}
+                    icon={Flag}
+                    title="Prioridad"
+                    label={PRIORITY_META[formData.priority]?.label || 'Prioridad'}
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    options={Object.entries(PRIORITY_META).map(([value, meta]) => ({ value, label: meta.label }))}
+                  />
+                  <DatePill
+                    icon={CalendarDays}
+                    tone={formData.due_date ? 'neutral' : 'nudge'}
+                    title="Fecha de vencimiento"
+                    label={formData.due_date
+                      ? new Date(formData.due_date + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+                      : 'Sin fecha'}
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  />
+                  <span className="w-px h-5 bg-gray-100 mx-0.5 hidden sm:block" />
+                  <PillSelect
+                    icon={UserPlus}
+                    tone={formData.assignee_ids.length === 0 ? 'nudge' : 'neutral'}
+                    title="Asignar responsable"
+                    label={formData.assignee_ids.length === 0 ? 'Sin responsable' : 'Agregar'}
                     value=""
                     onChange={(e) => {
                       const memberId = Number(e.target.value);
@@ -1068,179 +1168,288 @@ const Tasks = () => {
                         setFormData({ ...formData, assignee_ids: [...formData.assignee_ids, memberId] });
                       }
                     }}
-                  >
-                    <option value="">
-                      {formData.assignee_ids.length === 0 ? 'Seleccionar persona...' : '+ Agregar otra persona'}
-                    </option>
-                    {teamMembers
-                      .filter((m) => !formData.assignee_ids.includes(m.id))
-                      .map((member) => (
-                        <option key={member.id} value={member.id}>{member.name}</option>
-                      ))}
-                  </select>
-                  {/* Selected assignee chips */}
-                  {formData.assignee_ids.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {formData.assignee_ids.map((id) => {
-                        const member = teamMembers.find((m) => m.id === Number(id));
-                        if (!member) return null;
-                        return (
-                          <span
-                            key={id}
-                            className="inline-flex items-center gap-1.5 bg-[#1A1A2E] text-white text-xs pl-1.5 pr-1 py-1 rounded-lg"
-                          >
-                            <span className="w-5 h-5 rounded-md bg-[#BFFF00] text-[#1A1A2E] flex items-center justify-center text-[10px] font-bold flex-shrink-0">
-                              {member.name.charAt(0).toUpperCase()}
-                            </span>
-                            <span>{member.name}</span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  assignee_ids: formData.assignee_ids.filter((aid) => aid !== id),
-                                })
-                              }
-                              className="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
-                            >
-                              <X size={12} />
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Estado</label>
-                  <select
-                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  >
-                    <option value="todo">Por Hacer</option>
-                    <option value="in_progress">En Progreso</option>
-                    <option value="review">En Revisión</option>
-                    <option value="done">Completado</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Prioridad</label>
-                  <select
-                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  >
-                    <option value="low">Baja</option>
-                    <option value="medium">Media</option>
-                    <option value="high">Alta</option>
-                    <option value="urgent">Urgente</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Fecha Vencimiento</label>
-                  <input
-                    type="date"
-                    className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    options={[
+                      { value: '', label: formData.assignee_ids.length === 0 ? 'Seleccionar persona…' : '+ Agregar otra persona' },
+                      ...teamMembers
+                        .filter((m) => !formData.assignee_ids.includes(m.id))
+                        .map((member) => ({ value: member.id, label: member.name })),
+                    ]}
                   />
+                  {formData.assignee_ids.map((id) => {
+                    const member = teamMembers.find((m) => m.id === Number(id));
+                    if (!member) return null;
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1.5 h-9 bg-[#1A1A2E] text-white text-[13px] font-medium pl-1.5 pr-1.5 rounded-lg"
+                      >
+                        <span className="w-6 h-6 rounded-md bg-[#BFFF00] text-[#1A1A2E] flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+                          {member.name.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="max-w-[110px] truncate">{member.name}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              assignee_ids: formData.assignee_ids.filter((aid) => aid !== id),
+                            })
+                          }
+                          className="p-0.5 rounded hover:bg-white/20 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
                 {/* Description - inline when collapsed */}
                 {!modalExpanded && (
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Descripción</label>
+                  <div>
                     <TaskDescriptionEditor
                       value={formData.description}
                       onChange={(json) => setFormData({ ...formData, description: json })}
-                      placeholder="Descripción de la tarea... (puedes pegar imágenes)"
+                      placeholder="Añade una descripción… (puedes pegar imágenes)"
                     />
                   </div>
                 )}
 
-                {/* Delivery URL - Link de entrega */}
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-2">
-                    <Link size={14} />
-                    Link de Entrega
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      className="flex-1 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
-                      placeholder="https://drive.google.com/... o cualquier link donde quedó la tarea"
-                      value={formData.delivery_url}
-                      onChange={(e) => setFormData({ ...formData, delivery_url: e.target.value })}
+                {/* Tags */}
+                <div className="flex items-start gap-2.5">
+                  <Tag size={15} className="text-gray-300 mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <TagSelector
+                      taskId={editingTask?.id}
+                      selectedTagIds={selectedTagIds}
+                      onChange={setSelectedTagIds}
                     />
-                    {formData.delivery_url && (
-                      <a
-                        href={formData.delivery_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-3 py-2.5 bg-[#BFFF00]/10 text-[#65A30D] border border-[#BFFF00]/30 rounded-xl hover:bg-[#BFFF00]/20 transition-colors"
-                        title="Abrir link"
-                      >
-                        <ExternalLink size={16} />
-                        Abrir
-                      </a>
-                    )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Drive, Figma, Canva, o cualquier URL donde se entregó el trabajo</p>
                 </div>
 
-                {/* Linked Form - Formulario vinculado */}
-                {availableForms.length > 0 && (
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-2">
-                      <ListChecks size={14} />
-                      Formulario vinculado
-                    </label>
-                    <select
-                      className="w-full border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#BFFF00] bg-white"
-                      value={formData.linked_form_id || ''}
-                      onChange={(e) => setFormData({ ...formData, linked_form_id: e.target.value ? parseInt(e.target.value) : '' })}
-                    >
-                      <option value="">Sin formulario</option>
-                      {availableForms.map(f => (
-                        <option key={f.id} value={f.id}>{f.title}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-400 mt-1">El cliente verá un botón para llenar este formulario dentro de la tarea</p>
-                  </div>
-                )}
-
-                {/* Tags Section */}
-                <div className="col-span-2">
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Etiquetas</label>
-                  <TagSelector
-                    taskId={editingTask?.id}
-                    selectedTagIds={selectedTagIds}
-                    onChange={setSelectedTagIds}
-                  />
-                </div>
-
-                {/* Subtasks Section - Only for existing tasks */}
-                {editingTask && (
-                  <div className="col-span-2 border-t border-gray-100 pt-4">
-                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
-                      <ListChecks size={14} />
-                      Subtareas / Checklist
-                    </label>
+                {/* Subtareas / Checklist — al editar usa la API; al crear, borradores locales que se guardan con la tarea */}
+                {editingTask ? (
+                  <Section
+                    icon={ListChecks}
+                    title="Subtareas / Checklist"
+                    badge={subtaskProgress.total > 0 ? `${subtaskProgress.completed}/${subtaskProgress.total}` : null}
+                    defaultOpen={true}
+                  >
                     <SubtaskList
                       taskId={editingTask.id}
                       onProgressChange={setSubtaskProgress}
                     />
-                  </div>
+                  </Section>
+                ) : (
+                  <Section
+                    icon={ListChecks}
+                    title="Subtareas / Checklist"
+                    badge={draftSubtasks.length > 0 ? String(draftSubtasks.length) : null}
+                    defaultOpen={false}
+                  >
+                    <div className="space-y-1.5">
+                      {draftSubtasks.map((title, i) => (
+                        <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 rounded-lg group">
+                          <span className="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0" />
+                          <span className="flex-1 text-sm text-[#1A1A2E] min-w-0 truncate">{title}</span>
+                          <button
+                            type="button"
+                            onClick={() => setDraftSubtasks(draftSubtasks.filter((_, idx) => idx !== i))}
+                            className="p-1 text-gray-300 hover:text-red-500 rounded transition-colors flex-shrink-0"
+                            title="Quitar subtarea"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newDraftSubtask}
+                          onChange={(e) => setNewDraftSubtask(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const t = newDraftSubtask.trim();
+                              if (t) {
+                                setDraftSubtasks([...draftSubtasks, t]);
+                                setNewDraftSubtask('');
+                              }
+                            }
+                          }}
+                          placeholder="Escribe una subtarea y presiona Enter…"
+                          className="flex-1 h-9 border border-gray-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const t = newDraftSubtask.trim();
+                            if (t) {
+                              setDraftSubtasks([...draftSubtasks, t]);
+                              setNewDraftSubtask('');
+                            }
+                          }}
+                          disabled={!newDraftSubtask.trim()}
+                          className="h-9 px-3 text-sm bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                        >
+                          <Plus size={14} />
+                          Agregar
+                        </button>
+                      </div>
+                      {draftSubtasks.length > 0 && (
+                        <p className="text-xs text-gray-400 pt-0.5">Se crearán como checklist al guardar la tarea</p>
+                      )}
+                    </div>
+                  </Section>
                 )}
+
+                {/* Sección: Entrega y cliente */}
+                <Section
+                  icon={Send}
+                  title="Entrega y cliente"
+                  badge={formData.visible_to_client ? 'Visible en portal' : null}
+                  defaultOpen={!!(formData.delivery_url || formData.visible_to_client || formData.linked_form_id)}
+                >
+                  <div className="space-y-4">
+                    {/* Link de entrega */}
+                    <div>
+                      <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1.5">Link de entrega</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          className="flex-1 border border-gray-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00]"
+                          placeholder="https://drive.google.com/… o cualquier link donde quedó la tarea"
+                          value={formData.delivery_url}
+                          onChange={(e) => setFormData({ ...formData, delivery_url: e.target.value })}
+                        />
+                        {formData.delivery_url && (
+                          <a
+                            href={formData.delivery_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-3 py-2 text-sm bg-[#BFFF00]/10 text-[#65A30D] border border-[#BFFF00]/30 rounded-lg hover:bg-[#BFFF00]/20 transition-colors"
+                            title="Abrir link"
+                          >
+                            <ExternalLink size={14} />
+                            Abrir
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Drive, Figma, Canva, o cualquier URL donde se entregó el trabajo</p>
+                    </div>
+
+                    {/* Formulario vinculado */}
+                    {availableForms.length > 0 && (
+                      <div>
+                        <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1.5">Formulario vinculado</label>
+                        <select
+                          className="w-full border border-gray-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#BFFF00] bg-white"
+                          value={formData.linked_form_id || ''}
+                          onChange={(e) => setFormData({ ...formData, linked_form_id: e.target.value ? parseInt(e.target.value) : '' })}
+                        >
+                          <option value="">Sin formulario</option>
+                          {availableForms.map(f => (
+                            <option key={f.id} value={f.id}>{f.title}</option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-400 mt-1">El cliente verá un botón para llenar este formulario dentro de la tarea</p>
+                      </div>
+                    )}
+
+                    {/* Portal del cliente: visibilidad + aprobación */}
+                    {!formData.client_id ? (
+                      <p className="text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg px-3 py-2.5">
+                        Selecciona un cliente para configurar la visibilidad en su portal
+                      </p>
+                    ) : (
+                      <div className="space-y-3 pt-1">
+                        <ToggleRow
+                          icon={Eye}
+                          label="Visible en el portal del cliente"
+                          hint="El cliente podrá ver esta tarea en su dashboard"
+                          checked={formData.visible_to_client}
+                          onChange={(checked) =>
+                            setFormData({
+                              ...formData,
+                              visible_to_client: checked,
+                              // Si se oculta, también desactiva la aprobación
+                              requires_client_approval: checked ? formData.requires_client_approval : false,
+                            })
+                          }
+                        />
+                        <ToggleRow
+                          icon={Check}
+                          label="Pedir aprobación al cliente"
+                          hint="Verá botones para Aprobar / Solicitar cambios / Rechazar"
+                          checked={formData.requires_client_approval}
+                          disabled={!formData.visible_to_client}
+                          onChange={(checked) => {
+                            setFormData({ ...formData, requires_client_approval: checked });
+                            if (!checked) setNoFilesIntended(false);
+                          }}
+                        >
+                          {/* Bloqueador: si pide aprobación pero no hay entregable, exigir override */}
+                          {formData.requires_client_approval &&
+                            taskFilesList.length === 0 &&
+                            !(formData.delivery_url || '').trim() && (
+                              <div className="mt-2.5 ml-11 border border-amber-200 bg-amber-50 rounded-lg p-3">
+                                <p className="text-sm font-medium text-amber-800">⚠️ Falta el entregable</p>
+                                <p className="text-xs text-amber-700 mt-1">
+                                  Sube un archivo en la sección <strong>Archivos para el cliente</strong>, agrega un <strong>Link de entrega</strong> arriba, o marca abajo que no requiere archivos.
+                                </p>
+                                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={noFilesIntended}
+                                    onChange={(e) => setNoFilesIntended(e.target.checked)}
+                                    className="w-4 h-4"
+                                  />
+                                  <span className="text-xs text-amber-800">
+                                    Sin archivos — el cliente revisará por otro medio
+                                  </span>
+                                </label>
+                              </div>
+                            )}
+                        </ToggleRow>
+
+                        {/* Approval status banner — read-only when client has acted */}
+                        {editingTask?.requires_client_approval && editingTask?.client_approval_status && (() => {
+                          const status = editingTask.client_approval_status;
+                          const cfg =
+                            status === 'approved' ? { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-800', label: 'Cliente aprobó' } :
+                            status === 'rejected' ? { bg: 'bg-red-50 border-red-200', text: 'text-red-800', label: 'Cliente rechazó' } :
+                            status === 'changes_requested' ? { bg: 'bg-orange-50 border-orange-200', text: 'text-orange-800', label: 'Cliente solicitó cambios' } :
+                            { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800', label: 'Esperando aprobación del cliente' };
+                          return (
+                            <div className={`border rounded-lg p-3 ${cfg.bg}`}>
+                              <p className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</p>
+                              {editingTask.client_approval_date && (
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {new Date(editingTask.client_approval_date).toLocaleDateString('es-CO', {
+                                    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                                  })}
+                                </p>
+                              )}
+                              {editingTask.client_approval_notes && (
+                                <p className="text-sm text-gray-700 mt-2 whitespace-pre-line">
+                                  <span className="font-medium">Notas: </span>{editingTask.client_approval_notes}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </Section>
 
                 {/* Entregables — links/embeds (Drive, Loom, Figma, etc.). Solo al editar (requiere taskId). */}
                 {editingTask && (
-                  <div className="col-span-2 border-t border-gray-100 pt-4">
-                    <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-2">
-                      <Paperclip size={14} />
-                      Entregables para el cliente
-                    </label>
+                  <Section
+                    icon={Paperclip}
+                    title="Entregables para el cliente"
+                    badge={taskFilesList.length > 0 ? String(taskFilesList.length) : null}
+                    defaultOpen={true}
+                  >
                     {loadingTaskFiles ? (
                       <p className="text-xs text-gray-400">Cargando…</p>
                     ) : taskFilesList.length === 0 ? (
@@ -1400,119 +1609,32 @@ const Tasks = () => {
                       </div>
                     </div>
                     <p className="text-xs text-gray-400 mt-1.5">El cliente verá la previsualización embebida (Drive, Figma, Loom, YouTube, etc.). Para Drive, deja "cualquier persona con el enlace puede ver".</p>
-                  </div>
+                  </Section>
                 )}
 
-                {/* Visible to Client Toggle + Client Approval */}
-                {formData.client_id && (
-                  <div className="col-span-2 border-t pt-4 space-y-3">
-                    <div>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.visible_to_client}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              visible_to_client: e.target.checked,
-                              // Si se oculta, también desactiva la aprobación
-                              requires_client_approval: e.target.checked ? formData.requires_client_approval : false,
-                            })
-                          }
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm font-medium">👁 Visible en el portal del cliente</span>
-                      </label>
-                      <p className="text-xs text-gray-400 mt-1 ml-6">Si está activo, el cliente podrá ver esta tarea en su dashboard</p>
-                    </div>
-
-                    <div>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.requires_client_approval}
-                          disabled={!formData.visible_to_client}
-                          onChange={(e) => {
-                            setFormData({ ...formData, requires_client_approval: e.target.checked });
-                            if (!e.target.checked) setNoFilesIntended(false);
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm font-medium">✋ Pedir aprobación al cliente</span>
-                      </label>
-                      <p className="text-xs text-gray-400 mt-1 ml-6">El cliente verá botones para Aprobar / Solicitar cambios / Rechazar.</p>
-
-                      {/* Bloqueador: si pide aprobación pero no hay entregable, exigir override */}
-                      {formData.requires_client_approval &&
-                        taskFilesList.length === 0 &&
-                        !(formData.delivery_url || '').trim() && (
-                          <div className="mt-2 ml-6 border border-amber-200 bg-amber-50 rounded-xl p-3">
-                            <p className="text-sm font-medium text-amber-800">⚠️ Falta el entregable</p>
-                            <p className="text-xs text-amber-700 mt-1">
-                              Sube un archivo en la sección <strong>Archivos para el cliente</strong>, agrega un <strong>Link de entrega</strong> arriba, o marca abajo que no requiere archivos.
-                            </p>
-                            <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={noFilesIntended}
-                                onChange={(e) => setNoFilesIntended(e.target.checked)}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-xs text-amber-800">
-                                Sin archivos — el cliente revisará por otro medio
-                              </span>
-                            </label>
-                          </div>
-                        )}
-                    </div>
-
-                    {/* Approval status banner — read-only when client has acted */}
-                    {editingTask?.requires_client_approval && editingTask?.client_approval_status && (() => {
-                      const status = editingTask.client_approval_status;
-                      const cfg =
-                        status === 'approved' ? { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-800', label: 'Cliente aprobó' } :
-                        status === 'rejected' ? { bg: 'bg-red-50 border-red-200', text: 'text-red-800', label: 'Cliente rechazó' } :
-                        status === 'changes_requested' ? { bg: 'bg-orange-50 border-orange-200', text: 'text-orange-800', label: 'Cliente solicitó cambios' } :
-                        { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800', label: 'Esperando aprobación del cliente' };
-                      return (
-                        <div className={`border rounded-xl p-3 ${cfg.bg}`}>
-                          <p className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</p>
-                          {editingTask.client_approval_date && (
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {new Date(editingTask.client_approval_date).toLocaleDateString('es-CO', {
-                                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                              })}
-                            </p>
-                          )}
-                          {editingTask.client_approval_notes && (
-                            <p className="text-sm text-gray-700 mt-2 whitespace-pre-line">
-                              <span className="font-medium">Notas: </span>{editingTask.client_approval_notes}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {/* Recurrence Section */}
-                <div className="col-span-2 border-t pt-4">
-                  <label className="flex items-center gap-2 mb-3">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_recurring}
-                      onChange={(e) =>
-                        setFormData({ ...formData, is_recurring: e.target.checked })
-                      }
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm font-medium">🔄 Tarea Recurrente</span>
-                  </label>
+                {/* Sección: Recurrencia */}
+                <Section
+                  icon={Repeat}
+                  title="Recurrencia"
+                  badge={formData.is_recurring && (formData.recurrence_pattern?.days || []).length > 0
+                    ? `${(formData.recurrence_pattern.days || []).length} día${(formData.recurrence_pattern.days || []).length > 1 ? 's' : ''}/sem`
+                    : null}
+                  defaultOpen={!!formData.is_recurring}
+                >
+                  <ToggleRow
+                    icon={Repeat}
+                    label="Tarea recurrente"
+                    hint="Se creará automáticamente en los días seleccionados"
+                    checked={formData.is_recurring}
+                    onChange={(checked) =>
+                      setFormData({ ...formData, is_recurring: checked })
+                    }
+                  />
 
                   {formData.is_recurring && (
-                    <div className="ml-6 p-4 bg-[#BFFF00]/10 rounded-xl">
-                      <p className="text-sm font-medium mb-2 text-[#1A1A2E]">Repetir cada:</p>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="mt-3 ml-11 p-3.5 bg-gray-50 rounded-lg">
+                      <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">Repetir cada</p>
+                      <div className="flex flex-wrap gap-1.5">
                         {[
                           { value: 1, label: 'Lun' },
                           { value: 2, label: 'Mar' },
@@ -1524,10 +1646,10 @@ const Tasks = () => {
                         ].map((day) => (
                           <label
                             key={day.value}
-                            className={`px-3 py-2 rounded-lg cursor-pointer transition ${
+                            className={`px-2.5 py-1.5 rounded-lg cursor-pointer transition text-[13px] font-medium ${
                               (formData.recurrence_pattern?.days || []).includes(day.value)
                                 ? 'bg-[#1A1A2E] text-[#BFFF00]'
-                                : 'bg-white border border-gray-100 hover:bg-gray-50'
+                                : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-500'
                             }`}
                           >
                             <input
@@ -1544,28 +1666,25 @@ const Tasks = () => {
                               }}
                               className="hidden"
                             />
-                            <span className="text-sm">{day.label}</span>
+                            <span>{day.label}</span>
                           </label>
                         ))}
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Las tareas recurrentes se crearán automáticamente en los días seleccionados
-                      </p>
                     </div>
                   )}
-                </div>
+                </Section>
 
                 {/* Historial — toggle expandible con eventos y comentarios. Solo al editar. */}
                 {editingTask && (
-                  <div className="col-span-2 mt-4">
+                  <div>
                     <TaskHistory taskId={editingTask.id} />
                   </div>
                 )}
               </div>
-              {/* Action buttons - inside sidebar when expanded */}
-              <div className={`flex justify-end gap-3 ${modalExpanded ? 'mt-4 pt-4' : 'mt-6 pt-4'} border-t border-gray-100`}>
+              {/* Action buttons — sticky footer (inside sidebar when expanded) */}
+              <div className="sticky bottom-0 bg-white -mx-6 -mb-6 px-6 py-3.5 mt-6 border-t border-gray-100 flex justify-end items-center gap-2">
                 {editingTask && (
-                  <div className="flex gap-2 mr-auto">
+                  <div className="flex gap-1 mr-auto">
                     <button
                       type="button"
                       onClick={async () => {
@@ -1576,9 +1695,10 @@ const Tasks = () => {
                           loadData();
                         }
                       }}
-                      className="px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
+                      className="px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1.5"
                     >
-                      Eliminar
+                      <Trash2 size={15} />
+                      <span className="hidden sm:inline">Eliminar</span>
                     </button>
                     <button
                       type="button"
@@ -1590,26 +1710,27 @@ const Tasks = () => {
                         setEditingTask(null);
                         setSubtaskProgress({ total: 0, completed: 0, progress: 0 });
                       }}
-                      className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 flex items-center gap-2 transition-colors"
+                      className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5"
                       title="Duplicar tarea"
                     >
-                      <Copy size={16} />
-                      Duplicar
+                      <Copy size={15} />
+                      <span className="hidden sm:inline">Duplicar</span>
                     </button>
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={() => { setShowModal(false); setModalExpanded(false); }}
-                  className="px-4 py-2.5 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#1A1A2E] text-white rounded-xl hover:bg-[#252542] transition-colors"
+                  className="pl-4 pr-3 py-2 text-sm font-semibold bg-[#1A1A2E] text-white rounded-lg hover:bg-[#252542] transition-colors flex items-center gap-2 shadow-sm"
                 >
-                  Guardar
+                  {editingTask ? 'Guardar cambios' : 'Crear tarea'}
+                  <kbd className="text-[10px] font-mono bg-white/10 text-[#BFFF00] rounded px-1.5 py-0.5">⌘↵</kbd>
                 </button>
               </div>
               </div>{/* close sidebar/fields wrapper */}
