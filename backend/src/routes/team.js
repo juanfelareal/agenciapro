@@ -245,20 +245,23 @@ router.post('/change-pin', teamAuthMiddleware, async (req, res) => {
 router.get('/', teamAuthMiddleware, async (req, res) => {
   try {
     const { status, role } = req.query;
-    let query = 'SELECT * FROM team_members WHERE organization_id = ?';
+    // JOIN a users: la foto (avatar_url) vive a nivel de identidad, no de membresía
+    let query = `SELECT tm.*, u.avatar_url FROM team_members tm
+      LEFT JOIN users u ON tm.user_id = u.id
+      WHERE tm.organization_id = ?`;
     const params = [req.orgId];
 
     if (status) {
-      query += ' AND status = ?';
+      query += ' AND tm.status = ?';
       params.push(status);
     }
 
     if (role) {
-      query += ' AND role = ?';
+      query += ' AND tm.role = ?';
       params.push(role);
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY tm.created_at DESC';
     const members = await db.prepare(query).all(...params);
     res.json(members);
   } catch (error) {
@@ -270,7 +273,9 @@ router.get('/', teamAuthMiddleware, async (req, res) => {
 router.get('/:id', teamAuthMiddleware, async (req, res) => {
   try {
     const member = await db.get(
-      'SELECT * FROM team_members WHERE id = ? AND organization_id = ?',
+      `SELECT tm.*, u.avatar_url FROM team_members tm
+       LEFT JOIN users u ON tm.user_id = u.id
+       WHERE tm.id = ? AND tm.organization_id = ?`,
       [req.params.id, req.orgId]
     );
     if (!member) {
@@ -381,7 +386,7 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
 // Update team member (org-scoped)
 router.put('/:id', teamAuthMiddleware, async (req, res) => {
   try {
-    const { name, email, role, position, status, hire_date, birthday, permissions } = req.body;
+    const { name, email, role, position, status, hire_date, birthday, permissions, avatar_url } = req.body;
 
     // Verify member belongs to this org
     const existing = await db.get(
@@ -422,7 +427,25 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
       );
     }
 
-    const member = await db.get('SELECT * FROM team_members WHERE id = ?', [req.params.id]);
+    // Foto del miembro: se guarda en users.avatar_url como data-URL comprimida
+    // (el frontend la reduce a ~192px JPEG). null/'' = quitar foto.
+    if (avatar_url !== undefined && existing.user_id) {
+      const value = avatar_url || null;
+      if (value && (!value.startsWith('data:image/') || value.length > 300000)) {
+        return res.status(400).json({ error: 'Foto inválida (debe ser imagen, máx ~220KB)' });
+      }
+      await db.run(
+        'UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [value, existing.user_id]
+      );
+    }
+
+    const member = await db.get(
+      `SELECT tm.*, u.avatar_url FROM team_members tm
+       LEFT JOIN users u ON tm.user_id = u.id
+       WHERE tm.id = ?`,
+      [req.params.id]
+    );
     res.json(member);
   } catch (error) {
     if (error.message?.includes('UNIQUE') || error.message?.includes('unique')) {

@@ -373,7 +373,8 @@ router.get('/me', teamAuthMiddleware, async (req, res) => {
         email: req.teamMember.email,
         role: req.teamMember.role,
         position: req.teamMember.position,
-        permissions: req.teamMember.permissions
+        permissions: req.teamMember.permissions,
+        avatar_url: req.user?.avatar_url || null
       },
       current_org: req.currentOrg || null,
       organizations

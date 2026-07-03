@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { compressImageToDataURL } from '../utils/avatar';
 import { teamAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit, Trash2, X, Copy, Check, Users, Key, Eye, EyeOff, Mail } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Copy, Check, Users, Key, Eye, EyeOff, Mail, Camera } from 'lucide-react';
 
 // All available permissions organized by category
 const ALL_PERMISSIONS = [
@@ -117,7 +118,9 @@ const Team = () => {
     hire_date: '',
     birthday: '',
     permissions: { ...DEFAULT_PERMISSIONS },
+    avatar_url: '',
   });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     loadMembers();
@@ -171,6 +174,7 @@ const Team = () => {
       hire_date: member.hire_date || '',
       birthday: member.birthday || '',
       permissions: mergedPermissions,
+      avatar_url: member.avatar_url || '',
     });
     setSelectedTemplate(null);
     setShowModal(true);
@@ -196,6 +200,7 @@ const Team = () => {
       hire_date: '',
       birthday: '',
       permissions: { ...DEFAULT_PERMISSIONS },
+      avatar_url: '',
     });
     setSelectedTemplate(null);
     setNewMemberPin('');
@@ -313,9 +318,17 @@ const Team = () => {
           <div key={member.id} className="glass-card p-5 group hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#17181A] flex items-center justify-center text-[#D7F653] font-semibold text-lg">
-                  {member.name?.charAt(0).toUpperCase()}
-                </div>
+                {member.avatar_url ? (
+                  <img
+                    src={member.avatar_url}
+                    alt={member.name}
+                    className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-[#17181A] flex items-center justify-center text-[#D7F653] font-semibold text-lg">
+                    {member.name?.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <h3 className="font-semibold text-[#17181A]">{member.name}</h3>
                   <p className="text-xs text-gray-500">{member.position || 'Sin cargo'}</p>
@@ -377,6 +390,50 @@ const Team = () => {
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="flex-1 overflow-y-auto px-6 py-4">
                 <div className="space-y-4">
+                {/* Foto del miembro */}
+                <div className="flex items-center gap-4">
+                  {formData.avatar_url ? (
+                    <img src={formData.avatar_url} alt="Foto" className="w-16 h-16 rounded-2xl object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-[#17181A] flex items-center justify-center text-[#D7F653] font-bold text-xl">
+                      {formData.name ? formData.name.charAt(0).toUpperCase() : <Camera size={22} />}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors w-fit">
+                      <Camera size={15} className="text-gray-500" />
+                      {uploadingAvatar ? 'Procesando…' : formData.avatar_url ? 'Cambiar foto' : 'Subir foto'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          if (!file) return;
+                          setUploadingAvatar(true);
+                          try {
+                            const dataUrl = await compressImageToDataURL(file);
+                            setFormData((prev) => ({ ...prev, avatar_url: dataUrl }));
+                          } catch (err) {
+                            alert(err.message || 'No se pudo procesar la imagen');
+                          } finally {
+                            setUploadingAvatar(false);
+                          }
+                        }}
+                      />
+                    </label>
+                    {formData.avatar_url && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, avatar_url: '' }))}
+                        className="text-xs text-gray-400 hover:text-red-500 text-left transition-colors"
+                      >
+                        Quitar foto
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Nombre *</label>
                   <input

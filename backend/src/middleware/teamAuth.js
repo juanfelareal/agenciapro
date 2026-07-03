@@ -26,7 +26,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
     // --- Try new multi-tenant session first ---
     const newToken = await db.get(`
       SELECT ust.id as token_id, ust.user_id, ust.current_org_id, ust.status, ust.expires_at,
-             u.name as user_name, u.email as user_email,
+             u.name as user_name, u.email as user_email, u.avatar_url as user_avatar_url,
              o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url
       FROM user_session_tokens ust
       JOIN users u ON ust.user_id = u.id
@@ -74,7 +74,8 @@ export const teamAuthMiddleware = async (req, res, next) => {
       req.user = {
         id: newToken.user_id,
         email: newToken.user_email,
-        name: newToken.user_name
+        name: newToken.user_name,
+        avatar_url: newToken.user_avatar_url || null
       };
 
       req.orgId = newToken.current_org_id;

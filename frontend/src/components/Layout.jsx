@@ -194,11 +194,15 @@ const Layout = ({ children }) => {
         {!sidebarCollapsed && user && (
           <div className="p-3 border-b border-white/60">
             <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center text-[#D7F653] font-semibold text-sm flex-shrink-0 bg-[#17181A]"
-              >
-                {getUserInitials(user.name)}
-              </div>
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#D7F653] font-semibold text-sm flex-shrink-0 bg-[#17181A]"
+                >
+                  {getUserInitials(user.name)}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-[#17181A] truncate">{user.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user.position || user.role}</p>
@@ -376,9 +380,13 @@ const Layout = ({ children }) => {
                     : 'Miembro'}
                 </p>
               </div>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#D7F653] font-semibold text-sm bg-[#17181A]">
-                {getUserInitials(user?.name || 'U')}
-              </div>
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-xl object-cover" />
+              ) : (
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#D7F653] font-semibold text-sm bg-[#17181A]">
+                  {getUserInitials(user?.name || 'U')}
+                </div>
+              )}
             </div>
           </div>
         </header>
