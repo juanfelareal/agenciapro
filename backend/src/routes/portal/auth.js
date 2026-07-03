@@ -29,7 +29,7 @@ router.post('/login', async (req, res) => {
 
     // Find the invite token
     const invite = await db.get(`
-      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email
+      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email, c.logo_url as client_logo_url
       FROM client_access_tokens cat
       JOIN clients c ON cat.client_id = c.id
       WHERE cat.token = ?
@@ -68,7 +68,8 @@ router.post('/login', async (req, res) => {
         name: invite.client_name,
         nickname: invite.client_nickname,
         company: invite.company,
-        email: invite.email
+        email: invite.email,
+        logo_url: invite.client_logo_url || null
       },
       permissions: {
         can_view_projects: !!settings.can_view_projects,
@@ -132,7 +133,8 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
         name: req.client.name,
         nickname: req.client.nickname,
         company: req.client.company,
-        email: req.client.email
+        email: req.client.email,
+        logo_url: req.client.logo_url || null
       },
       permissions: {
         can_view_projects: !!req.client.permissions.can_view_projects,

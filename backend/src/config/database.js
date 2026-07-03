@@ -1737,6 +1737,9 @@ export const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='tipo_negociacion') THEN
           ALTER TABLE clients ADD COLUMN tipo_negociacion TEXT DEFAULT NULL;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='logo_url') THEN
+          ALTER TABLE clients ADD COLUMN logo_url TEXT DEFAULT NULL;
+        END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='estado_actual') THEN
           ALTER TABLE clients ADD COLUMN estado_actual TEXT DEFAULT NULL;
         END IF;

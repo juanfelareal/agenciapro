@@ -245,7 +245,7 @@ router.post('/', async (req, res) => {
 // Update client (supports partial updates for bulk operations)
 router.put('/:id', async (req, res) => {
   try {
-    const { name, email, phone, company, nit, check_digit, address, city, nickname, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, tipo_negociacion, estado_actual, valor_contratado, has_comision, comision_detalle } = req.body;
+    const { name, email, phone, company, nit, check_digit, address, city, nickname, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, tipo_negociacion, estado_actual, valor_contratado, has_comision, comision_detalle, logo_url } = req.body;
 
     // Get current client to preserve existing values for partial updates (org-scoped)
     const currentClient = await db.prepare('SELECT * FROM clients WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
@@ -264,6 +264,11 @@ router.put('/:id', async (req, res) => {
     const updatedCity = city !== undefined ? city : currentClient.city;
     const updatedNickname = nickname !== undefined ? nickname : currentClient.nickname;
     const updatedStatus = status !== undefined ? status : currentClient.status;
+    // Logo del cliente: data-URL comprimida por el frontend; '' o null = quitar
+    if (logo_url !== undefined && logo_url && (!logo_url.startsWith('data:image/') || logo_url.length > 400000)) {
+      return res.status(400).json({ error: 'Logo inválido (debe ser imagen, máx ~300KB)' });
+    }
+    const updatedLogoUrl = logo_url !== undefined ? (logo_url || null) : currentClient.logo_url;
     const updatedContractValue = contract_value !== undefined ? contract_value : currentClient.contract_value;
     const updatedContractStartDate = contract_start_date !== undefined ? contract_start_date : currentClient.contract_start_date;
     const updatedContractEndDate = contract_end_date !== undefined ? contract_end_date : currentClient.contract_end_date;
@@ -289,13 +294,13 @@ router.put('/:id', async (req, res) => {
 
     await db.prepare(`
       UPDATE clients
-      SET name = ?, email = ?, phone = ?, company = ?, nit = ?, check_digit = ?, address = ?, city = ?, nickname = ?, status = ?,
+      SET name = ?, email = ?, phone = ?, company = ?, nit = ?, check_digit = ?, address = ?, city = ?, nickname = ?, status = ?, logo_url = ?,
           contract_value = ?, contract_start_date = ?, contract_end_date = ?,
           notes = ?, is_recurring = ?, billing_day = ?, recurring_amount = ?,
           tipo_negociacion = ?, estado_actual = ?, valor_contratado = ?, has_comision = ?, comision_detalle = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `).run(updatedName, updatedEmail, updatedPhone, updatedCompany, updatedNit, updatedCheckDigit, updatedAddress, updatedCity, updatedNickname, updatedStatus,
+    `).run(updatedName, updatedEmail, updatedPhone, updatedCompany, updatedNit, updatedCheckDigit, updatedAddress, updatedCity, updatedNickname, updatedStatus, updatedLogoUrl,
            updatedContractValue, updatedContractStartDate, updatedContractEndDate,
            updatedNotes, updatedIsRecurring, updatedBillingDay, updatedRecurringAmount || 0,
            updatedTipoNegociacion, updatedEstadoActual, updatedValorContratado || 0, updatedHasComision || 0, updatedComisionDetalle,

@@ -49,7 +49,7 @@ export function PortalProvider({ children }) {
       setWelcomeMessage(response.welcome_message);
       setIsAuthenticated(true);
 
-      return { success: true };
+      return { success: true, client: response.client };
     } catch (error) {
       return {
         success: false,

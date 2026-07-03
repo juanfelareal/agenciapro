@@ -5,6 +5,7 @@ import { KeyRound, ArrowRight, AlertCircle, Building2 } from 'lucide-react';
 
 export default function PortalLogin() {
   const [code, setCode] = useState('');
+  const [splash, setSplash] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, logout, isAuthenticated } = usePortal();
@@ -22,7 +23,13 @@ export default function PortalLogin() {
         setLoading(true);
         const result = await login(urlCode.trim());
         if (result.success) {
-          navigate('/portal');
+          // Splash de bienvenida con la marca del cliente antes de entrar
+          if (result.client?.logo_url) {
+            setSplash(result.client);
+            setTimeout(() => navigate('/portal'), 1400);
+          } else {
+            navigate('/portal');
+          }
         } else {
           setError(result.error);
           setLoading(false);
@@ -32,6 +39,22 @@ export default function PortalLogin() {
       navigate('/portal');
     }
   }, []);
+
+  // Splash de marca del cliente (auto-login vía link)
+  if (splash) {
+    return (
+      <div className="min-h-screen app-mist flex flex-col items-center justify-center gap-5 animate-fade-in">
+        <img src={splash.logo_url} alt={splash.nickname || splash.name} className="max-h-20 max-w-[240px] object-contain" />
+        <div className="text-center">
+          <p className="text-lg font-semibold text-[#17181A]">{splash.nickname || splash.name}</p>
+          <p className="text-sm text-gray-500 mt-1">Entrando a tu portal…</p>
+        </div>
+        <div className="w-40 h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-[#17181A] rounded-full animate-pulse" style={{ width: '70%' }} />
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { compressLogoToDataURL } from '../utils/avatar';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle, Mail } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle, Mail, Image as ImageIcon } from 'lucide-react';
 import ClientPortfolio from './ClientPortfolio';
 
 const Clients = () => {
@@ -1092,6 +1093,54 @@ const Clients = () => {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-2 gap-4">
+                {/* Logo del cliente — aparece en su portal (header y login) */}
+                {editingClient && (
+                  <div className="col-span-2 flex items-center gap-4 p-3 border border-gray-100 rounded-xl bg-white/60">
+                    {formData.logo_url ? (
+                      <img src={formData.logo_url} alt="Logo" className="h-12 max-w-[140px] object-contain flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 flex-shrink-0">
+                        <ImageIcon size={20} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#17181A]">Logo del cliente</p>
+                      <p className="text-xs text-gray-400">Se muestra en su portal (header y pantalla de acceso)</p>
+                    </div>
+                    <div className="flex flex-col gap-1 items-end">
+                      <label className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <ImageIcon size={14} className="text-gray-500" />
+                        {formData.logo_url ? 'Cambiar' : 'Subir logo'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            try {
+                              const dataUrl = await compressLogoToDataURL(file);
+                              setFormData((prev) => ({ ...prev, logo_url: dataUrl }));
+                            } catch (err) {
+                              alert(err.message || 'No se pudo procesar el logo');
+                            }
+                          }}
+                        />
+                      </label>
+                      {formData.logo_url && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, logo_url: '' }))}
+                          className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* PDF Upload Section - Only show when creating new client */}
                 {!editingClient && (
                   <div className="col-span-2 bg-[#17181A]/5 border-2 border-dashed border-[#17181A]/20 rounded-xl p-4">
