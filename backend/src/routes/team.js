@@ -300,7 +300,7 @@ router.get('/:id', teamAuthMiddleware, async (req, res) => {
 // Create new team member (in current org)
 router.post('/', teamAuthMiddleware, async (req, res) => {
   try {
-    const { name, email, role, position, status, hire_date, birthday, permissions, pin, send_email } = req.body;
+    const { name, email, role, position, status, hire_date, birthday, permissions, pin, send_email, avatar_url } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
@@ -332,6 +332,11 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
     // Update user pin_hash if PIN was provided
     if (pinHash) {
       await db.run('UPDATE users SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [pinHash, user.id]);
+    }
+
+    // Foto del miembro (data-URL comprimida por el frontend)
+    if (avatar_url && avatar_url.startsWith('data:image/') && avatar_url.length <= 300000) {
+      await db.run('UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [avatar_url, user.id]);
     }
 
     // Check if membership already exists in this org
