@@ -1183,9 +1183,13 @@ const Tasks = () => {
                         key={id}
                         className="inline-flex items-center gap-1.5 h-9 bg-[#17181A] text-white text-[13px] font-medium pl-1.5 pr-1.5 rounded-lg"
                       >
-                        <span className="w-6 h-6 rounded-md bg-[#D7F653] text-[#17181A] flex items-center justify-center text-[11px] font-bold flex-shrink-0">
-                          {member.name.charAt(0).toUpperCase()}
-                        </span>
+                        {member.avatar_url ? (
+                          <img src={member.avatar_url} alt={member.name} className="w-6 h-6 rounded-md object-cover flex-shrink-0" />
+                        ) : (
+                          <span className="w-6 h-6 rounded-md bg-[#D7F653] text-[#17181A] flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+                            {member.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
                         <span className="max-w-[110px] truncate">{member.name}</span>
                         <button
                           type="button"

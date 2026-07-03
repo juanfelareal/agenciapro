@@ -23,7 +23,6 @@ import {
   Target,
   ClipboardList,
   Receipt,
-  MessageCircle,
   Bot,
   FileCode2,
   Megaphone,
@@ -31,7 +30,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
-import { chatAPI } from '../utils/api';
 import OrgSwitcher from './OrgSwitcher';
 import OrbitLogo from './OrbitLogo';
 
@@ -42,20 +40,8 @@ const Layout = ({ children }) => {
   const { user, currentOrg, hasPermission, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [finanzasExpanded, setFinanzasExpanded] = useState(false);
-  const [chatUnreadCount, setChatUnreadCount] = useState(0);
-
-  // Poll chat unread count
-  useEffect(() => {
-    const loadChatUnread = async () => {
-      try {
-        const res = await chatAPI.getUnreadCount();
-        setChatUnreadCount(res.data.unread_count || 0);
-      } catch {}
-    };
-    loadChatUnread();
-    const interval = setInterval(loadChatUnread, 30000);
-    return () => clearInterval(interval);
-  }, [user?.id]);
+  // Chat oculto del sidebar — sin polling de no-leídos (módulo en pausa)
+  const chatUnreadCount = 0;
 
   const handleLogout = async () => {
     await logout();
@@ -88,7 +74,8 @@ const Layout = ({ children }) => {
     { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
     { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
     { name: 'Anuncios', path: '/app/anuncios', icon: Megaphone, permission: null },
-    { name: 'Chat', path: '/app/chat', icon: MessageCircle, permission: null },
+    // Chat interno oculto del sidebar (2026-07-03): ~10 mensajes/mes — el equipo vive en WhatsApp.
+    // La ruta /app/chat sigue funcionando por URL directa y los datos quedan intactos.
     { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
     { name: 'Briefs', path: '/app/briefs', icon: FileCode2, permission: null },
     { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },

@@ -10,7 +10,7 @@ const statusLabels = {
 
 const statusColors = {
   todo: 'bg-gray-100 text-gray-600',
-  in_progress: 'bg-[#163B3B]/15 text-[#163B3B]',
+  in_progress: 'bg-[#163B3B]/15 text-[#17181A]',
   review: 'bg-[#C9A99D]/25 text-[#8B6B60]',
   done: 'bg-[#E8C4B8]/30 text-[#A67060]',
 };
@@ -24,7 +24,7 @@ const priorityLabels = {
 
 const priorityColors = {
   low: 'bg-gray-100 text-gray-600',
-  medium: 'bg-[#163B3B]/10 text-[#163B3B]',
+  medium: 'bg-[#163B3B]/10 text-[#17181A]',
   high: 'bg-[#F97316]/10 text-[#F97316]',
   urgent: 'bg-red-100 text-red-600',
 };
@@ -511,10 +511,10 @@ export default function ListView({
     <div className="glass-panel overflow-hidden">
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#163B3B]/5 border-b border-[#163B3B]/10 px-4 py-2.5 flex items-center gap-3 flex-wrap">
+        <div className="bg-[#17181A]/5 border-b border-[#163B3B]/10 px-4 py-2.5 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <CheckSquare size={16} className="text-[#163B3B]" />
-            <span className="text-sm font-medium text-[#163B3B]">
+            <CheckSquare size={16} className="text-[#17181A]" />
+            <span className="text-sm font-medium text-[#17181A]">
               {selectedIds.size} tarea{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
@@ -571,9 +571,13 @@ export default function ListView({
                   onClick={() => handleBulkAssign(m.id)}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
                 >
-                  <div className="w-5 h-5 rounded-lg bg-[#163B3B] text-[#E8C4B8] flex items-center justify-center text-xs font-medium">
-                    {m.name.charAt(0).toUpperCase()}
-                  </div>
+                  {m.avatar_url ? (
+                    <img src={m.avatar_url} alt={m.name} className="w-5 h-5 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-lg bg-[#17181A] text-[#D7F653] flex items-center justify-center text-xs font-medium">
+                      {m.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   {m.name}
                 </button>
               ))}
@@ -593,7 +597,7 @@ export default function ListView({
 
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="ml-auto text-xs text-gray-500 hover:text-[#163B3B]"
+            className="ml-auto text-xs text-gray-500 hover:text-[#17181A]"
           >
             Cancelar
           </button>
@@ -615,9 +619,9 @@ export default function ListView({
           <thead className="bg-white/40 border-b border-white/60">
             <tr>
               <th className="relative px-3 py-3 text-center">
-                <button onClick={toggleSelectAll} className="text-gray-400 hover:text-[#163B3B]">
-                  {isAllSelected ? <CheckSquare size={16} className="text-[#163B3B]" /> :
-                   isSomeSelected ? <MinusSquare size={16} className="text-[#163B3B]" /> :
+                <button onClick={toggleSelectAll} className="text-gray-400 hover:text-[#17181A]">
+                  {isAllSelected ? <CheckSquare size={16} className="text-[#17181A]" /> :
+                   isSomeSelected ? <MinusSquare size={16} className="text-[#17181A]" /> :
                    <Square size={16} />}
                 </button>
                 <ResizeHandle columnKey="checkbox" />
@@ -702,12 +706,12 @@ export default function ListView({
               <tr
                 key={task.id}
                 onClick={() => onTaskClick && onTaskClick(task)}
-                className={`hover:bg-white/50 transition-colors group cursor-pointer ${selectedIds.has(task.id) ? 'bg-[#163B3B]/5' : ''}`}
+                className={`hover:bg-white/50 transition-colors group cursor-pointer ${selectedIds.has(task.id) ? 'bg-[#17181A]/5' : ''}`}
               >
                 {/* Checkbox */}
                 <td className="px-3 py-3 text-center">
-                  <button onClick={(e) => toggleSelectOne(e, task.id)} className="text-gray-400 hover:text-[#163B3B]">
-                    {selectedIds.has(task.id) ? <CheckSquare size={16} className="text-[#163B3B]" /> : <Square size={16} />}
+                  <button onClick={(e) => toggleSelectOne(e, task.id)} className="text-gray-400 hover:text-[#17181A]">
+                    {selectedIds.has(task.id) ? <CheckSquare size={16} className="text-[#17181A]" /> : <Square size={16} />}
                   </button>
                 </td>
                 {/* Title - editable */}
@@ -717,7 +721,7 @@ export default function ListView({
                       {renderEditableCell(
                         task,
                         'title',
-                        <span className="font-medium text-[#163B3B] truncate block" title={task.title}>{task.title}</span>
+                        <span className="font-medium text-[#17181A] truncate block" title={task.title}>{task.title}</span>
                       )}
                       {!!task.is_recurring && (
                         <span className="text-[#E8C4B8] text-sm" title="Tarea Recurrente">🔄</span>
@@ -774,13 +778,23 @@ export default function ListView({
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-2">
                           {task.assignees.slice(0, 3).map((a) => (
-                            <div
-                              key={a.id}
-                              className="w-6 h-6 rounded-lg bg-[#163B3B] text-[#E8C4B8] flex items-center justify-center text-xs font-medium ring-1 ring-white"
-                              title={a.name}
-                            >
-                              {a.name.charAt(0).toUpperCase()}
-                            </div>
+                            a.avatar_url ? (
+                              <img
+                                key={a.id}
+                                src={a.avatar_url}
+                                alt={a.name}
+                                title={a.name}
+                                className="w-6 h-6 rounded-lg object-cover ring-1 ring-white"
+                              />
+                            ) : (
+                              <div
+                                key={a.id}
+                                className="w-6 h-6 rounded-lg bg-[#17181A] text-[#D7F653] flex items-center justify-center text-xs font-medium ring-1 ring-white"
+                                title={a.name}
+                              >
+                                {a.name.charAt(0).toUpperCase()}
+                              </div>
+                            )
                           ))}
                         </div>
                         <span className="text-sm text-gray-600 truncate max-w-[100px]">
@@ -830,13 +844,17 @@ export default function ListView({
                               }
                               setAssigneeDropdownTaskId(null);
                             }}
-                            className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center gap-2 ${isSelected ? 'bg-[#163B3B]/5' : ''}`}
+                            className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center gap-2 ${isSelected ? 'bg-[#17181A]/5' : ''}`}
                           >
-                            <div className="w-6 h-6 rounded-lg bg-[#163B3B] text-[#E8C4B8] flex items-center justify-center text-xs font-medium">
-                              {member.name.charAt(0).toUpperCase()}
-                            </div>
+                            {member.avatar_url ? (
+                              <img src={member.avatar_url} alt={member.name} className="w-6 h-6 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-lg bg-[#17181A] text-[#D7F653] flex items-center justify-center text-xs font-medium">
+                                {member.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
                             <span>{member.name}</span>
-                            {isSelected && <Check size={14} className="ml-auto text-[#163B3B]" />}
+                            {isSelected && <Check size={14} className="ml-auto text-[#17181A]" />}
                           </div>
                         );
                       })}
@@ -947,7 +965,7 @@ export default function ListView({
                         }
                       }}
                       placeholder="Nombre de la tarea... (Enter para crear, Esc para cancelar)"
-                      className="flex-1 bg-transparent border-none outline-none text-sm text-[#163B3B] placeholder:text-gray-400"
+                      className="flex-1 bg-transparent border-none outline-none text-sm text-[#17181A] placeholder:text-gray-400"
                       autoFocus
                     />
                     {newTaskTitle.trim() && (
@@ -960,7 +978,7 @@ export default function ListView({
                             newTaskInputRef.current?.focus();
                           }
                         }}
-                        className="p-1 text-[#163B3B] hover:bg-[#163B3B]/10 rounded"
+                        className="p-1 text-[#17181A] hover:bg-[#163B3B]/10 rounded"
                       >
                         <Check size={16} />
                       </button>
@@ -978,7 +996,7 @@ export default function ListView({
                 ) : (
                   <button
                     onClick={() => setIsAddingTask(true)}
-                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#163B3B] transition-colors w-full py-1"
+                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#17181A] transition-colors w-full py-1"
                   >
                     <Plus size={16} />
                     <span>Agregar tarea</span>

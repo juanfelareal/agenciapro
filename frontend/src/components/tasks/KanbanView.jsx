@@ -149,13 +149,23 @@ export default function KanbanView({
                         <span className="text-gray-400">Asignado a:</span>
                         <div className="flex -space-x-1.5">
                           {task.assignees.slice(0, 3).map((a) => (
-                            <span
-                              key={a.id}
-                              className="w-5 h-5 rounded-full bg-[#17181A] text-[#D7F653] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
-                              title={a.name}
-                            >
-                              {a.name.charAt(0).toUpperCase()}
-                            </span>
+                            a.avatar_url ? (
+                              <img
+                                key={a.id}
+                                src={a.avatar_url}
+                                alt={a.name}
+                                title={a.name}
+                                className="w-5 h-5 rounded-full object-cover ring-1 ring-white"
+                              />
+                            ) : (
+                              <span
+                                key={a.id}
+                                className="w-5 h-5 rounded-full bg-[#17181A] text-[#D7F653] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
+                                title={a.name}
+                              >
+                                {a.name.charAt(0).toUpperCase()}
+                              </span>
+                            )
                           ))}
                           {task.assignees.length > 3 && (
                             <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] font-medium ring-1 ring-white">

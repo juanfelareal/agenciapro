@@ -21,9 +21,10 @@ router.get('/', async (req, res) => {
              tm.name AS assigned_to_name,
              cb.name AS created_by_name,
              COALESCE(
-               (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name))
+               (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name, 'avatar_url', u2.avatar_url))
                 FROM task_assignees ta
                 JOIN team_members tm2 ON ta.team_member_id = tm2.id
+                LEFT JOIN users u2 ON tm2.user_id = u2.id
                 WHERE ta.task_id = t.id),
                '[]'::json
              ) AS assignees,
@@ -89,9 +90,10 @@ router.get('/:id', async (req, res) => {
              COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) as client_name,
              tm.name as assigned_to_name,
              cb.name as created_by_name,
-             (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name))
+             (SELECT json_agg(json_build_object('id', ta.team_member_id, 'name', tm2.name, 'avatar_url', u2.avatar_url))
               FROM task_assignees ta
               JOIN team_members tm2 ON ta.team_member_id = tm2.id
+              LEFT JOIN users u2 ON tm2.user_id = u2.id
               WHERE ta.task_id = t.id) as assignees
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
