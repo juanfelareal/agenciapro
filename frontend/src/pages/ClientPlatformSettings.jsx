@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, portalAdminAPI } from '../utils/api';
 
+// WIP: la integración Google Ads / TikTok Ads tiene el backend sin desplegar
+// (faltan tablas ga_/tt_ y env vars en prod). Ocultamos las cards hasta terminarla.
+const GOOGLE_TIKTOK_ENABLED = false;
+
 function ClientPlatformSettings() {
   const { id: clientId } = useParams();
   const navigate = useNavigate();
@@ -762,7 +766,8 @@ function ClientPlatformSettings() {
           </div>
         </div>
 
-        {/* Google Ads Card */}
+        {/* Google Ads Card — oculta hasta desplegar el backend (GOOGLE_TIKTOK_ENABLED) */}
+        {GOOGLE_TIKTOK_ENABLED && (<>
         <div className="glass rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -951,6 +956,7 @@ function ClientPlatformSettings() {
             </p>
           </div>
         </div>
+        </>)}
 
         {/* Shopify Card */}
         <div className="glass rounded-xl overflow-hidden">

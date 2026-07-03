@@ -52,6 +52,9 @@ const getColombiaDate = (offsetDays = 0) => {
   return d.toISOString().split('T')[0];
 };
 
+// WIP: Google/TikTok Ads — backend sin desplegar; ocultamos las secciones
+const GOOGLE_TIKTOK_ENABLED = false;
+
 function ClientMetrics() {
   const { clientId } = useParams();
   const navigate = useNavigate();
@@ -736,7 +739,8 @@ function ClientMetrics() {
         </div>
       </CollapsibleSection>
 
-      {/* ============ GOOGLE ADS (colapsable) ============ */}
+      {/* ============ GOOGLE ADS (colapsable) — oculto hasta desplegar backend ============ */}
+      {GOOGLE_TIKTOK_ENABLED && (<>
       <CollapsibleSection
         id="google-ads"
         title="Google Ads"
@@ -911,6 +915,7 @@ function ClientMetrics() {
           />
         </div>
       </CollapsibleSection>
+      </>)}
 
       {/* ============ SHOPIFY (colapsable) ============ */}
       <CollapsibleSection
