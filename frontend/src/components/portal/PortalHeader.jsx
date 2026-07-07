@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  Receipt
+  Receipt,
+  Video
 } from 'lucide-react';
 
 export default function PortalHeader() {
@@ -57,6 +58,7 @@ export default function PortalHeader() {
     { path: '/portal/metrics', icon: BarChart3, label: 'Métricas', permission: 'can_view_metrics' },
     { path: '/portal/calls', icon: Phone, label: 'Llamadas', permission: null },
     { path: '/portal/forms', icon: ClipboardList, label: 'Formularios', permission: 'can_view_forms' },
+    { path: '/portal/ugc', icon: Video, label: 'Creadores', permission: 'can_view_ugc' },
   ];
 
   const filteredNavItems = navItems.filter(

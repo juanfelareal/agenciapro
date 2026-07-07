@@ -58,7 +58,7 @@ function MultiSelectDropdown({ label, icon: Icon, options, selected, onChange, r
       </button>
 
       {isOpen && (
-        <div className="absolute z-20 mt-1 w-56 glass-solid rounded-xl shadow-lg py-1 max-h-64 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-56 glass-solid rounded-xl shadow-lg py-1 max-h-64 overflow-y-auto">
           {options.map((option) => (
             <button
               key={option.value}

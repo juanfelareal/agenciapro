@@ -67,6 +67,7 @@ import PortalForms from './pages/portal/PortalForms';
 import PortalFormFill from './pages/portal/PortalFormFill';
 import PortalCalls from './pages/portal/PortalCalls';
 import PortalCallDetail from './pages/portal/PortalCallDetail';
+import PortalUGC from './pages/portal/PortalUGC';
 
 function App() {
   return (
@@ -198,6 +199,14 @@ function App() {
             element={
               <PortalProtectedRoute permission="can_view_forms">
                 <PortalFormFill />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="ugc"
+            element={
+              <PortalProtectedRoute permission="can_view_ugc">
+                <PortalUGC />
               </PortalProtectedRoute>
             }
           />

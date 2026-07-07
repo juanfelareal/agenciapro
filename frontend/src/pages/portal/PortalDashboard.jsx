@@ -236,7 +236,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={TrendingUp}
           iconBg="bg-emerald-50"
-          iconColor="text-[#D7F653]"
+          iconColor="text-emerald-600"
           label="Avance global"
           value={`${healthScore}%`}
           sub={`${tasksCompleted} de ${tasksTotal} tareas`}
@@ -244,7 +244,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={FolderKanban}
           iconBg="bg-blue-50"
-          iconColor="text-[#D7F653]"
+          iconColor="text-blue-600"
           label="Proyectos activos"
           value={projectsInProgress}
           sub={`${projectsCompleted} completados · ${projectsTotal} totales`}
@@ -252,7 +252,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={ClipboardList}
           iconBg="bg-amber-50"
-          iconColor="text-[#D7F653]"
+          iconColor="text-amber-600"
           label="Tareas pendientes"
           value={tasksPending}
           sub={data?.tasks?.pending_approval ? `${data.tasks.pending_approval} esperan tu aprobación` : 'Sin pendientes urgentes'}
@@ -260,7 +260,7 @@ export default function PortalDashboard() {
         <KpiCard
           icon={Calendar}
           iconBg="bg-violet-50"
-          iconColor="text-[#D7F653]"
+          iconColor="text-violet-600"
           label="Próxima entrega"
           value={nextDeadline ? formatShortDate(nextDeadline.date) : '—'}
           sub={nextDeadline ? nextDeadline.title : 'No hay entregas programadas'}
