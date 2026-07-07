@@ -144,7 +144,7 @@ export default function TaskFilters({
   }));
 
   return (
-    <div className="glass-card p-4 mb-4">
+    <div className="glass-card p-4 mb-4 relative z-40">
       <div className="flex flex-wrap items-center gap-3">
         {/* Assignee Filter */}
         <MultiSelectDropdown
