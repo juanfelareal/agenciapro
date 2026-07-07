@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   DndContext, closestCorners, PointerSensor, useSensor, useSensors,
@@ -8,9 +8,11 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   Plus, Search, Video, Instagram, Phone, MapPin,
-  Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle
+  Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle,
+  Filter, ChevronDown
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
+import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 
 // ========================================
 // CREATOR CARD (Draggable)
@@ -195,6 +197,13 @@ export default function UGC() {
   const [showNewCreator, setShowNewCreator] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [registrationLinks, setRegistrationLinks] = useState([]);
+
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterDepartment, setFilterDepartment] = useState('');
+  const [filterCity, setFilterCity] = useState('');
+  const [filterIndustry, setFilterIndustry] = useState('');
+  const filterRef = useRef(null);
   const [newCreator, setNewCreator] = useState({
     full_name: '', email: '', phone: '', cedula: '',
     social_networks: { instagram: '', tiktok: '', other: '' },
@@ -212,11 +221,27 @@ export default function UGC() {
     loadData();
   }, []);
 
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilters(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const loadData = async () => {
     try {
       const [stagesRes, creatorsRes, industriesRes] = await Promise.all([
         ugcAPI.getStages(),
-        ugcAPI.getCreators({ search: search || undefined }),
+        ugcAPI.getCreators({
+          search: search || undefined,
+          department: filterDepartment || undefined,
+          city: filterCity || undefined,
+          industry: filterIndustry || undefined
+        }),
         ugcAPI.getIndustries(),
       ]);
       setStages(stagesRes.data);
@@ -229,16 +254,37 @@ export default function UGC() {
     }
   };
 
+  // Reload creators when filters change
   useEffect(() => {
     if (!loading) {
       const timer = setTimeout(() => {
-        ugcAPI.getCreators({ search: search || undefined })
+        ugcAPI.getCreators({
+          search: search || undefined,
+          department: filterDepartment || undefined,
+          city: filterCity || undefined,
+          industry: filterIndustry || undefined
+        })
           .then(res => setCreators(res.data))
           .catch(() => {});
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [search]);
+  }, [search, filterDepartment, filterCity, filterIndustry]);
+
+  // Reset city when department changes
+  const handleFilterDepartmentChange = (dept) => {
+    setFilterDepartment(dept);
+    setFilterCity('');
+  };
+
+  const activeFilterCount = [filterDepartment, filterCity, filterIndustry].filter(Boolean).length;
+  const filterCities = filterDepartment ? getCitiesByDepartment(filterDepartment) : [];
+
+  const clearFilters = () => {
+    setFilterDepartment('');
+    setFilterCity('');
+    setFilterIndustry('');
+  };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
@@ -383,6 +429,101 @@ export default function UGC() {
               className="pl-9 pr-4 py-2 glass-solid rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-[200px]"
             />
           </div>
+
+          {/* Filter Dropdown */}
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-sm transition-colors ${
+                activeFilterCount > 0
+                  ? 'border-[#D7F653] bg-[#D7F653]/10 text-[#17181A]'
+                  : 'border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              <span className="hidden sm:inline">Filtros</span>
+              {activeFilterCount > 0 && (
+                <span className="flex items-center justify-center w-5 h-5 bg-[#17181A] text-white text-[10px] font-bold rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showFilters && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl border border-gray-200 shadow-xl p-4 z-50">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-[#17181A]">Filtros</h4>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Limpiar todo
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {/* Department Filter */}
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Departamento</label>
+                    <select
+                      value={filterDepartment}
+                      onChange={(e) => handleFilterDepartmentChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                    >
+                      <option value="">Todos los departamentos</option>
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* City Filter */}
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Ciudad</label>
+                    <select
+                      value={filterCity}
+                      onChange={(e) => setFilterCity(e.target.value)}
+                      disabled={!filterDepartment}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] disabled:bg-gray-50 disabled:text-gray-400"
+                    >
+                      <option value="">Todas las ciudades</option>
+                      {filterCities.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Industry Filter */}
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Industria</label>
+                    <select
+                      value={filterIndustry}
+                      onChange={(e) => setFilterIndustry(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                    >
+                      <option value="">Todas las industrias</option>
+                      {industries.map((ind) => (
+                        <option key={ind.id} value={ind.slug}>{ind.icon} {ind.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Active Filters Summary */}
+                {activeFilterCount > 0 && (
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">
+                      Mostrando <span className="font-semibold text-[#17181A]">{creators.length}</span> creadores
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleShowLinks}
             className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors"

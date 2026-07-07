@@ -158,7 +158,7 @@ router.delete('/industries/:id', async (req, res) => {
 // GET /api/ugc/creators - List creators
 router.get('/creators', async (req, res) => {
   try {
-    const { stage_id, industry, city, search } = req.query;
+    const { stage_id, industry, city, department, search } = req.query;
 
     let query = `
       SELECT c.*, s.name as stage_name, s.color as stage_color
@@ -178,9 +178,14 @@ router.get('/creators', async (req, res) => {
       params.push(industry);
     }
 
+    if (department) {
+      query += ' AND LOWER(c.department) = LOWER(?)';
+      params.push(department);
+    }
+
     if (city) {
-      query += ' AND LOWER(c.city) LIKE LOWER(?)';
-      params.push(`%${city}%`);
+      query += ' AND LOWER(c.city) = LOWER(?)';
+      params.push(city);
     }
 
     if (search) {
