@@ -60,6 +60,7 @@ router.post('/register/:token', async (req, res) => {
       postal_code,
       shipping_notes,
       industries,
+      other_industry,
       bio,
       portfolio_url
     } = req.body;
@@ -102,8 +103,8 @@ router.post('/register/:token', async (req, res) => {
       `INSERT INTO ugc_creators (
         full_name, email, phone, cedula, social_networks,
         address, city, department, postal_code, shipping_notes,
-        industries, bio, portfolio_url, stage_id, source, organization_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        industries, other_industry, bio, portfolio_url, stage_id, source, organization_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         full_name,
         email || null,
@@ -116,6 +117,7 @@ router.post('/register/:token', async (req, res) => {
         postal_code || null,
         shipping_notes || null,
         industries || [],
+        other_industry || null,
         bio || null,
         portfolio_url || null,
         firstStage?.id || null,

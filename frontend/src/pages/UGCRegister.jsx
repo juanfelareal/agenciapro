@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ugcPublicAPI } from '../utils/api';
 import { CheckCircle, AlertCircle, Loader2, Instagram, Video, Globe, MapPin, Phone, User, Mail, CreditCard } from 'lucide-react';
+import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 
 const UGCRegister = () => {
   const { token } = useParams();
@@ -23,13 +24,22 @@ const UGCRegister = () => {
       other: ''
     },
     address: '',
-    city: '',
     department: '',
+    city: '',
     postal_code: '',
     shipping_notes: '',
     industries: [],
+    other_industry: '',
     bio: ''
   });
+
+  // Get cities based on selected department
+  const availableCities = formData.department ? getCitiesByDepartment(formData.department) : [];
+
+  // Handle department change - reset city when department changes
+  const handleDepartmentChange = (dept) => {
+    setFormData({ ...formData, department: dept, city: '' });
+  };
 
   useEffect(() => {
     loadRegistrationInfo();
@@ -282,6 +292,22 @@ const UGCRegister = () => {
                 </button>
               ))}
             </div>
+            {/* Campo "Otros ¿cuál?" - aparece cuando se selecciona Otros */}
+            {formData.industries.includes('otros') && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Otros ¿cuál? *
+                </label>
+                <input
+                  type="text"
+                  required={formData.industries.includes('otros')}
+                  className="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black"
+                  value={formData.other_industry}
+                  onChange={(e) => setFormData({ ...formData, other_industry: e.target.value })}
+                  placeholder="Especifica qué otras industrias te interesan..."
+                />
+              </div>
+            )}
           </div>
 
           {/* Dirección de envío */}
@@ -292,6 +318,39 @@ const UGCRegister = () => {
             </h2>
             <p className="text-sm text-gray-500 mb-4">Para enviarte productos de las marcas</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Departamento *
+                </label>
+                <select
+                  required
+                  className="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white"
+                  value={formData.department}
+                  onChange={(e) => handleDepartmentChange(e.target.value)}
+                >
+                  <option value="">Selecciona un departamento</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ciudad *
+                </label>
+                <select
+                  required
+                  disabled={!formData.department}
+                  className="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                >
+                  <option value="">{formData.department ? 'Selecciona una ciudad' : 'Primero selecciona departamento'}</option>
+                  {availableCities.map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Dirección
@@ -302,30 +361,6 @@ const UGCRegister = () => {
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="Calle, número, apartamento, etc."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ciudad
-                </label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="Bogotá, Medellín, etc."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Departamento
-                </label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="Cundinamarca, Antioquia, etc."
                 />
               </div>
               <div>

@@ -2624,6 +2624,7 @@ export const initializeDatabase = async () => {
         postal_code TEXT,
         shipping_notes TEXT,
         industries TEXT[],
+        other_industry TEXT,
         bio TEXT,
         portfolio_url TEXT,
         profile_photo_url TEXT,
@@ -2634,6 +2635,10 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+    // Migration: Add other_industry column if it doesn't exist
+    await pool.query(`
+      ALTER TABLE ugc_creators ADD COLUMN IF NOT EXISTS other_industry TEXT
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_org ON ugc_creators(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_stage ON ugc_creators(stage_id)`);
@@ -2728,22 +2733,38 @@ export const initializeDatabase = async () => {
     `);
 
     // Seed default UGC industries for LA REAL (org_id = 1)
+    // Using INSERT ON CONFLICT to add new industries without duplicating
     await pool.query(`
       INSERT INTO ugc_industries (name, slug, icon, organization_id)
-      SELECT * FROM (VALUES
+      VALUES
         ('Skincare', 'skincare', '🧴', 1),
         ('Maquillaje', 'maquillaje', '💄', 1),
+        ('Belleza', 'belleza', '💅', 1),
         ('Ropa Deportiva', 'ropa_deportiva', '🏃', 1),
         ('Moda', 'moda', '👗', 1),
         ('Accesorios', 'accesorios', '👜', 1),
+        ('Joyería', 'joyeria', '💎', 1),
         ('Fitness', 'fitness', '💪', 1),
         ('Nutrición', 'nutricion', '🥗', 1),
+        ('Bienestar', 'bienestar', '🧘', 1),
+        ('Salud', 'salud', '🏥', 1),
         ('Hogar', 'hogar', '🏠', 1),
+        ('Decoración', 'decoracion', '🪴', 1),
         ('Tecnología', 'tecnologia', '📱', 1),
+        ('Electrónica', 'electronica', '🎧', 1),
+        ('Gaming', 'gaming', '🎮', 1),
         ('Mascotas', 'mascotas', '🐾', 1),
+        ('Maternidad', 'maternidad', '🤱', 1),
+        ('Infantil', 'infantil', '👶', 1),
+        ('Comida', 'comida', '🍽️', 1),
+        ('Bebidas', 'bebidas', '🍹', 1),
+        ('Viajes', 'viajes', '✈️', 1),
+        ('Lifestyle', 'lifestyle', '🌟', 1),
+        ('Educación', 'educacion', '📚', 1),
+        ('Finanzas', 'finanzas', '💰', 1),
+        ('Automotriz', 'automotriz', '🚗', 1),
         ('Otros', 'otros', '📦', 1)
-      ) AS v(name, slug, icon, organization_id)
-      WHERE NOT EXISTS (SELECT 1 FROM ugc_industries WHERE organization_id = 1)
+      ON CONFLICT (slug, organization_id) DO NOTHING
     `);
 
     console.log('✅ PostgreSQL database initialized successfully');
