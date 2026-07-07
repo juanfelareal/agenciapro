@@ -1,0 +1,689 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  DndContext, closestCorners, PointerSensor, useSensor, useSensors,
+  DragOverlay, useDroppable
+} from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  Plus, Search, Video, Instagram, Phone, MapPin,
+  Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle
+} from 'lucide-react';
+import { ugcAPI } from '../utils/api';
+
+// ========================================
+// CREATOR CARD (Draggable)
+// ========================================
+function CreatorCard({ creator, onClick }) {
+  const {
+    attributes, listeners, setNodeRef, transform, transition, isDragging
+  } = useSortable({ id: `creator-${creator.id}`, data: { creator } });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const socialNetworks = creator.social_networks || {};
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-white rounded-xl border border-gray-100 p-3.5 cursor-pointer hover:shadow-md transition-shadow group"
+      onClick={() => onClick(creator)}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2.5">
+          {creator.profile_photo_url ? (
+            <img
+              src={creator.profile_photo_url}
+              alt={creator.full_name}
+              className="w-9 h-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-sm font-bold">
+              {creator.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <h4 className="text-sm font-semibold text-[#17181A] line-clamp-1">{creator.full_name}</h4>
+            {creator.city && (
+              <p className="text-xs text-gray-400 flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> {creator.city}
+              </p>
+            )}
+          </div>
+        </div>
+        <div
+          {...attributes}
+          {...listeners}
+          className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-4 h-4 text-gray-400" />
+        </div>
+      </div>
+
+      {/* Social Networks */}
+      <div className="flex items-center gap-2 mb-2">
+        {socialNetworks.instagram && (
+          <a
+            href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-pink-500 hover:text-pink-600"
+          >
+            <Instagram className="w-4 h-4" />
+          </a>
+        )}
+        {socialNetworks.tiktok && (
+          <a
+            href={`https://tiktok.com/@${socialNetworks.tiktok.replace('@', '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-gray-800 hover:text-black"
+          >
+            <Video className="w-4 h-4" />
+          </a>
+        )}
+        {socialNetworks.other && (
+          <span className="text-gray-400">
+            <Link2 className="w-4 h-4" />
+          </span>
+        )}
+      </div>
+
+      {/* Industries */}
+      {creator.industries?.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {creator.industries.slice(0, 3).map((ind, i) => (
+            <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+              {ind}
+            </span>
+          ))}
+          {creator.industries.length > 3 && (
+            <span className="text-[10px] text-gray-400">+{creator.industries.length - 3}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ========================================
+// CREATOR CARD OVERLAY (for drag preview)
+// ========================================
+function CreatorCardOverlay({ creator }) {
+  return (
+    <div className="bg-white rounded-xl border-2 border-[#D7F653] shadow-lg p-3.5 w-[240px]">
+      <div className="flex items-center gap-2.5">
+        {creator.profile_photo_url ? (
+          <img
+            src={creator.profile_photo_url}
+            alt={creator.full_name}
+            className="w-9 h-9 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-sm font-bold">
+            {creator.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+          </div>
+        )}
+        <div>
+          <h4 className="text-sm font-semibold text-[#17181A]">{creator.full_name}</h4>
+          {creator.city && (
+            <p className="text-xs text-gray-400">{creator.city}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========================================
+// STAGE COLUMN (Droppable)
+// ========================================
+function StageColumn({ stage, creators, onCreatorClick }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage.id}` });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex-shrink-0 w-[260px] flex flex-col max-h-full rounded-2xl transition-colors ${
+        isOver ? 'bg-[#D7F653]/10' : 'bg-gray-50/80'
+      }`}
+    >
+      {/* Column Header */}
+      <div className="px-3 pt-3 pb-2">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
+            <h3 className="text-sm font-semibold text-[#17181A]">{stage.name}</h3>
+            <span className="text-xs text-gray-400 bg-white px-1.5 py-0.5 rounded-full">{creators.length}</span>
+          </div>
+        </div>
+        {stage.description && (
+          <p className="text-xs text-gray-400 ml-4.5">{stage.description}</p>
+        )}
+      </div>
+
+      {/* Cards */}
+      <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2 min-h-[100px]">
+        {creators.map((creator) => (
+          <CreatorCard key={creator.id} creator={creator} onClick={onCreatorClick} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ========================================
+// MAIN UGC PAGE
+// ========================================
+export default function UGC() {
+  const navigate = useNavigate();
+  const [stages, setStages] = useState([]);
+  const [creators, setCreators] = useState([]);
+  const [industries, setIndustries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [activeCreator, setActiveCreator] = useState(null);
+  const [showNewCreator, setShowNewCreator] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [registrationLinks, setRegistrationLinks] = useState([]);
+  const [newCreator, setNewCreator] = useState({
+    full_name: '', email: '', phone: '', cedula: '',
+    social_networks: { instagram: '', tiktok: '', other: '' },
+    address: '', city: '', department: '', postal_code: '',
+    shipping_notes: '', industries: [], bio: '', source: ''
+  });
+  const [saving, setSaving] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [stagesRes, creatorsRes, industriesRes] = await Promise.all([
+        ugcAPI.getStages(),
+        ugcAPI.getCreators({ search: search || undefined }),
+        ugcAPI.getIndustries(),
+      ]);
+      setStages(stagesRes.data);
+      setCreators(creatorsRes.data);
+      setIndustries(industriesRes.data);
+    } catch (error) {
+      console.error('Error loading UGC:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        ugcAPI.getCreators({ search: search || undefined })
+          .then(res => setCreators(res.data))
+          .catch(() => {});
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [search]);
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const creator = active.data.current?.creator;
+    if (!creator) return;
+
+    const overId = over.id.toString();
+    let targetStageId;
+
+    if (overId.startsWith('stage-')) {
+      targetStageId = parseInt(overId.replace('stage-', ''));
+    } else if (overId.startsWith('creator-')) {
+      const targetCreator = creators.find(c => `creator-${c.id}` === overId);
+      targetStageId = targetCreator?.stage_id;
+    }
+
+    if (!targetStageId || targetStageId === creator.stage_id) return;
+
+    // Optimistic update
+    setCreators(prev => prev.map(c =>
+      c.id === creator.id ? { ...c, stage_id: targetStageId } : c
+    ));
+
+    try {
+      await ugcAPI.moveCreatorStage(creator.id, targetStageId);
+    } catch (error) {
+      // Revert on error
+      setCreators(prev => prev.map(c =>
+        c.id === creator.id ? { ...c, stage_id: creator.stage_id } : c
+      ));
+    }
+
+    setActiveCreator(null);
+  };
+
+  const handleDragStart = (event) => {
+    setActiveCreator(event.active.data.current?.creator);
+  };
+
+  const handleCreateCreator = async (e) => {
+    e.preventDefault();
+    if (!newCreator.full_name || !newCreator.phone) return;
+
+    setSaving(true);
+    try {
+      await ugcAPI.createCreator(newCreator);
+      setShowNewCreator(false);
+      setNewCreator({
+        full_name: '', email: '', phone: '', cedula: '',
+        social_networks: { instagram: '', tiktok: '', other: '' },
+        address: '', city: '', department: '', postal_code: '',
+        shipping_notes: '', industries: [], bio: '', source: ''
+      });
+      loadData();
+    } catch (error) {
+      console.error('Error creating creator:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreatorClick = (creator) => {
+    navigate(`/app/ugc/${creator.id}`);
+  };
+
+  const handleIndustryToggle = (slug) => {
+    setNewCreator(prev => ({
+      ...prev,
+      industries: prev.industries.includes(slug)
+        ? prev.industries.filter(i => i !== slug)
+        : [...prev.industries, slug]
+    }));
+  };
+
+  const loadRegistrationLinks = async () => {
+    try {
+      const res = await ugcAPI.getRegistrationLinks();
+      setRegistrationLinks(res.data);
+    } catch (error) {
+      console.error('Error loading links:', error);
+    }
+  };
+
+  const handleShowLinks = async () => {
+    await loadRegistrationLinks();
+    setShowLinkModal(true);
+  };
+
+  const handleCreateLink = async () => {
+    try {
+      await ugcAPI.createRegistrationLink();
+      loadRegistrationLinks();
+    } catch (error) {
+      console.error('Error creating link:', error);
+    }
+  };
+
+  const handleCopyLink = (token) => {
+    const url = `${window.location.origin}/ugc/register/${token}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(token);
+    setTimeout(() => setCopiedLink(null), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+      </div>
+    );
+  }
+
+  // Group creators by stage
+  const creatorsByStage = {};
+  stages.forEach(s => { creatorsByStage[s.id] = []; });
+  creators.forEach(c => {
+    if (creatorsByStage[c.stage_id]) {
+      creatorsByStage[c.stage_id].push(c);
+    }
+  });
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight flex items-center gap-2">
+            <Video className="w-6 h-6" /> UGC Creators
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestiona tu red de creadores de contenido</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar creadores..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 glass-solid rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-[200px]"
+            />
+          </div>
+          <button
+            onClick={handleShowLinks}
+            className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            title="Links de registro"
+          >
+            <Link2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => navigate('/app/ugc/settings')}
+            className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            title="Configuración"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowNewCreator(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Nuevo Creador
+          </button>
+        </div>
+      </div>
+
+      {/* Kanban Board */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex-1 overflow-x-auto pb-4">
+          <div className="flex gap-3 min-h-[500px]" style={{ minWidth: `${stages.length * 276}px` }}>
+            {stages.map((stage) => (
+              <StageColumn
+                key={stage.id}
+                stage={stage}
+                creators={creatorsByStage[stage.id] || []}
+                onCreatorClick={handleCreatorClick}
+              />
+            ))}
+          </div>
+        </div>
+
+        <DragOverlay>
+          {activeCreator ? <CreatorCardOverlay creator={activeCreator} /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      {/* New Creator Modal */}
+      {showNewCreator && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowNewCreator(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-[#17181A]">Nuevo Creador</h2>
+              <button onClick={() => setShowNewCreator(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCreator} className="p-6 space-y-5">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Nombre completo *</label>
+                  <input
+                    type="text"
+                    value={newCreator.full_name}
+                    onChange={(e) => setNewCreator({ ...newCreator, full_name: e.target.value })}
+                    placeholder="Juan Pérez"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">WhatsApp *</label>
+                  <input
+                    type="tel"
+                    value={newCreator.phone}
+                    onChange={(e) => setNewCreator({ ...newCreator, phone: e.target.value })}
+                    placeholder="+57 300 123 4567"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
+                  <input
+                    type="email"
+                    value={newCreator.email}
+                    onChange={(e) => setNewCreator({ ...newCreator, email: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Cédula</label>
+                  <input
+                    type="text"
+                    value={newCreator.cedula}
+                    onChange={(e) => setNewCreator({ ...newCreator, cedula: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                  />
+                </div>
+              </div>
+
+              {/* Social Networks */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Redes Sociales</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="relative">
+                    <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-500" />
+                    <input
+                      type="text"
+                      value={newCreator.social_networks.instagram}
+                      onChange={(e) => setNewCreator({
+                        ...newCreator,
+                        social_networks: { ...newCreator.social_networks, instagram: e.target.value }
+                      })}
+                      placeholder="@usuario"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Video className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-800" />
+                    <input
+                      type="text"
+                      value={newCreator.social_networks.tiktok}
+                      onChange={(e) => setNewCreator({
+                        ...newCreator,
+                        social_networks: { ...newCreator.social_networks, tiktok: e.target.value }
+                      })}
+                      placeholder="@usuario"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={newCreator.social_networks.other}
+                      onChange={(e) => setNewCreator({
+                        ...newCreator,
+                        social_networks: { ...newCreator.social_networks, other: e.target.value }
+                      })}
+                      placeholder="Otro link"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Industries */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Industrias de interés</label>
+                <div className="flex flex-wrap gap-2">
+                  {industries.map((industry) => (
+                    <button
+                      key={industry.id}
+                      type="button"
+                      onClick={() => handleIndustryToggle(industry.slug)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        newCreator.industries.includes(industry.slug)
+                          ? 'bg-[#17181A] text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {industry.icon} {industry.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Ubicación</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    value={newCreator.city}
+                    onChange={(e) => setNewCreator({ ...newCreator, city: e.target.value })}
+                    placeholder="Ciudad"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                  />
+                  <input
+                    type="text"
+                    value={newCreator.department}
+                    onChange={(e) => setNewCreator({ ...newCreator, department: e.target.value })}
+                    placeholder="Departamento"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                  />
+                  <select
+                    value={newCreator.source}
+                    onChange={(e) => setNewCreator({ ...newCreator, source: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                  >
+                    <option value="">Fuente...</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="referido">Referido</option>
+                    <option value="registro_web">Registro web</option>
+                    <option value="evento">Evento</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Bio / Notas</label>
+                <textarea
+                  value={newCreator.bio}
+                  onChange={(e) => setNewCreator({ ...newCreator, bio: e.target.value })}
+                  rows={2}
+                  placeholder="Experiencia, estilo de contenido, etc."
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewCreator(false)}
+                  className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear Creador'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Registration Links Modal */}
+      {showLinkModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowLinkModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-semibold text-[#17181A]">Links de Registro</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Comparte estos links para que creadores se registren</p>
+              </div>
+              <button onClick={() => setShowLinkModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
+              {registrationLinks.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">No hay links creados</p>
+              ) : (
+                registrationLinks.map((link) => (
+                  <div
+                    key={link.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                  >
+                    <div className="flex-1 min-w-0 mr-3">
+                      <p className="text-xs text-gray-500 truncate">
+                        {window.location.origin}/ugc/register/{link.token}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {link.uses_count} registros • {link.status === 'active' ? '✅ Activo' : '⏸️ Inactivo'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleCopyLink(link.token)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        copiedLink === link.token
+                          ? 'bg-green-100 text-green-600'
+                          : 'hover:bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {copiedLink === link.token ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-100">
+              <button
+                onClick={handleCreateLink}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Crear Nuevo Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -46,6 +46,9 @@ import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 import Briefs from './pages/Briefs';
 import Anuncios from './pages/Anuncios';
+import UGC from './pages/UGC';
+import UGCCreatorDetail from './pages/UGCCreatorDetail';
+import UGCRegister from './pages/UGCRegister';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -93,6 +96,9 @@ function App() {
         {/* Public form fill - no auth required */}
         <Route path="/f/:token" element={<PublicFormFill />} />
         <Route path="/fa/:token" element={<AssignmentFormFill />} />
+
+        {/* UGC Registration - public, no auth required */}
+        <Route path="/ugc/register/:token" element={<UGCRegister />} />
 
         {/* Portal Login - no layout but needs PortalProvider */}
         <Route path="/portal/login" element={<PortalProvider><PortalLogin /></PortalProvider>} />
@@ -353,6 +359,22 @@ function App() {
                   element={
                     <ProtectedRoute permission="crm">
                       <CRMDealDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ugc"
+                  element={
+                    <ProtectedRoute permission="ugc">
+                      <UGC />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ugc/:id"
+                  element={
+                    <ProtectedRoute permission="ugc">
+                      <UGCCreatorDetail />
                     </ProtectedRoute>
                   }
                 />

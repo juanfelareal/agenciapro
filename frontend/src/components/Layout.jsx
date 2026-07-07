@@ -26,6 +26,7 @@ import {
   Bot,
   FileCode2,
   Megaphone,
+  Video,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -53,6 +54,7 @@ const Layout = ({ children }) => {
     { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard' },
     { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients' },
     { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm' },
+    { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc' },
     { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
     { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
     { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks' },

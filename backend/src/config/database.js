@@ -2578,6 +2578,174 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // ========================================
+    // UGC (User Generated Content) MODULE
+    // ========================================
+
+    // UGC Creator Stages (Pipeline)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_creator_stages (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        color TEXT DEFAULT '#6B7280',
+        description TEXT,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_stages_org ON ugc_creator_stages(organization_id)`);
+
+    // UGC Industries (Catalog)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_industries (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        icon TEXT,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(slug, organization_id)
+      )
+    `);
+
+    // UGC Creators (Main table)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_creators (
+        id SERIAL PRIMARY KEY,
+        full_name TEXT NOT NULL,
+        email TEXT,
+        phone TEXT NOT NULL,
+        cedula TEXT,
+        social_networks JSONB DEFAULT '{}',
+        address TEXT,
+        city TEXT,
+        department TEXT,
+        postal_code TEXT,
+        shipping_notes TEXT,
+        industries TEXT[],
+        bio TEXT,
+        portfolio_url TEXT,
+        profile_photo_url TEXT,
+        stage_id INTEGER REFERENCES ugc_creator_stages(id) ON DELETE SET NULL,
+        source TEXT,
+        notes TEXT,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_org ON ugc_creators(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_stage ON ugc_creators(stage_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_phone ON ugc_creators(phone)`);
+
+    // UGC Assignments (Creator <-> Client)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_assignments (
+        id SERIAL PRIMARY KEY,
+        creator_id INTEGER NOT NULL REFERENCES ugc_creators(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        deliverables TEXT,
+        start_date DATE,
+        end_date DATE,
+        agreed_value REAL DEFAULT 0,
+        currency TEXT DEFAULT 'COP',
+        status TEXT CHECK(status IN ('proposed', 'accepted', 'in_production', 'delivered', 'paid', 'cancelled')) DEFAULT 'proposed',
+        delivery_url TEXT,
+        delivered_at TIMESTAMP,
+        notes TEXT,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        assigned_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_assignments_creator ON ugc_assignments(creator_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_assignments_client ON ugc_assignments(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_assignments_org ON ugc_assignments(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_assignments_status ON ugc_assignments(status)`);
+
+    // UGC Creator Payments
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_creator_payments (
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER REFERENCES ugc_assignments(id) ON DELETE SET NULL,
+        creator_id INTEGER NOT NULL REFERENCES ugc_creators(id) ON DELETE CASCADE,
+        amount REAL NOT NULL,
+        currency TEXT DEFAULT 'COP',
+        payment_date DATE NOT NULL,
+        payment_method TEXT,
+        reference_number TEXT,
+        status TEXT CHECK(status IN ('pending', 'completed', 'failed')) DEFAULT 'pending',
+        receipt_url TEXT,
+        notes TEXT,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        paid_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_creator ON ugc_creator_payments(creator_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_assignment ON ugc_creator_payments(assignment_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_org ON ugc_creator_payments(organization_id)`);
+
+    // UGC Registration Tokens (Public registration links)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_registration_tokens (
+        id SERIAL PRIMARY KEY,
+        token TEXT NOT NULL UNIQUE,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        status TEXT CHECK(status IN ('active', 'inactive')) DEFAULT 'active',
+        uses_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Add can_view_ugc to client_portal_settings
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_ugc') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN can_view_ugc INTEGER DEFAULT 0;
+        END IF;
+      END $$
+    `);
+
+    // Seed default UGC stages for LA REAL (org_id = 1)
+    await pool.query(`
+      INSERT INTO ugc_creator_stages (name, position, color, description, organization_id)
+      SELECT * FROM (VALUES
+        ('Registrado', 0, '#9CA3AF', 'Acaba de llenar el formulario', 1),
+        ('Verificado', 1, '#3B82F6', 'Datos validados, perfil revisado', 1),
+        ('Activo', 2, '#10B981', 'Disponible para asignaciones', 1),
+        ('Pausado', 3, '#F59E0B', 'Temporalmente no disponible', 1),
+        ('Inactivo', 4, '#EF4444', 'Ya no trabaja con la agencia', 1)
+      ) AS v(name, position, color, description, organization_id)
+      WHERE NOT EXISTS (SELECT 1 FROM ugc_creator_stages WHERE organization_id = 1)
+    `);
+
+    // Seed default UGC industries for LA REAL (org_id = 1)
+    await pool.query(`
+      INSERT INTO ugc_industries (name, slug, icon, organization_id)
+      SELECT * FROM (VALUES
+        ('Skincare', 'skincare', '🧴', 1),
+        ('Maquillaje', 'maquillaje', '💄', 1),
+        ('Ropa Deportiva', 'ropa_deportiva', '🏃', 1),
+        ('Moda', 'moda', '👗', 1),
+        ('Accesorios', 'accesorios', '👜', 1),
+        ('Fitness', 'fitness', '💪', 1),
+        ('Nutrición', 'nutricion', '🥗', 1),
+        ('Hogar', 'hogar', '🏠', 1),
+        ('Tecnología', 'tecnologia', '📱', 1),
+        ('Mascotas', 'mascotas', '🐾', 1),
+        ('Otros', 'otros', '📦', 1)
+      ) AS v(name, slug, icon, organization_id)
+      WHERE NOT EXISTS (SELECT 1 FROM ugc_industries WHERE organization_id = 1)
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

@@ -13,6 +13,7 @@ import formsRoutes from './forms.js';
 import callsRoutes from './calls.js';
 import notesRoutes from './notes.js';
 import referenceAdsRoutes from './reference-ads.js';
+import ugcRoutes from './ugc.js';
 
 const router = express.Router();
 
@@ -31,5 +32,6 @@ router.use('/forms', formsRoutes);
 router.use('/calls', callsRoutes);
 router.use('/notes', notesRoutes);
 router.use('/reference-ads', referenceAdsRoutes);
+router.use('/ugc', ugcRoutes);
 
 export default router;

@@ -348,4 +348,24 @@ export const portalReferenceAdsAPI = {
   },
 };
 
+// UGC (User Generated Content) - Portal view for clients
+export const portalUGCAPI = {
+  getCreators: async () => {
+    const response = await portalApi.get('/ugc/creators');
+    return response.data;
+  },
+  getCreator: async (id) => {
+    const response = await portalApi.get(`/ugc/creators/${id}`);
+    return response.data;
+  },
+  getAssignments: async (filters) => {
+    const response = await portalApi.get('/ugc/assignments', { params: filters });
+    return response.data;
+  },
+  getAssignment: async (id) => {
+    const response = await portalApi.get(`/ugc/assignments/${id}`);
+    return response.data;
+  },
+};
+
 export default portalApi;

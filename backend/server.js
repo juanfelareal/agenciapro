@@ -99,6 +99,10 @@ import taskHistoryRoutes from './src/routes/task-history.js';
 // Task saved views (vistas favoritas personales)
 import taskViewsRoutes from './src/routes/task-views.js';
 import { setupAgentSocket } from './src/agents/socket.js';
+// UGC (User Generated Content) - Creator Management
+import ugcRoutes from './src/routes/ugc.js';
+import ugcPublicRoutes from './src/routes/ugc-public.js';
+import portalUGCRoutes from './src/routes/portal/ugc.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -284,6 +288,9 @@ app.use('/api/client-groups', teamAuthMiddleware, clientGroupsRoutes);
 app.use('/api/reference-ads', teamAuthMiddleware, referenceAdsRoutes);
 app.use('/api/task-history', teamAuthMiddleware, taskHistoryRoutes);
 app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
+// UGC (User Generated Content) - Creator Management
+app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);
+app.use('/api/ugc', ugcPublicRoutes);  // Public registration (no auth)
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -784,4 +784,49 @@ export const referenceAdsAPI = {
   delete: (id) => api.delete(`/reference-ads/${id}`),
 };
 
+// UGC (User Generated Content) - Creator Management
+export const ugcAPI = {
+  // Stages
+  getStages: () => api.get('/ugc/stages'),
+  createStage: (data) => api.post('/ugc/stages', data),
+  updateStage: (id, data) => api.put(`/ugc/stages/${id}`, data),
+  deleteStage: (id) => api.delete(`/ugc/stages/${id}`),
+  reorderStages: (stages) => api.put('/ugc/stages/reorder', { stages }),
+  // Industries
+  getIndustries: () => api.get('/ugc/industries'),
+  createIndustry: (data) => api.post('/ugc/industries', data),
+  deleteIndustry: (id) => api.delete(`/ugc/industries/${id}`),
+  // Creators
+  getCreators: (filters) => api.get('/ugc/creators', { params: filters }),
+  getCreator: (id) => api.get(`/ugc/creators/${id}`),
+  createCreator: (data) => api.post('/ugc/creators', data),
+  updateCreator: (id, data) => api.put(`/ugc/creators/${id}`, data),
+  deleteCreator: (id) => api.delete(`/ugc/creators/${id}`),
+  moveCreatorStage: (id, stageId) => api.patch(`/ugc/creators/${id}/stage`, { stage_id: stageId }),
+  // Assignments
+  getAssignments: (filters) => api.get('/ugc/assignments', { params: filters }),
+  getAssignment: (id) => api.get(`/ugc/assignments/${id}`),
+  createAssignment: (data) => api.post('/ugc/assignments', data),
+  updateAssignment: (id, data) => api.put(`/ugc/assignments/${id}`, data),
+  deleteAssignment: (id) => api.delete(`/ugc/assignments/${id}`),
+  updateAssignmentStatus: (id, status) => api.patch(`/ugc/assignments/${id}/status`, { status }),
+  // Payments
+  getPayments: (filters) => api.get('/ugc/payments', { params: filters }),
+  createPayment: (data) => api.post('/ugc/payments', data),
+  updatePayment: (id, data) => api.put(`/ugc/payments/${id}`, data),
+  deletePayment: (id) => api.delete(`/ugc/payments/${id}`),
+  // Registration Links
+  getRegistrationLinks: () => api.get('/ugc/registration-links'),
+  createRegistrationLink: () => api.post('/ugc/registration-links'),
+  deleteRegistrationLink: (id) => api.delete(`/ugc/registration-links/${id}`),
+  // Stats
+  getStats: () => api.get('/ugc/stats'),
+};
+
+// UGC Public Registration (no auth required)
+export const ugcPublicAPI = {
+  getRegistrationInfo: (token) => api.get(`/ugc/register/${token}`),
+  register: (token, data) => api.post(`/ugc/register/${token}`, data),
+};
+
 export default api;
