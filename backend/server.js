@@ -289,8 +289,8 @@ app.use('/api/reference-ads', teamAuthMiddleware, referenceAdsRoutes);
 app.use('/api/task-history', teamAuthMiddleware, taskHistoryRoutes);
 app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
 // UGC (User Generated Content) - Creator Management
-app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);
-app.use('/api/ugc', ugcPublicRoutes);  // Public registration (no auth)
+app.use('/api/ugc', ugcPublicRoutes);  // Public registration FIRST (no auth)
+app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);  // Authenticated routes after
 
 // Error handling middleware
 app.use((err, req, res, next) => {
