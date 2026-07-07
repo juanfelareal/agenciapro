@@ -12,7 +12,8 @@ import {
   RefreshCw,
   Trash2,
   Loader2,
-  Check
+  Check,
+  Video
 } from 'lucide-react';
 import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, portalAdminAPI } from '../utils/api';
 
@@ -69,6 +70,10 @@ function ClientPlatformSettings() {
   // Portal revenue metric setting
   const [portalRevenueMetric, setPortalRevenueMetric] = useState('confirmed');
   const [savingRevenueMetric, setSavingRevenueMetric] = useState(false);
+
+  // Portal UGC visibility
+  const [canViewUgc, setCanViewUgc] = useState(false);
+  const [savingUgc, setSavingUgc] = useState(false);
 
 
   // Load client and credentials
@@ -148,12 +153,13 @@ function ClientPlatformSettings() {
         }
       }
 
-      // Load portal settings for revenue metric
+      // Load portal settings for revenue metric and UGC visibility
       try {
         const portalRes = await portalAdminAPI.getSettings(clientId);
         if (portalRes.settings?.portal_revenue_metric) {
           setPortalRevenueMetric(portalRes.settings.portal_revenue_metric);
         }
+        setCanViewUgc(!!portalRes.settings?.can_view_ugc);
       } catch (e) {
         // Settings may not exist yet, use default
       }
@@ -175,6 +181,20 @@ function ClientPlatformSettings() {
       alert('Error al guardar configuración');
     } finally {
       setSavingRevenueMetric(false);
+    }
+  };
+
+  const toggleUgcVisibility = async () => {
+    setSavingUgc(true);
+    try {
+      const newValue = !canViewUgc;
+      await portalAdminAPI.updateSettings(clientId, { can_view_ugc: newValue });
+      setCanViewUgc(newValue);
+    } catch (error) {
+      console.error('Error saving UGC visibility:', error);
+      alert('Error al guardar configuración');
+    } finally {
+      setSavingUgc(false);
     }
   };
 
@@ -1173,6 +1193,52 @@ function ClientPlatformSettings() {
             >
               {savingRevenueMetric ? 'Guardando...' : 'Guardar'}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* UGC Visibility in Portal */}
+      <div className="glass rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Video className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-900">UGC en Portal del Cliente</h2>
+              <p className="text-sm text-gray-500">Permite que el cliente vea los creadores asignados a él</p>
+            </div>
+          </div>
+          <button
+            onClick={toggleUgcVisibility}
+            disabled={savingUgc}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D7F653] focus:ring-offset-2 ${
+              canViewUgc ? 'bg-[#17181A]' : 'bg-gray-300'
+            } ${savingUgc ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                canViewUgc ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className={`p-4 rounded-lg ${canViewUgc ? 'bg-green-50' : 'bg-gray-50'}`}>
+            {canViewUgc ? (
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">El cliente puede ver la sección UGC en su portal</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-gray-500">
+                <XCircle className="w-5 h-5" />
+                <span className="font-medium">El cliente no tiene acceso a la sección UGC</span>
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-2 ml-7">
+              Cuando está activo, el cliente podrá ver en su portal los creadores de contenido que le has asignado, junto con el estado de sus proyectos.
+            </p>
           </div>
         </div>
       </div>
