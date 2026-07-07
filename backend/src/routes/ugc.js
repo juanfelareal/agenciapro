@@ -703,6 +703,29 @@ router.delete('/registration-links/:id', async (req, res) => {
 });
 
 // ========================================
+// CLIENTS WITH UGC ENABLED
+// ========================================
+
+// GET /api/ugc/clients - List clients with UGC enabled
+router.get('/clients', async (req, res) => {
+  try {
+    const clients = await db.all(
+      `SELECT c.id, c.company, c.name, c.email
+       FROM clients c
+       INNER JOIN client_portal_settings cps ON c.id = cps.client_id
+       WHERE c.organization_id = ?
+       AND c.status = 'active'
+       AND cps.can_view_ugc = 1
+       ORDER BY c.company, c.name`,
+      [req.orgId]
+    );
+    res.json(clients);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
 // STATS / DASHBOARD
 // ========================================
 

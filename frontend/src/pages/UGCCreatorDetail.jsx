@@ -5,7 +5,7 @@ import {
   Loader2, Plus, X, Edit3, DollarSign, Package, Calendar, CheckCircle,
   Clock, AlertCircle, User, Building2, FileText
 } from 'lucide-react';
-import { ugcAPI, clientsAPI } from '../utils/api';
+import { ugcAPI } from '../utils/api';
 
 const ASSIGNMENT_STATUS = {
   proposed: { label: 'Propuesto', color: 'bg-gray-100 text-gray-700' },
@@ -61,7 +61,7 @@ export default function UGCCreatorDetail() {
         ugcAPI.getAssignments({ creator_id: id }),
         ugcAPI.getPayments({ creator_id: id }),
         ugcAPI.getStages(),
-        clientsAPI.getAll({ status: 'active' }).catch(() => ({ data: [] })),
+        ugcAPI.getUgcClients().catch(() => ({ data: [] })),
       ]);
       setCreator(creatorRes.data);
       setAssignments(assignmentsRes.data);

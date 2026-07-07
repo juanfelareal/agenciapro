@@ -821,6 +821,8 @@ export const ugcAPI = {
   deleteRegistrationLink: (id) => api.delete(`/ugc/registration-links/${id}`),
   // Stats
   getStats: () => api.get('/ugc/stats'),
+  // Clients with UGC enabled
+  getUgcClients: () => api.get('/ugc/clients'),
 };
 
 // UGC Public Registration (no auth required)
