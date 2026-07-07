@@ -378,7 +378,7 @@ const Comisiones = () => {
             <option value="">Todos</option>
             {clients.map((client) => (
               <option key={client.id} value={client.id}>
-                {client.name}
+                {client.company || client.name}
               </option>
             ))}
             <option value="otros">Otros (sin cliente)</option>
@@ -591,7 +591,7 @@ const Comisiones = () => {
                         <option value="">Sin cliente (usar Otros)</option>
                         {clients.map((client) => (
                           <option key={client.id} value={client.id}>
-                            {client.name} {client.company ? `- ${client.company}` : ''}
+                            {client.company || client.name}
                           </option>
                         ))}
                         <option value="new">+ Nuevo Cliente</option>
