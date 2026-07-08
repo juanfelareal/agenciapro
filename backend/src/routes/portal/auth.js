@@ -79,7 +79,8 @@ router.post('/login', async (req, res) => {
         can_approve_tasks: !!settings.can_approve_tasks,
         can_comment_tasks: !!settings.can_comment_tasks,
         can_view_team: !!settings.can_view_team,
-        can_download_files: !!settings.can_download_files
+        can_download_files: !!settings.can_download_files,
+        can_view_ugc: !!settings.can_view_ugc
       },
       welcome_message: settings.welcome_message
     });
@@ -144,7 +145,8 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
         can_approve_tasks: !!req.client.permissions.can_approve_tasks,
         can_comment_tasks: !!req.client.permissions.can_comment_tasks,
         can_view_team: !!req.client.permissions.can_view_team,
-        can_download_files: !!req.client.permissions.can_download_files
+        can_download_files: !!req.client.permissions.can_download_files,
+        can_view_ugc: !!req.client.permissions.can_view_ugc
       },
       welcome_message: settings?.welcome_message || null
     });
