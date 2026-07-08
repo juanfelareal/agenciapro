@@ -130,6 +130,30 @@ const UGCRegister = () => {
           </p>
         </div>
 
+        {/* How it works */}
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 mb-6 text-white">
+          <h2 className="text-lg font-semibold mb-3">¿Cómo funciona?</h2>
+          <div className="space-y-3 text-sm text-gray-300">
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
+              <p><span className="text-white font-medium">Te registras</span> — Completas este formulario para que conozcamos tu perfil y estilo de contenido.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
+              <p><span className="text-white font-medium">Te proponemos proyectos</span> — Cuando una marca busque un perfil como el tuyo, te contactamos con los detalles del proyecto y la compensación.</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
+              <p><span className="text-white font-medium">Tú decides</span> — Si te interesa, formalizamos un contrato con los términos acordados. Solo entonces enviamos productos.</p>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <p className="text-xs text-gray-400">
+              Registrarte no significa que recibirás productos automáticamente. Cada colaboración es una negociación individual donde ambas partes acuerdan los términos.
+            </p>
+          </div>
+        </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6">
           {error && (
