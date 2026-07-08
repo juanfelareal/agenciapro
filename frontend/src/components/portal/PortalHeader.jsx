@@ -74,26 +74,26 @@ export default function PortalHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/portal" className="flex items-center gap-3">
+          <Link to="/portal" className="flex items-center gap-3 flex-shrink-0 min-w-0 max-w-[200px]">
             {client?.logo_url ? (
               <img
                 src={client.logo_url}
                 alt={client?.nickname || client?.name}
-                className="h-10 max-w-[150px] object-contain"
+                className="h-10 max-w-[120px] object-contain flex-shrink-0"
               />
             ) : (
-              <div className="w-10 h-10 bg-ink-900 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-ink-900 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
             )}
-            <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-ink-900">{client?.nickname || client?.name}</p>
+            <div className="hidden lg:block min-w-0">
+              <p className="text-sm font-semibold text-ink-900 truncate">{client?.nickname || client?.name}</p>
               <p className="text-xs text-ink-500">Portal de Cliente</p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5 ml-6">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -101,13 +101,13 @@ export default function PortalHeader() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
                     isActive
                       ? 'bg-ink-900 text-white'
                       : 'text-ink-600 hover:bg-ink-100'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4 flex-shrink-0" />
                   <span className="text-sm font-medium">{item.label}</span>
                 </Link>
               );
@@ -171,7 +171,7 @@ export default function PortalHeader() {
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-ink-100"
+              className="lg:hidden p-2 rounded-lg hover:bg-ink-100"
             >
               {mobileMenuOpen ? (
                 <X className="w-5 h-5 text-ink-600" />
@@ -184,7 +184,7 @@ export default function PortalHeader() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-ink-100">
+          <nav className="lg:hidden py-4 border-t border-ink-100">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
