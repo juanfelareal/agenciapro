@@ -368,4 +368,28 @@ export const portalUGCAPI = {
   },
 };
 
+// Document Signing (NDA, Contracts) - Portal view for clients
+export const portalDocumentsAPI = {
+  getPending: async () => {
+    const response = await portalApi.get('/documents/pending');
+    return response.data;
+  },
+  getSigned: async () => {
+    const response = await portalApi.get('/documents/signed');
+    return response.data;
+  },
+  getDocument: async (signatureId) => {
+    const response = await portalApi.get(`/documents/${signatureId}`);
+    return response.data;
+  },
+  sign: async (signatureId, data) => {
+    const response = await portalApi.post(`/documents/${signatureId}/sign`, data);
+    return response.data;
+  },
+  checkRequired: async () => {
+    const response = await portalApi.get('/documents/check/required');
+    return response.data;
+  },
+};
+
 export default portalApi;

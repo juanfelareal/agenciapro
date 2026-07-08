@@ -2697,6 +2697,62 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_assignment ON ugc_creator_payments(assignment_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_org ON ugc_creator_payments(organization_id)`);
 
+    // ========================================
+    // DOCUMENT SIGNING (NDA / Contracts)
+    // ========================================
+
+    // Document Templates (NDA, contracts, agreements)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS document_templates (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT CHECK(category IN ('nda', 'contract', 'agreement', 'other')) DEFAULT 'nda',
+        content TEXT NOT NULL,
+        variables JSONB DEFAULT '[]',
+        requires_signature BOOLEAN DEFAULT true,
+        is_active BOOLEAN DEFAULT true,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Document Signatures (signed documents by clients)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS document_signatures (
+        id SERIAL PRIMARY KEY,
+        template_id INTEGER NOT NULL REFERENCES document_templates(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        signer_name TEXT NOT NULL,
+        signer_email TEXT,
+        signer_cedula TEXT,
+        signature_data TEXT,
+        signed_content TEXT,
+        signed_at TIMESTAMP,
+        ip_address TEXT,
+        user_agent TEXT,
+        pdf_url TEXT,
+        status TEXT CHECK(status IN ('pending', 'signed', 'expired', 'revoked')) DEFAULT 'pending',
+        expires_at TIMESTAMP,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_document_signatures_client ON document_signatures(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_document_signatures_status ON document_signatures(status)`);
+
+    // Add required_documents to client_portal_settings
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='required_documents') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN required_documents JSONB DEFAULT '[]';
+        END IF;
+      END $$
+    `);
+
     // UGC Registration Tokens (Public registration links)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_registration_tokens (

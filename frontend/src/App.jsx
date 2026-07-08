@@ -49,6 +49,7 @@ import Anuncios from './pages/Anuncios';
 import UGC from './pages/UGC';
 import UGCCreatorDetail from './pages/UGCCreatorDetail';
 import UGCRegister from './pages/UGCRegister';
+import DocumentTemplates from './pages/DocumentTemplates';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -68,6 +69,8 @@ import PortalFormFill from './pages/portal/PortalFormFill';
 import PortalCalls from './pages/portal/PortalCalls';
 import PortalCallDetail from './pages/portal/PortalCallDetail';
 import PortalUGC from './pages/portal/PortalUGC';
+import PortalDocuments from './components/portal/PortalDocuments';
+import PortalDocumentSign from './components/portal/PortalDocumentSign';
 
 function App() {
   return (
@@ -210,6 +213,8 @@ function App() {
               </PortalProtectedRoute>
             }
           />
+          <Route path="documents" element={<PortalDocuments />} />
+          <Route path="documents/:signatureId/sign" element={<PortalDocumentSign />} />
         </Route>
 
         {/* App routes with Layout */}
@@ -384,6 +389,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="ugc">
                       <UGCCreatorDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="documentos"
+                  element={
+                    <ProtectedRoute permission="documentos">
+                      <DocumentTemplates />
                     </ProtectedRoute>
                   }
                 />

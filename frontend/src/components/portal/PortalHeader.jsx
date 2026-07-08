@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   Receipt,
-  Video
+  Video,
+  FileSignature
 } from 'lucide-react';
 
 export default function PortalHeader() {
@@ -59,6 +60,7 @@ export default function PortalHeader() {
     { path: '/portal/calls', icon: Phone, label: 'Llamadas', permission: null },
     { path: '/portal/forms', icon: ClipboardList, label: 'Formularios', permission: 'can_view_forms' },
     { path: '/portal/ugc', icon: Video, label: 'Creadores', permission: 'can_view_ugc' },
+    { path: '/portal/documents', icon: FileSignature, label: 'Documentos', permission: null },
   ];
 
   const filteredNavItems = navItems.filter(

@@ -14,6 +14,7 @@ import callsRoutes from './calls.js';
 import notesRoutes from './notes.js';
 import referenceAdsRoutes from './reference-ads.js';
 import ugcRoutes from './ugc.js';
+import documentsRoutes from './documents.js';
 
 const router = express.Router();
 
@@ -33,5 +34,6 @@ router.use('/calls', callsRoutes);
 router.use('/notes', notesRoutes);
 router.use('/reference-ads', referenceAdsRoutes);
 router.use('/ugc', ugcRoutes);
+router.use('/documents', documentsRoutes);
 
 export default router;

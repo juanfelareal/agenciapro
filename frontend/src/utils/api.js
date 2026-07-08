@@ -831,4 +831,22 @@ export const ugcPublicAPI = {
   register: (token, data) => api.post(`/ugc/register/${token}`, data),
 };
 
+// Document Templates & Signatures (NDA, Contracts)
+export const documentTemplatesAPI = {
+  // Templates
+  getAll: (filters) => api.get('/document-templates', { params: filters }),
+  getById: (id) => api.get(`/document-templates/${id}`),
+  create: (data) => api.post('/document-templates', data),
+  update: (id, data) => api.put(`/document-templates/${id}`, data),
+  delete: (id) => api.delete(`/document-templates/${id}`),
+  // Assign to client
+  assign: (templateId, clientId, data) => api.post(`/document-templates/${templateId}/assign/${clientId}`, data),
+  // Signatures
+  getAllSignatures: (filters) => api.get('/document-templates/signatures/all', { params: filters }),
+  getClientSignatures: (clientId) => api.get(`/document-templates/signatures/client/${clientId}`),
+  getSignature: (signatureId) => api.get(`/document-templates/signatures/${signatureId}`),
+  revokeSignature: (signatureId) => api.put(`/document-templates/signatures/${signatureId}/revoke`),
+  deleteSignature: (signatureId) => api.delete(`/document-templates/signatures/${signatureId}`),
+};
+
 export default api;

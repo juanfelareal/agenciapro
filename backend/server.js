@@ -103,6 +103,9 @@ import { setupAgentSocket } from './src/agents/socket.js';
 import ugcRoutes from './src/routes/ugc.js';
 import ugcPublicRoutes from './src/routes/ugc-public.js';
 import portalUGCRoutes from './src/routes/portal/ugc.js';
+// Document Signing (NDA, Contracts)
+import documentTemplatesRoutes from './src/routes/document-templates.js';
+import portalDocumentsRoutes from './src/routes/portal/documents.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -291,6 +294,9 @@ app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
 // UGC (User Generated Content) - Creator Management
 app.use('/api/ugc', ugcPublicRoutes);  // Public registration FIRST (no auth)
 app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);  // Authenticated routes after
+
+// Document Signing (NDA, Contracts)
+app.use('/api/document-templates', teamAuthMiddleware, documentTemplatesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
