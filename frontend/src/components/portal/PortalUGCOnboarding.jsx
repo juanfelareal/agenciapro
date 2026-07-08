@@ -54,27 +54,27 @@ export default function PortalUGCOnboarding({ onComplete }) {
     {
       step: 1,
       title: 'Accede a tu panel de Shopify',
-      description: 'Inicia sesión en tu tienda Shopify y ve a Configuración → Usuarios y permisos.',
+      description: 'Inicia sesión en tu tienda Shopify y ve a Configuración (ícono de engranaje).',
     },
     {
       step: 2,
-      title: 'Ir a "Colaboradores"',
-      description: 'En la sección de Usuarios y permisos, busca la pestaña "Colaboradores" o "Collaborators".',
+      title: 'Ve a Usuarios → Seguridad',
+      description: 'En el menú lateral, selecciona "Usuarios" y luego haz clic en "Seguridad".',
     },
     {
       step: 3,
-      title: 'Agregar colaborador',
-      description: 'Haz clic en "Agregar colaborador" e ingresa nuestro correo: shopify@larealmarketing.com',
+      title: 'Genera el código de colaborador',
+      description: 'En la sección "Colaboradores", haz clic en "Generar código nuevo". Aparecerá un código de 4 dígitos.',
     },
     {
       step: 4,
-      title: 'Seleccionar permisos de lectura',
-      description: 'Marca únicamente los permisos de "Ver" o "Read-only" para: Pedidos, Productos, Analíticas y Clientes. No necesitamos permisos de edición.',
+      title: 'Comparte el código con nosotros',
+      description: 'Copia el código de 4 dígitos y envíanoslo por WhatsApp o email. Con ese código solicitaremos acceso desde nuestro panel de Shopify Partners.',
     },
     {
       step: 5,
-      title: 'Enviar invitación',
-      description: 'Confirma y envía la invitación. Recibiremos una notificación y aceptaremos el acceso.',
+      title: 'Aprueba nuestra solicitud',
+      description: 'Recibirás una notificación de solicitud de colaborador. Ve a Configuración → Usuarios y aprueba el acceso de LA REAL Marketing.',
     },
   ];
 
@@ -288,10 +288,10 @@ export default function PortalUGCOnboarding({ onComplete }) {
                 ))}
               </ol>
 
-              <div className="mt-6 pt-6 border-t border-gray-100">
-                <p className="text-sm text-gray-500">
-                  <span className="font-medium">Correo para invitación:</span>{' '}
-                  <code className="bg-gray-100 px-2 py-1 rounded text-gray-900">shopify@larealmarketing.com</code>
+              <div className="mt-6 pt-6 border-t border-gray-100 bg-green-50 -mx-6 -mb-6 px-6 py-4 rounded-b-2xl">
+                <p className="text-sm text-green-800 flex items-center gap-2">
+                  <span className="font-semibold">💡 Tip:</span>
+                  El código de 4 dígitos es temporal y seguro. Solo funciona para que LA REAL solicite acceso como colaborador.
                 </p>
               </div>
             </div>
