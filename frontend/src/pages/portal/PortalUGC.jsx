@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { usePortal } from '../../context/PortalContext';
 import { portalUGCAPI } from '../../utils/portalApi';
+import PortalUGCOnboarding from '../../components/portal/PortalUGCOnboarding';
 import {
   Loader2,
   Video,
@@ -10,7 +12,8 @@ import {
   ExternalLink,
   Clock,
   CheckCircle2,
-  Play
+  Play,
+  BookOpen
 } from 'lucide-react';
 
 const ASSIGNMENT_STATUS = {
@@ -21,14 +24,25 @@ const ASSIGNMENT_STATUS = {
 };
 
 export default function PortalUGC() {
+  const { client } = usePortal();
   const [creators, setCreators] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('creators');
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    // Check if onboarding was completed for this client
+    const completed = localStorage.getItem(`ugc_onboarding_completed_${client?.id}`);
+    return !completed;
+  });
 
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem(`ugc_onboarding_completed_${client?.id}`, 'true');
+    setShowOnboarding(false);
+  };
 
   const loadData = async () => {
     try {
@@ -77,20 +91,34 @@ export default function PortalUGC() {
     );
   }
 
+  // Show onboarding if not completed
+  if (showOnboarding) {
+    return <PortalUGCOnboarding onComplete={handleOnboardingComplete} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center">
-            <Video className="w-6 h-6 text-violet-600" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center">
+              <Video className="w-6 h-6 text-violet-600" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-[#17181A]">Creadores de Contenido</h1>
+              <p className="text-sm text-gray-500">
+                {creators.length} {creators.length === 1 ? 'creador asignado' : 'creadores asignados'} · {assignments.length} {assignments.length === 1 ? 'asignación' : 'asignaciones'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold text-[#17181A]">Creadores de Contenido</h1>
-            <p className="text-sm text-gray-500">
-              {creators.length} {creators.length === 1 ? 'creador asignado' : 'creadores asignados'} · {assignments.length} {assignments.length === 1 ? 'asignación' : 'asignaciones'}
-            </p>
-          </div>
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">Ver guía</span>
+          </button>
         </div>
       </div>
 
