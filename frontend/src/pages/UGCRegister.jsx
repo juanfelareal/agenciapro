@@ -154,6 +154,21 @@ const UGCRegister = () => {
           </div>
         </div>
 
+        {/* Privacy disclaimer */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-blue-900 mb-1">Tu privacidad es importante</p>
+            <p className="text-xs text-blue-700 leading-relaxed">
+              Toda la información que compartas será tratada bajo estrictos parámetros de seguridad. Tus datos personales y dirección <span className="font-medium">únicamente</span> serán utilizados para el envío de productos una vez que hayas aceptado una alianza con alguna marca. No compartiremos tu información bajo ninguna otra condición.
+            </p>
+          </div>
+        </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6">
           {error && (
@@ -340,12 +355,7 @@ const UGCRegister = () => {
               <MapPin className="w-5 h-5" />
               Dirección de Envío
             </h2>
-            <p className="text-sm text-gray-500 mb-3">Para enviarte productos de las marcas</p>
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-4">
-              <p className="text-xs text-blue-800 leading-relaxed">
-                <span className="font-semibold">Tu privacidad es importante:</span> Esta información será tratada bajo estrictos parámetros de seguridad y <span className="font-medium">únicamente</span> será utilizada para el envío de productos una vez que hayas aceptado una alianza con alguna marca. No compartiremos tus datos bajo ninguna otra condición.
-              </p>
-            </div>
+            <p className="text-sm text-gray-500 mb-4">Para enviarte productos de las marcas</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
