@@ -316,7 +316,12 @@ const UGCRegister = () => {
               <MapPin className="w-5 h-5" />
               Dirección de Envío
             </h2>
-            <p className="text-sm text-gray-500 mb-4">Para enviarte productos de las marcas</p>
+            <p className="text-sm text-gray-500 mb-3">Para enviarte productos de las marcas</p>
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-4">
+              <p className="text-xs text-blue-800 leading-relaxed">
+                <span className="font-semibold">Tu privacidad es importante:</span> Esta información será tratada bajo estrictos parámetros de seguridad y <span className="font-medium">únicamente</span> será utilizada para el envío de productos una vez que hayas aceptado una alianza con alguna marca. No compartiremos tus datos bajo ninguna otra condición.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
