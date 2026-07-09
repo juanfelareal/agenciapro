@@ -709,20 +709,33 @@ export default function UGC() {
                             {/* Instagram Embed Popup */}
                             {hoveredCreator === creator.id && (
                               <div
-                                className="absolute left-0 top-full mt-2 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
-                                style={{ width: '320px' }}
+                                className="fixed z-[100] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
+                                style={{
+                                  width: '320px',
+                                  top: '50%',
+                                  left: '50%',
+                                  transform: 'translate(-50%, -50%)'
+                                }}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <div className="p-2 border-b border-gray-100 flex items-center justify-between">
                                   <span className="text-xs font-medium text-gray-500">Vista previa de Instagram</span>
-                                  <a
-                                    href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-pink-500 flex items-center gap-1 hover:underline"
-                                  >
-                                    Abrir <ExternalLink className="w-3 h-3" />
-                                  </a>
+                                  <div className="flex items-center gap-2">
+                                    <a
+                                      href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-pink-500 flex items-center gap-1 hover:underline"
+                                    >
+                                      Abrir <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setHoveredCreator(null); }}
+                                      className="text-gray-400 hover:text-gray-600"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
                                 <iframe
                                   src={`https://www.instagram.com/${socialNetworks.instagram.replace('@', '')}/embed`}
