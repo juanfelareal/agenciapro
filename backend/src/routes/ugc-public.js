@@ -1,19 +1,5 @@
 import express from 'express';
-import multer from 'multer';
 import db from '../config/database.js';
-import { uploadBuffer } from '../utils/blobStorage.js';
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max for profile photos
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Solo se permiten imágenes'), false);
-    }
-  },
-});
 
 const router = express.Router();
 
@@ -59,7 +45,7 @@ router.get('/register/:token', async (req, res) => {
 });
 
 // POST /api/ugc/register/:token - Register a new creator
-router.post('/register/:token', upload.single('profile_photo'), async (req, res) => {
+router.post('/register/:token', async (req, res) => {
   try {
     const { token } = req.params;
     const {
@@ -112,61 +98,28 @@ router.post('/register/:token', upload.single('profile_photo'), async (req, res)
       [orgId]
     );
 
-    // Handle profile photo upload if provided
-    let profilePhotoUrl = null;
-    if (req.file) {
-      try {
-        const blob = await uploadBuffer('ugc-creators', req.file);
-        profilePhotoUrl = blob.url;
-      } catch (uploadErr) {
-        console.error('Error uploading profile photo:', uploadErr);
-        // Continue without the photo - not a critical error
-      }
-    }
-
-    // Parse social_networks if it's a string (from FormData)
-    let parsedSocialNetworks = social_networks;
-    if (typeof social_networks === 'string') {
-      try {
-        parsedSocialNetworks = JSON.parse(social_networks);
-      } catch (e) {
-        parsedSocialNetworks = {};
-      }
-    }
-
-    // Parse industries if it's a string (from FormData)
-    let parsedIndustries = industries;
-    if (typeof industries === 'string') {
-      try {
-        parsedIndustries = JSON.parse(industries);
-      } catch (e) {
-        parsedIndustries = [];
-      }
-    }
-
     // Create the creator
     const result = await db.run(
       `INSERT INTO ugc_creators (
         full_name, email, phone, cedula, social_networks,
         address, city, department, postal_code, shipping_notes,
-        industries, other_industry, bio, portfolio_url, profile_photo_url, stage_id, source, organization_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        industries, other_industry, bio, portfolio_url, stage_id, source, organization_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         full_name,
         email || null,
         phone,
         cedula || null,
-        JSON.stringify(parsedSocialNetworks || {}),
+        JSON.stringify(social_networks || {}),
         address || null,
         city || null,
         department || null,
         postal_code || null,
         shipping_notes || null,
-        parsedIndustries || [],
+        industries || [],
         other_industry || null,
         bio || null,
         portfolio_url || null,
-        profilePhotoUrl,
         firstStage?.id || null,
         'landing',
         orgId
