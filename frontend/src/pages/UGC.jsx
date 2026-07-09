@@ -396,9 +396,63 @@ export default function UGC() {
 
   const handleSyncInstagram = async () => {
     setSyncingInstagram(true);
+    const results = { updated: 0, failed: 0, skipped: 0 };
+
     try {
-      const result = await ugcAPI.fetchAllInstagram();
-      // Reload creators to show updated photos
+      // Get all creators without profile photos
+      const creatorsToSync = creators.filter(c => {
+        if (c.profile_photo_url) return false;
+        const social = typeof c.social_networks === 'string'
+          ? JSON.parse(c.social_networks)
+          : c.social_networks;
+        return social?.instagram?.trim();
+      });
+
+      for (const creator of creatorsToSync) {
+        const social = typeof creator.social_networks === 'string'
+          ? JSON.parse(creator.social_networks)
+          : creator.social_networks;
+
+        const username = social.instagram.replace('@', '').trim().split(' ')[0];
+
+        try {
+          // Try fetching via CORS proxy from the browser
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.instagram.com/${username}/`)}`;
+          const response = await fetch(proxyUrl);
+
+          if (!response.ok) {
+            results.failed++;
+            continue;
+          }
+
+          const html = await response.text();
+
+          // Extract og:image from HTML
+          const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+
+          if (ogImageMatch && ogImageMatch[1]) {
+            // Save to database via API
+            await ugcAPI.updateCreator(creator.id, {
+              ...creator,
+              social_networks: social,
+              profile_photo_url: ogImageMatch[1]
+            });
+            results.updated++;
+          } else {
+            results.failed++;
+          }
+
+          // Small delay between requests
+          await new Promise(r => setTimeout(r, 500));
+        } catch (err) {
+          console.error(`Error fetching ${username}:`, err);
+          results.failed++;
+        }
+      }
+
+      results.skipped = creators.length - creatorsToSync.length;
+
+      // Reload creators
       const creatorsRes = await ugcAPI.getCreators({
         search: search || undefined,
         department: filterDepartment || undefined,
@@ -406,7 +460,8 @@ export default function UGC() {
         industry: filterIndustry || undefined
       });
       setCreators(creatorsRes.data);
-      alert(`Instagram sincronizado: ${result.data.updated} actualizados, ${result.data.failed} fallidos, ${result.data.skipped} sin Instagram`);
+
+      alert(`Instagram sincronizado: ${results.updated} actualizados, ${results.failed} fallidos, ${results.skipped} ya tenían foto o sin Instagram`);
     } catch (error) {
       console.error('Error syncing Instagram:', error);
       alert('Error al sincronizar Instagram');
