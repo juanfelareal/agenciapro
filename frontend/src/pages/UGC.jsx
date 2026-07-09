@@ -9,7 +9,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   Plus, Search, Video, Instagram, Phone, MapPin,
   Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle,
-  Filter, ChevronDown, LayoutGrid, List
+  Filter, ChevronDown, LayoutGrid, List, RefreshCw, ExternalLink
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
 import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
@@ -198,6 +198,8 @@ export default function UGC() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [registrationLinks, setRegistrationLinks] = useState([]);
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'list'
+  const [syncingInstagram, setSyncingInstagram] = useState(false);
+  const [hoveredCreator, setHoveredCreator] = useState(null);
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -392,6 +394,27 @@ export default function UGC() {
     setTimeout(() => setCopiedLink(null), 2000);
   };
 
+  const handleSyncInstagram = async () => {
+    setSyncingInstagram(true);
+    try {
+      const result = await ugcAPI.fetchAllInstagram();
+      // Reload creators to show updated photos
+      const creatorsRes = await ugcAPI.getCreators({
+        search: search || undefined,
+        department: filterDepartment || undefined,
+        city: filterCity || undefined,
+        industry: filterIndustry || undefined
+      });
+      setCreators(creatorsRes.data);
+      alert(`Instagram sincronizado: ${result.data.updated} actualizados, ${result.data.failed} fallidos, ${result.data.skipped} sin Instagram`);
+    } catch (error) {
+      console.error('Error syncing Instagram:', error);
+      alert('Error al sincronizar Instagram');
+    } finally {
+      setSyncingInstagram(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -552,6 +575,15 @@ export default function UGC() {
           </div>
 
           <button
+            onClick={handleSyncInstagram}
+            disabled={syncingInstagram}
+            className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+            title="Sincronizar fotos de Instagram"
+          >
+            <Instagram className={`w-4 h-4 ${syncingInstagram ? 'animate-pulse' : ''}`} />
+            {syncingInstagram && <Loader2 className="w-3 h-3 animate-spin" />}
+          </button>
+          <button
             onClick={handleShowLinks}
             className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors"
             title="Links de registro"
@@ -657,17 +689,53 @@ export default function UGC() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 relative">
                         {socialNetworks.instagram && (
-                          <a
-                            href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-pink-500 hover:text-pink-600"
+                          <div
+                            className="relative"
+                            onMouseEnter={() => setHoveredCreator(creator.id)}
+                            onMouseLeave={() => setHoveredCreator(null)}
                           >
-                            <Instagram className="w-4 h-4" />
-                          </a>
+                            <a
+                              href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-pink-500 hover:text-pink-600 flex items-center gap-1"
+                            >
+                              <Instagram className="w-4 h-4" />
+                              <span className="text-xs">@{socialNetworks.instagram.replace('@', '')}</span>
+                            </a>
+                            {/* Instagram Embed Popup */}
+                            {hoveredCreator === creator.id && (
+                              <div
+                                className="absolute left-0 top-full mt-2 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
+                                style={{ width: '320px' }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="p-2 border-b border-gray-100 flex items-center justify-between">
+                                  <span className="text-xs font-medium text-gray-500">Vista previa de Instagram</span>
+                                  <a
+                                    href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-pink-500 flex items-center gap-1 hover:underline"
+                                  >
+                                    Abrir <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                </div>
+                                <iframe
+                                  src={`https://www.instagram.com/${socialNetworks.instagram.replace('@', '')}/embed`}
+                                  width="320"
+                                  height="400"
+                                  frameBorder="0"
+                                  scrolling="no"
+                                  allowTransparency="true"
+                                  className="bg-white"
+                                />
+                              </div>
+                            )}
+                          </div>
                         )}
                         {socialNetworks.tiktok && (
                           <a

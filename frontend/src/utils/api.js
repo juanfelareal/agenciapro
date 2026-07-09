@@ -823,6 +823,9 @@ export const ugcAPI = {
   getStats: () => api.get('/ugc/stats'),
   // Clients with UGC enabled
   getUgcClients: () => api.get('/ugc/clients'),
+  // Instagram
+  fetchInstagram: (id) => api.post(`/ugc/creators/${id}/fetch-instagram`),
+  fetchAllInstagram: () => api.post('/ugc/fetch-all-instagram'),
 };
 
 // UGC Public Registration (no auth required)

@@ -358,6 +358,130 @@ router.delete('/creators/:id', async (req, res) => {
   }
 });
 
+// POST /api/ugc/creators/:id/fetch-instagram - Fetch Instagram profile picture
+router.post('/creators/:id/fetch-instagram', async (req, res) => {
+  try {
+    const creator = await db.get(
+      'SELECT * FROM ugc_creators WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+
+    if (!creator) {
+      return res.status(404).json({ error: 'Creator not found' });
+    }
+
+    const socialNetworks = typeof creator.social_networks === 'string'
+      ? JSON.parse(creator.social_networks)
+      : creator.social_networks;
+
+    const instagramUsername = socialNetworks?.instagram?.replace('@', '').trim();
+
+    if (!instagramUsername) {
+      return res.status(400).json({ error: 'No Instagram username found' });
+    }
+
+    // Fetch Instagram profile page to get profile picture
+    const response = await fetch(`https://www.instagram.com/${instagramUsername}/`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      }
+    });
+
+    if (!response.ok) {
+      return res.status(404).json({ error: 'Instagram profile not found' });
+    }
+
+    const html = await response.text();
+
+    // Extract profile picture from og:image meta tag
+    const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+
+    if (!ogImageMatch || !ogImageMatch[1]) {
+      return res.status(404).json({ error: 'Could not extract profile picture' });
+    }
+
+    const profilePictureUrl = ogImageMatch[1];
+
+    // Update creator with the profile picture
+    await db.run(
+      'UPDATE ugc_creators SET profile_photo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [profilePictureUrl, req.params.id]
+    );
+
+    const updatedCreator = await db.get('SELECT * FROM ugc_creators WHERE id = ?', [req.params.id]);
+    res.json(updatedCreator);
+  } catch (error) {
+    console.error('Error fetching Instagram:', error);
+    res.status(500).json({ error: 'Error fetching Instagram profile' });
+  }
+});
+
+// POST /api/ugc/fetch-all-instagram - Fetch Instagram photos for all creators without profile photo
+router.post('/fetch-all-instagram', async (req, res) => {
+  try {
+    const creators = await db.all(
+      `SELECT * FROM ugc_creators
+       WHERE organization_id = ?
+       AND (profile_photo_url IS NULL OR profile_photo_url = '')
+       AND social_networks IS NOT NULL`,
+      [req.orgId]
+    );
+
+    const results = { updated: 0, failed: 0, skipped: 0 };
+
+    for (const creator of creators) {
+      const socialNetworks = typeof creator.social_networks === 'string'
+        ? JSON.parse(creator.social_networks)
+        : creator.social_networks;
+
+      const instagramUsername = socialNetworks?.instagram?.replace('@', '').trim();
+
+      if (!instagramUsername) {
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const response = await fetch(`https://www.instagram.com/${instagramUsername}/`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          }
+        });
+
+        if (!response.ok) {
+          results.failed++;
+          continue;
+        }
+
+        const html = await response.text();
+        const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+
+        if (ogImageMatch && ogImageMatch[1]) {
+          await db.run(
+            'UPDATE ugc_creators SET profile_photo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [ogImageMatch[1], creator.id]
+          );
+          results.updated++;
+        } else {
+          results.failed++;
+        }
+      } catch (err) {
+        results.failed++;
+      }
+    }
+
+    res.json({ message: 'Instagram fetch completed', ...results, total: creators.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========================================
 // ASSIGNMENTS
 // ========================================
