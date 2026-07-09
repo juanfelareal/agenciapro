@@ -9,7 +9,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   Plus, Search, Video, Instagram, Phone, MapPin,
   Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle,
-  Filter, ChevronDown
+  Filter, ChevronDown, LayoutGrid, List
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
 import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
@@ -197,6 +197,7 @@ export default function UGC() {
   const [showNewCreator, setShowNewCreator] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [registrationLinks, setRegistrationLinks] = useState([]);
+  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'list'
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -524,6 +525,32 @@ export default function UGC() {
             )}
           </div>
 
+          {/* View Toggle */}
+          <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`p-2.5 transition-colors ${
+                viewMode === 'kanban'
+                  ? 'bg-[#17181A] text-white'
+                  : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}
+              title="Vista Kanban"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2.5 transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-[#17181A] text-white'
+                  : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}
+              title="Vista Lista"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+
           <button
             onClick={handleShowLinks}
             className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors"
@@ -548,29 +575,170 @@ export default function UGC() {
       </div>
 
       {/* Kanban Board */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex-1 overflow-x-auto pb-4">
-          <div className="flex gap-3 min-h-[500px]" style={{ minWidth: `${stages.length * 276}px` }}>
-            {stages.map((stage) => (
-              <StageColumn
-                key={stage.id}
-                stage={stage}
-                creators={creatorsByStage[stage.id] || []}
-                onCreatorClick={handleCreatorClick}
-              />
-            ))}
+      {viewMode === 'kanban' && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex-1 overflow-x-auto pb-4">
+            <div className="flex gap-3 min-h-[500px]" style={{ minWidth: `${stages.length * 276}px` }}>
+              {stages.map((stage) => (
+                <StageColumn
+                  key={stage.id}
+                  stage={stage}
+                  creators={creatorsByStage[stage.id] || []}
+                  onCreatorClick={handleCreatorClick}
+                />
+              ))}
+            </div>
           </div>
-        </div>
 
-        <DragOverlay>
-          {activeCreator ? <CreatorCardOverlay creator={activeCreator} /> : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeCreator ? <CreatorCardOverlay creator={activeCreator} /> : null}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <div className="flex-1 overflow-auto bg-white rounded-2xl border border-gray-100">
+          <table className="w-full">
+            <thead className="bg-gray-50 sticky top-0">
+              <tr>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Creador</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Ubicación</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Redes</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Industrias</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Etapa</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Contacto</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {creators.map((creator) => {
+                const stage = stages.find(s => s.id === creator.stage_id);
+                const socialNetworks = creator.social_networks || {};
+                return (
+                  <tr
+                    key={creator.id}
+                    onClick={() => handleCreatorClick(creator)}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {creator.profile_photo_url ? (
+                          <img
+                            src={creator.profile_photo_url}
+                            alt={creator.full_name}
+                            className="w-9 h-9 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-sm font-bold">
+                            {creator.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-medium text-[#17181A]">{creator.full_name}</p>
+                          {creator.email && (
+                            <p className="text-xs text-gray-400">{creator.email}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {creator.city ? (
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                          {creator.city}{creator.department ? `, ${creator.department}` : ''}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {socialNetworks.instagram && (
+                          <a
+                            href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-pink-500 hover:text-pink-600"
+                          >
+                            <Instagram className="w-4 h-4" />
+                          </a>
+                        )}
+                        {socialNetworks.tiktok && (
+                          <a
+                            href={`https://tiktok.com/@${socialNetworks.tiktok.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-gray-800 hover:text-black"
+                          >
+                            <Video className="w-4 h-4" />
+                          </a>
+                        )}
+                        {!socialNetworks.instagram && !socialNetworks.tiktok && (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {creator.industries?.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {creator.industries.slice(0, 2).map((ind, i) => (
+                            <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                              {ind}
+                            </span>
+                          ))}
+                          {creator.industries.length > 2 && (
+                            <span className="text-[10px] text-gray-400">+{creator.industries.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {stage && (
+                        <span
+                          className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full"
+                          style={{ backgroundColor: `${stage.color}20`, color: stage.color }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stage.color }} />
+                          {stage.name}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {creator.phone ? (
+                        <a
+                          href={`https://wa.me/${creator.phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 bg-green-50 px-2 py-1 rounded-lg"
+                        >
+                          <Phone className="w-3 h-3" /> WhatsApp
+                        </a>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {creators.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              No hay creadores que coincidan con los filtros
+            </div>
+          )}
+        </div>
+      )}
 
       {/* New Creator Modal */}
       {showNewCreator && (
