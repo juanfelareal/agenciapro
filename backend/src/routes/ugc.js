@@ -423,7 +423,8 @@ router.post('/fetch-all-instagram', async (req, res) => {
         ? JSON.parse(creator.social_networks)
         : creator.social_networks;
 
-      const instagramUsername = socialNetworks?.instagram?.replace('@', '').trim();
+      // Clean username - remove @, trim, and get first word only
+      let instagramUsername = socialNetworks?.instagram?.replace('@', '').trim().split(' ')[0];
 
       if (!instagramUsername) {
         results.skipped++;
@@ -431,13 +432,41 @@ router.post('/fetch-all-instagram', async (req, res) => {
       }
 
       try {
-        // Use unavatar.io service - no need for long delays since it's a proper API
-        const profilePictureUrl = `https://unavatar.io/instagram/${instagramUsername}`;
+        // Direct fetch with browser-like headers
+        const response = await fetch(`https://www.instagram.com/${instagramUsername}/`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"macOS"',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+          },
+          redirect: 'follow',
+        });
 
-        // Verify the URL works
-        const response = await fetch(profilePictureUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          results.failed++;
+          continue;
+        }
 
-        if (response.ok) {
+        const html = await response.text();
+
+        // Extract og:image - profile picture
+        const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+
+        if (ogImageMatch && ogImageMatch[1]) {
+          // Decode HTML entities in the URL
+          const profilePictureUrl = ogImageMatch[1].replace(/&amp;/g, '&');
+
           await db.run(
             'UPDATE ugc_creators SET profile_photo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
             [profilePictureUrl, creator.id]
@@ -447,9 +476,10 @@ router.post('/fetch-all-instagram', async (req, res) => {
           results.failed++;
         }
 
-        // Small delay to be nice to unavatar.io
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1500));
       } catch (err) {
+        console.error(`Error fetching Instagram for ${instagramUsername}:`, err.message);
         results.failed++;
       }
     }
