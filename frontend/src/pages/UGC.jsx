@@ -198,7 +198,6 @@ export default function UGC() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [registrationLinks, setRegistrationLinks] = useState([]);
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'list'
-  const [syncingInstagram, setSyncingInstagram] = useState(false);
   const [hoveredCreator, setHoveredCreator] = useState(null);
 
   // Filters
@@ -394,27 +393,6 @@ export default function UGC() {
     setTimeout(() => setCopiedLink(null), 2000);
   };
 
-  const handleSyncInstagram = async () => {
-    setSyncingInstagram(true);
-    try {
-      const result = await ugcAPI.fetchAllInstagram();
-      // Reload creators to show updated photos
-      const creatorsRes = await ugcAPI.getCreators({
-        search: search || undefined,
-        department: filterDepartment || undefined,
-        city: filterCity || undefined,
-        industry: filterIndustry || undefined
-      });
-      setCreators(creatorsRes.data);
-      alert(`Instagram sincronizado: ${result.data.updated} actualizados, ${result.data.failed} fallidos, ${result.data.skipped} sin Instagram`);
-    } catch (error) {
-      console.error('Error syncing Instagram:', error);
-      alert('Error al sincronizar Instagram');
-    } finally {
-      setSyncingInstagram(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -574,15 +552,6 @@ export default function UGC() {
             </button>
           </div>
 
-          <button
-            onClick={handleSyncInstagram}
-            disabled={syncingInstagram}
-            className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-            title="Sincronizar fotos de Instagram"
-          >
-            <Instagram className={`w-4 h-4 ${syncingInstagram ? 'animate-pulse' : ''}`} />
-            {syncingInstagram && <Loader2 className="w-3 h-3 animate-spin" />}
-          </button>
           <button
             onClick={handleShowLinks}
             className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors"

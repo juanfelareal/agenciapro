@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { ugcPublicAPI } from '../utils/api';
-import { CheckCircle, AlertCircle, Loader2, Instagram, Video, Globe, MapPin, Phone, User, Mail, CreditCard } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Instagram, Video, Globe, MapPin, Phone, User, Mail, CreditCard, Camera, X } from 'lucide-react';
 import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 
 const UGCRegister = () => {
@@ -12,6 +12,9 @@ const UGCRegister = () => {
   const [success, setSuccess] = useState(false);
   const [orgInfo, setOrgInfo] = useState(null);
   const [industries, setIndustries] = useState([]);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -63,7 +66,27 @@ const UGCRegister = () => {
     setError(null);
 
     try {
-      await ugcPublicAPI.register(token, formData);
+      // Use FormData to support file upload
+      const submitData = new FormData();
+      submitData.append('full_name', formData.full_name);
+      submitData.append('email', formData.email);
+      submitData.append('phone', formData.phone);
+      submitData.append('cedula', formData.cedula);
+      submitData.append('social_networks', JSON.stringify(formData.social_networks));
+      submitData.append('address', formData.address);
+      submitData.append('department', formData.department);
+      submitData.append('city', formData.city);
+      submitData.append('postal_code', formData.postal_code);
+      submitData.append('shipping_notes', formData.shipping_notes);
+      submitData.append('industries', JSON.stringify(formData.industries));
+      submitData.append('other_industry', formData.other_industry);
+      submitData.append('bio', formData.bio);
+
+      if (profilePhoto) {
+        submitData.append('profile_photo', profilePhoto);
+      }
+
+      await ugcPublicAPI.register(token, submitData);
       setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.error || 'Error al registrarse');
@@ -79,6 +102,26 @@ const UGCRegister = () => {
         ? prev.industries.filter(i => i !== slug)
         : [...prev.industries, slug]
     }));
+  };
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('La foto debe ser menor a 5MB');
+        return;
+      }
+      setProfilePhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removePhoto = () => {
+    setProfilePhoto(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   if (loading) {
@@ -177,6 +220,60 @@ const UGCRegister = () => {
               <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Foto de perfil */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Foto de Perfil
+            </h2>
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                {photoPreview ? (
+                  <div className="relative">
+                    <img
+                      src={photoPreview}
+                      alt="Preview"
+                      className="w-24 h-24 rounded-full object-cover border-4 border-gray-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                  >
+                    <Camera className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  {photoPreview ? 'Cambiar foto' : 'Subir foto'}
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  JPG, PNG o GIF. Máximo 5MB. Esta foto nos ayuda a conocerte mejor.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Datos personales */}
           <div>
