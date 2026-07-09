@@ -358,7 +358,7 @@ router.delete('/creators/:id', async (req, res) => {
   }
 });
 
-// POST /api/ugc/creators/:id/fetch-instagram - Fetch Instagram profile picture
+// POST /api/ugc/creators/:id/fetch-instagram - Fetch Instagram profile picture via unavatar.io
 router.post('/creators/:id/fetch-instagram', async (req, res) => {
   try {
     const creator = await db.get(
@@ -380,31 +380,18 @@ router.post('/creators/:id/fetch-instagram', async (req, res) => {
       return res.status(400).json({ error: 'No Instagram username found' });
     }
 
-    // Fetch Instagram profile page to get profile picture
-    const response = await fetch(`https://www.instagram.com/${instagramUsername}/`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      }
-    });
+    // Use unavatar.io service to get Instagram profile picture
+    // This service handles the scraping and caching for us
+    const profilePictureUrl = `https://unavatar.io/instagram/${instagramUsername}`;
+
+    // Verify the URL works by making a HEAD request
+    const response = await fetch(profilePictureUrl, { method: 'HEAD' });
 
     if (!response.ok) {
       return res.status(404).json({ error: 'Instagram profile not found' });
     }
 
-    const html = await response.text();
-
-    // Extract profile picture from og:image meta tag
-    const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
-
-    if (!ogImageMatch || !ogImageMatch[1]) {
-      return res.status(404).json({ error: 'Could not extract profile picture' });
-    }
-
-    const profilePictureUrl = ogImageMatch[1];
-
-    // Update creator with the profile picture
+    // Update creator with the profile picture URL
     await db.run(
       'UPDATE ugc_creators SET profile_photo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [profilePictureUrl, req.params.id]
@@ -444,33 +431,24 @@ router.post('/fetch-all-instagram', async (req, res) => {
       }
 
       try {
-        // Add delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Use unavatar.io service - no need for long delays since it's a proper API
+        const profilePictureUrl = `https://unavatar.io/instagram/${instagramUsername}`;
 
-        const response = await fetch(`https://www.instagram.com/${instagramUsername}/`, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          }
-        });
+        // Verify the URL works
+        const response = await fetch(profilePictureUrl, { method: 'HEAD' });
 
-        if (!response.ok) {
-          results.failed++;
-          continue;
-        }
-
-        const html = await response.text();
-        const ogImageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
-
-        if (ogImageMatch && ogImageMatch[1]) {
+        if (response.ok) {
           await db.run(
             'UPDATE ugc_creators SET profile_photo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [ogImageMatch[1], creator.id]
+            [profilePictureUrl, creator.id]
           );
           results.updated++;
         } else {
           results.failed++;
         }
+
+        // Small delay to be nice to unavatar.io
+        await new Promise(resolve => setTimeout(resolve, 200));
       } catch (err) {
         results.failed++;
       }
