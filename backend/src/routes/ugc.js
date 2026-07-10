@@ -915,4 +915,243 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// ========================================
+// PROJECTS (UGC Campaigns)
+// ========================================
+
+// Project creator statuses with labels
+const PROJECT_CREATOR_STATUSES = [
+  { id: 'contacted', name: 'Contactado', color: '#9CA3AF' },
+  { id: 'negotiating', name: 'Negociando', color: '#F59E0B' },
+  { id: 'confirmed', name: 'Confirmado', color: '#3B82F6' },
+  { id: 'producing', name: 'Produciendo', color: '#8B5CF6' },
+  { id: 'delivered', name: 'Entregado', color: '#10B981' },
+  { id: 'paid', name: 'Pagado', color: '#059669' },
+  { id: 'rejected', name: 'Rechazado', color: '#EF4444' }
+];
+
+// GET /api/ugc/projects/statuses - Get available statuses
+router.get('/projects/statuses', (req, res) => {
+  res.json(PROJECT_CREATOR_STATUSES);
+});
+
+// GET /api/ugc/projects - List all projects
+router.get('/projects', async (req, res) => {
+  try {
+    const { client_id, status } = req.query;
+
+    let query = `
+      SELECT p.*, c.company as client_name, c.nickname as client_nickname,
+             tm.name as created_by_name,
+             (SELECT COUNT(*) FROM ugc_project_creators pc WHERE pc.project_id = p.id) as creator_count
+      FROM ugc_projects p
+      JOIN clients c ON p.client_id = c.id
+      LEFT JOIN team_members tm ON p.created_by = tm.id
+      WHERE p.organization_id = ?
+    `;
+    const params = [req.orgId];
+
+    if (client_id) {
+      query += ' AND p.client_id = ?';
+      params.push(client_id);
+    }
+    if (status) {
+      query += ' AND p.status = ?';
+      params.push(status);
+    }
+
+    query += ' ORDER BY p.created_at DESC';
+
+    const projects = await db.all(query, params);
+    res.json(projects);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/ugc/projects/:id - Get project details with creators
+router.get('/projects/:id', async (req, res) => {
+  try {
+    const project = await db.get(
+      `SELECT p.*, c.company as client_name, c.nickname as client_nickname,
+              tm.name as created_by_name
+       FROM ugc_projects p
+       JOIN clients c ON p.client_id = c.id
+       LEFT JOIN team_members tm ON p.created_by = tm.id
+       WHERE p.id = ? AND p.organization_id = ?`,
+      [req.params.id, req.orgId]
+    );
+
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    // Get creators assigned to this project
+    const creators = await db.all(
+      `SELECT pc.*, cr.full_name, cr.email, cr.phone, cr.city, cr.department,
+              cr.profile_photo_url, cr.social_networks, cr.industries
+       FROM ugc_project_creators pc
+       JOIN ugc_creators cr ON pc.creator_id = cr.id
+       WHERE pc.project_id = ?
+       ORDER BY pc.created_at ASC`,
+      [req.params.id]
+    );
+
+    res.json({ ...project, creators });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/projects - Create project
+router.post('/projects', async (req, res) => {
+  try {
+    const { client_id, title, description, brief_url, brief_content, budget, currency, start_date, deadline } = req.body;
+
+    if (!client_id || !title) {
+      return res.status(400).json({ error: 'Cliente y título son requeridos' });
+    }
+
+    const result = await db.run(
+      `INSERT INTO ugc_projects (client_id, title, description, brief_url, brief_content, budget, currency, start_date, deadline, organization_id, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [client_id, title, description, brief_url, brief_content, budget || 0, currency || 'COP', start_date, deadline, req.orgId, req.userId]
+    );
+
+    const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [result.lastID]);
+    res.status(201).json(project);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/ugc/projects/:id - Update project
+router.put('/projects/:id', async (req, res) => {
+  try {
+    const { title, description, brief_url, brief_content, budget, currency, start_date, deadline, status } = req.body;
+
+    await db.run(
+      `UPDATE ugc_projects SET
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        brief_url = COALESCE(?, brief_url),
+        brief_content = COALESCE(?, brief_content),
+        budget = COALESCE(?, budget),
+        currency = COALESCE(?, currency),
+        start_date = COALESCE(?, start_date),
+        deadline = COALESCE(?, deadline),
+        status = COALESCE(?, status),
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND organization_id = ?`,
+      [title, description, brief_url, brief_content, budget, currency, start_date, deadline, status, req.params.id, req.orgId]
+    );
+
+    const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [req.params.id]);
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/ugc/projects/:id - Delete project
+router.delete('/projects/:id', async (req, res) => {
+  try {
+    await db.run('DELETE FROM ugc_projects WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    res.json({ message: 'Proyecto eliminado' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/projects/:id/creators - Add creators to project
+router.post('/projects/:id/creators', async (req, res) => {
+  try {
+    const { creator_ids, deliverables, agreed_rate, currency } = req.body;
+
+    if (!creator_ids || !Array.isArray(creator_ids) || creator_ids.length === 0) {
+      return res.status(400).json({ error: 'Debes seleccionar al menos un creador' });
+    }
+
+    // Verify project exists and belongs to org
+    const project = await db.get('SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    const added = [];
+    const skipped = [];
+
+    for (const creatorId of creator_ids) {
+      try {
+        await db.run(
+          `INSERT INTO ugc_project_creators (project_id, creator_id, deliverables, agreed_rate, currency)
+           VALUES (?, ?, ?, ?, ?)`,
+          [req.params.id, creatorId, deliverables, agreed_rate || 0, currency || 'COP']
+        );
+        added.push(creatorId);
+      } catch (e) {
+        // Probably duplicate, skip
+        skipped.push(creatorId);
+      }
+    }
+
+    res.json({ added, skipped, message: `${added.length} creadores agregados` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/ugc/projects/:projectId/creators/:creatorId - Update creator status in project
+router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
+  try {
+    const { status, agreed_rate, currency, deliverables, delivery_url, notes } = req.body;
+
+    let extraFields = '';
+    if (status === 'delivered') {
+      extraFields = ', delivered_at = CURRENT_TIMESTAMP';
+    } else if (status === 'paid') {
+      extraFields = ', paid_at = CURRENT_TIMESTAMP';
+    }
+
+    await db.run(
+      `UPDATE ugc_project_creators SET
+        status = COALESCE(?, status),
+        agreed_rate = COALESCE(?, agreed_rate),
+        currency = COALESCE(?, currency),
+        deliverables = COALESCE(?, deliverables),
+        delivery_url = COALESCE(?, delivery_url),
+        notes = COALESCE(?, notes),
+        updated_at = CURRENT_TIMESTAMP
+        ${extraFields}
+       WHERE project_id = ? AND creator_id = ?`,
+      [status, agreed_rate, currency, deliverables, delivery_url, notes, req.params.projectId, req.params.creatorId]
+    );
+
+    const updated = await db.get(
+      `SELECT pc.*, cr.full_name, cr.email, cr.phone, cr.profile_photo_url
+       FROM ugc_project_creators pc
+       JOIN ugc_creators cr ON pc.creator_id = cr.id
+       WHERE pc.project_id = ? AND pc.creator_id = ?`,
+      [req.params.projectId, req.params.creatorId]
+    );
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/ugc/projects/:projectId/creators/:creatorId - Remove creator from project
+router.delete('/projects/:projectId/creators/:creatorId', async (req, res) => {
+  try {
+    await db.run(
+      'DELETE FROM ugc_project_creators WHERE project_id = ? AND creator_id = ?',
+      [req.params.projectId, req.params.creatorId]
+    );
+    res.json({ message: 'Creador removido del proyecto' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

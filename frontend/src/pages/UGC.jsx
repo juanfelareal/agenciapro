@@ -9,8 +9,9 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   Plus, Search, Video, Instagram, Phone, MapPin,
   Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle,
-  Filter, ChevronDown, LayoutGrid, List, RefreshCw, ExternalLink
+  Filter, ChevronDown, LayoutGrid, List, RefreshCw, ExternalLink, FolderKanban
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { ugcAPI } from '../utils/api';
 import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 
@@ -197,7 +198,7 @@ export default function UGC() {
   const [showNewCreator, setShowNewCreator] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [registrationLinks, setRegistrationLinks] = useState([]);
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' or 'list'
+  const [viewMode, setViewMode] = useState('list'); // 'kanban' or 'list'
   const [syncingInstagram, setSyncingInstagram] = useState(false);
   const [hoveredCreator, setHoveredCreator] = useState(null);
 
@@ -604,6 +605,24 @@ export default function UGC() {
             <Plus className="w-4 h-4" /> Nuevo Creador
           </button>
         </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-1 mb-5 border-b border-gray-100">
+        <Link
+          to="/app/ugc"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-[#17181A] text-[#17181A] -mb-px"
+        >
+          <Users className="w-4 h-4" />
+          Creadores
+        </Link>
+        <Link
+          to="/app/ugc/projects"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-200 -mb-px transition-colors"
+        >
+          <FolderKanban className="w-4 h-4" />
+          Proyectos
+        </Link>
       </div>
 
       {/* Kanban Board */}

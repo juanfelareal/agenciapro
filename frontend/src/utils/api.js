@@ -833,6 +833,16 @@ export const ugcAPI = {
   // Instagram
   fetchInstagram: (id) => api.post(`/ugc/creators/${id}/fetch-instagram`),
   fetchAllInstagram: () => api.post('/ugc/fetch-all-instagram'),
+  // Projects (UGC Campaigns)
+  getProjectStatuses: () => api.get('/ugc/projects/statuses'),
+  getProjects: (filters) => api.get('/ugc/projects', { params: filters }),
+  getProject: (id) => api.get(`/ugc/projects/${id}`),
+  createProject: (data) => api.post('/ugc/projects', data),
+  updateProject: (id, data) => api.put(`/ugc/projects/${id}`, data),
+  deleteProject: (id) => api.delete(`/ugc/projects/${id}`),
+  addProjectCreators: (projectId, data) => api.post(`/ugc/projects/${projectId}/creators`, data),
+  updateProjectCreator: (projectId, creatorId, data) => api.put(`/ugc/projects/${projectId}/creators/${creatorId}`, data),
+  removeProjectCreator: (projectId, creatorId) => api.delete(`/ugc/projects/${projectId}/creators/${creatorId}`),
 };
 
 // UGC Public Registration (no auth required)

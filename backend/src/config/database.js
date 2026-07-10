@@ -2765,6 +2765,53 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // UGC Projects (Campaigns - groups multiple creators)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_projects (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        description TEXT,
+        brief_url TEXT,
+        brief_content TEXT,
+        budget REAL DEFAULT 0,
+        currency TEXT DEFAULT 'COP',
+        start_date DATE,
+        deadline DATE,
+        status TEXT CHECK(status IN ('draft', 'active', 'completed', 'archived')) DEFAULT 'draft',
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_projects_client ON ugc_projects(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_projects_org ON ugc_projects(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_projects_status ON ugc_projects(status)`);
+
+    // UGC Project Creators (Creators assigned to a project with their own pipeline)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_project_creators (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER NOT NULL REFERENCES ugc_projects(id) ON DELETE CASCADE,
+        creator_id INTEGER NOT NULL REFERENCES ugc_creators(id) ON DELETE CASCADE,
+        status TEXT CHECK(status IN ('contacted', 'negotiating', 'confirmed', 'producing', 'delivered', 'paid', 'rejected')) DEFAULT 'contacted',
+        agreed_rate REAL DEFAULT 0,
+        currency TEXT DEFAULT 'COP',
+        deliverables TEXT,
+        delivery_url TEXT,
+        delivered_at TIMESTAMP,
+        paid_at TIMESTAMP,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(project_id, creator_id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_project ON ugc_project_creators(project_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_creator ON ugc_project_creators(creator_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_status ON ugc_project_creators(status)`);
+
     // Add can_view_ugc to client_portal_settings
     await pool.query(`
       DO $$

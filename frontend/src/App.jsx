@@ -48,6 +48,8 @@ import Briefs from './pages/Briefs';
 import Anuncios from './pages/Anuncios';
 import UGC from './pages/UGC';
 import UGCCreatorDetail from './pages/UGCCreatorDetail';
+import UGCProjects from './pages/UGCProjects';
+import UGCProjectDetail from './pages/UGCProjectDetail';
 import UGCRegister from './pages/UGCRegister';
 import DocumentTemplates from './pages/DocumentTemplates';
 
@@ -389,6 +391,22 @@ function App() {
                   element={
                     <ProtectedRoute permission="ugc">
                       <UGCCreatorDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ugc/projects"
+                  element={
+                    <ProtectedRoute permission="ugc">
+                      <UGCProjects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ugc/projects/:id"
+                  element={
+                    <ProtectedRoute permission="ugc">
+                      <UGCProjectDetail />
                     </ProtectedRoute>
                   }
                 />
