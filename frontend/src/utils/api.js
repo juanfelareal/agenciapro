@@ -833,6 +833,9 @@ export const ugcAPI = {
   // Instagram
   fetchInstagram: (id) => api.post(`/ugc/creators/${id}/fetch-instagram`),
   fetchAllInstagram: () => api.post('/ugc/fetch-all-instagram'),
+  // Packages
+  getPackages: () => api.get('/ugc/packages'),
+  createPackage: (data) => api.post('/ugc/packages', data),
   // Projects (UGC Campaigns)
   getProjectStatuses: () => api.get('/ugc/projects/statuses'),
   getProjects: (filters) => api.get('/ugc/projects', { params: filters }),

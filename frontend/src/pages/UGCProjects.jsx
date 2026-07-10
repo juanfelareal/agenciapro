@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   FolderKanban, Plus, Users, Calendar, ExternalLink,
   Loader2, Search, Filter, MoreVertical, Trash2, Edit2,
-  ChevronRight, Clock, CheckCircle2, Archive, Video
+  ChevronRight, Clock, CheckCircle2, Archive, Video, Package, DollarSign
 } from 'lucide-react';
 import { ugcAPI, clientsAPI } from '../utils/api';
 
@@ -18,6 +18,7 @@ export default function UGCProjects() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
+  const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNewModal, setShowNewModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -30,7 +31,10 @@ export default function UGCProjects() {
     title: '',
     description: '',
     brief_url: '',
-    budget: '',
+    package_id: '',
+    video_count: '',
+    price_per_video: '',
+    creator_cost_per_video: '',
     deadline: ''
   });
 
@@ -40,18 +44,62 @@ export default function UGCProjects() {
 
   const loadData = async () => {
     try {
-      const [projectsRes, clientsRes] = await Promise.all([
+      const [projectsRes, clientsRes, packagesRes] = await Promise.all([
         ugcAPI.getProjects(),
-        clientsAPI.getAll()
+        clientsAPI.getAll(),
+        ugcAPI.getPackages()
       ]);
       setProjects(projectsRes.data);
       setClients(clientsRes.data);
+      setPackages(packagesRes.data);
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePackageChange = (packageId) => {
+    const selectedPackage = packages.find(p => p.id === parseInt(packageId));
+    if (selectedPackage) {
+      if (selectedPackage.is_custom) {
+        // Custom package - let user fill in values
+        setNewProject(prev => ({
+          ...prev,
+          package_id: packageId,
+          video_count: '',
+          price_per_video: '',
+          creator_cost_per_video: ''
+        }));
+      } else {
+        // Preset package - auto-fill values
+        setNewProject(prev => ({
+          ...prev,
+          package_id: packageId,
+          video_count: selectedPackage.video_count.toString(),
+          price_per_video: selectedPackage.price_per_video.toString(),
+          creator_cost_per_video: ''
+        }));
+      }
+    } else {
+      setNewProject(prev => ({
+        ...prev,
+        package_id: '',
+        video_count: '',
+        price_per_video: '',
+        creator_cost_per_video: ''
+      }));
+    }
+  };
+
+  const selectedPackage = packages.find(p => p.id === parseInt(newProject.package_id));
+  const isCustomPackage = selectedPackage?.is_custom;
+  const videoCount = parseInt(newProject.video_count) || 0;
+  const pricePerVideo = parseFloat(newProject.price_per_video) || 0;
+  const creatorCost = parseFloat(newProject.creator_cost_per_video) || 0;
+  const totalBudget = videoCount * pricePerVideo;
+  const totalCreatorCost = videoCount * creatorCost;
+  const agencyMargin = totalBudget - totalCreatorCost;
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
@@ -61,10 +109,17 @@ export default function UGCProjects() {
     try {
       const res = await ugcAPI.createProject({
         ...newProject,
-        budget: newProject.budget ? parseFloat(newProject.budget) : 0
+        budget: totalBudget,
+        video_count: videoCount,
+        price_per_video: pricePerVideo,
+        creator_cost_per_video: creatorCost,
+        package_id: newProject.package_id ? parseInt(newProject.package_id) : null
       });
       setShowNewModal(false);
-      setNewProject({ client_id: '', title: '', description: '', brief_url: '', budget: '', deadline: '' });
+      setNewProject({
+        client_id: '', title: '', description: '', brief_url: '',
+        package_id: '', video_count: '', price_per_video: '', creator_cost_per_video: '', deadline: ''
+      });
       // Navigate to the new project
       navigate(`/app/ugc/projects/${res.data.id}`);
     } catch (error) {
@@ -343,31 +398,120 @@ export default function UGCProjects() {
                 />
               </div>
 
-              {/* Budget & Deadline */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Presupuesto (COP)
-                  </label>
-                  <input
-                    type="number"
-                    value={newProject.budget}
-                    onChange={e => setNewProject({ ...newProject, budget: e.target.value })}
-                    placeholder="0"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha límite
-                  </label>
-                  <input
-                    type="date"
-                    value={newProject.deadline}
-                    onChange={e => setNewProject({ ...newProject, deadline: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                  />
-                </div>
+              {/* Package Selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Paquete de contenido <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={newProject.package_id}
+                  onChange={e => handlePackageChange(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                >
+                  <option value="">Selecciona un paquete</option>
+                  {packages.map(pkg => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.name} {!pkg.is_custom && `- ${pkg.video_count} videos ($${pkg.price_per_video.toLocaleString('es-CO')}/video)`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Package Details */}
+              {newProject.package_id && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cantidad de videos
+                      </label>
+                      <input
+                        type="number"
+                        value={newProject.video_count}
+                        onChange={e => setNewProject({ ...newProject, video_count: e.target.value })}
+                        placeholder="20"
+                        disabled={!isCustomPackage}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Precio por video (COP)
+                      </label>
+                      <input
+                        type="number"
+                        value={newProject.price_per_video}
+                        onChange={e => setNewProject({ ...newProject, price_per_video: e.target.value })}
+                        placeholder="230000"
+                        disabled={!isCustomPackage}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Costo por video al creador (COP)
+                    </label>
+                    <input
+                      type="number"
+                      value={newProject.creator_cost_per_video}
+                      onChange={e => setNewProject({ ...newProject, creator_cost_per_video: e.target.value })}
+                      placeholder="Ej: 100000"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Cuánto le pagas en promedio a cada creador por video</p>
+                  </div>
+
+                  {/* Margin Calculator */}
+                  {videoCount > 0 && pricePerVideo > 0 && (
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        Resumen del proyecto
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-500">Total del cliente</p>
+                          <p className="font-semibold text-gray-900">${totalBudget.toLocaleString('es-CO')}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Costo creadores</p>
+                          <p className="font-semibold text-gray-900">
+                            {creatorCost > 0 ? `$${totalCreatorCost.toLocaleString('es-CO')}` : '-'}
+                          </p>
+                        </div>
+                      </div>
+                      {creatorCost > 0 && (
+                        <div className="pt-2 border-t border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-500">Margen agencia</p>
+                            <p className={`font-bold text-lg ${agencyMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              ${agencyMargin.toLocaleString('es-CO')}
+                            </p>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            {totalBudget > 0 ? ((agencyMargin / totalBudget) * 100).toFixed(1) : 0}% de margen
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Deadline */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha límite
+                </label>
+                <input
+                  type="date"
+                  value={newProject.deadline}
+                  onChange={e => setNewProject({ ...newProject, deadline: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                />
               </div>
 
               {/* Actions */}
@@ -381,7 +525,7 @@ export default function UGCProjects() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || !newProject.client_id || !newProject.title}
+                  disabled={saving || !newProject.client_id || !newProject.title || !newProject.package_id || videoCount <= 0}
                   className="px-4 py-2 bg-[#17181A] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}

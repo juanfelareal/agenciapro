@@ -1074,6 +1074,19 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Zernio settings (Social Media Management)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS zernio_settings (
+        id SERIAL PRIMARY KEY,
+        api_key TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        last_sync_at TEXT,
+        last_error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Time Entries
     await pool.query(`
       CREATE TABLE IF NOT EXISTS time_entries (
@@ -1397,6 +1410,8 @@ export const initializeDatabase = async () => {
       // Note: 'chat_conversations' and 'chat_messages' already have organization_id in their CREATE TABLE
       // Siigo (accounting integration)
       'siigo_settings', 'siigo_document_types', 'siigo_payment_types', 'siigo_taxes',
+      // Zernio (social media management)
+      'zernio_settings',
       // Client portal dashboard
       'client_priorities',
       'growth_objectives', 'growth_palancas', 'growth_milestones', 'growth_banderas',
@@ -2812,6 +2827,41 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_creator ON ugc_project_creators(creator_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_status ON ugc_project_creators(status)`);
 
+    // UGC Packages (Content packages for clients)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_packages (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        video_count INTEGER NOT NULL,
+        price_per_video REAL NOT NULL,
+        total_price REAL NOT NULL,
+        description TEXT,
+        is_custom BOOLEAN DEFAULT FALSE,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_packages_org ON ugc_packages(organization_id)`);
+
+    // Add package_id to ugc_projects
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='package_id') THEN
+          ALTER TABLE ugc_projects ADD COLUMN package_id INTEGER REFERENCES ugc_packages(id) ON DELETE SET NULL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='video_count') THEN
+          ALTER TABLE ugc_projects ADD COLUMN video_count INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='price_per_video') THEN
+          ALTER TABLE ugc_projects ADD COLUMN price_per_video REAL DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='creator_cost_per_video') THEN
+          ALTER TABLE ugc_projects ADD COLUMN creator_cost_per_video REAL DEFAULT 0;
+        END IF;
+      END $$
+    `);
+
     // Add can_view_ugc to client_portal_settings
     await pool.query(`
       DO $$
@@ -2868,6 +2918,18 @@ export const initializeDatabase = async () => {
         ('Automotriz', 'automotriz', '🚗', 1),
         ('Otros', 'otros', '📦', 1)
       ON CONFLICT (slug, organization_id) DO NOTHING
+    `);
+
+    // Seed default UGC packages for LA REAL (org_id = 1)
+    await pool.query(`
+      INSERT INTO ugc_packages (name, video_count, price_per_video, total_price, description, is_custom, organization_id)
+      SELECT * FROM (VALUES
+        ('Inicial', 20, 230000, 4600000, 'Para validar ángulos y creadores con riesgo controlado.', false, 1),
+        ('Intermedio', 50, 180000, 9000000, 'Para cuando ya sabemos qué funciona y se busca volumen.', false, 1),
+        ('Pro', 150, 160000, 24000000, 'Para alto volumen y sostener una inversión grande en Meta.', false, 1),
+        ('Personalizado', 0, 0, 0, 'Paquete con valores personalizados.', true, 1)
+      ) AS v(name, video_count, price_per_video, total_price, description, is_custom, organization_id)
+      WHERE NOT EXISTS (SELECT 1 FROM ugc_packages WHERE organization_id = 1)
     `);
 
     // =========================================================================

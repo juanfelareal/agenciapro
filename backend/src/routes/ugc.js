@@ -935,6 +935,48 @@ router.get('/projects/statuses', (req, res) => {
   res.json(PROJECT_CREATOR_STATUSES);
 });
 
+// ========================================
+// UGC PACKAGES
+// ========================================
+
+// GET /api/ugc/packages - List all packages
+router.get('/packages', async (req, res) => {
+  try {
+    const packages = await db.all(
+      `SELECT * FROM ugc_packages WHERE organization_id = ? ORDER BY is_custom ASC, total_price ASC`,
+      [req.orgId]
+    );
+    res.json(packages);
+  } catch (error) {
+    console.error('Error getting packages:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/packages - Create a new package
+router.post('/packages', async (req, res) => {
+  try {
+    const { name, video_count, price_per_video, description, is_custom } = req.body;
+    const total_price = video_count * price_per_video;
+
+    const result = await db.run(
+      `INSERT INTO ugc_packages (name, video_count, price_per_video, total_price, description, is_custom, organization_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [name, video_count, price_per_video, total_price, description, is_custom || false, req.orgId]
+    );
+
+    const newPackage = await db.get(`SELECT * FROM ugc_packages WHERE id = ?`, [result.lastInsertRowid]);
+    res.status(201).json(newPackage);
+  } catch (error) {
+    console.error('Error creating package:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// UGC PROJECTS
+// ========================================
+
 // GET /api/ugc/projects - List all projects
 router.get('/projects', async (req, res) => {
   try {
@@ -1006,19 +1048,23 @@ router.get('/projects/:id', async (req, res) => {
 // POST /api/ugc/projects - Create project
 router.post('/projects', async (req, res) => {
   try {
-    const { client_id, title, description, brief_url, brief_content, budget, currency, start_date, deadline } = req.body;
+    const {
+      client_id, title, description, brief_url, brief_content,
+      budget, currency, start_date, deadline,
+      package_id, video_count, price_per_video, creator_cost_per_video
+    } = req.body;
 
     if (!client_id || !title) {
       return res.status(400).json({ error: 'Cliente y título son requeridos' });
     }
 
     const result = await db.run(
-      `INSERT INTO ugc_projects (client_id, title, description, brief_url, brief_content, budget, currency, start_date, deadline, organization_id, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [client_id, title, description, brief_url, brief_content, budget || 0, currency || 'COP', start_date, deadline, req.orgId, req.userId]
+      `INSERT INTO ugc_projects (client_id, title, description, brief_url, brief_content, budget, currency, start_date, deadline, package_id, video_count, price_per_video, creator_cost_per_video, organization_id, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [client_id, title, description, brief_url, brief_content, budget || 0, currency || 'COP', start_date, deadline, package_id, video_count || 0, price_per_video || 0, creator_cost_per_video || 0, req.orgId, req.userId]
     );
 
-    const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [result.lastID]);
+    const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
