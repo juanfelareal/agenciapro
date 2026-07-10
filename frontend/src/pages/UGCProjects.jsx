@@ -257,7 +257,7 @@ export default function UGCProjects() {
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate group-hover:text-green-600 transition-colors">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
                         {project.title}
                       </h3>
                       <p className="text-sm text-gray-500 truncate">
