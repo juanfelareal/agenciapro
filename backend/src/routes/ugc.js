@@ -1039,7 +1039,7 @@ router.get('/projects/:id', async (req, res) => {
       [req.params.id]
     );
 
-    res.json({ ...project, creators });
+    res.json({ project, creators });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

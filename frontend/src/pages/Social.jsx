@@ -15,6 +15,11 @@ import {
 } from 'lucide-react';
 import { zernioAPI } from '../utils/api';
 import ZernioSettings from '../components/social/ZernioSettings';
+import SocialAnalytics from '../components/social/SocialAnalytics';
+import SocialPosts from '../components/social/SocialPosts';
+import SocialComments from '../components/social/SocialComments';
+import SocialInbox from '../components/social/SocialInbox';
+import SocialAutomations from '../components/social/SocialAutomations';
 
 const TABS = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -114,15 +119,15 @@ const Social = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'analytics':
-        return <AnalyticsPlaceholder account={selectedAccount} />;
+        return <SocialAnalytics account={selectedAccount} />;
       case 'posts':
-        return <PostsPlaceholder account={selectedAccount} />;
+        return <SocialPosts account={selectedAccount} />;
       case 'comments':
-        return <CommentsPlaceholder account={selectedAccount} />;
+        return <SocialComments account={selectedAccount} />;
       case 'inbox':
-        return <InboxPlaceholder account={selectedAccount} />;
+        return <SocialInbox account={selectedAccount} />;
       case 'automations':
-        return <AutomationsPlaceholder account={selectedAccount} />;
+        return <SocialAutomations account={selectedAccount} />;
       case 'settings':
         return <ZernioSettings />;
       default:
@@ -238,71 +243,5 @@ const Social = () => {
     </div>
   );
 };
-
-// Placeholder components (to be replaced with real components)
-const AnalyticsPlaceholder = ({ account }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-    <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-    <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics</h3>
-    <p className="text-gray-500">
-      Metricas de {account?.username ? `@${account.username}` : 'tu cuenta'}
-    </p>
-    <p className="text-sm text-gray-400 mt-4">
-      Componente en desarrollo...
-    </p>
-  </div>
-);
-
-const PostsPlaceholder = ({ account }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-    <h3 className="text-lg font-semibold text-gray-900 mb-2">Publicaciones</h3>
-    <p className="text-gray-500">
-      Crea, programa y gestiona tus publicaciones
-    </p>
-    <p className="text-sm text-gray-400 mt-4">
-      Componente en desarrollo...
-    </p>
-  </div>
-);
-
-const CommentsPlaceholder = ({ account }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-    <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-    <h3 className="text-lg font-semibold text-gray-900 mb-2">Comentarios</h3>
-    <p className="text-gray-500">
-      Responde y modera los comentarios de tus publicaciones
-    </p>
-    <p className="text-sm text-gray-400 mt-4">
-      Componente en desarrollo...
-    </p>
-  </div>
-);
-
-const InboxPlaceholder = ({ account }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-    <Inbox className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-    <h3 className="text-lg font-semibold text-gray-900 mb-2">Inbox</h3>
-    <p className="text-gray-500">
-      Gestiona tus mensajes directos
-    </p>
-    <p className="text-sm text-gray-400 mt-4">
-      Componente en desarrollo...
-    </p>
-  </div>
-);
-
-const AutomationsPlaceholder = ({ account }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-    <Zap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-    <h3 className="text-lg font-semibold text-gray-900 mb-2">Automations</h3>
-    <p className="text-gray-500">
-      Configura respuestas automaticas a comentarios
-    </p>
-    <p className="text-sm text-gray-400 mt-4">
-      Componente en desarrollo...
-    </p>
-  </div>
-);
 
 export default Social;
