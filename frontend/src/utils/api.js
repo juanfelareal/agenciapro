@@ -654,6 +654,13 @@ export const portalAdminAPI = {
   createCommercialDate: (data) => api.post('/portal-admin/commercial-dates', data),
   updateCommercialDateGroup: (data) => api.put('/portal-admin/commercial-dates/group', data),
   deleteCommercialDateGroup: (title, date) => api.delete(`/portal-admin/commercial-dates/group?title=${encodeURIComponent(title)}&date=${date}`),
+  // Dashboard Templates
+  getDashboardTemplates: () => api.get('/portal-admin/dashboard-templates'),
+  getDashboardTemplate: (id) => api.get(`/portal-admin/dashboard-templates/${id}`),
+  createDashboardTemplate: (data) => api.post('/portal-admin/dashboard-templates', data),
+  updateDashboardTemplate: (id, data) => api.put(`/portal-admin/dashboard-templates/${id}`, data),
+  deleteDashboardTemplate: (id) => api.delete(`/portal-admin/dashboard-templates/${id}`),
+  applyDashboardTemplate: (clientId, templateSlug) => api.post(`/portal-admin/clients/${clientId}/apply-template`, { template_slug: templateSlug }),
 };
 
 // Note Share API

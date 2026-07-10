@@ -52,6 +52,11 @@ const Clients = () => {
   const [newDateClientIds, setNewDateClientIds] = useState(new Set());
   const [newDateAllClients, setNewDateAllClients] = useState(true);
 
+  // Dashboard templates
+  const [dashboardTemplates, setDashboardTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+
   // Resizable columns
   const tableRef = useRef(null);
   const [editingNickname, setEditingNickname] = useState(null);
@@ -105,7 +110,22 @@ const Clients = () => {
   useEffect(() => {
     loadClients();
     loadCommercialDates();
+    loadDashboardTemplates();
   }, []);
+
+  const loadDashboardTemplates = async () => {
+    try {
+      const response = await portalAdminAPI.getDashboardTemplates();
+      setDashboardTemplates(response.data || []);
+      // Set default template
+      const defaultTemplate = response.data?.find(t => t.is_default);
+      if (defaultTemplate) {
+        setSelectedTemplate(defaultTemplate.slug);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard templates:', error);
+    }
+  };
 
   const loadClients = async () => {
     try {
@@ -196,9 +216,21 @@ const Clients = () => {
       if (editingClient) {
         await clientsAPI.update(editingClient.id, formData);
       } else {
-        await clientsAPI.create(formData);
+        const response = await clientsAPI.create(formData);
+        const newClientId = response.data?.id;
+
+        // Apply dashboard template if selected and this is a new client
+        if (newClientId && selectedTemplate) {
+          try {
+            await portalAdminAPI.applyDashboardTemplate(newClientId, selectedTemplate);
+          } catch (templateError) {
+            console.error('Error applying template:', templateError);
+            // Don't block client creation if template fails
+          }
+        }
       }
       setShowModal(false);
+      setShowTemplateSelector(false);
       setEditingClient(null);
       resetForm();
       loadClients();
@@ -369,6 +401,23 @@ const Clients = () => {
   const handleNew = () => {
     resetForm();
     setEditingClient(null);
+    // Show template selector first if templates are available
+    if (dashboardTemplates.length > 0) {
+      setShowTemplateSelector(true);
+    } else {
+      setShowModal(true);
+    }
+  };
+
+  const handleSelectTemplate = (templateSlug) => {
+    setSelectedTemplate(templateSlug);
+    setShowTemplateSelector(false);
+    setShowModal(true);
+  };
+
+  const handleSkipTemplate = () => {
+    setSelectedTemplate(null);
+    setShowTemplateSelector(false);
     setShowModal(true);
   };
 
@@ -1079,6 +1128,75 @@ const Clients = () => {
           animation: fadeIn 0.2s ease-out forwards;
         }
       `}</style>
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-[#17181A]">Tipo de Dashboard</h2>
+                <p className="text-sm text-gray-500 mt-1">Selecciona qué secciones verá el cliente en su portal</p>
+              </div>
+              <button onClick={() => setShowTemplateSelector(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {dashboardTemplates.map((template) => {
+                const settings = typeof template.settings === 'string' ? JSON.parse(template.settings) : template.settings;
+                const enabledCount = Object.values(settings).filter(Boolean).length;
+                const isSelected = selectedTemplate === template.slug;
+
+                return (
+                  <button
+                    key={template.id}
+                    onClick={() => handleSelectTemplate(template.slug)}
+                    className={`text-left p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                      isSelected
+                        ? 'border-[#17181A] bg-[#17181A]/5'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{template.icon}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-[#17181A]">{template.name}</h3>
+                          {template.is_default && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-[#10B981]/10 text-[#10B981] rounded font-medium">POPULAR</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{template.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {settings.can_view_dashboard && <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">Dashboard</span>}
+                          {settings.can_view_metrics && <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">Métricas</span>}
+                          {settings.can_view_ugc && <span className="text-[10px] px-1.5 py-0.5 bg-pink-50 text-pink-600 rounded">UGC</span>}
+                          {settings.can_view_projects && <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded">Proyectos</span>}
+                          {settings.can_view_reports && <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-600 rounded">Reportes</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+              <button
+                onClick={handleSkipTemplate}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Omitir y configurar después
+              </button>
+              <p className="text-xs text-gray-400">
+                Puedes cambiar esto en Configuración → Plataformas
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">

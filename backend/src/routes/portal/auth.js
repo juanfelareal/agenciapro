@@ -61,6 +61,9 @@ router.post('/login', async (req, res) => {
       settings = await db.get(`SELECT * FROM client_portal_settings WHERE client_id = ?`, [invite.client_id]);
     }
 
+    // Helper to default to true for backwards compatibility (new fields may be null)
+    const toBool = (val, defaultVal = true) => val === null || val === undefined ? defaultVal : !!val;
+
     res.json({
       token: sessionToken,
       client: {
@@ -72,15 +75,21 @@ router.post('/login', async (req, res) => {
         logo_url: invite.client_logo_url || null
       },
       permissions: {
-        can_view_projects: !!settings.can_view_projects,
-        can_view_tasks: !!settings.can_view_tasks,
-        can_view_invoices: !!settings.can_view_invoices,
-        can_view_metrics: !!settings.can_view_metrics,
-        can_approve_tasks: !!settings.can_approve_tasks,
-        can_comment_tasks: !!settings.can_comment_tasks,
-        can_view_team: !!settings.can_view_team,
-        can_download_files: !!settings.can_download_files,
-        can_view_ugc: !!settings.can_view_ugc
+        can_view_dashboard: toBool(settings.can_view_dashboard),
+        can_view_projects: toBool(settings.can_view_projects),
+        can_view_tasks: toBool(settings.can_view_tasks),
+        can_view_invoices: toBool(settings.can_view_invoices),
+        can_view_payment_proofs: toBool(settings.can_view_payment_proofs),
+        can_view_metrics: toBool(settings.can_view_metrics),
+        can_view_reports: toBool(settings.can_view_reports),
+        can_view_calls: toBool(settings.can_view_calls),
+        can_view_forms: toBool(settings.can_view_forms),
+        can_view_ugc: toBool(settings.can_view_ugc, false), // UGC defaults to false
+        can_view_documents: toBool(settings.can_view_documents),
+        can_approve_tasks: toBool(settings.can_approve_tasks),
+        can_comment_tasks: toBool(settings.can_comment_tasks),
+        can_view_team: toBool(settings.can_view_team, false), // Team defaults to false
+        can_download_files: toBool(settings.can_download_files)
       },
       welcome_message: settings.welcome_message
     });
@@ -128,6 +137,10 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
       SELECT * FROM client_portal_settings WHERE client_id = ?
     `, [req.client.id]);
 
+    // Helper to default to true for backwards compatibility (new fields may be null)
+    const toBool = (val, defaultVal = true) => val === null || val === undefined ? defaultVal : !!val;
+    const p = req.client.permissions;
+
     res.json({
       client: {
         id: req.client.id,
@@ -138,15 +151,21 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
         logo_url: req.client.logo_url || null
       },
       permissions: {
-        can_view_projects: !!req.client.permissions.can_view_projects,
-        can_view_tasks: !!req.client.permissions.can_view_tasks,
-        can_view_invoices: !!req.client.permissions.can_view_invoices,
-        can_view_metrics: !!req.client.permissions.can_view_metrics,
-        can_approve_tasks: !!req.client.permissions.can_approve_tasks,
-        can_comment_tasks: !!req.client.permissions.can_comment_tasks,
-        can_view_team: !!req.client.permissions.can_view_team,
-        can_download_files: !!req.client.permissions.can_download_files,
-        can_view_ugc: !!req.client.permissions.can_view_ugc
+        can_view_dashboard: toBool(p.can_view_dashboard),
+        can_view_projects: toBool(p.can_view_projects),
+        can_view_tasks: toBool(p.can_view_tasks),
+        can_view_invoices: toBool(p.can_view_invoices),
+        can_view_payment_proofs: toBool(p.can_view_payment_proofs),
+        can_view_metrics: toBool(p.can_view_metrics),
+        can_view_reports: toBool(p.can_view_reports),
+        can_view_calls: toBool(p.can_view_calls),
+        can_view_forms: toBool(p.can_view_forms),
+        can_view_ugc: toBool(p.can_view_ugc, false),
+        can_view_documents: toBool(p.can_view_documents),
+        can_approve_tasks: toBool(p.can_approve_tasks),
+        can_comment_tasks: toBool(p.can_comment_tasks),
+        can_view_team: toBool(p.can_view_team, false),
+        can_download_files: toBool(p.can_download_files)
       },
       welcome_message: settings?.welcome_message || null
     });

@@ -2823,6 +2823,75 @@ export const initializeDatabase = async () => {
       ON CONFLICT (slug, organization_id) DO NOTHING
     `);
 
+    // =========================================================================
+    // DASHBOARD TEMPLATES & CONFIGURABLE PORTAL SECTIONS
+    // =========================================================================
+
+    // Dashboard Templates table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS dashboard_templates (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL,
+        description TEXT,
+        icon TEXT DEFAULT '📊',
+        settings JSONB NOT NULL DEFAULT '{}',
+        is_default BOOLEAN DEFAULT FALSE,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(slug, organization_id)
+      )
+    `);
+
+    // Add new toggleable sections to client_portal_settings
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_dashboard') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN can_view_dashboard INTEGER DEFAULT 1;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_reports') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN can_view_reports INTEGER DEFAULT 1;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_calls') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN can_view_calls INTEGER DEFAULT 1;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_documents') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN can_view_documents INTEGER DEFAULT 1;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_payment_proofs') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN can_view_payment_proofs INTEGER DEFAULT 1;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='dashboard_template') THEN
+          ALTER TABLE client_portal_settings ADD COLUMN dashboard_template TEXT;
+        END IF;
+      END $$
+    `);
+
+    // Seed default dashboard templates for LA REAL (org_id = 1)
+    await pool.query(`
+      INSERT INTO dashboard_templates (name, slug, description, icon, settings, is_default, organization_id)
+      SELECT * FROM (VALUES
+        ('E-commerce Completo', 'ecommerce', 'Para clientes con Shopify y pauta digital completa', '🛒',
+         '{"can_view_dashboard": true, "can_view_projects": true, "can_view_invoices": true, "can_view_payment_proofs": true, "can_view_reports": true, "can_view_metrics": true, "can_view_calls": true, "can_view_forms": true, "can_view_ugc": false, "can_view_documents": true}'::jsonb,
+         TRUE, 1),
+        ('Restaurante / Local', 'restaurante', 'Para restaurantes y negocios locales sin e-commerce', '🍽️',
+         '{"can_view_dashboard": false, "can_view_projects": true, "can_view_invoices": true, "can_view_payment_proofs": true, "can_view_reports": true, "can_view_metrics": false, "can_view_calls": true, "can_view_forms": true, "can_view_ugc": true, "can_view_documents": true}'::jsonb,
+         FALSE, 1),
+        ('Solo UGC', 'ugc-only', 'Para clientes enfocados solo en creadores de contenido', '🎬',
+         '{"can_view_dashboard": false, "can_view_projects": false, "can_view_invoices": true, "can_view_payment_proofs": true, "can_view_reports": true, "can_view_metrics": false, "can_view_calls": true, "can_view_forms": false, "can_view_ugc": true, "can_view_documents": true}'::jsonb,
+         FALSE, 1),
+        ('Pauta Digital', 'pauta', 'Para clientes solo con gestión de pauta (sin Shopify)', '📈',
+         '{"can_view_dashboard": false, "can_view_projects": true, "can_view_invoices": true, "can_view_payment_proofs": true, "can_view_reports": true, "can_view_metrics": false, "can_view_calls": true, "can_view_forms": true, "can_view_ugc": false, "can_view_documents": true}'::jsonb,
+         FALSE, 1),
+        ('Personalizado', 'custom', 'Configuración manual de secciones', '⚙️',
+         '{"can_view_dashboard": true, "can_view_projects": true, "can_view_invoices": true, "can_view_payment_proofs": true, "can_view_reports": true, "can_view_metrics": true, "can_view_calls": true, "can_view_forms": true, "can_view_ugc": true, "can_view_documents": true}'::jsonb,
+         FALSE, 1)
+      ) AS v(name, slug, description, icon, settings, is_default, organization_id)
+      WHERE NOT EXISTS (SELECT 1 FROM dashboard_templates WHERE organization_id = 1)
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

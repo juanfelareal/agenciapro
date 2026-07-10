@@ -74,17 +74,24 @@ router.put('/clients/:id/settings', async (req, res) => {
     const orgId = req.orgId;
     const { id } = req.params;
     const {
+      can_view_dashboard,
       can_view_projects,
       can_view_tasks,
       can_view_invoices,
+      can_view_payment_proofs,
       can_view_metrics,
+      can_view_reports,
+      can_view_calls,
+      can_view_forms,
+      can_view_ugc,
+      can_view_documents,
       can_approve_tasks,
       can_comment_tasks,
       can_view_team,
       can_download_files,
-      can_view_ugc,
       welcome_message,
-      portal_revenue_metric
+      portal_revenue_metric,
+      dashboard_template
     } = req.body;
 
     // Check client exists and belongs to org
@@ -102,37 +109,49 @@ router.put('/clients/:id/settings', async (req, res) => {
     if (existing) {
       await db.run(`
         UPDATE client_portal_settings SET
+          can_view_dashboard = COALESCE(?, can_view_dashboard),
           can_view_projects = COALESCE(?, can_view_projects),
           can_view_tasks = COALESCE(?, can_view_tasks),
           can_view_invoices = COALESCE(?, can_view_invoices),
+          can_view_payment_proofs = COALESCE(?, can_view_payment_proofs),
           can_view_metrics = COALESCE(?, can_view_metrics),
+          can_view_reports = COALESCE(?, can_view_reports),
+          can_view_calls = COALESCE(?, can_view_calls),
+          can_view_forms = COALESCE(?, can_view_forms),
+          can_view_ugc = COALESCE(?, can_view_ugc),
+          can_view_documents = COALESCE(?, can_view_documents),
           can_approve_tasks = COALESCE(?, can_approve_tasks),
           can_comment_tasks = COALESCE(?, can_comment_tasks),
           can_view_team = COALESCE(?, can_view_team),
           can_download_files = COALESCE(?, can_download_files),
-          can_view_ugc = COALESCE(?, can_view_ugc),
           welcome_message = COALESCE(?, welcome_message),
           portal_revenue_metric = COALESCE(?, portal_revenue_metric),
+          dashboard_template = COALESCE(?, dashboard_template),
           updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ?
       `, [
-        toInt(can_view_projects), toInt(can_view_tasks), toInt(can_view_invoices), toInt(can_view_metrics),
+        toInt(can_view_dashboard), toInt(can_view_projects), toInt(can_view_tasks), toInt(can_view_invoices),
+        toInt(can_view_payment_proofs), toInt(can_view_metrics), toInt(can_view_reports), toInt(can_view_calls),
+        toInt(can_view_forms), toInt(can_view_ugc), toInt(can_view_documents),
         toInt(can_approve_tasks), toInt(can_comment_tasks), toInt(can_view_team), toInt(can_download_files),
-        toInt(can_view_ugc), welcome_message, portal_revenue_metric || null, id
+        welcome_message, portal_revenue_metric || null, dashboard_template || null, id
       ]);
     } else {
       await db.run(`
         INSERT INTO client_portal_settings (
-          client_id, can_view_projects, can_view_tasks, can_view_invoices,
-          can_view_metrics, can_approve_tasks, can_comment_tasks, can_view_team,
-          can_download_files, can_view_ugc, welcome_message, portal_revenue_metric
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          client_id, can_view_dashboard, can_view_projects, can_view_tasks, can_view_invoices,
+          can_view_payment_proofs, can_view_metrics, can_view_reports, can_view_calls,
+          can_view_forms, can_view_ugc, can_view_documents,
+          can_approve_tasks, can_comment_tasks, can_view_team, can_download_files,
+          welcome_message, portal_revenue_metric, dashboard_template
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         id,
-        toInt(can_view_projects) ?? 1, toInt(can_view_tasks) ?? 1, toInt(can_view_invoices) ?? 1,
-        toInt(can_view_metrics) ?? 1, toInt(can_approve_tasks) ?? 1, toInt(can_comment_tasks) ?? 1,
-        toInt(can_view_team) ?? 0, toInt(can_download_files) ?? 1, toInt(can_view_ugc) ?? 0,
-        welcome_message ?? null, portal_revenue_metric || 'confirmed'
+        toInt(can_view_dashboard) ?? 1, toInt(can_view_projects) ?? 1, toInt(can_view_tasks) ?? 1, toInt(can_view_invoices) ?? 1,
+        toInt(can_view_payment_proofs) ?? 1, toInt(can_view_metrics) ?? 1, toInt(can_view_reports) ?? 1, toInt(can_view_calls) ?? 1,
+        toInt(can_view_forms) ?? 1, toInt(can_view_ugc) ?? 0, toInt(can_view_documents) ?? 1,
+        toInt(can_approve_tasks) ?? 1, toInt(can_comment_tasks) ?? 1, toInt(can_view_team) ?? 0, toInt(can_download_files) ?? 1,
+        welcome_message ?? null, portal_revenue_metric || 'confirmed', dashboard_template || null
       ]);
     }
 
@@ -502,6 +521,237 @@ router.get('/commercial-dates/:clientId', async (req, res) => {
   } catch (error) {
     console.error('Error getting commercial dates:', error);
     res.status(500).json({ error: 'Error al obtener fechas comerciales' });
+  }
+});
+
+// =========================================================================
+// Dashboard Templates
+// =========================================================================
+
+/**
+ * GET /api/portal-admin/dashboard-templates
+ * List all dashboard templates for the organization
+ */
+router.get('/dashboard-templates', async (req, res) => {
+  try {
+    const templates = await db.all(
+      'SELECT * FROM dashboard_templates WHERE organization_id = ? ORDER BY is_default DESC, name',
+      [req.orgId]
+    );
+    res.json(templates);
+  } catch (error) {
+    console.error('Error listing dashboard templates:', error);
+    res.status(500).json({ error: 'Error al obtener plantillas de dashboard' });
+  }
+});
+
+/**
+ * GET /api/portal-admin/dashboard-templates/:id
+ * Get a specific dashboard template
+ */
+router.get('/dashboard-templates/:id', async (req, res) => {
+  try {
+    const template = await db.get(
+      'SELECT * FROM dashboard_templates WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+    if (!template) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
+    res.json(template);
+  } catch (error) {
+    console.error('Error getting dashboard template:', error);
+    res.status(500).json({ error: 'Error al obtener plantilla' });
+  }
+});
+
+/**
+ * POST /api/portal-admin/dashboard-templates
+ * Create a new dashboard template
+ */
+router.post('/dashboard-templates', async (req, res) => {
+  try {
+    const { name, slug, description, icon, settings, is_default } = req.body;
+
+    if (!name || !slug || !settings) {
+      return res.status(400).json({ error: 'Nombre, slug y settings son requeridos' });
+    }
+
+    const result = await db.run(`
+      INSERT INTO dashboard_templates (name, slug, description, icon, settings, is_default, organization_id)
+      VALUES (?, ?, ?, ?, ?::jsonb, ?, ?)
+    `, [name, slug, description || null, icon || '📊', JSON.stringify(settings), is_default || false, req.orgId]);
+
+    const template = await db.get('SELECT * FROM dashboard_templates WHERE id = ?', [result.lastID]);
+    res.status(201).json(template);
+  } catch (error) {
+    console.error('Error creating dashboard template:', error);
+    if (error.message?.includes('UNIQUE')) {
+      return res.status(400).json({ error: 'Ya existe una plantilla con ese slug' });
+    }
+    res.status(500).json({ error: 'Error al crear plantilla' });
+  }
+});
+
+/**
+ * PUT /api/portal-admin/dashboard-templates/:id
+ * Update a dashboard template
+ */
+router.put('/dashboard-templates/:id', async (req, res) => {
+  try {
+    const { name, slug, description, icon, settings, is_default } = req.body;
+
+    const template = await db.get(
+      'SELECT * FROM dashboard_templates WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+    if (!template) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
+
+    await db.run(`
+      UPDATE dashboard_templates SET
+        name = COALESCE(?, name),
+        slug = COALESCE(?, slug),
+        description = COALESCE(?, description),
+        icon = COALESCE(?, icon),
+        settings = COALESCE(?::jsonb, settings),
+        is_default = COALESCE(?, is_default),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND organization_id = ?
+    `, [
+      name, slug, description, icon,
+      settings ? JSON.stringify(settings) : null,
+      is_default, req.params.id, req.orgId
+    ]);
+
+    const updated = await db.get('SELECT * FROM dashboard_templates WHERE id = ?', [req.params.id]);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating dashboard template:', error);
+    res.status(500).json({ error: 'Error al actualizar plantilla' });
+  }
+});
+
+/**
+ * DELETE /api/portal-admin/dashboard-templates/:id
+ * Delete a dashboard template
+ */
+router.delete('/dashboard-templates/:id', async (req, res) => {
+  try {
+    const template = await db.get(
+      'SELECT * FROM dashboard_templates WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+    if (!template) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
+
+    await db.run('DELETE FROM dashboard_templates WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Plantilla eliminada' });
+  } catch (error) {
+    console.error('Error deleting dashboard template:', error);
+    res.status(500).json({ error: 'Error al eliminar plantilla' });
+  }
+});
+
+/**
+ * POST /api/portal-admin/clients/:id/apply-template
+ * Apply a dashboard template to a client (updates all portal settings at once)
+ */
+router.post('/clients/:id/apply-template', async (req, res) => {
+  try {
+    const { template_slug } = req.body;
+    const clientId = req.params.id;
+
+    // Verify client belongs to org
+    const client = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [clientId, req.orgId]);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    // Get template
+    const template = await db.get(
+      'SELECT * FROM dashboard_templates WHERE slug = ? AND organization_id = ?',
+      [template_slug, req.orgId]
+    );
+    if (!template) {
+      return res.status(404).json({ error: 'Plantilla no encontrada' });
+    }
+
+    const settings = typeof template.settings === 'string' ? JSON.parse(template.settings) : template.settings;
+
+    // Convert booleans to integers
+    const toInt = (val) => val ? 1 : 0;
+
+    // Check if settings exist
+    const existing = await db.get('SELECT id FROM client_portal_settings WHERE client_id = ?', [clientId]);
+
+    if (existing) {
+      await db.run(`
+        UPDATE client_portal_settings SET
+          can_view_dashboard = ?,
+          can_view_projects = ?,
+          can_view_tasks = ?,
+          can_view_invoices = ?,
+          can_view_payment_proofs = ?,
+          can_view_metrics = ?,
+          can_view_reports = ?,
+          can_view_calls = ?,
+          can_view_forms = ?,
+          can_view_ugc = ?,
+          can_view_documents = ?,
+          dashboard_template = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE client_id = ?
+      `, [
+        toInt(settings.can_view_dashboard),
+        toInt(settings.can_view_projects),
+        toInt(settings.can_view_tasks ?? settings.can_view_projects),
+        toInt(settings.can_view_invoices),
+        toInt(settings.can_view_payment_proofs ?? settings.can_view_invoices),
+        toInt(settings.can_view_metrics),
+        toInt(settings.can_view_reports),
+        toInt(settings.can_view_calls),
+        toInt(settings.can_view_forms),
+        toInt(settings.can_view_ugc),
+        toInt(settings.can_view_documents),
+        template_slug,
+        clientId
+      ]);
+    } else {
+      await db.run(`
+        INSERT INTO client_portal_settings (
+          client_id, can_view_dashboard, can_view_projects, can_view_tasks, can_view_invoices,
+          can_view_payment_proofs, can_view_metrics, can_view_reports, can_view_calls,
+          can_view_forms, can_view_ugc, can_view_documents, dashboard_template
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        clientId,
+        toInt(settings.can_view_dashboard),
+        toInt(settings.can_view_projects),
+        toInt(settings.can_view_tasks ?? settings.can_view_projects),
+        toInt(settings.can_view_invoices),
+        toInt(settings.can_view_payment_proofs ?? settings.can_view_invoices),
+        toInt(settings.can_view_metrics),
+        toInt(settings.can_view_reports),
+        toInt(settings.can_view_calls),
+        toInt(settings.can_view_forms),
+        toInt(settings.can_view_ugc),
+        toInt(settings.can_view_documents),
+        template_slug
+      ]);
+    }
+
+    const updatedSettings = await db.get('SELECT * FROM client_portal_settings WHERE client_id = ?', [clientId]);
+    res.json({
+      success: true,
+      message: `Plantilla "${template.name}" aplicada exitosamente`,
+      settings: updatedSettings
+    });
+  } catch (error) {
+    console.error('Error applying template:', error);
+    res.status(500).json({ error: 'Error al aplicar plantilla' });
   }
 });
 

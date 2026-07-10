@@ -51,16 +51,16 @@ export default function PortalHeader() {
   };
 
   const navItems = [
-    { path: '/portal', icon: LayoutDashboard, label: 'Dashboard', permission: null },
+    { path: '/portal', icon: LayoutDashboard, label: 'Dashboard', permission: 'can_view_dashboard' },
     { path: '/portal/projects', icon: FolderKanban, label: 'Proyectos', permission: 'can_view_projects' },
     // { path: '/portal/invoices', icon: FileText, label: 'Facturas', permission: 'can_view_invoices' }, // Hidden temporarily while Siigo integration is fixed
-    { path: '/portal/payment-proofs', icon: Receipt, label: 'Soportes de pago', permission: 'can_view_invoices' },
-    { path: '/portal/reports', icon: BarChart3, label: 'Reportes', permission: null },
+    { path: '/portal/payment-proofs', icon: Receipt, label: 'Soportes de pago', permission: 'can_view_payment_proofs' },
+    { path: '/portal/reports', icon: BarChart3, label: 'Reportes', permission: 'can_view_reports' },
     { path: '/portal/metrics', icon: BarChart3, label: 'Métricas', permission: 'can_view_metrics' },
-    { path: '/portal/calls', icon: Phone, label: 'Llamadas', permission: null },
+    { path: '/portal/calls', icon: Phone, label: 'Llamadas', permission: 'can_view_calls' },
     { path: '/portal/forms', icon: ClipboardList, label: 'Formularios', permission: 'can_view_forms' },
     { path: '/portal/ugc', icon: Video, label: 'Creadores', permission: 'can_view_ugc' },
-    { path: '/portal/documents', icon: FileSignature, label: 'Documentos', permission: null },
+    { path: '/portal/documents', icon: FileSignature, label: 'Documentos', permission: 'can_view_documents' },
   ];
 
   const filteredNavItems = navItems.filter(
