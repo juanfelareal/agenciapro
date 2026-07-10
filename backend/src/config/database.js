@@ -2892,6 +2892,145 @@ export const initializeDatabase = async () => {
       WHERE NOT EXISTS (SELECT 1 FROM dashboard_templates WHERE organization_id = 1)
     `);
 
+    // =========================================================================
+    // SEED: NDA Template (Acuerdo de Confidencialidad)
+    // =========================================================================
+    await pool.query(`
+      INSERT INTO document_templates (name, description, category, content, variables, requires_signature, is_active, organization_id, created_by)
+      SELECT
+        'Acuerdo de Confidencialidad (NDA)',
+        'Acuerdo estándar de confidencialidad para proteger información sensible compartida entre la agencia y el cliente.',
+        'nda',
+        $1,
+        $2::jsonb,
+        true,
+        true,
+        1,
+        1
+      WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE organization_id = 1 AND category = 'nda')
+    `, [
+      `<div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; color: #1a1a1a;">
+
+  <div style="text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #10B981;">
+    <h1 style="font-size: 28px; font-weight: 700; color: #17181A; margin: 0 0 8px 0;">ACUERDO DE CONFIDENCIALIDAD</h1>
+    <p style="color: #6B7280; margin: 0; font-size: 14px;">Non-Disclosure Agreement (NDA)</p>
+  </div>
+
+  <div style="background: #F9FAFB; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #6B7280; width: 140px;">Fecha:</td>
+        <td style="padding: 8px 0; font-weight: 500;">{{fecha}}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #6B7280;">Lugar:</td>
+        <td style="padding: 8px 0; font-weight: 500;">{{ciudad}}, Colombia</td>
+      </tr>
+    </table>
+  </div>
+
+  <h2 style="font-size: 16px; font-weight: 600; color: #17181A; margin: 32px 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">Partes del Acuerdo</h2>
+
+  <div style="display: grid; gap: 16px; margin-bottom: 32px;">
+    <div style="background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px;">
+      <p style="font-weight: 600; color: #10B981; margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Parte Divulgadora</p>
+      <p style="margin: 0; font-weight: 600; font-size: 18px;">LA REAL Marketing Digital S.A.S.</p>
+      <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 14px;">NIT: 901.XXX.XXX-X</p>
+      <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 14px;">Representada por: Juan Felipe León León</p>
+    </div>
+
+    <div style="background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px;">
+      <p style="font-weight: 600; color: #3B82F6; margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Parte Receptora</p>
+      <p style="margin: 0; font-weight: 600; font-size: 18px;">{{nombre_empresa}}</p>
+      <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 14px;">NIT: {{nit_empresa}}</p>
+      <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 14px;">Representada por: {{nombre_representante}}</p>
+    </div>
+  </div>
+
+  <h2 style="font-size: 16px; font-weight: 600; color: #17181A; margin: 32px 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">Cláusulas</h2>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">PRIMERA — Definición de Información Confidencial</h3>
+    <p style="margin: 0; text-align: justify;">Se considera "Información Confidencial" toda información técnica, comercial, financiera, estratégica, creativa o de cualquier otra índole que sea revelada por LA REAL a la Parte Receptora, incluyendo pero no limitado a: estrategias de marketing, métricas de rendimiento, bases de datos, creatividades publicitarias, metodologías de trabajo, información de otros clientes, precios y propuestas comerciales, accesos a plataformas digitales (Meta Business, Google Ads, Shopify, etc.), reportes analíticos y cualquier otra información marcada como confidencial o que por su naturaleza deba entenderse como tal.</p>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">SEGUNDA — Obligaciones de Confidencialidad</h3>
+    <p style="margin: 0; text-align: justify;">La Parte Receptora se compromete a:</p>
+    <ul style="margin: 8px 0 0 0; padding-left: 24px;">
+      <li style="margin-bottom: 8px;">Mantener en estricta confidencialidad toda la Información Confidencial recibida.</li>
+      <li style="margin-bottom: 8px;">No divulgar, publicar, ceder o transferir la Información Confidencial a terceros sin autorización previa y por escrito de LA REAL.</li>
+      <li style="margin-bottom: 8px;">Utilizar la Información Confidencial únicamente para los fines relacionados con la relación comercial entre las partes.</li>
+      <li style="margin-bottom: 8px;">Implementar medidas de seguridad razonables para proteger la Información Confidencial contra accesos no autorizados.</li>
+      <li style="margin-bottom: 8px;">Notificar inmediatamente a LA REAL en caso de cualquier uso o divulgación no autorizada.</li>
+    </ul>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">TERCERA — Excepciones</h3>
+    <p style="margin: 0; text-align: justify;">No se considerará Información Confidencial aquella que: (a) sea de dominio público al momento de su divulgación; (b) se haga pública sin culpa de la Parte Receptora; (c) haya sido conocida previamente por la Parte Receptora sin obligación de confidencialidad; (d) sea requerida por orden judicial o autoridad competente, debiendo notificar previamente a LA REAL cuando sea legalmente posible.</p>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">CUARTA — Propiedad de la Información</h3>
+    <p style="margin: 0; text-align: justify;">Toda la Información Confidencial seguirá siendo propiedad exclusiva de LA REAL. Este Acuerdo no otorga a la Parte Receptora ningún derecho de propiedad intelectual, licencia o interés sobre dicha información.</p>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">QUINTA — Vigencia</h3>
+    <p style="margin: 0; text-align: justify;">Este Acuerdo entrará en vigor a partir de la fecha de firma y permanecerá vigente durante todo el tiempo que dure la relación comercial entre las partes, y por un período adicional de <strong>tres (3) años</strong> después de su terminación.</p>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">SEXTA — Devolución de Información</h3>
+    <p style="margin: 0; text-align: justify;">Al término de la relación comercial o a solicitud de LA REAL, la Parte Receptora deberá devolver o destruir toda la Información Confidencial recibida, incluyendo copias físicas y digitales, certificando por escrito su cumplimiento.</p>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">SÉPTIMA — Incumplimiento y Sanciones</h3>
+    <p style="margin: 0; text-align: justify;">El incumplimiento de este Acuerdo facultará a LA REAL para iniciar las acciones legales correspondientes y reclamar los daños y perjuicios causados, sin perjuicio de las sanciones penales que pudieran aplicarse por violación de secretos empresariales conforme a la legislación colombiana.</p>
+  </div>
+
+  <div style="margin-bottom: 24px;">
+    <h3 style="font-size: 14px; font-weight: 600; color: #17181A; margin: 0 0 8px 0;">OCTAVA — Legislación Aplicable</h3>
+    <p style="margin: 0; text-align: justify;">Este Acuerdo se regirá por las leyes de la República de Colombia. Para cualquier controversia, las partes se someten a la jurisdicción de los tribunales de {{ciudad}}.</p>
+  </div>
+
+  <div style="background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 12px; padding: 20px; margin: 32px 0;">
+    <p style="margin: 0; font-weight: 600; color: #92400E; font-size: 14px;">⚠️ Declaración de Aceptación</p>
+    <p style="margin: 8px 0 0 0; color: #78350F; font-size: 14px;">Al firmar este documento, ambas partes declaran haber leído, entendido y aceptado todas las cláusulas aquí establecidas, comprometiéndose a su fiel cumplimiento.</p>
+  </div>
+
+  <div style="margin-top: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+    <div>
+      <p style="font-weight: 600; color: #6B7280; font-size: 12px; text-transform: uppercase; margin: 0 0 16px 0;">Por LA REAL Marketing Digital</p>
+      <div style="border-bottom: 2px solid #17181A; height: 60px; margin-bottom: 8px;"></div>
+      <p style="margin: 0; font-weight: 600;">Juan Felipe León León</p>
+      <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 14px;">Representante Legal</p>
+    </div>
+
+    <div>
+      <p style="font-weight: 600; color: #6B7280; font-size: 12px; text-transform: uppercase; margin: 0 0 16px 0;">Por {{nombre_empresa}}</p>
+      <div style="border-bottom: 2px solid #17181A; height: 60px; margin-bottom: 8px;"></div>
+      <p style="margin: 0; font-weight: 600;">{{nombre_representante}}</p>
+      <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 14px;">Representante Legal</p>
+    </div>
+  </div>
+
+  <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #E5E7EB; text-align: center;">
+    <p style="margin: 0; color: #9CA3AF; font-size: 12px;">Documento generado electrónicamente • Válido según Ley 527 de 1999</p>
+    <p style="margin: 4px 0 0 0; color: #9CA3AF; font-size: 12px;">LA REAL Marketing Digital S.A.S. • www.larealmarketing.com</p>
+  </div>
+</div>`,
+      JSON.stringify([
+        { key: 'fecha', label: 'Fecha del acuerdo', type: 'date', required: true },
+        { key: 'ciudad', label: 'Ciudad', type: 'text', required: true, default: 'Bogotá' },
+        { key: 'nombre_empresa', label: 'Nombre de la empresa (Cliente)', type: 'text', required: true },
+        { key: 'nit_empresa', label: 'NIT de la empresa', type: 'text', required: true },
+        { key: 'nombre_representante', label: 'Nombre del representante legal', type: 'text', required: true }
+      ])
+    ]);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
