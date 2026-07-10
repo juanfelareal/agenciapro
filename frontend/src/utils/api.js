@@ -872,4 +872,62 @@ export const documentTemplatesAPI = {
   deleteSignature: (signatureId) => api.delete(`/document-templates/signatures/${signatureId}`),
 };
 
+// Zernio (Social Media Management)
+export const zernioAPI = {
+  // Settings
+  getSettings: () => api.get('/zernio/settings'),
+  saveSettings: (apiKey) => api.post('/zernio/settings', { api_key: apiKey }),
+  testConnection: () => api.post('/zernio/test'),
+  disconnect: () => api.delete('/zernio/settings'),
+
+  // Accounts
+  getAccounts: (platform) => api.get('/zernio/accounts', { params: { platform } }),
+  getAccountHealth: (accountId) => api.get('/zernio/accounts/health', { params: { accountId } }),
+  getFollowerStats: (accountId) => api.get(`/zernio/accounts/${accountId}/followers`),
+
+  // Analytics
+  getPostAnalytics: (accountId, options = {}) => api.get('/zernio/analytics/posts', { params: { accountId, ...options } }),
+  getFollowerAnalytics: (accountId, dateFrom, dateTo) => api.get('/zernio/analytics/followers', { params: { accountId, dateFrom, dateTo } }),
+  getDailyMetrics: (accountId, dateFrom, dateTo) => api.get('/zernio/analytics/daily', { params: { accountId, dateFrom, dateTo } }),
+  getBestTimes: (accountId, platform) => api.get('/zernio/analytics/best-times', { params: { accountId, platform } }),
+  getInstagramInsights: (accountId, dateFrom, dateTo) => api.get('/zernio/analytics/instagram', { params: { accountId, dateFrom, dateTo } }),
+
+  // Posts
+  getPosts: (options = {}) => api.get('/zernio/posts', { params: options }),
+  getPostQueue: (accountId, limit) => api.get('/zernio/posts/queue', { params: { accountId, limit } }),
+  getPost: (postId) => api.get(`/zernio/posts/${postId}`),
+  createPost: (data) => api.post('/zernio/posts', data),
+  updatePost: (postId, data) => api.put(`/zernio/posts/${postId}`, data),
+  deletePost: (postId) => api.delete(`/zernio/posts/${postId}`),
+  publishNow: (postId) => api.post(`/zernio/posts/${postId}/publish`),
+
+  // Comments
+  getCommentedPosts: (options = {}) => api.get('/zernio/comments/posts', { params: options }),
+  getPostComments: (postId, accountId) => api.get(`/zernio/posts/${postId}/comments`, { params: { accountId } }),
+  replyToComment: (commentId, accountId, message) => api.post(`/zernio/comments/${commentId}/reply`, { accountId, message }),
+  likeComment: (commentId, accountId) => api.post(`/zernio/comments/${commentId}/like`, { accountId }),
+  hideComment: (commentId, accountId) => api.post(`/zernio/comments/${commentId}/hide`, { accountId }),
+  deleteComment: (commentId, accountId) => api.delete(`/zernio/comments/${commentId}`, { params: { accountId } }),
+
+  // Conversations (Inbox)
+  getConversations: (options = {}) => api.get('/zernio/conversations', { params: options }),
+  getConversation: (conversationId) => api.get(`/zernio/conversations/${conversationId}`),
+  getMessages: (conversationId, limit) => api.get(`/zernio/conversations/${conversationId}/messages`, { params: { limit } }),
+  sendMessage: (conversationId, accountId, message) => api.post(`/zernio/conversations/${conversationId}/messages`, { accountId, message }),
+  updateConversationStatus: (conversationId, status) => api.patch(`/zernio/conversations/${conversationId}/status`, { status }),
+
+  // Automations
+  getAutomations: (options = {}) => api.get('/zernio/automations', { params: options }),
+  getAutomation: (automationId) => api.get(`/zernio/automations/${automationId}`),
+  createAutomation: (data) => api.post('/zernio/automations', data),
+  updateAutomation: (automationId, data) => api.put(`/zernio/automations/${automationId}`, data),
+  deleteAutomation: (automationId) => api.delete(`/zernio/automations/${automationId}`),
+  getAutomationLogs: (automationId, limit) => api.get(`/zernio/automations/${automationId}/logs`, { params: { limit } }),
+
+  // Media
+  uploadMedia: (url, type, altText) => api.post('/zernio/media', { url, type, altText }),
+  getMedia: (options = {}) => api.get('/zernio/media', { params: options }),
+  deleteMedia: (mediaId) => api.delete(`/zernio/media/${mediaId}`),
+};
+
 export default api;

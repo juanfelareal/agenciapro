@@ -52,6 +52,7 @@ import UGCProjects from './pages/UGCProjects';
 import UGCProjectDetail from './pages/UGCProjectDetail';
 import UGCRegister from './pages/UGCRegister';
 import DocumentTemplates from './pages/DocumentTemplates';
+import Social from './pages/Social';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -387,14 +388,6 @@ function App() {
                   }
                 />
                 <Route
-                  path="ugc/:id"
-                  element={
-                    <ProtectedRoute permission="ugc">
-                      <UGCCreatorDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
                   path="ugc/projects"
                   element={
                     <ProtectedRoute permission="ugc">
@@ -407,6 +400,22 @@ function App() {
                   element={
                     <ProtectedRoute permission="ugc">
                       <UGCProjectDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="ugc/:id"
+                  element={
+                    <ProtectedRoute permission="ugc">
+                      <UGCCreatorDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="social"
+                  element={
+                    <ProtectedRoute>
+                      <Social />
                     </ProtectedRoute>
                   }
                 />

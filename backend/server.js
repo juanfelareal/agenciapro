@@ -58,6 +58,8 @@ import sopsRoutes from './src/routes/sops.js';
 import projectTemplatesRoutes from './src/routes/projectTemplates.js';
 // Siigo Integration
 import siigoRoutes from './src/routes/siigo.js';
+// Zernio Integration (Social Media Management)
+import zernioRoutes from './src/routes/zernio.js';
 // Client Portal
 import portalRoutes from './src/routes/portal/index.js';
 import portalAdminRoutes from './src/routes/portal-admin.js';
@@ -248,6 +250,8 @@ app.use('/api/project-templates', teamAuthMiddleware, projectTemplatesRoutes);
 // Time Tracking
 // Siigo Integration
 app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
+// Zernio Integration (Social Media Management)
+app.use('/api/zernio', teamAuthMiddleware, zernioRoutes);
 // Portal admin (internal — needs team auth)
 app.use('/api/portal-admin', teamAuthMiddleware, portalAdminRoutes);
 // Client Portal (public portal — uses its own clientAuthMiddleware)
