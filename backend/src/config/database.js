@@ -2827,6 +2827,42 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_creator ON ugc_project_creators(creator_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_status ON ugc_project_creators(status)`);
 
+    // Migration: Update ugc_project_creators status constraint with new statuses
+    try {
+      // Check if old constraint exists and update it
+      const constraintCheck = await pool.query(`
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'ugc_project_creators_status_check'
+        AND conrelid = 'ugc_project_creators'::regclass
+      `);
+
+      if (constraintCheck.rows.length > 0) {
+        // First migrate old statuses to new ones
+        await pool.query(`
+          UPDATE ugc_project_creators SET status = 'presented' WHERE status = 'contacted';
+        `);
+        await pool.query(`
+          UPDATE ugc_project_creators SET status = 'delivered_approved' WHERE status = 'delivered';
+        `);
+
+        // Drop old constraint
+        await pool.query(`ALTER TABLE ugc_project_creators DROP CONSTRAINT ugc_project_creators_status_check`);
+
+        // Add new constraint with all new statuses
+        await pool.query(`
+          ALTER TABLE ugc_project_creators ADD CONSTRAINT ugc_project_creators_status_check
+          CHECK(status IN ('presented', 'brand_approved', 'negotiating', 'confirmed', 'contract_signed', 'rejected', 'producing', 'delivered_approved', 'delivered_changes', 'paid'))
+        `);
+
+        // Update default
+        await pool.query(`ALTER TABLE ugc_project_creators ALTER COLUMN status SET DEFAULT 'presented'`);
+
+        console.log('  ✅ ugc_project_creators status constraint migrated');
+      }
+    } catch (statusMigrationError) {
+      console.log('  ⏭️  ugc_project_creators status migration skipped:', statusMigrationError.message);
+    }
+
     // UGC Packages (Content packages for clients)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_packages (
