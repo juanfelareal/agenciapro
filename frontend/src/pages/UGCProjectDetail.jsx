@@ -54,7 +54,7 @@ export default function UGCProjectDetail() {
 
   const loadAllCreators = async () => {
     try {
-      const res = await ugcAPI.getAll();
+      const res = await ugcAPI.getCreators();
       // Filter out creators already in the project
       const existingIds = creators.map(c => c.creator_id);
       setAllCreators(res.data.filter(c => !existingIds.includes(c.id)));
