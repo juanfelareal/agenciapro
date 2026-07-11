@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const ZERNIO_API_URL = 'https://api.zernio.com';
+const ZERNIO_API_URL = 'https://zernio.com/api/v1';
 
 /**
  * Zernio Integration
