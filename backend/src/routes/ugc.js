@@ -1157,9 +1157,9 @@ router.post('/projects/:id/creators', async (req, res) => {
     for (const creatorId of creator_ids) {
       try {
         await db.run(
-          `INSERT INTO ugc_project_creators (project_id, creator_id, deliverables, agreed_rate, currency)
-           VALUES (?, ?, ?, ?, ?)`,
-          [req.params.id, creatorId, deliverables, agreed_rate || 0, currency || 'COP']
+          `INSERT INTO ugc_project_creators (project_id, creator_id, status, deliverables, agreed_rate, currency)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [req.params.id, creatorId, 'presented', deliverables, agreed_rate || 0, currency || 'COP']
         );
         added.push(creatorId);
       } catch (e) {
