@@ -30,6 +30,7 @@ export default function UGCCreatorDetail() {
   const [payments, setPayments] = useState([]);
   const [stages, setStages] = useState([]);
   const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
 
@@ -40,7 +41,7 @@ export default function UGCCreatorDetail() {
 
   // Assignment form
   const [assignmentForm, setAssignmentForm] = useState({
-    client_id: '', title: '', description: '', deliverables: '',
+    client_id: '', project_id: '', title: '', description: '', deliverables: '',
     start_date: '', end_date: '', agreed_value: '', status: 'proposed', notes: ''
   });
 
@@ -56,18 +57,20 @@ export default function UGCCreatorDetail() {
 
   const loadData = async () => {
     try {
-      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes] = await Promise.all([
+      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes, projectsRes] = await Promise.all([
         ugcAPI.getCreator(id),
         ugcAPI.getAssignments({ creator_id: id }),
         ugcAPI.getPayments({ creator_id: id }),
         ugcAPI.getStages(),
         ugcAPI.getUgcClients().catch(() => ({ data: [] })),
+        ugcAPI.getProjects().catch(() => ({ data: [] })),
       ]);
       setCreator(creatorRes.data);
       setAssignments(assignmentsRes.data);
       setPayments(paymentsRes.data);
       setStages(stagesRes.data);
       setClients(clientsRes.data || []);
+      setProjects(projectsRes.data || []);
     } catch (error) {
       console.error('Error loading creator:', error);
     } finally {
@@ -97,7 +100,7 @@ export default function UGCCreatorDetail() {
       });
       setShowAssignmentModal(false);
       setAssignmentForm({
-        client_id: '', title: '', description: '', deliverables: '',
+        client_id: '', project_id: '', title: '', description: '', deliverables: '',
         start_date: '', end_date: '', agreed_value: '', status: 'proposed', notes: ''
       });
       loadData();
@@ -476,7 +479,7 @@ export default function UGCCreatorDetail() {
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Cliente *</label>
                 <select
                   value={assignmentForm.client_id}
-                  onChange={(e) => setAssignmentForm({ ...assignmentForm, client_id: e.target.value })}
+                  onChange={(e) => setAssignmentForm({ ...assignmentForm, client_id: e.target.value, project_id: '' })}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
                   required
                 >
@@ -486,6 +489,27 @@ export default function UGCCreatorDetail() {
                   ))}
                 </select>
               </div>
+
+              {assignmentForm.client_id && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Proyecto UGC (opcional)</label>
+                  <select
+                    value={assignmentForm.project_id}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, project_id: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                  >
+                    <option value="">Sin proyecto específico</option>
+                    {projects
+                      .filter(p => p.client_id === parseInt(assignmentForm.client_id))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                  </select>
+                  {projects.filter(p => p.client_id === parseInt(assignmentForm.client_id)).length === 0 && (
+                    <p className="text-xs text-gray-400 mt-1">No hay proyectos UGC para este cliente</p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Título *</label>
