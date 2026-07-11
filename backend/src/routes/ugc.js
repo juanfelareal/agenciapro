@@ -590,6 +590,33 @@ router.post('/assignments', async (req, res) => {
       ]
     );
 
+    // If project_id is provided, also add creator to project Kanban if not already there
+    if (project_id) {
+      const existingProjectCreator = await db.get(
+        'SELECT id FROM ugc_project_creators WHERE project_id = ? AND creator_id = ?',
+        [project_id, creator_id]
+      );
+
+      if (!existingProjectCreator) {
+        // Map assignment status to project creator status
+        const statusMap = {
+          'proposed': 'negotiating',
+          'accepted': 'confirmed',
+          'in_production': 'producing',
+          'delivered': 'delivered_approved',
+          'paid': 'paid',
+          'cancelled': 'rejected'
+        };
+        const projectCreatorStatus = statusMap[status || 'proposed'] || 'negotiating';
+
+        await db.run(
+          `INSERT INTO ugc_project_creators (project_id, creator_id, status, agreed_value, notes)
+           VALUES (?, ?, ?, ?, ?)`,
+          [project_id, creator_id, projectCreatorStatus, agreed_value || 0, notes]
+        );
+      }
+    }
+
     const assignment = await db.get('SELECT * FROM ugc_assignments WHERE id = ?', [result.lastID]);
     res.status(201).json(assignment);
   } catch (error) {
