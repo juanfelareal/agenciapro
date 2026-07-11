@@ -4,18 +4,22 @@ import {
   ArrowLeft, ExternalLink, Users, Calendar, DollarSign,
   Loader2, Plus, X, GripVertical, Search, Check,
   MessageCircle, Phone, Instagram, Mail, MoreVertical,
-  Trash2, Edit2, Clock, CheckCircle2, Banknote, XCircle
+  Trash2, Edit2, Clock, CheckCircle2, Banknote, XCircle,
+  Send, ThumbsUp, FileSignature, Package, RefreshCw, Video
 } from 'lucide-react';
 import { ugcAPI, clientsAPI } from '../utils/api';
 
 const CREATOR_STATUSES = [
-  { id: 'contacted', name: 'Contactado', color: '#9CA3AF', icon: MessageCircle },
-  { id: 'negotiating', name: 'Negociando', color: '#F59E0B', icon: Clock },
-  { id: 'confirmed', name: 'Confirmado', color: '#3B82F6', icon: CheckCircle2 },
-  { id: 'producing', name: 'Produciendo', color: '#8B5CF6', icon: Edit2 },
-  { id: 'delivered', name: 'Entregado', color: '#10B981', icon: Check },
-  { id: 'paid', name: 'Pagado', color: '#059669', icon: Banknote },
-  { id: 'rejected', name: 'Rechazado', color: '#EF4444', icon: XCircle }
+  { id: 'presented', name: 'Presentado a la marca', color: '#9CA3AF', icon: Send },
+  { id: 'brand_approved', name: 'Aprobado por la marca', color: '#06B6D4', icon: ThumbsUp },
+  { id: 'negotiating', name: 'Contactado y negociando', color: '#F59E0B', icon: MessageCircle },
+  { id: 'confirmed', name: 'Confirmado + firmar contrato', color: '#3B82F6', icon: FileSignature },
+  { id: 'contract_signed', name: 'Contrato firmado: Enviar producto', color: '#8B5CF6', icon: Package },
+  { id: 'rejected', name: 'Rechazó la oferta', color: '#EF4444', icon: XCircle },
+  { id: 'producing', name: 'Produciendo', color: '#A855F7', icon: Video },
+  { id: 'delivered_approved', name: 'Entregado aprobado', color: '#10B981', icon: CheckCircle2 },
+  { id: 'delivered_changes', name: 'Entregado y en cambios', color: '#F97316', icon: RefreshCw },
+  { id: 'paid', name: 'Pagado', color: '#059669', icon: Banknote }
 ];
 
 export default function UGCProjectDetail() {
