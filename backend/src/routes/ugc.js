@@ -5,6 +5,47 @@ import db from '../config/database.js';
 const router = express.Router();
 
 // ========================================
+// MIGRATION ENDPOINT (temporary)
+// ========================================
+
+// POST /api/ugc/migrate-statuses - Force migrate project creator statuses
+router.post('/migrate-statuses', async (req, res) => {
+  try {
+    // Drop old constraint if exists
+    await db.run(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ugc_project_creators_status_check') THEN
+          ALTER TABLE ugc_project_creators DROP CONSTRAINT ugc_project_creators_status_check;
+        END IF;
+      END $$
+    `);
+
+    // Update old statuses to new ones
+    await db.run(`UPDATE ugc_project_creators SET status = 'presented' WHERE status = 'contacted'`);
+    await db.run(`UPDATE ugc_project_creators SET status = 'delivered_approved' WHERE status = 'delivered'`);
+
+    // Add new constraint
+    await db.run(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ugc_project_creators_status_check') THEN
+          ALTER TABLE ugc_project_creators ADD CONSTRAINT ugc_project_creators_status_check
+          CHECK(status IN ('presented', 'brand_approved', 'negotiating', 'confirmed', 'contract_signed', 'rejected', 'producing', 'delivered_approved', 'delivered_changes', 'paid'));
+        END IF;
+      END $$
+    `);
+
+    // Update default
+    await db.run(`ALTER TABLE ugc_project_creators ALTER COLUMN status SET DEFAULT 'presented'`);
+
+    res.json({ success: true, message: 'Migration completed' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
 // STAGES (Pipeline)
 // ========================================
 
