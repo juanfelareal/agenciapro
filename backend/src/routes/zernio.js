@@ -80,7 +80,7 @@ router.post('/settings', async (req, res) => {
     // Insert new settings
     const result = await db.prepare(`
       INSERT INTO zernio_settings (api_key, is_active, last_sync_at, created_at, updated_at)
-      VALUES (?, 1, datetime('now'), datetime('now'), datetime('now'))
+      VALUES (?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `).run(api_key);
 
     res.json({
@@ -107,12 +107,12 @@ router.post('/test', async (req, res) => {
     // Update last_sync_at and last_error
     if (result.success) {
       await db.prepare(`
-        UPDATE zernio_settings SET last_sync_at = datetime('now'), last_error = NULL, updated_at = datetime('now')
+        UPDATE zernio_settings SET last_sync_at = CURRENT_TIMESTAMP, last_error = NULL, updated_at = CURRENT_TIMESTAMP
         WHERE is_active = 1
       `).run();
     } else {
       await db.prepare(`
-        UPDATE zernio_settings SET last_error = ?, updated_at = datetime('now')
+        UPDATE zernio_settings SET last_error = ?, updated_at = CURRENT_TIMESTAMP
         WHERE is_active = 1
       `).run(result.error);
     }
@@ -126,7 +126,7 @@ router.post('/test', async (req, res) => {
 // Disconnect Zernio
 router.delete('/settings', async (req, res) => {
   try {
-    await db.prepare('UPDATE zernio_settings SET is_active = 0, updated_at = datetime("now")').run();
+    await db.prepare('UPDATE zernio_settings SET is_active = 0, updated_at = CURRENT_TIMESTAMP').run();
     res.json({ success: true, message: 'Zernio disconnected' });
   } catch (error) {
     res.status(500).json({ error: error.message });
