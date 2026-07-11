@@ -27,11 +27,14 @@ class ZernioIntegration {
     try {
       const response = await this.client.get('/accounts');
 
-      if (response.data && Array.isArray(response.data)) {
+      // Zernio API returns { accounts: [...], hasAnalyticsAccess: true }
+      const accounts = response.data?.accounts || response.data;
+
+      if (accounts && Array.isArray(accounts)) {
         return {
           success: true,
-          accounts: response.data,
-          accountCount: response.data.length
+          accounts: accounts,
+          accountCount: accounts.length
         };
       }
 
@@ -53,7 +56,8 @@ class ZernioIntegration {
     try {
       const params = platform ? { platform } : {};
       const response = await this.client.get('/accounts', { params });
-      return response.data || [];
+      // Zernio API returns { accounts: [...], hasAnalyticsAccess: true }
+      return response.data?.accounts || response.data || [];
     } catch (error) {
       console.error('Error listing Zernio accounts:', error.response?.data || error.message);
       throw error;
