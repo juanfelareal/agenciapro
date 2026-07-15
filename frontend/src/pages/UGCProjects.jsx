@@ -35,6 +35,7 @@ export default function UGCProjects() {
     video_count: '',
     price_per_video: '',
     creator_cost_per_video: '',
+    product_value: '',
     deadline: ''
   });
 
@@ -113,12 +114,13 @@ export default function UGCProjects() {
         video_count: videoCount,
         price_per_video: pricePerVideo,
         creator_cost_per_video: creatorCost,
+        product_value: parseFloat(newProject.product_value) || 0,
         package_id: newProject.package_id ? parseInt(newProject.package_id) : null
       });
       setShowNewModal(false);
       setNewProject({
         client_id: '', title: '', description: '', brief_url: '',
-        package_id: '', video_count: '', price_per_video: '', creator_cost_per_video: '', deadline: ''
+        package_id: '', video_count: '', price_per_video: '', creator_cost_per_video: '', product_value: '', deadline: ''
       });
       // Navigate to the new project
       navigate(`/app/ugc/projects/${res.data.id}`);
@@ -450,19 +452,33 @@ export default function UGCProjects() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Costo por video al creador (COP)
-                    </label>
-                    <input
-                      type="number"
-                      value={newProject.creator_cost_per_video}
-                      onChange={e => setNewProject({ ...newProject, creator_cost_per_video: e.target.value })}
-                      placeholder="Ej: 100000"
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Cuánto le pagas en promedio a cada creador por video</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Pago por video al creador
+                      </label>
+                      <input
+                        type="number"
+                        value={newProject.creator_cost_per_video}
+                        onChange={e => setNewProject({ ...newProject, creator_cost_per_video: e.target.value })}
+                        placeholder="Ej: 100000"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Valor del producto
+                      </label>
+                      <input
+                        type="number"
+                        value={newProject.product_value}
+                        onChange={e => setNewProject({ ...newProject, product_value: e.target.value })}
+                        placeholder="Ej: 150000"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      />
+                    </div>
                   </div>
+                  <p className="text-xs text-gray-400 -mt-2">Cuánto le pagas al creador por video + valor del producto que recibe</p>
 
                   {/* Margin Calculator */}
                   {videoCount > 0 && pricePerVideo > 0 && (

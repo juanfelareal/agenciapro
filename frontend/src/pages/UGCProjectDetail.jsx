@@ -33,13 +33,24 @@ const generateWhatsAppMessage = (creator, project) => {
     message += `\n📝 *Detalles:*\n${project.description}\n`;
   }
 
-  if (project.budget > 0) {
-    message += `\n💰 *Presupuesto:* $${project.budget.toLocaleString('es-CO')} ${project.currency || 'COP'}\n`;
+  // "Lo que recibes" section
+  const hasPaymentInfo = project.creator_cost_per_video > 0 || project.video_count > 0 || project.product_value > 0;
+  if (hasPaymentInfo) {
+    message += `\n🎁 *Lo que recibes:*\n`;
+    if (project.creator_cost_per_video > 0) {
+      message += `• Pago: $${project.creator_cost_per_video.toLocaleString('es-CO')} x video\n`;
+    }
+    if (project.video_count > 0) {
+      message += `• Cantidad de videos: ${project.video_count}\n`;
+    }
+    if (project.product_value > 0) {
+      message += `• Producto valorado en $${project.product_value.toLocaleString('es-CO')}\n`;
+    }
   }
 
   if (project.deadline) {
     const deadline = new Date(project.deadline).toLocaleDateString('es-CO', { month: 'long', day: 'numeric' });
-    message += `📅 *Fecha de entrega:* ${deadline}\n`;
+    message += `\n📅 *Fecha de entrega:* ${deadline}\n`;
   }
 
   if (project.brief_url) {

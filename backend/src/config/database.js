@@ -2895,6 +2895,9 @@ export const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='creator_cost_per_video') THEN
           ALTER TABLE ugc_projects ADD COLUMN creator_cost_per_video REAL DEFAULT 0;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='product_value') THEN
+          ALTER TABLE ugc_projects ADD COLUMN product_value REAL DEFAULT 0;
+        END IF;
       END $$
     `);
 
