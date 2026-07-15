@@ -527,6 +527,8 @@ router.get('/ads', clientAuthMiddleware, requirePortalPermission('can_view_metri
     const clientId = req.client.id;
     const { startDate, endDate } = resolveRange(req.query);
 
+    console.log(`[Portal Ads] Client ${clientId}, range: ${startDate} - ${endDate}`);
+
     // Get Facebook credentials
     const fbCred = await db.get(
       'SELECT access_token, ad_account_id FROM client_facebook_credentials WHERE client_id = ?',
@@ -534,16 +536,30 @@ router.get('/ads', clientAuthMiddleware, requirePortalPermission('can_view_metri
     );
 
     if (!fbCred || !fbCred.ad_account_id) {
+      console.log(`[Portal Ads] No FB credentials for client ${clientId}`);
       return res.json({ ads: [], message: 'Sin conexión Facebook' });
     }
 
+    console.log(`[Portal Ads] Found FB credentials, ad_account_id: ${fbCred.ad_account_id}`);
+
     const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
     if (!accessToken) {
+      console.log(`[Portal Ads] No access token available for client ${clientId}`);
       return res.json({ ads: [], message: 'Sin token de acceso Facebook' });
     }
 
     const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
-    const ads = await fb.getAdLevelInsights(startDate, endDate);
+
+    let ads;
+    try {
+      console.log(`[Portal Ads] Calling getAdLevelInsights...`);
+      ads = await fb.getAdLevelInsights(startDate, endDate);
+      console.log(`[Portal Ads] Got ${ads?.length || 0} ads`);
+    } catch (fbError) {
+      console.error(`[Portal Ads] Facebook API error:`, fbError.response?.data || fbError.message);
+      // Return empty array with error message instead of failing
+      return res.json({ ads: [], message: `Error de Facebook: ${fbError.response?.data?.error?.message || fbError.message}` });
+    }
 
     // Merge persisted tags into ads (read-only for portal)
     if (ads && ads.length > 0) {
