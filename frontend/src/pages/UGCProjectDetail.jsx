@@ -5,9 +5,61 @@ import {
   Loader2, Plus, X, GripVertical, Search, Check,
   MessageCircle, Phone, Instagram, Mail, MoreVertical,
   Trash2, Edit2, Clock, CheckCircle2, Banknote, XCircle,
-  Send, ThumbsUp, FileSignature, Package, RefreshCw, Video
+  Send, ThumbsUp, FileSignature, Package, RefreshCw, Video,
+  MessageSquare
 } from 'lucide-react';
 import { ugcAPI, clientsAPI } from '../utils/api';
+
+// WhatsApp icon component
+const WhatsAppIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+);
+
+/**
+ * Generate WhatsApp message for contacting a creator about a project
+ */
+const generateWhatsAppMessage = (creator, project) => {
+  const firstName = creator.full_name?.split(' ')[0] || 'Hola';
+  const clientName = project.client_nickname || project.client_name || 'nuestra marca';
+
+  let message = `¡Hola ${firstName}! 👋\n\n`;
+  message += `Soy del equipo de LA REAL y te escribo porque tenemos un proyecto de contenido UGC que creemos sería perfecto para ti.\n\n`;
+  message += `📌 *Proyecto:* ${project.title}\n`;
+  message += `🏷️ *Marca:* ${clientName}\n`;
+
+  if (project.description) {
+    message += `\n📝 *Detalles:*\n${project.description}\n`;
+  }
+
+  if (project.budget > 0) {
+    message += `\n💰 *Presupuesto:* $${project.budget.toLocaleString('es-CO')} ${project.currency || 'COP'}\n`;
+  }
+
+  if (project.deadline) {
+    const deadline = new Date(project.deadline).toLocaleDateString('es-CO', { month: 'long', day: 'numeric' });
+    message += `📅 *Fecha de entrega:* ${deadline}\n`;
+  }
+
+  if (project.brief_url) {
+    message += `\n📋 *Brief completo:* ${project.brief_url}\n`;
+  }
+
+  message += `\n¿Te interesa participar? Me encantaría contarte más detalles. 🙌`;
+
+  return encodeURIComponent(message);
+};
+
+/**
+ * Get WhatsApp URL for a creator with project proposal message
+ */
+const getWhatsAppUrl = (creator, project) => {
+  if (!creator.phone) return null;
+  const phone = creator.phone.replace(/\D/g, '');
+  const message = generateWhatsAppMessage(creator, project);
+  return `https://wa.me/${phone}?text=${message}`;
+};
 
 const CREATOR_STATUSES = [
   { id: 'presented', name: 'Presentado a la marca', color: '#9CA3AF', icon: Send },
@@ -301,6 +353,20 @@ export default function UGCProjectDetail() {
                             {creator.deliverables}
                           </p>
                         )}
+
+                        {/* Quick WhatsApp button */}
+                        {creator.phone && (
+                          <a
+                            href={getWhatsAppUrl(creator, project)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-2 flex items-center gap-1.5 text-xs text-[#25D366] hover:text-[#20BD5A] font-medium"
+                          >
+                            <WhatsAppIcon className="w-3.5 h-3.5" />
+                            Contactar
+                          </a>
+                        )}
                       </div>
                     ))
                   )}
@@ -507,6 +573,19 @@ export default function UGCProjectDetail() {
                   ))}
                 </select>
               </div>
+
+              {/* WhatsApp Contact Button */}
+              {showCreatorModal.phone && (
+                <a
+                  href={getWhatsAppUrl(showCreatorModal, project)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] text-white rounded-xl text-sm font-medium hover:bg-[#20BD5A] transition-colors"
+                >
+                  <WhatsAppIcon className="w-5 h-5" />
+                  Contactar vía WhatsApp
+                </a>
+              )}
 
               {/* Actions */}
               <div className="flex items-center gap-3">
