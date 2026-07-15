@@ -34,6 +34,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [apiMessage, setApiMessage] = useState(null); // Message from API (e.g., FB connection issues)
   const [expandedCampaigns, setExpandedCampaigns] = useState(new Set());
   const [expandedAdsets, setExpandedAdsets] = useState(new Set());
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED'
@@ -44,10 +45,15 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setApiMessage(null);
     portalMetricsAPI.getAds({ start_date: startDate, end_date: endDate })
       .then((data) => {
         if (cancelled) return;
         setAds(data?.ads || []);
+        // Capture message from API (e.g., "Error de Facebook: token expired")
+        if (data?.message) {
+          setApiMessage(data.message);
+        }
       })
       .catch((err) => {
         if (cancelled) return;
@@ -199,6 +205,18 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
   }
 
   if (campaigns.list.length === 0) {
+    // If there's an API message (e.g., FB connection error), show it
+    if (apiMessage) {
+      return (
+        <div className="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Problema de conexión con Facebook</p>
+            <p className="text-amber-700 mt-1">{apiMessage}</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="mt-6 glass-card p-8 text-center text-gray-500">
         <Target className="w-10 h-10 mx-auto text-gray-300 mb-2" />
