@@ -1082,7 +1082,7 @@ router.get('/projects', async (req, res) => {
 router.get('/projects/:id', async (req, res) => {
   try {
     const project = await db.get(
-      `SELECT p.*, c.company as client_name, c.nickname as client_nickname,
+      `SELECT p.*, c.company as client_name, c.nickname as client_nickname, c.website as client_website,
               tm.name as created_by_name
        FROM ugc_projects p
        JOIN clients c ON p.client_id = c.id
@@ -1217,7 +1217,7 @@ router.post('/projects/:id/creators', async (req, res) => {
 // PUT /api/ugc/projects/:projectId/creators/:creatorId - Update creator status in project
 router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
   try {
-    const { status, agreed_rate, currency, deliverables, delivery_url, brief_url, notes } = req.body;
+    const { status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes } = req.body;
 
     let extraFields = '';
     if (status === 'delivered') {
@@ -1234,11 +1234,12 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
         deliverables = COALESCE(?, deliverables),
         delivery_url = COALESCE(?, delivery_url),
         brief_url = COALESCE(?, brief_url),
+        video_count = COALESCE(?, video_count),
         notes = COALESCE(?, notes),
         updated_at = CURRENT_TIMESTAMP
         ${extraFields}
        WHERE project_id = ? AND creator_id = ?`,
-      [status, agreed_rate, currency, deliverables, delivery_url, brief_url, notes, req.params.projectId, req.params.creatorId]
+      [status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes, req.params.projectId, req.params.creatorId]
     );
 
     // Auto-create Drive folder when status changes to confirmed or contract_signed

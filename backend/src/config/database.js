@@ -2914,12 +2914,25 @@ export const initializeDatabase = async () => {
       END $$
     `);
 
-    // Add brief_url to ugc_project_creators (creator-specific brief)
+    // Add brief_url and video_count to ugc_project_creators
     await pool.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='brief_url') THEN
           ALTER TABLE ugc_project_creators ADD COLUMN brief_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='video_count') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN video_count INTEGER DEFAULT 1;
+        END IF;
+      END $$
+    `);
+
+    // Add website to clients table
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='website') THEN
+          ALTER TABLE clients ADD COLUMN website TEXT;
         END IF;
       END $$
     `);

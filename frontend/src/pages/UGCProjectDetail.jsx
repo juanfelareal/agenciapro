@@ -22,34 +22,51 @@ const WhatsAppIcon = ({ className }) => (
  */
 const generateWhatsAppMessage = (creator, project) => {
   const firstName = creator.full_name?.split(' ')[0] || 'Hola';
-  const clientName = project.client_nickname || project.client_name || 'nuestra marca';
+  const clientName = project.client_nickname || project.client_name || 'la marca';
+  const clientWebsite = project.client_website || '';
+  const videoCount = creator.video_count || 1;
+  const pricePerVideo = project.creator_cost_per_video || 0;
+  const total = videoCount * pricePerVideo;
+  const briefUrl = creator.brief_url || project.brief_url;
 
-  let message = `Hola ${firstName}!\n\n`;
-  message += `Soy del equipo de LA REAL y te escribo porque tenemos un proyecto de contenido UGC para ${clientName}.\n`;
+  let message = `¡Hola ${firstName}! Soy Juanfe del equipo de LA REAL y te escribo porque estás en nuestra base de datos de creadores UGC. Tu perfil ha sido seleccionado y aceptado por uno de nuestros clientes y queremos presentarte el proyecto y saber si podemos contar contigo.\n\n`;
 
-  const hasPaymentInfo = project.creator_cost_per_video > 0 || project.product_value > 0;
-  if (hasPaymentInfo) {
-    message += `\n*Lo que recibes:*\n`;
-    if (project.creator_cost_per_video > 0) {
-      message += `- Pago: $${project.creator_cost_per_video.toLocaleString('es-CO')} x video\n`;
+  // Client info
+  message += `*Cliente:* ${clientName}`;
+  if (clientWebsite) {
+    message += ` (${clientWebsite})`;
+  }
+  message += `\n`;
+
+  // Video count
+  message += `*Cantidad de videos:* ${videoCount}\n`;
+
+  // Payment info
+  if (pricePerVideo > 0) {
+    message += `*Lo que recibes:* $${pricePerVideo.toLocaleString('es-CO')} x video`;
+    if (videoCount > 1) {
+      message += ` (total: $${total.toLocaleString('es-CO')})`;
     }
     if (project.product_value > 0) {
-      message += `- Producto valorado en $${project.product_value.toLocaleString('es-CO')}\n`;
+      message += ` + producto de la marca para hacer el contenido. Producto que NO debes devolver, es para ti.`;
     }
+    message += `\n`;
+  } else if (project.product_value > 0) {
+    message += `*Lo que recibes:* Producto de la marca valorado en $${project.product_value.toLocaleString('es-CO')} (es para ti, no lo devuelves).\n`;
   }
 
+  // Deadline
   if (project.deadline) {
-    const deadline = new Date(project.deadline).toLocaleDateString('es-CO', { month: 'long', day: 'numeric' });
-    message += `\n*Fecha de entrega:* ${deadline}\n`;
+    const deadline = new Date(project.deadline).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
+    message += `*Fecha de entrega:* ${deadline}\n`;
   }
 
-  // Use creator-specific brief if available, otherwise project brief
-  const briefUrl = creator.brief_url || project.brief_url;
+  // Brief
   if (briefUrl) {
-    message += `\n*Brief completo:* ${briefUrl}\n`;
+    message += `*Brief completo:* ${briefUrl}\n`;
   }
 
-  message += `\nTe cuento mas?`;
+  message += `\nConfírmame si te suena y te envío más detalles`;
 
   return encodeURIComponent(message);
 };
@@ -433,7 +450,7 @@ export default function UGCProjectDetail() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Creador</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ciudad</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tarifa</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Videos</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Brief</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Carpeta Drive</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -493,15 +510,11 @@ export default function UGCProjectDetail() {
                         </span>
                       </td>
 
-                      {/* Rate */}
+                      {/* Videos */}
                       <td className="px-4 py-3">
-                        {creator.agreed_rate > 0 ? (
-                          <span className="text-sm font-medium text-gray-900">
-                            ${creator.agreed_rate.toLocaleString('es-CO')}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
+                        <span className="text-sm font-medium text-gray-900">
+                          {creator.video_count || 1}
+                        </span>
                       </td>
 
                       {/* Brief */}
