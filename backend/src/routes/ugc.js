@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import db from '../config/database.js';
+import googleDriveService from '../services/googleDrive.js';
 
 const router = express.Router();
 
@@ -906,16 +907,14 @@ router.delete('/registration-links/:id', async (req, res) => {
 // CLIENTS WITH UGC ENABLED
 // ========================================
 
-// GET /api/ugc/clients - List clients with UGC enabled
+// GET /api/ugc/clients - List all active clients for UGC assignments
 router.get('/clients', async (req, res) => {
   try {
     const clients = await db.all(
-      `SELECT c.id, c.company, c.name, c.email
+      `SELECT c.id, c.company, c.name, c.email, c.nickname
        FROM clients c
-       INNER JOIN client_portal_settings cps ON c.id = cps.client_id
        WHERE c.organization_id = ?
        AND c.status = 'active'
-       AND cps.can_view_ugc = 1
        ORDER BY c.company, c.name`,
       [req.orgId]
     );
@@ -1218,7 +1217,7 @@ router.post('/projects/:id/creators', async (req, res) => {
 // PUT /api/ugc/projects/:projectId/creators/:creatorId - Update creator status in project
 router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
   try {
-    const { status, agreed_rate, currency, deliverables, delivery_url, notes } = req.body;
+    const { status, agreed_rate, currency, deliverables, delivery_url, brief_url, notes } = req.body;
 
     let extraFields = '';
     if (status === 'delivered') {
@@ -1234,12 +1233,51 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
         currency = COALESCE(?, currency),
         deliverables = COALESCE(?, deliverables),
         delivery_url = COALESCE(?, delivery_url),
+        brief_url = COALESCE(?, brief_url),
         notes = COALESCE(?, notes),
         updated_at = CURRENT_TIMESTAMP
         ${extraFields}
        WHERE project_id = ? AND creator_id = ?`,
-      [status, agreed_rate, currency, deliverables, delivery_url, notes, req.params.projectId, req.params.creatorId]
+      [status, agreed_rate, currency, deliverables, delivery_url, brief_url, notes, req.params.projectId, req.params.creatorId]
     );
+
+    // Auto-create Drive folder when status changes to confirmed or contract_signed
+    if ((status === 'confirmed' || status === 'contract_signed') && googleDriveService.isConfigured()) {
+      const projectCreator = await db.get(
+        'SELECT drive_folder_id FROM ugc_project_creators WHERE project_id = ? AND creator_id = ?',
+        [req.params.projectId, req.params.creatorId]
+      );
+
+      // Only create if folder doesn't exist yet
+      if (!projectCreator?.drive_folder_id) {
+        try {
+          const project = await db.get(
+            `SELECT p.*, c.company as client_name, c.nickname as client_nickname
+             FROM ugc_projects p
+             JOIN clients c ON p.client_id = c.id
+             WHERE p.id = ?`,
+            [req.params.projectId]
+          );
+          const creator = await db.get('SELECT full_name FROM ugc_creators WHERE id = ?', [req.params.creatorId]);
+
+          if (project && creator) {
+            const clientName = project.client_nickname || project.client_name;
+            const result = await googleDriveService.createCreatorFolder(clientName, creator.full_name);
+
+            if (result.success) {
+              await db.run(
+                `UPDATE ugc_project_creators SET drive_folder_id = ?, drive_folder_url = ? WHERE project_id = ? AND creator_id = ?`,
+                [result.creatorFolder.id, result.creatorFolder.url, req.params.projectId, req.params.creatorId]
+              );
+              console.log(`Drive folder created for ${creator.full_name}: ${result.creatorFolder.url}`);
+            }
+          }
+        } catch (driveError) {
+          console.error('Error auto-creating Drive folder:', driveError.message);
+          // Don't fail the request, just log the error
+        }
+      }
+    }
 
     const updated = await db.get(
       `SELECT pc.*, cr.full_name, cr.email, cr.phone, cr.profile_photo_url
@@ -1264,6 +1302,171 @@ router.delete('/projects/:projectId/creators/:creatorId', async (req, res) => {
     );
     res.json({ message: 'Creador removido del proyecto' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// GOOGLE DRIVE INTEGRATION
+// ========================================
+
+// GET /api/ugc/drive/status - Check Google Drive configuration status
+router.get('/drive/status', (req, res) => {
+  res.json({
+    configured: googleDriveService.isConfigured(),
+    rootFolderId: process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || null
+  });
+});
+
+// POST /api/ugc/projects/:projectId/creators/:creatorId/drive-folder - Create Drive folder for creator
+router.post('/projects/:projectId/creators/:creatorId/drive-folder', async (req, res) => {
+  try {
+    // Check if Drive is configured
+    if (!googleDriveService.isConfigured()) {
+      return res.status(400).json({ error: 'Google Drive no está configurado' });
+    }
+
+    // Get project with client info
+    const project = await db.get(
+      `SELECT p.*, c.company as client_name, c.nickname as client_nickname
+       FROM ugc_projects p
+       JOIN clients c ON p.client_id = c.id
+       WHERE p.id = ? AND p.organization_id = ?`,
+      [req.params.projectId, req.orgId]
+    );
+
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    // Get creator info
+    const creator = await db.get(
+      'SELECT * FROM ugc_creators WHERE id = ? AND organization_id = ?',
+      [req.params.creatorId, req.orgId]
+    );
+
+    if (!creator) {
+      return res.status(404).json({ error: 'Creador no encontrado' });
+    }
+
+    // Get project-creator assignment
+    const projectCreator = await db.get(
+      'SELECT * FROM ugc_project_creators WHERE project_id = ? AND creator_id = ?',
+      [req.params.projectId, req.params.creatorId]
+    );
+
+    if (!projectCreator) {
+      return res.status(404).json({ error: 'El creador no está asignado a este proyecto' });
+    }
+
+    // Check if folder already exists
+    if (projectCreator.drive_folder_id) {
+      return res.json({
+        message: 'La carpeta ya existe',
+        drive_folder_id: projectCreator.drive_folder_id,
+        drive_folder_url: projectCreator.drive_folder_url
+      });
+    }
+
+    // Create folder in Drive
+    const clientName = project.client_nickname || project.client_name;
+    const result = await googleDriveService.createCreatorFolder(clientName, creator.full_name);
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error || 'Error creando carpeta en Drive' });
+    }
+
+    // Update project-creator with folder info
+    await db.run(
+      `UPDATE ugc_project_creators SET
+        drive_folder_id = ?,
+        drive_folder_url = ?,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE project_id = ? AND creator_id = ?`,
+      [result.creatorFolder.id, result.creatorFolder.url, req.params.projectId, req.params.creatorId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Carpeta creada exitosamente',
+      drive_folder_id: result.creatorFolder.id,
+      drive_folder_url: result.creatorFolder.url,
+      client_folder: result.clientFolder
+    });
+  } catch (error) {
+    console.error('Error creating Drive folder:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/projects/:projectId/create-all-folders - Create Drive folders for all creators in project
+router.post('/projects/:projectId/create-all-folders', async (req, res) => {
+  try {
+    // Check if Drive is configured
+    if (!googleDriveService.isConfigured()) {
+      return res.status(400).json({ error: 'Google Drive no está configurado' });
+    }
+
+    // Get project with client info
+    const project = await db.get(
+      `SELECT p.*, c.company as client_name, c.nickname as client_nickname
+       FROM ugc_projects p
+       JOIN clients c ON p.client_id = c.id
+       WHERE p.id = ? AND p.organization_id = ?`,
+      [req.params.projectId, req.orgId]
+    );
+
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    // Get all creators without folders
+    const creators = await db.all(
+      `SELECT pc.*, cr.full_name
+       FROM ugc_project_creators pc
+       JOIN ugc_creators cr ON pc.creator_id = cr.id
+       WHERE pc.project_id = ? AND pc.drive_folder_id IS NULL`,
+      [req.params.projectId]
+    );
+
+    if (creators.length === 0) {
+      return res.json({ message: 'Todos los creadores ya tienen carpeta', created: 0 });
+    }
+
+    const clientName = project.client_nickname || project.client_name;
+    const results = { created: 0, failed: 0, errors: [] };
+
+    for (const creator of creators) {
+      try {
+        const result = await googleDriveService.createCreatorFolder(clientName, creator.full_name);
+
+        if (result.success) {
+          await db.run(
+            `UPDATE ugc_project_creators SET
+              drive_folder_id = ?,
+              drive_folder_url = ?,
+              updated_at = CURRENT_TIMESTAMP
+             WHERE project_id = ? AND creator_id = ?`,
+            [result.creatorFolder.id, result.creatorFolder.url, req.params.projectId, creator.creator_id]
+          );
+          results.created++;
+        } else {
+          results.failed++;
+          results.errors.push({ creator: creator.full_name, error: result.error });
+        }
+      } catch (err) {
+        results.failed++;
+        results.errors.push({ creator: creator.full_name, error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `${results.created} carpetas creadas`,
+      ...results
+    });
+  } catch (error) {
+    console.error('Error creating Drive folders:', error);
     res.status(500).json({ error: error.message });
   }
 });

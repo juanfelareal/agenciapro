@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, Users, Calendar, DollarSign,
-  Loader2, Plus, X, GripVertical, Search, Check,
-  MessageCircle, Phone, Instagram, Mail, MoreVertical,
-  Trash2, Edit2, Clock, CheckCircle2, Banknote, XCircle,
+  Loader2, Plus, X, Search, Check,
+  Phone, Instagram, Mail,
+  Trash2, FolderOpen, ChevronDown, FileText, Edit2,
   Send, ThumbsUp, FileSignature, Package, RefreshCw, Video,
-  MessageSquare
+  MessageCircle, CheckCircle2, Banknote, XCircle
 } from 'lucide-react';
-import { ugcAPI, clientsAPI } from '../utils/api';
+import { ugcAPI } from '../utils/api';
 
 // WhatsApp icon component
 const WhatsAppIcon = ({ className }) => (
@@ -24,47 +24,36 @@ const generateWhatsAppMessage = (creator, project) => {
   const firstName = creator.full_name?.split(' ')[0] || 'Hola';
   const clientName = project.client_nickname || project.client_name || 'nuestra marca';
 
-  let message = `¡Hola ${firstName}! 👋\n\n`;
-  message += `Soy del equipo de LA REAL y te escribo porque tenemos un proyecto de contenido UGC que creemos sería perfecto para ti.\n\n`;
-  message += `📌 *Proyecto:* ${project.title}\n`;
-  message += `🏷️ *Marca:* ${clientName}\n`;
+  let message = `Hola ${firstName}!\n\n`;
+  message += `Soy del equipo de LA REAL y te escribo porque tenemos un proyecto de contenido UGC para ${clientName}.\n`;
 
-  if (project.description) {
-    message += `\n📝 *Detalles:*\n${project.description}\n`;
-  }
-
-  // "Lo que recibes" section
-  const hasPaymentInfo = project.creator_cost_per_video > 0 || project.video_count > 0 || project.product_value > 0;
+  const hasPaymentInfo = project.creator_cost_per_video > 0 || project.product_value > 0;
   if (hasPaymentInfo) {
-    message += `\n🎁 *Lo que recibes:*\n`;
+    message += `\n*Lo que recibes:*\n`;
     if (project.creator_cost_per_video > 0) {
-      message += `• Pago: $${project.creator_cost_per_video.toLocaleString('es-CO')} x video\n`;
-    }
-    if (project.video_count > 0) {
-      message += `• Cantidad de videos: ${project.video_count}\n`;
+      message += `- Pago: $${project.creator_cost_per_video.toLocaleString('es-CO')} x video\n`;
     }
     if (project.product_value > 0) {
-      message += `• Producto valorado en $${project.product_value.toLocaleString('es-CO')}\n`;
+      message += `- Producto valorado en $${project.product_value.toLocaleString('es-CO')}\n`;
     }
   }
 
   if (project.deadline) {
     const deadline = new Date(project.deadline).toLocaleDateString('es-CO', { month: 'long', day: 'numeric' });
-    message += `\n📅 *Fecha de entrega:* ${deadline}\n`;
+    message += `\n*Fecha de entrega:* ${deadline}\n`;
   }
 
-  if (project.brief_url) {
-    message += `\n📋 *Brief completo:* ${project.brief_url}\n`;
+  // Use creator-specific brief if available, otherwise project brief
+  const briefUrl = creator.brief_url || project.brief_url;
+  if (briefUrl) {
+    message += `\n*Brief completo:* ${briefUrl}\n`;
   }
 
-  message += `\n¿Te interesa participar? Me encantaría contarte más detalles. 🙌`;
+  message += `\nTe cuento mas?`;
 
   return encodeURIComponent(message);
 };
 
-/**
- * Get WhatsApp URL for a creator with project proposal message
- */
 const getWhatsAppUrl = (creator, project) => {
   if (!creator.phone) return null;
   const phone = creator.phone.replace(/\D/g, '');
@@ -77,13 +66,70 @@ const CREATOR_STATUSES = [
   { id: 'brand_approved', name: 'Aprobado por la marca', color: '#06B6D4', icon: ThumbsUp },
   { id: 'negotiating', name: 'Contactado y negociando', color: '#F59E0B', icon: MessageCircle },
   { id: 'confirmed', name: 'Confirmado + firmar contrato', color: '#3B82F6', icon: FileSignature },
-  { id: 'contract_signed', name: 'Contrato firmado: Enviar producto', color: '#8B5CF6', icon: Package },
+  { id: 'contract_signed', name: 'Contrato firmado', color: '#8B5CF6', icon: Package },
   { id: 'rejected', name: 'Rechazó la oferta', color: '#EF4444', icon: XCircle },
   { id: 'producing', name: 'Produciendo', color: '#A855F7', icon: Video },
   { id: 'delivered_approved', name: 'Entregado aprobado', color: '#10B981', icon: CheckCircle2 },
-  { id: 'delivered_changes', name: 'Entregado y en cambios', color: '#F97316', icon: RefreshCw },
+  { id: 'delivered_changes', name: 'En cambios', color: '#F97316', icon: RefreshCw },
   { id: 'paid', name: 'Pagado', color: '#059669', icon: Banknote }
 ];
+
+const getStatusInfo = (statusId) => {
+  return CREATOR_STATUSES.find(s => s.id === statusId) || CREATOR_STATUSES[0];
+};
+
+// Status badge component
+const StatusBadge = ({ status, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const statusInfo = getStatusInfo(status);
+  const StatusIcon = statusInfo.icon;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
+        style={{ backgroundColor: `${statusInfo.color}15`, color: statusInfo.color }}
+      >
+        <StatusIcon className="w-3.5 h-3.5" />
+        <span className="max-w-[120px] truncate">{statusInfo.name}</span>
+        <ChevronDown className="w-3 h-3 flex-shrink-0" />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[200px]">
+            {CREATOR_STATUSES.map(s => {
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    onChange(s.id);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                    s.id === status ? 'bg-gray-50' : ''
+                  }`}
+                >
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: `${s.color}20` }}
+                  >
+                    <Icon className="w-3 h-3" style={{ color: s.color }} />
+                  </div>
+                  <span className="text-gray-700">{s.name}</span>
+                  {s.id === status && <Check className="w-4 h-4 text-green-500 ml-auto" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 export default function UGCProjectDetail() {
   const { id } = useParams();
@@ -97,7 +143,9 @@ export default function UGCProjectDetail() {
   const [search, setSearch] = useState('');
   const [selectedCreators, setSelectedCreators] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [draggedCreator, setDraggedCreator] = useState(null);
+  const [creatingFolder, setCreatingFolder] = useState(null);
+  const [editingBrief, setEditingBrief] = useState(null); // creator_id being edited
+  const [briefValue, setBriefValue] = useState('');
 
   useEffect(() => {
     loadProject();
@@ -118,7 +166,6 @@ export default function UGCProjectDetail() {
   const loadAllCreators = async () => {
     try {
       const res = await ugcAPI.getCreators();
-      // Filter out creators already in the project
       const existingIds = creators.map(c => c.creator_id);
       setAllCreators(res.data.filter(c => !existingIds.includes(c.id)));
     } catch (error) {
@@ -150,9 +197,10 @@ export default function UGCProjectDetail() {
 
   const handleUpdateCreatorStatus = async (creatorId, newStatus) => {
     try {
-      await ugcAPI.updateProjectCreator(id, creatorId, { status: newStatus });
+      const res = await ugcAPI.updateProjectCreator(id, creatorId, { status: newStatus });
+      // Update with response data which includes drive folder info if created
       setCreators(prev => prev.map(c =>
-        c.creator_id === creatorId ? { ...c, status: newStatus } : c
+        c.creator_id === creatorId ? { ...c, ...res.data } : c
       ));
     } catch (error) {
       console.error('Error updating status:', error);
@@ -169,26 +217,47 @@ export default function UGCProjectDetail() {
     }
   };
 
-  const handleDragStart = (e, creator) => {
-    setDraggedCreator(creator);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e, newStatus) => {
-    e.preventDefault();
-    if (draggedCreator && draggedCreator.status !== newStatus) {
-      handleUpdateCreatorStatus(draggedCreator.creator_id, newStatus);
+  const handleCreateDriveFolder = async (creatorId) => {
+    setCreatingFolder(creatorId);
+    try {
+      const res = await ugcAPI.createDriveFolder(id, creatorId);
+      if (res.data.success || res.data.drive_folder_url) {
+        setCreators(prev => prev.map(c =>
+          c.creator_id === creatorId
+            ? { ...c, drive_folder_id: res.data.drive_folder_id, drive_folder_url: res.data.drive_folder_url }
+            : c
+        ));
+      }
+    } catch (error) {
+      console.error('Error creating Drive folder:', error);
+      alert('Error creando carpeta en Drive');
+    } finally {
+      setCreatingFolder(null);
     }
-    setDraggedCreator(null);
   };
 
-  const getCreatorsByStatus = (status) => {
-    return creators.filter(c => c.status === status);
+  const handleStartEditBrief = (creator) => {
+    setEditingBrief(creator.creator_id);
+    setBriefValue(creator.brief_url || project.brief_url || '');
+  };
+
+  const handleSaveBrief = async (creatorId) => {
+    try {
+      await ugcAPI.updateProjectCreator(id, creatorId, { brief_url: briefValue });
+      setCreators(prev => prev.map(c =>
+        c.creator_id === creatorId ? { ...c, brief_url: briefValue } : c
+      ));
+      setEditingBrief(null);
+      setBriefValue('');
+    } catch (error) {
+      console.error('Error updating brief:', error);
+      alert('Error guardando el brief');
+    }
+  };
+
+  const handleCancelEditBrief = () => {
+    setEditingBrief(null);
+    setBriefValue('');
   };
 
   const filteredAllCreators = allCreators.filter(c =>
@@ -285,107 +354,230 @@ export default function UGCProjectDetail() {
         )}
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-max h-full">
-          {CREATOR_STATUSES.map(status => {
-            const statusCreators = getCreatorsByStatus(status.id);
-            const StatusIcon = status.icon;
+      {/* Creators Table */}
+      <div className="flex-1 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        {creators.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+            <Users className="w-12 h-12 mb-3 opacity-40" />
+            <p className="text-lg font-medium mb-1">Sin creadores asignados</p>
+            <p className="text-sm mb-4">Agrega creadores a este proyecto para empezar</p>
+            <button
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar Creadores
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Creador</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ciudad</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tarifa</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Brief</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Carpeta Drive</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {creators.map(creator => {
+                  const socialNetworks = typeof creator.social_networks === 'string'
+                    ? JSON.parse(creator.social_networks || '{}')
+                    : creator.social_networks || {};
 
-            return (
-              <div
-                key={status.id}
-                className="w-72 flex flex-col bg-gray-50 rounded-2xl"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, status.id)}
-              >
-                {/* Column Header */}
-                <div className="p-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: `${status.color}20` }}
-                      >
-                        <StatusIcon className="w-3.5 h-3.5" style={{ color: status.color }} />
-                      </div>
-                      <span className="font-medium text-gray-700 text-sm">{status.name}</span>
-                    </div>
-                    <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">
-                      {statusCreators.length}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Column Content */}
-                <div className="flex-1 p-2 space-y-2 overflow-y-auto">
-                  {statusCreators.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400 text-sm">
-                      Sin creadores
-                    </div>
-                  ) : (
-                    statusCreators.map(creator => (
-                      <div
-                        key={creator.creator_id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, creator)}
-                        onClick={() => setShowCreatorModal(creator)}
-                        className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all cursor-pointer group"
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Avatar */}
+                  return (
+                    <tr
+                      key={creator.creator_id}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
+                      {/* Creator */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
                             {creator.full_name?.charAt(0) || '?'}
                           </div>
-
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 text-sm truncate">
+                          <div>
+                            <Link
+                              to={`/app/ugc/${creator.creator_id}`}
+                              className="font-medium text-gray-900 hover:text-green-600 transition-colors"
+                            >
                               {creator.full_name}
-                            </h4>
-                            {creator.social_networks?.instagram && (
-                              <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+                            </Link>
+                            {socialNetworks?.instagram && (
+                              <a
+                                href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-gray-500 hover:text-pink-500 flex items-center gap-1 transition-colors"
+                              >
                                 <Instagram className="w-3 h-3" />
-                                @{creator.social_networks.instagram.replace('@', '')}
-                              </p>
+                                @{socialNetworks.instagram.replace('@', '')}
+                              </a>
                             )}
                           </div>
-
-                          <GripVertical className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
                         </div>
+                      </td>
 
-                        {creator.agreed_rate > 0 && (
-                          <div className="mt-2 text-xs text-gray-500">
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <StatusBadge
+                          status={creator.status}
+                          onChange={(newStatus) => handleUpdateCreatorStatus(creator.creator_id, newStatus)}
+                        />
+                      </td>
+
+                      {/* City */}
+                      <td className="px-4 py-3">
+                        <span className="text-sm text-gray-600">
+                          {creator.city || '-'}
+                        </span>
+                      </td>
+
+                      {/* Rate */}
+                      <td className="px-4 py-3">
+                        {creator.agreed_rate > 0 ? (
+                          <span className="text-sm font-medium text-gray-900">
                             ${creator.agreed_rate.toLocaleString('es-CO')}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Brief */}
+                      <td className="px-4 py-3">
+                        {editingBrief === creator.creator_id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              value={briefValue}
+                              onChange={(e) => setBriefValue(e.target.value)}
+                              placeholder="URL del brief..."
+                              className="w-40 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleSaveBrief(creator.creator_id)}
+                              className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                              title="Guardar"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={handleCancelEditBrief}
+                              className="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors"
+                              title="Cancelar"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {(creator.brief_url || project.brief_url) ? (
+                              <a
+                                href={creator.brief_url || project.brief_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                                title={creator.brief_url ? 'Brief personalizado' : 'Brief del proyecto'}
+                              >
+                                <FileText className="w-4 h-4" />
+                                {creator.brief_url ? 'Ver brief' : 'Brief proyecto'}
+                              </a>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                            <button
+                              onClick={() => handleStartEditBrief(creator)}
+                              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                              title="Editar brief"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         )}
+                      </td>
 
-                        {creator.deliverables && (
-                          <p className="mt-2 text-xs text-gray-500 line-clamp-2">
-                            {creator.deliverables}
-                          </p>
-                        )}
-
-                        {/* Quick WhatsApp button */}
-                        {creator.phone && (
+                      {/* Drive Folder */}
+                      <td className="px-4 py-3">
+                        {creator.drive_folder_url ? (
                           <a
-                            href={getWhatsAppUrl(creator, project)}
+                            href={creator.drive_folder_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-2 flex items-center gap-1.5 text-xs text-[#25D366] hover:text-[#20BD5A] font-medium"
+                            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
                           >
-                            <WhatsAppIcon className="w-3.5 h-3.5" />
-                            Contactar
+                            <FolderOpen className="w-4 h-4" />
+                            Abrir carpeta
                           </a>
+                        ) : (
+                          <button
+                            onClick={() => handleCreateDriveFolder(creator.creator_id)}
+                            disabled={creatingFolder === creator.creator_id}
+                            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-green-600 transition-colors disabled:opacity-50"
+                          >
+                            {creatingFolder === creator.creator_id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FolderOpen className="w-4 h-4" />
+                            )}
+                            Crear carpeta
+                          </button>
                         )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {creator.phone && (
+                            <a
+                              href={getWhatsAppUrl(creator, project)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-[#25D366] hover:bg-green-50 rounded-lg transition-colors"
+                              title="WhatsApp"
+                            >
+                              <WhatsAppIcon className="w-4 h-4" />
+                            </a>
+                          )}
+                          {creator.phone && (
+                            <a
+                              href={`tel:${creator.phone}`}
+                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Llamar"
+                            >
+                              <Phone className="w-4 h-4" />
+                            </a>
+                          )}
+                          {creator.email && (
+                            <a
+                              href={`mailto:${creator.email}`}
+                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Email"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleRemoveCreator(creator.creator_id)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Add Creators Modal */}
@@ -496,124 +688,6 @@ export default function UGCProjectDetail() {
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Agregar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Creator Detail Modal */}
-      {showCreatorModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Detalle del Creador</h2>
-              <button
-                onClick={() => setShowCreatorModal(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Creator Info */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-xl">
-                  {showCreatorModal.full_name?.charAt(0) || '?'}
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {showCreatorModal.full_name}
-                  </h3>
-                  {showCreatorModal.city && (
-                    <p className="text-sm text-gray-500">{showCreatorModal.city}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              <div className="space-y-3 mb-6">
-                {showCreatorModal.social_networks?.instagram && (
-                  <a
-                    href={`https://instagram.com/${showCreatorModal.social_networks.instagram.replace('@', '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-sm text-gray-600 hover:text-green-600"
-                  >
-                    <Instagram className="w-4 h-4" />
-                    @{showCreatorModal.social_networks.instagram.replace('@', '')}
-                  </a>
-                )}
-                {showCreatorModal.phone && (
-                  <a
-                    href={`https://wa.me/${showCreatorModal.phone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-sm text-gray-600 hover:text-green-600"
-                  >
-                    <Phone className="w-4 h-4" />
-                    {showCreatorModal.phone}
-                  </a>
-                )}
-                {showCreatorModal.email && (
-                  <a
-                    href={`mailto:${showCreatorModal.email}`}
-                    className="flex items-center gap-3 text-sm text-gray-600 hover:text-green-600"
-                  >
-                    <Mail className="w-4 h-4" />
-                    {showCreatorModal.email}
-                  </a>
-                )}
-              </div>
-
-              {/* Status Selector */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                <select
-                  value={showCreatorModal.status}
-                  onChange={(e) => {
-                    handleUpdateCreatorStatus(showCreatorModal.creator_id, e.target.value);
-                    setShowCreatorModal({ ...showCreatorModal, status: e.target.value });
-                  }}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                >
-                  {CREATOR_STATUSES.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* WhatsApp Contact Button */}
-              {showCreatorModal.phone && (
-                <a
-                  href={getWhatsAppUrl(showCreatorModal, project)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] text-white rounded-xl text-sm font-medium hover:bg-[#20BD5A] transition-colors"
-                >
-                  <WhatsAppIcon className="w-5 h-5" />
-                  Contactar vía WhatsApp
-                </a>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center gap-3">
-                <Link
-                  to={`/app/ugc/${showCreatorModal.creator_id}`}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium text-center hover:bg-gray-200 transition-colors"
-                >
-                  Ver Perfil Completo
-                </Link>
-                <button
-                  onClick={() => {
-                    handleRemoveCreator(showCreatorModal.creator_id);
-                    setShowCreatorModal(null);
-                  }}
-                  className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
             </div>

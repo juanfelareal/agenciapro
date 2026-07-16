@@ -846,6 +846,10 @@ export const ugcAPI = {
   addProjectCreators: (projectId, data) => api.post(`/ugc/projects/${projectId}/creators`, data),
   updateProjectCreator: (projectId, creatorId, data) => api.put(`/ugc/projects/${projectId}/creators/${creatorId}`, data),
   removeProjectCreator: (projectId, creatorId) => api.delete(`/ugc/projects/${projectId}/creators/${creatorId}`),
+  // Google Drive
+  getDriveStatus: () => api.get('/ugc/drive/status'),
+  createDriveFolder: (projectId, creatorId) => api.post(`/ugc/projects/${projectId}/creators/${creatorId}/drive-folder`),
+  createAllDriveFolders: (projectId) => api.post(`/ugc/projects/${projectId}/create-all-folders`),
 };
 
 // UGC Public Registration (no auth required)

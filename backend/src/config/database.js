@@ -2901,6 +2901,29 @@ export const initializeDatabase = async () => {
       END $$
     `);
 
+    // Add Google Drive folder fields to ugc_project_creators
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='drive_folder_id') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN drive_folder_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='drive_folder_url') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN drive_folder_url TEXT;
+        END IF;
+      END $$
+    `);
+
+    // Add brief_url to ugc_project_creators (creator-specific brief)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='brief_url') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN brief_url TEXT;
+        END IF;
+      END $$
+    `);
+
     // Add can_view_ugc to client_portal_settings
     await pool.query(`
       DO $$

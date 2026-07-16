@@ -485,7 +485,7 @@ export default function UGCCreatorDetail() {
                 >
                   <option value="">Seleccionar cliente...</option>
                   {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.company || c.name}</option>
+                    <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}</option>
                   ))}
                 </select>
               </div>
