@@ -146,6 +146,8 @@ export default function UGCProjectDetail() {
   const [creatingFolder, setCreatingFolder] = useState(null);
   const [editingBrief, setEditingBrief] = useState(null); // creator_id being edited
   const [briefValue, setBriefValue] = useState('');
+  const [editingProjectBrief, setEditingProjectBrief] = useState(false);
+  const [projectBriefValue, setProjectBriefValue] = useState('');
 
   useEffect(() => {
     loadProject();
@@ -260,6 +262,22 @@ export default function UGCProjectDetail() {
     setBriefValue('');
   };
 
+  const handleStartEditProjectBrief = () => {
+    setProjectBriefValue(project.brief_url || '');
+    setEditingProjectBrief(true);
+  };
+
+  const handleSaveProjectBrief = async () => {
+    try {
+      await ugcAPI.updateProject(id, { brief_url: projectBriefValue });
+      setProject(prev => ({ ...prev, brief_url: projectBriefValue }));
+      setEditingProjectBrief(false);
+    } catch (error) {
+      console.error('Error updating project brief:', error);
+      alert('Error guardando el brief del proyecto');
+    }
+  };
+
   const filteredAllCreators = allCreators.filter(c =>
     c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     c.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -308,16 +326,54 @@ export default function UGCProjectDetail() {
           </div>
 
           <div className="flex items-center gap-3">
-            {project.brief_url && (
-              <a
-                href={project.brief_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Ver Brief
-              </a>
+            {editingProjectBrief ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  value={projectBriefValue}
+                  onChange={(e) => setProjectBriefValue(e.target.value)}
+                  placeholder="URL del brief del proyecto..."
+                  className="w-64 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveProjectBrief}
+                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Guardar"
+                >
+                  <Check className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setEditingProjectBrief(false)}
+                  className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Cancelar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                {project.brief_url ? (
+                  <a
+                    href={project.brief_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Ver Brief
+                  </a>
+                ) : (
+                  <span className="px-4 py-2 text-sm text-gray-400">Sin brief</span>
+                )}
+                <button
+                  onClick={handleStartEditProjectBrief}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Editar brief del proyecto"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
             )}
             <button
               onClick={handleOpenAddModal}
