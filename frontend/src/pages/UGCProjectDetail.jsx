@@ -16,7 +16,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
 } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import {
   arrayMove,
   SortableContext,
@@ -203,24 +205,27 @@ const SortableCreatorRow = ({ creator, children }) => {
   } = useSortable({ id: creator.creator_id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     transition,
     opacity: isDragging ? 0.5 : 1,
-    backgroundColor: isDragging ? '#f0fdf4' : undefined,
+    backgroundColor: isDragging ? '#f0fdf4' : 'white',
+    position: 'relative',
+    zIndex: isDragging ? 1 : 0,
   };
 
   return (
     <tr
       ref={setNodeRef}
       style={style}
-      className="hover:bg-gray-50/50 transition-colors"
+      className="hover:bg-gray-50/50"
     >
       {/* Drag handle */}
       <td className="px-2 py-3 w-8">
         <button
+          type="button"
           {...attributes}
           {...listeners}
-          className="p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing rounded hover:bg-gray-100 transition-colors"
+          className="p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing rounded hover:bg-gray-100 touch-none"
           title="Arrastrar para reordenar"
         >
           <GripVertical className="w-4 h-4" />
@@ -248,6 +253,7 @@ export default function UGCProjectDetail() {
   const [briefValue, setBriefValue] = useState('');
   const [editingProjectBrief, setEditingProjectBrief] = useState(false);
   const [projectBriefValue, setProjectBriefValue] = useState('');
+  const [activeId, setActiveId] = useState(null);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -261,27 +267,52 @@ export default function UGCProjectDetail() {
     })
   );
 
+  // Handle drag start
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
   // Handle drag end - reorder creators
-  const handleDragEnd = async (event) => {
+  const handleDragEnd = (event) => {
     const { active, over } = event;
 
-    if (active.id !== over?.id) {
-      const oldIndex = creators.findIndex(c => c.creator_id === active.id);
-      const newIndex = creators.findIndex(c => c.creator_id === over.id);
+    setActiveId(null);
+    console.log('Drag end:', { activeId: active.id, overId: over?.id });
 
-      const newOrder = arrayMove(creators, oldIndex, newIndex);
-      setCreators(newOrder);
-
-      // Save new order to backend
-      try {
-        await ugcAPI.reorderProjectCreators(id, newOrder.map(c => c.creator_id));
-      } catch (error) {
-        console.error('Error saving order:', error);
-        // Revert on error
-        setCreators(creators);
-      }
+    if (!over || active.id === over.id) {
+      console.log('No valid drop target or same position');
+      return;
     }
+
+    // Use functional update to avoid stale closure issues
+    setCreators(prevCreators => {
+      const oldIndex = prevCreators.findIndex(c => c.creator_id === active.id);
+      const newIndex = prevCreators.findIndex(c => c.creator_id === over.id);
+
+      console.log('Moving:', { oldIndex, newIndex });
+
+      if (oldIndex === -1 || newIndex === -1) {
+        console.error('Could not find indices:', { oldIndex, newIndex });
+        return prevCreators;
+      }
+
+      const newOrder = arrayMove(prevCreators, oldIndex, newIndex);
+
+      // Save to backend (fire and forget, don't block UI)
+      ugcAPI.reorderProjectCreators(id, newOrder.map(c => c.creator_id))
+        .then(response => console.log('Reorder saved:', response.data))
+        .catch(error => {
+          console.error('Error saving order:', error);
+          // Reload to get correct order from server
+          loadProject();
+        });
+
+      return newOrder;
+    });
   };
+
+  // Get active creator for drag overlay
+  const activeCreator = activeId ? creators.find(c => c.creator_id === activeId) : null;
 
   useEffect(() => {
     loadProject();
@@ -563,7 +594,9 @@ export default function UGCProjectDetail() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            modifiers={[restrictToVerticalAxis]}
           >
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -783,6 +816,16 @@ export default function UGCProjectDetail() {
                 </SortableContext>
               </table>
             </div>
+            <DragOverlay>
+              {activeCreator && (
+                <div className="bg-white border-2 border-green-500 rounded-lg shadow-lg p-3 flex items-center gap-3 opacity-90">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                    {activeCreator.full_name?.charAt(0) || '?'}
+                  </div>
+                  <span className="font-medium text-gray-900">{activeCreator.full_name}</span>
+                </div>
+              )}
+            </DragOverlay>
           </DndContext>
         )}
       </div>

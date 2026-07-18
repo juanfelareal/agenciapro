@@ -2941,7 +2941,7 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_contract_token ON ugc_project_creators(contract_token)`);
 
-    // Add display_order to ugc_project_creators for manual sorting
+    // Add display_order to ugc_project_creators for manual sorting (drag & drop reorder)
     await pool.query(`
       DO $$
       BEGIN
