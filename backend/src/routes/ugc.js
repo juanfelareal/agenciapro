@@ -1334,6 +1334,20 @@ router.put('/projects/:projectId/creators/reorder', async (req, res) => {
       return res.status(404).json({ error: 'Proyecto no encontrado' });
     }
 
+    // Ensure display_order column exists (fallback if migration didn't run)
+    try {
+      await db.run(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='display_order') THEN
+            ALTER TABLE ugc_project_creators ADD COLUMN display_order INTEGER DEFAULT 0;
+          END IF;
+        END $$
+      `);
+    } catch (colError) {
+      console.log('Column check/creation:', colError.message);
+    }
+
     // Update display_order for each creator
     for (let i = 0; i < creator_ids.length; i++) {
       await db.run(
