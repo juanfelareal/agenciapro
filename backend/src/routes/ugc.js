@@ -1336,16 +1336,10 @@ router.put('/projects/:projectId/creators/reorder', async (req, res) => {
 
     // Ensure display_order column exists (fallback if migration didn't run)
     try {
-      await db.run(`
-        DO $$
-        BEGIN
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='display_order') THEN
-            ALTER TABLE ugc_project_creators ADD COLUMN display_order INTEGER DEFAULT 0;
-          END IF;
-        END $$
-      `);
+      await db.run('ALTER TABLE ugc_project_creators ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0');
     } catch (colError) {
-      console.log('Column check/creation:', colError.message);
+      // Column might already exist, that's fine
+      console.log('Column check:', colError.message);
     }
 
     // Update display_order for each creator
