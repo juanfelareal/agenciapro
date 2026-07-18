@@ -104,6 +104,7 @@ import { setupAgentSocket } from './src/agents/socket.js';
 // UGC (User Generated Content) - Creator Management
 import ugcRoutes from './src/routes/ugc.js';
 import ugcPublicRoutes from './src/routes/ugc-public.js';
+import ugcContractsPublicRoutes from './src/routes/ugc-contracts-public.js';
 import portalUGCRoutes from './src/routes/portal/ugc.js';
 // Document Signing (NDA, Contracts)
 import documentTemplatesRoutes from './src/routes/document-templates.js';
@@ -297,6 +298,7 @@ app.use('/api/task-history', teamAuthMiddleware, taskHistoryRoutes);
 app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
 // UGC (User Generated Content) - Creator Management
 app.use('/api/ugc', ugcPublicRoutes);  // Public registration FIRST (no auth)
+app.use('/api/ugc/contracts', ugcContractsPublicRoutes);  // Public contract signing (no auth)
 app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);  // Authenticated routes after
 
 // Document Signing (NDA, Contracts)

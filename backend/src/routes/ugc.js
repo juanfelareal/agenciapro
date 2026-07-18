@@ -5,6 +5,11 @@ import googleDriveService from '../services/googleDrive.js';
 
 const router = express.Router();
 
+// Helper function to generate contract token
+function generateContractToken() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
 // ========================================
 // MIGRATION ENDPOINT (temporary)
 // ========================================
@@ -1196,10 +1201,13 @@ router.post('/projects/:id/creators', async (req, res) => {
 
     for (const creatorId of creator_ids) {
       try {
+        // Generate unique contract token for each creator
+        const contractToken = generateContractToken();
+
         await db.run(
-          `INSERT INTO ugc_project_creators (project_id, creator_id, status, deliverables, agreed_rate, currency)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [req.params.id, creatorId, 'presented', deliverables, agreed_rate || 0, currency || 'COP']
+          `INSERT INTO ugc_project_creators (project_id, creator_id, status, deliverables, agreed_rate, currency, contract_token)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [req.params.id, creatorId, 'presented', deliverables, agreed_rate || 0, currency || 'COP', contractToken]
         );
         added.push(creatorId);
       } catch (e) {
@@ -1468,6 +1476,219 @@ router.post('/projects/:projectId/create-all-folders', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating Drive folders:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// CONTRACT MANAGEMENT
+// ========================================
+
+// POST /api/ugc/projects/:projectId/creators/:creatorId/generate-contract-token - Generate/regenerate contract token
+router.post('/projects/:projectId/creators/:creatorId/generate-contract-token', async (req, res) => {
+  try {
+    const { projectId, creatorId } = req.params;
+
+    // Verify project belongs to org
+    const project = await db.get('SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?', [projectId, req.orgId]);
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    // Generate new token
+    const newToken = generateContractToken();
+
+    await db.run(
+      'UPDATE ugc_project_creators SET contract_token = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND creator_id = ?',
+      [newToken, projectId, creatorId]
+    );
+
+    res.json({
+      success: true,
+      contract_token: newToken,
+      message: 'Token de contrato generado'
+    });
+  } catch (error) {
+    console.error('Error generating contract token:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/projects/:projectId/generate-all-contract-tokens - Generate tokens for all creators without one
+router.post('/projects/:projectId/generate-all-contract-tokens', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    // Verify project belongs to org
+    const project = await db.get('SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?', [projectId, req.orgId]);
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    // Get all creators without a token
+    const creatorsWithoutToken = await db.all(
+      'SELECT id, creator_id FROM ugc_project_creators WHERE project_id = ? AND (contract_token IS NULL OR contract_token = \'\')',
+      [projectId]
+    );
+
+    let updated = 0;
+    for (const pc of creatorsWithoutToken) {
+      const newToken = generateContractToken();
+      await db.run(
+        'UPDATE ugc_project_creators SET contract_token = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [newToken, pc.id]
+      );
+      updated++;
+    }
+
+    res.json({
+      success: true,
+      updated,
+      message: `${updated} tokens generados`
+    });
+  } catch (error) {
+    console.error('Error generating contract tokens:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/ugc/projects/:projectId/creators/:creatorId/contract - Get contract info including token and signed status
+router.get('/projects/:projectId/creators/:creatorId/contract', async (req, res) => {
+  try {
+    const { projectId, creatorId } = req.params;
+
+    // Get project creator with contract info
+    const projectCreator = await db.get(`
+      SELECT
+        pc.id,
+        pc.contract_token,
+        pc.contract_url,
+        pc.status,
+        pc.agreed_rate,
+        pc.video_count,
+        c.full_name as creator_name,
+        p.title as project_title,
+        cl.company as client_name
+      FROM ugc_project_creators pc
+      JOIN ugc_creators c ON pc.creator_id = c.id
+      JOIN ugc_projects p ON pc.project_id = p.id
+      JOIN clients cl ON p.client_id = cl.id
+      WHERE pc.project_id = ? AND pc.creator_id = ? AND p.organization_id = ?
+    `, [projectId, creatorId, req.orgId]);
+
+    if (!projectCreator) {
+      return res.status(404).json({ error: 'Creador no encontrado en el proyecto' });
+    }
+
+    // Check if contract is signed
+    const signedContract = await db.get(
+      'SELECT id, signed_at, signer_name FROM ugc_signed_contracts WHERE project_creator_id = ?',
+      [projectCreator.id]
+    );
+
+    res.json({
+      contract_token: projectCreator.contract_token,
+      contract_url: projectCreator.contract_url,
+      is_signed: !!signedContract,
+      signed_at: signedContract?.signed_at || null,
+      signer_name: signedContract?.signer_name || null,
+      creator_name: projectCreator.creator_name,
+      project_title: projectCreator.project_title,
+      client_name: projectCreator.client_name,
+      status: projectCreator.status
+    });
+  } catch (error) {
+    console.error('Error getting contract info:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/ugc/signed-contracts/:projectCreatorId - Get signed contract details
+router.get('/signed-contracts/:projectCreatorId', async (req, res) => {
+  try {
+    const { projectCreatorId } = req.params;
+
+    const signedContract = await db.get(`
+      SELECT
+        sc.*,
+        c.full_name as creator_name,
+        p.title as project_title,
+        cl.company as client_name
+      FROM ugc_signed_contracts sc
+      JOIN ugc_project_creators pc ON sc.project_creator_id = pc.id
+      JOIN ugc_creators c ON pc.creator_id = c.id
+      JOIN ugc_projects p ON pc.project_id = p.id
+      JOIN clients cl ON p.client_id = cl.id
+      WHERE sc.project_creator_id = ? AND sc.organization_id = ?
+    `, [projectCreatorId, req.orgId]);
+
+    if (!signedContract) {
+      return res.status(404).json({ error: 'Contrato firmado no encontrado' });
+    }
+
+    // Parse project_details JSON
+    if (signedContract.project_details) {
+      try {
+        signedContract.project_details = JSON.parse(signedContract.project_details);
+      } catch (e) {
+        // Keep as string if parsing fails
+      }
+    }
+
+    res.json(signedContract);
+  } catch (error) {
+    console.error('Error getting signed contract:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/ugc/projects/:projectId/signed-contracts - Get all signed contracts for a project
+router.get('/projects/:projectId/signed-contracts', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    // Verify project belongs to org
+    const project = await db.get('SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?', [projectId, req.orgId]);
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    const signedContracts = await db.all(`
+      SELECT
+        sc.id,
+        sc.project_creator_id,
+        sc.signer_name,
+        sc.signer_cedula,
+        sc.signer_email,
+        sc.signer_phone,
+        sc.bank_name,
+        sc.bank_account_type,
+        sc.bank_account_number,
+        sc.signed_at,
+        sc.project_details,
+        c.full_name as creator_name,
+        c.id as creator_id
+      FROM ugc_signed_contracts sc
+      JOIN ugc_project_creators pc ON sc.project_creator_id = pc.id
+      JOIN ugc_creators c ON pc.creator_id = c.id
+      WHERE pc.project_id = ? AND sc.organization_id = ?
+      ORDER BY sc.signed_at DESC
+    `, [projectId, req.orgId]);
+
+    // Parse project_details JSON for each contract
+    for (const contract of signedContracts) {
+      if (contract.project_details) {
+        try {
+          contract.project_details = JSON.parse(contract.project_details);
+        } catch (e) {
+          // Keep as string if parsing fails
+        }
+      }
+    }
+
+    res.json(signedContracts);
+  } catch (error) {
+    console.error('Error getting signed contracts:', error);
     res.status(500).json({ error: error.message });
   }
 });

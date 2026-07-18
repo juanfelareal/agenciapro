@@ -2927,6 +2927,60 @@ export const initializeDatabase = async () => {
       END $$
     `);
 
+    // Add contract_token and contract_url to ugc_project_creators
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='contract_token') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN contract_token TEXT UNIQUE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='contract_url') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN contract_url TEXT;
+        END IF;
+      END $$
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_contract_token ON ugc_project_creators(contract_token)`);
+
+    // UGC Signed Contracts (stores the actual signed contract data)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_signed_contracts (
+        id SERIAL PRIMARY KEY,
+        project_creator_id INTEGER NOT NULL REFERENCES ugc_project_creators(id) ON DELETE CASCADE,
+
+        -- Creator info at time of signing
+        signer_name TEXT NOT NULL,
+        signer_cedula TEXT NOT NULL,
+        signer_email TEXT,
+        signer_phone TEXT,
+
+        -- Bank info
+        bank_name TEXT,
+        bank_account_type TEXT,
+        bank_account_number TEXT,
+
+        -- Signature data
+        signature_data TEXT,
+
+        -- Contract content snapshot
+        contract_content TEXT,
+        project_details JSONB DEFAULT '{}',
+
+        -- Signing metadata
+        signed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        ip_address TEXT,
+        user_agent TEXT,
+
+        -- Terms acceptance
+        accepted_terms BOOLEAN DEFAULT TRUE,
+        accepted_data_policy BOOLEAN DEFAULT TRUE,
+
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_signed_contracts_project_creator ON ugc_signed_contracts(project_creator_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_signed_contracts_org ON ugc_signed_contracts(organization_id)`);
+
     // Add website to clients table
     await pool.query(`
       DO $$
