@@ -78,6 +78,33 @@ const getWhatsAppUrl = (creator, project) => {
   return `https://wa.me/${phone}?text=${message}`;
 };
 
+/**
+ * Generate WhatsApp message for sending the contract link
+ */
+const generateContractWhatsAppMessage = (creator, project) => {
+  const firstName = creator.full_name?.split(' ')[0] || 'Hola';
+  const clientName = project.client_nickname || project.client_name || 'la marca';
+  const contractUrl = `https://juanfelareal.github.io/sin-intermediarios-brief-creador/contrato.html?token=${creator.contract_token}`;
+
+  let message = `¡${firstName}! Qué bueno que te sumes al proyecto con ${clientName} 🎉\n\n`;
+  message += `Aquí te envío el contrato para que lo revises y firmes:\n`;
+  message += `${contractUrl}\n\n`;
+  message += `Es súper rápido, solo necesitas confirmar tus datos y aceptar los términos.\n\n`;
+  message += `Cualquier duda me cuentas 🙌`;
+
+  return encodeURIComponent(message);
+};
+
+const getContractWhatsAppUrl = (creator, project) => {
+  if (!creator.phone || !creator.contract_token) return null;
+  const phone = creator.phone.replace(/\D/g, '');
+  const message = generateContractWhatsAppMessage(creator, project);
+  return `https://wa.me/${phone}?text=${message}`;
+};
+
+// Statuses where contract can be sent (after first contact accepted, before signed)
+const CONTRACT_SENDABLE_STATUSES = ['negotiating', 'confirmed'];
+
 const CREATOR_STATUSES = [
   { id: 'presented', name: 'Presentado a la marca', color: '#9CA3AF', icon: Send },
   { id: 'brand_approved', name: 'Aprobado por la marca', color: '#06B6D4', icon: ThumbsUp },
@@ -608,9 +635,21 @@ export default function UGCProjectDetail() {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-2 text-[#25D366] hover:bg-green-50 rounded-lg transition-colors"
-                              title="WhatsApp"
+                              title="Contactar por WhatsApp"
                             >
                               <WhatsAppIcon className="w-4 h-4" />
+                            </a>
+                          )}
+                          {/* Contract WhatsApp button - only shows when creator is negotiating/confirmed */}
+                          {creator.phone && creator.contract_token && CONTRACT_SENDABLE_STATUSES.includes(creator.status) && (
+                            <a
+                              href={getContractWhatsAppUrl(creator, project)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="Enviar contrato por WhatsApp"
+                            >
+                              <FileSignature className="w-4 h-4" />
                             </a>
                           )}
                           {creator.phone && (
