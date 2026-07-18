@@ -1107,7 +1107,7 @@ router.get('/projects/:id', async (req, res) => {
        FROM ugc_project_creators pc
        JOIN ugc_creators cr ON pc.creator_id = cr.id
        WHERE pc.project_id = ?
-       ORDER BY pc.created_at ASC`,
+       ORDER BY COALESCE(pc.display_order, 0) ASC, pc.created_at ASC`,
       [req.params.id]
     );
 
@@ -1311,6 +1311,40 @@ router.delete('/projects/:projectId/creators/:creatorId', async (req, res) => {
     );
     res.json({ message: 'Creador removido del proyecto' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/ugc/projects/:projectId/creators/reorder - Reorder creators in project
+router.put('/projects/:projectId/creators/reorder', async (req, res) => {
+  try {
+    const { creator_ids } = req.body;
+
+    if (!Array.isArray(creator_ids) || creator_ids.length === 0) {
+      return res.status(400).json({ error: 'creator_ids debe ser un array con los IDs en el nuevo orden' });
+    }
+
+    // Verify project belongs to org
+    const project = await db.get(
+      'SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?',
+      [req.params.projectId, req.orgId]
+    );
+
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
+
+    // Update display_order for each creator
+    for (let i = 0; i < creator_ids.length; i++) {
+      await db.run(
+        'UPDATE ugc_project_creators SET display_order = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND creator_id = ?',
+        [i + 1, req.params.projectId, creator_ids[i]]
+      );
+    }
+
+    res.json({ success: true, message: 'Orden actualizado' });
+  } catch (error) {
+    console.error('Error reordering creators:', error);
     res.status(500).json({ error: error.message });
   }
 });

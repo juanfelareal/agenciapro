@@ -6,9 +6,25 @@ import {
   Phone, Instagram, Mail,
   Trash2, FolderOpen, ChevronDown, FileText, Edit2,
   Send, ThumbsUp, FileSignature, Package, RefreshCw, Video,
-  MessageCircle, CheckCircle2, Banknote, XCircle
+  MessageCircle, CheckCircle2, Banknote, XCircle, GripVertical
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // WhatsApp icon component
 const WhatsAppIcon = ({ className }) => (
@@ -175,6 +191,46 @@ const StatusBadge = ({ status, onChange }) => {
   );
 };
 
+// Sortable row component for drag and drop
+const SortableCreatorRow = ({ creator, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: creator.creator_id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    backgroundColor: isDragging ? '#f0fdf4' : undefined,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className="hover:bg-gray-50/50 transition-colors"
+    >
+      {/* Drag handle */}
+      <td className="px-2 py-3 w-8">
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing rounded hover:bg-gray-100 transition-colors"
+          title="Arrastrar para reordenar"
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      </td>
+      {children}
+    </tr>
+  );
+};
+
 export default function UGCProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -192,6 +248,40 @@ export default function UGCProjectDetail() {
   const [briefValue, setBriefValue] = useState('');
   const [editingProjectBrief, setEditingProjectBrief] = useState(false);
   const [projectBriefValue, setProjectBriefValue] = useState('');
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end - reorder creators
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = creators.findIndex(c => c.creator_id === active.id);
+      const newIndex = creators.findIndex(c => c.creator_id === over.id);
+
+      const newOrder = arrayMove(creators, oldIndex, newIndex);
+      setCreators(newOrder);
+
+      // Save new order to backend
+      try {
+        await ugcAPI.reorderProjectCreators(id, newOrder.map(c => c.creator_id));
+      } catch (error) {
+        console.error('Error saving order:', error);
+        // Revert on error
+        setCreators(creators);
+      }
+    }
+  };
 
   useEffect(() => {
     loadProject();
@@ -470,30 +560,37 @@ export default function UGCProjectDetail() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Creador</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ciudad</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Videos</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Brief</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Carpeta Drive</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {creators.map(creator => {
-                  const socialNetworks = typeof creator.social_networks === 'string'
-                    ? JSON.parse(creator.social_networks || '{}')
-                    : creator.social_networks || {};
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="w-8"></th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Creador</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ciudad</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Videos</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Brief</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Carpeta Drive</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <SortableContext
+                  items={creators.map(c => c.creator_id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <tbody className="divide-y divide-gray-100">
+                    {creators.map(creator => {
+                      const socialNetworks = typeof creator.social_networks === 'string'
+                        ? JSON.parse(creator.social_networks || '{}')
+                        : creator.social_networks || {};
 
-                  return (
-                    <tr
-                      key={creator.creator_id}
-                      className="hover:bg-gray-50/50 transition-colors"
-                    >
+                      return (
+                        <SortableCreatorRow key={creator.creator_id} creator={creator}>
                       {/* Creator */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -679,12 +776,14 @@ export default function UGCProjectDetail() {
                           </button>
                         </div>
                       </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    </SortableCreatorRow>
+                      );
+                    })}
+                  </tbody>
+                </SortableContext>
+              </table>
+            </div>
+          </DndContext>
         )}
       </div>
 

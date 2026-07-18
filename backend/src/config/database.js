@@ -2941,6 +2941,16 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_project_creators_contract_token ON ugc_project_creators(contract_token)`);
 
+    // Add display_order to ugc_project_creators for manual sorting
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='display_order') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN display_order INTEGER DEFAULT 0;
+        END IF;
+      END $$
+    `);
+
     // UGC Signed Contracts (stores the actual signed contract data)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_signed_contracts (

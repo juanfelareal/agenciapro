@@ -846,6 +846,7 @@ export const ugcAPI = {
   addProjectCreators: (projectId, data) => api.post(`/ugc/projects/${projectId}/creators`, data),
   updateProjectCreator: (projectId, creatorId, data) => api.put(`/ugc/projects/${projectId}/creators/${creatorId}`, data),
   removeProjectCreator: (projectId, creatorId) => api.delete(`/ugc/projects/${projectId}/creators/${creatorId}`),
+  reorderProjectCreators: (projectId, creatorIds) => api.put(`/ugc/projects/${projectId}/creators/reorder`, { creator_ids: creatorIds }),
   // Google Drive
   getDriveStatus: () => api.get('/ugc/drive/status'),
   createDriveFolder: (projectId, creatorId) => api.post(`/ugc/projects/${projectId}/creators/${creatorId}/drive-folder`),
