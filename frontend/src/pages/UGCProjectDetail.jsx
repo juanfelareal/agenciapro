@@ -86,11 +86,11 @@ const generateContractWhatsAppMessage = (creator, project) => {
   const clientName = project.client_nickname || project.client_name || 'la marca';
   const contractUrl = `https://juanfelareal.github.io/sin-intermediarios-brief-creador/contrato.html?token=${creator.contract_token}`;
 
-  let message = `¡${firstName}! Qué bueno que te sumes al proyecto con ${clientName} 🎉\n\n`;
+  let message = `¡${firstName}! Qué bueno que te sumes al proyecto con ${clientName}.\n\n`;
   message += `Aquí te envío el contrato para que lo revises y firmes:\n`;
   message += `${contractUrl}\n\n`;
   message += `Es súper rápido, solo necesitas confirmar tus datos y aceptar los términos.\n\n`;
-  message += `Cualquier duda me cuentas 🙌`;
+  message += `Cualquier duda me cuentas.`;
 
   return encodeURIComponent(message);
 };
