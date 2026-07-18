@@ -314,16 +314,55 @@ export default function UGCCreatorDetail() {
             </div>
           </div>
 
-          {/* Shipping Address */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <h3 className="font-semibold text-[#17181A] mb-4">Dirección de Envío</h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>{creator.address || '-'}</p>
-              <p>{creator.city}, {creator.department} {creator.postal_code}</p>
-              {creator.shipping_notes && (
-                <p className="text-gray-400 italic">{creator.shipping_notes}</p>
-              )}
+          {/* Shipping Label */}
+          <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-5 relative">
+            <div className="absolute -top-3 left-4 bg-white px-2">
+              <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Etiqueta de Envío</span>
             </div>
+
+            {/* Label content - looks like a real shipping label */}
+            <div className="space-y-3 font-mono">
+              {/* Recipient name - bold and prominent */}
+              <div className="border-b border-gray-200 pb-2">
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Destinatario</p>
+                <p className="text-base font-bold text-[#17181A] uppercase">{creator.full_name || '-'}</p>
+              </div>
+
+              {/* Address block */}
+              <div className="space-y-1">
+                <p className="text-sm text-[#17181A] font-medium">{creator.address || '-'}</p>
+                {creator.shipping_notes && (
+                  <p className="text-sm text-[#17181A]">{creator.shipping_notes}</p>
+                )}
+                <p className="text-sm text-[#17181A] font-semibold">
+                  {creator.city}{creator.department ? `, ${creator.department}` : ''} {creator.postal_code || ''}
+                </p>
+              </div>
+
+              {/* Contact info row */}
+              <div className="border-t border-gray-200 pt-2 grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase">Teléfono</p>
+                  <p className="text-sm font-medium text-[#17181A]">{creator.phone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase">Cédula</p>
+                  <p className="text-sm font-medium text-[#17181A]">{creator.cedula || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Copy button */}
+            <button
+              onClick={() => {
+                const labelText = `${creator.full_name}\n${creator.address || ''}${creator.shipping_notes ? '\n' + creator.shipping_notes : ''}\n${creator.city}, ${creator.department} ${creator.postal_code || ''}\nTel: ${creator.phone || '-'}\nCC: ${creator.cedula || '-'}`;
+                navigator.clipboard.writeText(labelText);
+              }}
+              className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Copiar etiqueta"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Industries & Bio */}
