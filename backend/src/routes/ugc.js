@@ -1319,6 +1319,9 @@ router.delete('/projects/:projectId/creators/:creatorId', async (req, res) => {
 router.put('/projects/:projectId/creators/reorder', async (req, res) => {
   try {
     const { creator_ids } = req.body;
+    const projectId = parseInt(req.params.projectId);
+
+    console.log('Reorder request:', { projectId, orgId: req.orgId, creator_ids });
 
     if (!Array.isArray(creator_ids) || creator_ids.length === 0) {
       return res.status(400).json({ error: 'creator_ids debe ser un array con los IDs en el nuevo orden' });
@@ -1327,36 +1330,41 @@ router.put('/projects/:projectId/creators/reorder', async (req, res) => {
     // Verify project belongs to org
     const project = await db.get(
       'SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?',
-      [req.params.projectId, req.orgId]
+      [projectId, req.orgId]
     );
 
     if (!project) {
       return res.status(404).json({ error: 'Proyecto no encontrado' });
     }
 
-    // Ensure display_order column exists (fallback if migration didn't run)
+    // Ensure display_order column exists (run migration inline if needed)
     try {
-      await db.exec('ALTER TABLE ugc_project_creators ADD COLUMN display_order INTEGER DEFAULT 0');
-      console.log('Added display_order column');
+      await db.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name='ugc_project_creators' AND column_name='display_order') THEN
+            ALTER TABLE ugc_project_creators ADD COLUMN display_order INTEGER DEFAULT 0;
+          END IF;
+        END $$
+      `);
     } catch (alterError) {
-      // Column already exists - that's fine, continue
-      if (!alterError.message.includes('already exists')) {
-        console.log('Column check note:', alterError.message);
-      }
+      console.log('Column migration note:', alterError.message);
     }
 
     // Update display_order for each creator
     for (let i = 0; i < creator_ids.length; i++) {
-      await db.run(
-        'UPDATE ugc_project_creators SET display_order = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ? AND creator_id = ?',
-        [i + 1, req.params.projectId, creator_ids[i]]
+      await db.query(
+        'UPDATE ugc_project_creators SET display_order = $1, updated_at = CURRENT_TIMESTAMP WHERE project_id = $2 AND creator_id = $3',
+        [i + 1, projectId, creator_ids[i]]
       );
     }
 
+    console.log('Reorder completed successfully');
     res.json({ success: true, message: 'Orden actualizado' });
   } catch (error) {
     console.error('Error reordering creators:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 
