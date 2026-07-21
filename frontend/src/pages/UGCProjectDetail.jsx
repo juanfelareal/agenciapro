@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, Users, Calendar, DollarSign,
@@ -143,13 +143,27 @@ const getStatusInfo = (statusId) => {
 // Status badge component
 const StatusBadge = ({ status, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
   const statusInfo = getStatusInfo(status);
   const StatusIcon = statusInfo.icon;
+
+  const handleOpen = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      });
+    }
+    setIsOpen(!isOpen);
+  };
 
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleOpen}
         className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
         style={{ backgroundColor: `${statusInfo.color}15`, color: statusInfo.color }}
       >
@@ -160,8 +174,11 @@ const StatusBadge = ({ status, onChange }) => {
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[200px]">
+          <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+          <div
+            className="fixed z-[101] bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[200px]"
+            style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+          >
             {CREATOR_STATUSES.map(s => {
               const Icon = s.icon;
               return (
