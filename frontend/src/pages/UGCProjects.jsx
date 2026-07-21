@@ -47,7 +47,7 @@ export default function UGCProjects() {
     try {
       const [projectsRes, clientsRes, packagesRes] = await Promise.all([
         ugcAPI.getProjects(),
-        clientsAPI.getAll(),
+        clientsAPI.getAll('active'),
         ugcAPI.getPackages()
       ]);
       setProjects(projectsRes.data);
