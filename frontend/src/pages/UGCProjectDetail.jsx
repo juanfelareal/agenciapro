@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, Users, Calendar, DollarSign,
@@ -186,11 +187,11 @@ const StatusBadge = ({ status, onChange }) => {
         <ChevronDown className="w-3 h-3 flex-shrink-0" />
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
           <div
-            className="fixed z-[101] bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[200px] overflow-y-auto"
+            className="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl py-1 min-w-[200px] overflow-y-auto"
             style={dropdownStyle}
           >
             {CREATOR_STATUSES.map(s => {
@@ -218,7 +219,8 @@ const StatusBadge = ({ status, onChange }) => {
               );
             })}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
