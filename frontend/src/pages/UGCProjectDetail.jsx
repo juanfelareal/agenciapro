@@ -143,7 +143,7 @@ const getStatusInfo = (statusId) => {
 // Status badge component
 const StatusBadge = ({ status, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [dropdownStyle, setDropdownStyle] = useState({});
   const buttonRef = useRef(null);
   const statusInfo = getStatusInfo(status);
   const StatusIcon = statusInfo.icon;
@@ -151,10 +151,24 @@ const StatusBadge = ({ status, onChange }) => {
   const handleOpen = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + 4,
-        left: rect.left
-      });
+      const dropdownHeight = 400; // Approximate height of dropdown
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      // If not enough space below, open upward
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        setDropdownStyle({
+          bottom: window.innerHeight - rect.top + 4,
+          left: rect.left,
+          maxHeight: Math.min(spaceAbove - 20, 400)
+        });
+      } else {
+        setDropdownStyle({
+          top: rect.bottom + 4,
+          left: rect.left,
+          maxHeight: Math.min(spaceBelow - 20, 400)
+        });
+      }
     }
     setIsOpen(!isOpen);
   };
@@ -176,8 +190,8 @@ const StatusBadge = ({ status, onChange }) => {
         <>
           <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
           <div
-            className="fixed z-[101] bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[200px]"
-            style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+            className="fixed z-[101] bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[200px] overflow-y-auto"
+            style={dropdownStyle}
           >
             {CREATOR_STATUSES.map(s => {
               const Icon = s.icon;
