@@ -1,10 +1,11 @@
 import express from 'express';
 import db from '../../config/database.js';
+import { clientAuthMiddleware } from '../../middleware/clientAuth.js';
 
 const router = express.Router();
 
 // GET /api/portal/ugc/creators - List creators assigned to this client
-router.get('/creators', async (req, res) => {
+router.get('/creators', clientAuthMiddleware, async (req, res) => {
   try {
     // Check permission
     if (!req.client.permissions?.can_view_ugc) {
@@ -36,7 +37,7 @@ router.get('/creators', async (req, res) => {
 });
 
 // GET /api/portal/ugc/creators/:id - Get creator detail (only if assigned to this client)
-router.get('/creators/:id', async (req, res) => {
+router.get('/creators/:id', clientAuthMiddleware, async (req, res) => {
   try {
     if (!req.client.permissions?.can_view_ugc) {
       return res.status(403).json({ error: 'No tienes permiso para ver creadores UGC' });
@@ -79,7 +80,7 @@ router.get('/creators/:id', async (req, res) => {
 });
 
 // GET /api/portal/ugc/assignments - List assignments for this client
-router.get('/assignments', async (req, res) => {
+router.get('/assignments', clientAuthMiddleware, async (req, res) => {
   try {
     if (!req.client.permissions?.can_view_ugc) {
       return res.status(403).json({ error: 'No tienes permiso para ver creadores UGC' });
@@ -145,7 +146,7 @@ router.get('/assignments', async (req, res) => {
 });
 
 // GET /api/portal/ugc/assignments/:id - Get assignment detail
-router.get('/assignments/:id', async (req, res) => {
+router.get('/assignments/:id', clientAuthMiddleware, async (req, res) => {
   try {
     if (!req.client.permissions?.can_view_ugc) {
       return res.status(403).json({ error: 'No tienes permiso para ver creadores UGC' });
