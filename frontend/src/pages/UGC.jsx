@@ -9,7 +9,8 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   Plus, Search, Video, Instagram, Phone, MapPin,
   Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle,
-  Filter, ChevronDown, LayoutGrid, List, RefreshCw, ExternalLink, FolderKanban
+  Filter, ChevronDown, LayoutGrid, List, RefreshCw, ExternalLink, FolderKanban,
+  Pencil, Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ugcAPI } from '../utils/api';
@@ -217,6 +218,8 @@ export default function UGC() {
   const [saving, setSaving] = useState(false);
   const [copiedLink, setCopiedLink] = useState(null);
   const [newLinkTag, setNewLinkTag] = useState('');
+  const [editingLinkId, setEditingLinkId] = useState(null);
+  const [editingLinkTag, setEditingLinkTag] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -395,6 +398,27 @@ export default function UGC() {
     navigator.clipboard.writeText(url);
     setCopiedLink(token);
     setTimeout(() => setCopiedLink(null), 2000);
+  };
+
+  const handleEditLinkTag = (link) => {
+    setEditingLinkId(link.id);
+    setEditingLinkTag(link.tag || '');
+  };
+
+  const handleSaveLinkTag = async (linkId) => {
+    try {
+      await ugcAPI.updateRegistrationLink(linkId, editingLinkTag || null);
+      setEditingLinkId(null);
+      setEditingLinkTag('');
+      loadRegistrationLinks();
+    } catch (error) {
+      console.error('Error updating link tag:', error);
+    }
+  };
+
+  const handleCancelEditLinkTag = () => {
+    setEditingLinkId(null);
+    setEditingLinkTag('');
   };
 
   const handleSyncInstagram = async () => {
@@ -1058,10 +1082,50 @@ export default function UGC() {
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
                   >
                     <div className="flex-1 min-w-0 mr-3">
-                      {link.tag && (
-                        <span className="inline-block text-[10px] font-medium bg-[#D7F653] text-[#17181A] px-2 py-0.5 rounded-full mb-1">
-                          {link.tag}
-                        </span>
+                      {editingLinkId === link.id ? (
+                        <div className="flex items-center gap-2 mb-1">
+                          <input
+                            type="text"
+                            value={editingLinkTag}
+                            onChange={(e) => setEditingLinkTag(e.target.value)}
+                            placeholder="Ej: Instagram Bio, WhatsApp..."
+                            className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveLinkTag(link.id);
+                              if (e.key === 'Escape') handleCancelEditLinkTag();
+                            }}
+                          />
+                          <button
+                            onClick={() => handleSaveLinkTag(link.id)}
+                            className="p-1 text-green-600 hover:bg-green-100 rounded"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={handleCancelEditLinkTag}
+                            className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {link.tag ? (
+                            <span className="inline-block text-[10px] font-medium bg-[#D7F653] text-[#17181A] px-2 py-0.5 rounded-full">
+                              {link.tag}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-gray-400 italic">Sin etiqueta</span>
+                          )}
+                          <button
+                            onClick={() => handleEditLinkTag(link)}
+                            className="p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded"
+                            title="Editar etiqueta"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        </div>
                       )}
                       <p className="text-xs text-gray-500 truncate">
                         {window.location.origin}/ugc/register/{link.token}

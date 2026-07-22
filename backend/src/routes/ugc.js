@@ -904,6 +904,27 @@ router.post('/registration-links', async (req, res) => {
   }
 });
 
+// PATCH /api/ugc/registration-links/:id - Update link tag
+router.patch('/registration-links/:id', async (req, res) => {
+  try {
+    const { tag } = req.body;
+
+    await db.run(
+      'UPDATE ugc_registration_tokens SET tag = ? WHERE id = ? AND organization_id = ?',
+      [tag || null, req.params.id, req.orgId]
+    );
+
+    const link = await db.get(
+      'SELECT * FROM ugc_registration_tokens WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+
+    res.json(link);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DELETE /api/ugc/registration-links/:id - Deactivate link
 router.delete('/registration-links/:id', async (req, res) => {
   try {
