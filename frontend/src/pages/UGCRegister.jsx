@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ugcPublicAPI } from '../utils/api';
-import { CheckCircle, AlertCircle, Loader2, Instagram, Video, Globe, MapPin, Phone, User, Mail, CreditCard, DollarSign, Camera, Languages, Clock, Briefcase, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Instagram, Video, Globe, MapPin, Phone, User, Mail, CreditCard, DollarSign, Camera, Languages, Clock, Briefcase, ChevronRight, ChevronLeft, Check, Shield, Sparkles, Package, Banknote } from 'lucide-react';
 import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 
 const STEPS = [
@@ -21,6 +21,7 @@ const UGCRegister = () => {
   const [orgInfo, setOrgInfo] = useState(null);
   const [industries, setIndustries] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showIntro, setShowIntro] = useState(true);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -170,6 +171,119 @@ const UGCRegister = () => {
             Gracias por registrarte. Pronto nos pondremos en contacto contigo para los siguientes pasos.
           </p>
           <p className="text-sm text-gray-500">Ya puedes cerrar esta página.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Intro screen before the form
+  if (showIntro) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+        <div className="max-w-lg mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            {orgInfo?.logo_url && (
+              <img src={orgInfo.logo_url} alt={orgInfo.name} className="h-14 mx-auto mb-4" />
+            )}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Únete como Creador UGC</h1>
+            <p className="text-gray-600">
+              Crea contenido auténtico para las mejores marcas y gana dinero haciendo lo que amas
+            </p>
+          </div>
+
+          {/* How it works */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-yellow-500" />
+              ¿Cómo funciona?
+            </h2>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  1
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Regístrate</h3>
+                  <p className="text-sm text-gray-600">
+                    Completa tu perfil con tus datos, redes sociales y estilo de contenido
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  2
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Recibe productos</h3>
+                  <p className="text-sm text-gray-600">
+                    Las marcas te envían productos a tu dirección para que los pruebes
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  3
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Crea contenido</h3>
+                  <p className="text-sm text-gray-600">
+                    Graba videos auténticos mostrando el producto según el brief
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  4
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Recibe tu pago</h3>
+                  <p className="text-sm text-gray-600">
+                    Cobra por cada video aprobado. ¡Tú pones tu tarifa!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Privacy */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-green-600" />
+              Privacidad de tus datos
+            </h2>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Tu información personal <strong>nunca será vendida</strong> a terceros</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Solo compartimos tus datos con las marcas que <strong>tú aceptes</strong> trabajar</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Tu dirección se usa <strong>únicamente</strong> para enviarte productos</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Puedes solicitar eliminar tus datos en cualquier momento</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* CTA */}
+          <button
+            onClick={() => setShowIntro(false)}
+            className="w-full bg-black text-white py-4 rounded-xl font-semibold text-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
+          >
+            Comenzar registro
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+          <p className="text-xs text-gray-500 text-center mt-4">
+            El registro toma aproximadamente 3 minutos
+          </p>
         </div>
       </div>
     );
