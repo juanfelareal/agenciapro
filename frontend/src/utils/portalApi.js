@@ -366,6 +366,15 @@ export const portalUGCAPI = {
     const response = await portalApi.get(`/ugc/assignments/${id}`);
     return response.data;
   },
+  // Shipping endpoints for project creators
+  getShippingInfo: async (projectCreatorId) => {
+    const response = await portalApi.get(`/ugc/project-creators/${projectCreatorId}/shipping`);
+    return response.data;
+  },
+  updateShipping: async (projectCreatorId, data) => {
+    const response = await portalApi.put(`/ugc/project-creators/${projectCreatorId}/shipping`, data);
+    return response.data;
+  },
 };
 
 // Document Signing (NDA, Contracts) - Portal view for clients

@@ -2961,6 +2961,25 @@ export const initializeDatabase = async () => {
       END $$
     `);
 
+    // Add shipping tracking fields to ugc_project_creators (for client portal shipping)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='tracking_number') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN tracking_number TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='tracking_carrier') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN tracking_carrier TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='shipping_status') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN shipping_status TEXT CHECK(shipping_status IN ('pending', 'shipped', 'delivered')) DEFAULT 'pending';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='shipped_at') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN shipped_at TIMESTAMP;
+        END IF;
+      END $$
+    `);
+
     // UGC Signed Contracts (stores the actual signed contract data)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_signed_contracts (

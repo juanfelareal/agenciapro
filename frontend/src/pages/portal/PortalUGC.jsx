@@ -13,7 +13,14 @@ import {
   Clock,
   CheckCircle2,
   Play,
-  BookOpen
+  BookOpen,
+  X,
+  MapPin,
+  Phone,
+  Truck,
+  Copy,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 
 const ASSIGNMENT_STATUS = {
@@ -33,6 +40,24 @@ const ASSIGNMENT_STATUS = {
   delivered_changes: { label: 'Con cambios', color: 'bg-orange-100 text-orange-700' },
 };
 
+const SHIPPING_STATUS = {
+  pending: { label: 'Pendiente', color: 'bg-gray-100 text-gray-600' },
+  shipped: { label: 'Enviado', color: 'bg-blue-100 text-blue-700' },
+  delivered: { label: 'Entregado', color: 'bg-green-100 text-green-700' },
+};
+
+const CARRIERS = [
+  'Servientrega',
+  'Coordinadora',
+  'Interrapidísimo',
+  'Envia',
+  'TCC',
+  '472',
+  'DHL',
+  'FedEx',
+  'Otro'
+];
+
 export default function PortalUGC() {
   const { client } = usePortal();
   const [creators, setCreators] = useState([]);
@@ -40,10 +65,18 @@ export default function PortalUGC() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('creators');
   const [showOnboarding, setShowOnboarding] = useState(() => {
-    // Check if onboarding was completed for this client
     const completed = localStorage.getItem(`ugc_onboarding_completed_${client?.id}`);
     return !completed;
   });
+
+  // Shipping modal state
+  const [shippingModal, setShippingModal] = useState(null);
+  const [shippingData, setShippingData] = useState(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [savingShipping, setSavingShipping] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingCarrier, setTrackingCarrier] = useState('');
+  const [copied, setCopied] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -67,6 +100,66 @@ export default function PortalUGC() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openShippingModal = async (assignment) => {
+    if (assignment.source_type !== 'project' || !assignment.project_creator_id) {
+      return; // Only project assignments have shipping info
+    }
+
+    setShippingModal(assignment);
+    setShippingLoading(true);
+
+    try {
+      const data = await portalUGCAPI.getShippingInfo(assignment.project_creator_id);
+      setShippingData(data);
+      setTrackingNumber(data.tracking_number || '');
+      setTrackingCarrier(data.tracking_carrier || '');
+    } catch (error) {
+      console.error('Error loading shipping info:', error);
+      setShippingData(null);
+    } finally {
+      setShippingLoading(false);
+    }
+  };
+
+  const closeShippingModal = () => {
+    setShippingModal(null);
+    setShippingData(null);
+    setTrackingNumber('');
+    setTrackingCarrier('');
+  };
+
+  const saveShipping = async () => {
+    if (!shippingModal?.project_creator_id) return;
+
+    setSavingShipping(true);
+    try {
+      const updated = await portalUGCAPI.updateShipping(shippingModal.project_creator_id, {
+        tracking_number: trackingNumber,
+        tracking_carrier: trackingCarrier
+      });
+
+      // Update local state
+      setShippingData(prev => ({ ...prev, ...updated }));
+
+      // Update assignments list
+      setAssignments(prev => prev.map(a =>
+        a.project_creator_id === shippingModal.project_creator_id
+          ? { ...a, tracking_number: trackingNumber, tracking_carrier: trackingCarrier, shipping_status: trackingNumber ? 'shipped' : 'pending' }
+          : a
+      ));
+    } catch (error) {
+      console.error('Error saving shipping:', error);
+    } finally {
+      setSavingShipping(false);
+    }
+  };
+
+  const copyToClipboard = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopied(field);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   const parseSocialNetworks = (social) => {
@@ -101,7 +194,6 @@ export default function PortalUGC() {
     );
   }
 
-  // Show onboarding if not completed
   if (showOnboarding) {
     return <PortalUGCOnboarding onComplete={handleOnboardingComplete} />;
   }
@@ -206,7 +298,6 @@ export default function PortalUGC() {
                     <p className="text-sm text-gray-500 mt-3 line-clamp-2">{creator.bio}</p>
                   )}
 
-                  {/* Social Links */}
                   {(social.instagram || social.tiktok) && (
                     <div className="flex gap-2 mt-4">
                       {social.instagram && (
@@ -249,10 +340,32 @@ export default function PortalUGC() {
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
-              {assignments.map((assignment) => {
+              {[...assignments]
+                .sort((a, b) => {
+                  // Priorizar "contract_signed" primero (listos para despachar)
+                  const priorityStatuses = ['contract_signed', 'confirmed', 'brand_approved'];
+                  const aIndex = priorityStatuses.indexOf(a.status);
+                  const bIndex = priorityStatuses.indexOf(b.status);
+
+                  // Si ambos están en la lista de prioridad, ordenar por su posición
+                  if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                  // Si solo uno está en la lista, ese va primero
+                  if (aIndex !== -1) return -1;
+                  if (bIndex !== -1) return 1;
+                  // Si ninguno está, mantener orden por fecha
+                  return new Date(b.created_at) - new Date(a.created_at);
+                })
+                .map((assignment) => {
                 const status = ASSIGNMENT_STATUS[assignment.status] || { label: assignment.status, color: 'bg-gray-100 text-gray-700' };
+                const shippingStatus = assignment.shipping_status ? SHIPPING_STATUS[assignment.shipping_status] : null;
+                const isProjectAssignment = assignment.source_type === 'project';
+
                 return (
-                  <div key={assignment.id} className="p-5 hover:bg-gray-50 transition-colors">
+                  <div
+                    key={`${assignment.source_type}-${assignment.id}`}
+                    className={`p-5 hover:bg-gray-50 transition-colors ${isProjectAssignment ? 'cursor-pointer' : ''}`}
+                    onClick={() => isProjectAssignment && openShippingModal(assignment)}
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1 min-w-0">
                         {assignment.creator_photo ? (
@@ -283,6 +396,13 @@ export default function PortalUGC() {
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${status.color}`}>
                           {status.label}
                         </span>
+                        {/* Shipping status for project assignments */}
+                        {isProjectAssignment && shippingStatus && (
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 ${shippingStatus.color}`}>
+                            <Truck className="w-3 h-3" />
+                            {shippingStatus.label}
+                          </span>
+                        )}
                         {assignment.end_date && (
                           <span className="text-xs text-gray-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
@@ -292,9 +412,17 @@ export default function PortalUGC() {
                       </div>
                     </div>
 
+                    {/* Tracking info if shipped */}
+                    {isProjectAssignment && assignment.tracking_number && (
+                      <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+                        <Truck className="w-4 h-4" />
+                        <span>{assignment.tracking_carrier}: {assignment.tracking_number}</span>
+                      </div>
+                    )}
+
                     {/* Delivery link */}
                     {assignment.delivery_url && (
-                      <div className="mt-4 flex items-center gap-2">
+                      <div className="mt-4 flex items-center gap-2" onClick={e => e.stopPropagation()}>
                         <a
                           href={assignment.delivery_url}
                           target="_blank"
@@ -312,11 +440,198 @@ export default function PortalUGC() {
                         )}
                       </div>
                     )}
+
+                    {/* Click hint for project assignments */}
+                    {isProjectAssignment && !assignment.tracking_number && (
+                      <p className="mt-3 text-xs text-violet-500 flex items-center gap-1">
+                        <Truck className="w-3 h-3" />
+                        Haz clic para ver datos de envío y registrar guía
+                      </p>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Shipping Modal */}
+      {shippingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={closeShippingModal}>
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-violet-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-[#17181A]">Datos de Envío</h2>
+                  <p className="text-sm text-gray-500">{shippingModal.creator_name}</p>
+                </div>
+              </div>
+              <button
+                onClick={closeShippingModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              {shippingLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
+                </div>
+              ) : shippingData ? (
+                <div className="space-y-5">
+                  {/* Shipping Address */}
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                    <h3 className="font-medium text-[#17181A] flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      Dirección de Envío
+                    </h3>
+
+                    {shippingData.address ? (
+                      <>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm text-gray-700">{shippingData.address}</p>
+                            <p className="text-sm text-gray-500">
+                              {[shippingData.city, shippingData.department].filter(Boolean).join(', ')}
+                              {shippingData.postal_code && ` - ${shippingData.postal_code}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => copyToClipboard(
+                              `${shippingData.address}, ${shippingData.city}, ${shippingData.department}${shippingData.postal_code ? ` - ${shippingData.postal_code}` : ''}`,
+                              'address'
+                            )}
+                            className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                            title="Copiar dirección"
+                          >
+                            {copied === 'address' ? (
+                              <Check className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-gray-400" />
+                            )}
+                          </button>
+                        </div>
+                        {shippingData.shipping_notes && (
+                          <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                            <AlertCircle className="w-3 h-3 inline mr-1" />
+                            {shippingData.shipping_notes}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Sin dirección registrada</p>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-medium text-[#17181A] flex items-center gap-2 mb-2">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      Teléfono
+                    </h3>
+                    {shippingData.phone ? (
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-700">{shippingData.phone}</p>
+                        <button
+                          onClick={() => copyToClipboard(shippingData.phone, 'phone')}
+                          className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                          title="Copiar teléfono"
+                        >
+                          {copied === 'phone' ? (
+                            <Check className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <Copy className="w-4 h-4 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Sin teléfono registrado</p>
+                    )}
+                  </div>
+
+                  {/* Tracking Form */}
+                  <div className="border-t border-gray-100 pt-5">
+                    <h3 className="font-medium text-[#17181A] flex items-center gap-2 mb-4">
+                      <Truck className="w-4 h-4 text-gray-400" />
+                      Información de Seguimiento
+                    </h3>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Transportadora
+                        </label>
+                        <select
+                          value={trackingCarrier}
+                          onChange={(e) => setTrackingCarrier(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                        >
+                          <option value="">Seleccionar...</option>
+                          {CARRIERS.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Número de Guía
+                        </label>
+                        <input
+                          type="text"
+                          value={trackingNumber}
+                          onChange={(e) => setTrackingNumber(e.target.value)}
+                          placeholder="Ej: 1234567890"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <button
+                        onClick={saveShipping}
+                        disabled={savingShipping}
+                        className="w-full py-2.5 bg-[#17181A] text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {savingShipping ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            Guardar Información de Envío
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Shipped info */}
+                  {shippingData.shipped_at && (
+                    <p className="text-xs text-gray-400 text-center">
+                      Enviado el {new Date(shippingData.shipped_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500">No se pudo cargar la información</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

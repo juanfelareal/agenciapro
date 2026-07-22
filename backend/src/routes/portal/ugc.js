@@ -43,14 +43,21 @@ router.get('/creators/:id', clientAuthMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'No tienes permiso para ver creadores UGC' });
     }
 
-    // Check if creator is assigned to this client
+    // Check if creator is assigned to this client via assignments OR projects
     const hasAssignment = await db.get(
       `SELECT 1 FROM ugc_assignments
        WHERE creator_id = ? AND client_id = ? AND status NOT IN ('cancelled', 'proposed')`,
       [req.params.id, req.client.id]
     );
 
-    if (!hasAssignment) {
+    const hasProjectAssignment = await db.get(
+      `SELECT 1 FROM ugc_project_creators pc
+       INNER JOIN ugc_projects p ON pc.project_id = p.id
+       WHERE pc.creator_id = ? AND p.client_id = ? AND pc.status NOT IN ('rejected')`,
+      [req.params.id, req.client.id]
+    );
+
+    if (!hasAssignment && !hasProjectAssignment) {
       return res.status(404).json({ error: 'Creador no encontrado' });
     }
 
@@ -93,7 +100,8 @@ router.get('/assignments', clientAuthMiddleware, async (req, res) => {
       SELECT a.id, a.title, a.description, a.deliverables, a.start_date, a.end_date,
              a.status, a.delivery_url, a.delivered_at, a.created_at,
              c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo,
-             'assignment' as source_type, NULL as project_title
+             'assignment' as source_type, NULL as project_title, NULL as project_creator_id,
+             NULL as tracking_number, NULL as tracking_carrier, NULL as shipping_status, NULL as shipped_at
       FROM ugc_assignments a
       LEFT JOIN ugc_creators c ON a.creator_id = c.id
       WHERE a.client_id = ? AND a.status NOT IN ('cancelled', 'proposed')
@@ -105,12 +113,13 @@ router.get('/assignments', clientAuthMiddleware, async (req, res) => {
       directParams.push(status);
     }
 
-    // Get project creator assignments
+    // Get project creator assignments - include shipping data
     let projectQuery = `
       SELECT pc.id, p.title as title, p.description, pc.deliverables, p.start_date, p.deadline as end_date,
              pc.status, pc.delivery_url, pc.delivered_at, pc.created_at,
              c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo,
-             'project' as source_type, p.title as project_title
+             'project' as source_type, p.title as project_title, pc.id as project_creator_id,
+             pc.tracking_number, pc.tracking_carrier, pc.shipping_status, pc.shipped_at
       FROM ugc_project_creators pc
       INNER JOIN ugc_projects p ON pc.project_id = p.id
       LEFT JOIN ugc_creators c ON pc.creator_id = c.id
@@ -168,6 +177,84 @@ router.get('/assignments/:id', clientAuthMiddleware, async (req, res) => {
     }
 
     res.json(assignment);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/portal/ugc/project-creators/:id/shipping - Get creator shipping info for a project assignment
+router.get('/project-creators/:id/shipping', clientAuthMiddleware, async (req, res) => {
+  try {
+    if (!req.client.permissions?.can_view_ugc) {
+      return res.status(403).json({ error: 'No tienes permiso para ver creadores UGC' });
+    }
+
+    // Get project creator with shipping info, verify client ownership
+    const projectCreator = await db.get(
+      `SELECT pc.id, pc.tracking_number, pc.tracking_carrier, pc.shipping_status, pc.shipped_at,
+              c.id as creator_id, c.full_name, c.phone, c.address, c.city, c.department,
+              c.postal_code, c.shipping_notes, c.profile_photo_url,
+              p.title as project_title
+       FROM ugc_project_creators pc
+       INNER JOIN ugc_projects p ON pc.project_id = p.id
+       INNER JOIN ugc_creators c ON pc.creator_id = c.id
+       WHERE pc.id = ? AND p.client_id = ? AND pc.status NOT IN ('rejected')`,
+      [req.params.id, req.client.id]
+    );
+
+    if (!projectCreator) {
+      return res.status(404).json({ error: 'Creador no encontrado' });
+    }
+
+    res.json(projectCreator);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/portal/ugc/project-creators/:id/shipping - Update tracking info
+router.put('/project-creators/:id/shipping', clientAuthMiddleware, async (req, res) => {
+  try {
+    if (!req.client.permissions?.can_view_ugc) {
+      return res.status(403).json({ error: 'No tienes permiso para ver creadores UGC' });
+    }
+
+    const { tracking_number, tracking_carrier } = req.body;
+
+    // Verify client ownership of this project creator
+    const projectCreator = await db.get(
+      `SELECT pc.id FROM ugc_project_creators pc
+       INNER JOIN ugc_projects p ON pc.project_id = p.id
+       WHERE pc.id = ? AND p.client_id = ? AND pc.status NOT IN ('rejected')`,
+      [req.params.id, req.client.id]
+    );
+
+    if (!projectCreator) {
+      return res.status(404).json({ error: 'Creador no encontrado' });
+    }
+
+    // Update tracking info
+    const shippingStatus = tracking_number ? 'shipped' : 'pending';
+    const shippedAt = tracking_number ? new Date().toISOString() : null;
+
+    await db.run(
+      `UPDATE ugc_project_creators
+       SET tracking_number = ?, tracking_carrier = ?, shipping_status = ?, shipped_at = COALESCE(shipped_at, ?), updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [tracking_number || null, tracking_carrier || null, shippingStatus, shippedAt, req.params.id]
+    );
+
+    // Return updated data
+    const updated = await db.get(
+      `SELECT pc.id, pc.tracking_number, pc.tracking_carrier, pc.shipping_status, pc.shipped_at,
+              c.full_name, c.phone, c.address, c.city, c.department, c.postal_code, c.shipping_notes
+       FROM ugc_project_creators pc
+       INNER JOIN ugc_creators c ON pc.creator_id = c.id
+       WHERE pc.id = ?`,
+      [req.params.id]
+    );
+
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
