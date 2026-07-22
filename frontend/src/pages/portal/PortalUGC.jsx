@@ -380,8 +380,8 @@ export default function PortalUGC() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-[#17181A] truncate">{assignment.title}</h3>
-                          <p className="text-sm text-gray-500">{assignment.creator_name}</p>
+                          <h3 className="font-medium text-[#17181A] truncate">{assignment.creator_name}</h3>
+                          <p className="text-xs text-gray-400 truncate">{assignment.title}</p>
                           {assignment.description && (
                             <p className="text-sm text-gray-400 mt-1 line-clamp-2">{assignment.description}</p>
                           )}
