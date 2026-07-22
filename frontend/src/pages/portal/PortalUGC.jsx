@@ -490,73 +490,63 @@ export default function PortalUGC() {
                 </div>
               ) : shippingData ? (
                 <div className="space-y-5">
-                  {/* Shipping Address */}
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                    <h3 className="font-medium text-[#17181A] flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      Dirección de Envío
-                    </h3>
-
-                    {shippingData.address ? (
+                  {/* Copy as Label Button */}
+                  <button
+                    onClick={() => {
+                      const label = [
+                        shippingData.full_name,
+                        shippingData.cedula ? `CC: ${shippingData.cedula}` : null,
+                        shippingData.phone ? `Tel: ${shippingData.phone}` : null,
+                        shippingData.address,
+                        [shippingData.city, shippingData.department].filter(Boolean).join(', '),
+                        shippingData.postal_code ? `CP: ${shippingData.postal_code}` : null,
+                        shippingData.shipping_notes ? `Nota: ${shippingData.shipping_notes}` : null,
+                      ].filter(Boolean).join('\n');
+                      copyToClipboard(label, 'label');
+                    }}
+                    className="w-full py-3 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    {copied === 'label' ? (
                       <>
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm text-gray-700">{shippingData.address}</p>
-                            <p className="text-sm text-gray-500">
-                              {[shippingData.city, shippingData.department].filter(Boolean).join(', ')}
-                              {shippingData.postal_code && ` - ${shippingData.postal_code}`}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => copyToClipboard(
-                              `${shippingData.address}, ${shippingData.city}, ${shippingData.department}${shippingData.postal_code ? ` - ${shippingData.postal_code}` : ''}`,
-                              'address'
-                            )}
-                            className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-                            title="Copiar dirección"
-                          >
-                            {copied === 'address' ? (
-                              <Check className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <Copy className="w-4 h-4 text-gray-400" />
-                            )}
-                          </button>
-                        </div>
-                        {shippingData.shipping_notes && (
-                          <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
-                            <AlertCircle className="w-3 h-3 inline mr-1" />
-                            {shippingData.shipping_notes}
-                          </p>
-                        )}
+                        <Check className="w-4 h-4" />
+                        ¡Etiqueta copiada!
                       </>
                     ) : (
-                      <p className="text-sm text-gray-400 italic">Sin dirección registrada</p>
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copiar como etiqueta
+                      </>
                     )}
-                  </div>
+                  </button>
 
-                  {/* Phone */}
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="font-medium text-[#17181A] flex items-center gap-2 mb-2">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      Teléfono
-                    </h3>
-                    {shippingData.phone ? (
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-700">{shippingData.phone}</p>
-                        <button
-                          onClick={() => copyToClipboard(shippingData.phone, 'phone')}
-                          className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-                          title="Copiar teléfono"
-                        >
-                          {copied === 'phone' ? (
-                            <Check className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4 text-gray-400" />
-                          )}
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-400 italic">Sin teléfono registrado</p>
+                  {/* Shipping Label Preview */}
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-2 font-mono text-sm">
+                    <p className="font-semibold text-[#17181A]">{shippingData.full_name}</p>
+                    {shippingData.cedula && (
+                      <p className="text-gray-600">CC: {shippingData.cedula}</p>
+                    )}
+                    {shippingData.phone && (
+                      <p className="text-gray-600">Tel: {shippingData.phone}</p>
+                    )}
+                    {shippingData.address && (
+                      <p className="text-gray-700">{shippingData.address}</p>
+                    )}
+                    {(shippingData.city || shippingData.department) && (
+                      <p className="text-gray-600">
+                        {[shippingData.city, shippingData.department].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    {shippingData.postal_code && (
+                      <p className="text-gray-600">CP: {shippingData.postal_code}</p>
+                    )}
+                    {shippingData.shipping_notes && (
+                      <p className="text-amber-600 bg-amber-50 px-2 py-1 rounded-lg mt-2 text-xs">
+                        <AlertCircle className="w-3 h-3 inline mr-1" />
+                        {shippingData.shipping_notes}
+                      </p>
+                    )}
+                    {!shippingData.address && !shippingData.phone && (
+                      <p className="text-gray-400 italic">Sin datos de envío registrados</p>
                     )}
                   </div>
 
