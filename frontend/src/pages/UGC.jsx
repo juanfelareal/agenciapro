@@ -216,6 +216,7 @@ export default function UGC() {
   });
   const [saving, setSaving] = useState(false);
   const [copiedLink, setCopiedLink] = useState(null);
+  const [newLinkTag, setNewLinkTag] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -381,7 +382,8 @@ export default function UGC() {
 
   const handleCreateLink = async () => {
     try {
-      await ugcAPI.createRegistrationLink();
+      await ugcAPI.createRegistrationLink(newLinkTag || null);
+      setNewLinkTag('');
       loadRegistrationLinks();
     } catch (error) {
       console.error('Error creating link:', error);
@@ -1056,6 +1058,11 @@ export default function UGC() {
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
                   >
                     <div className="flex-1 min-w-0 mr-3">
+                      {link.tag && (
+                        <span className="inline-block text-[10px] font-medium bg-[#D7F653] text-[#17181A] px-2 py-0.5 rounded-full mb-1">
+                          {link.tag}
+                        </span>
+                      )}
                       <p className="text-xs text-gray-500 truncate">
                         {window.location.origin}/ugc/register/{link.token}
                       </p>
@@ -1082,7 +1089,19 @@ export default function UGC() {
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-100">
+            <div className="p-6 border-t border-gray-100 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">
+                  Etiqueta (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={newLinkTag}
+                  onChange={(e) => setNewLinkTag(e.target.value)}
+                  placeholder="Ej: Instagram Bio, WhatsApp, Evento Mayo..."
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                />
+              </div>
               <button
                 onClick={handleCreateLink}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors"

@@ -62,7 +62,14 @@ router.post('/register/:token', async (req, res) => {
       industries,
       other_industry,
       bio,
-      portfolio_url
+      portfolio_url,
+      // New fields
+      portfolio,
+      rate_per_video,
+      traits,
+      languages,
+      equipment,
+      availability
     } = req.body;
 
     // Validate required fields
@@ -103,8 +110,9 @@ router.post('/register/:token', async (req, res) => {
       `INSERT INTO ugc_creators (
         full_name, email, phone, cedula, social_networks,
         address, city, department, postal_code, shipping_notes,
-        industries, other_industry, bio, portfolio_url, stage_id, source, organization_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        industries, other_industry, bio, portfolio_url, stage_id, source, organization_id,
+        portfolio, rate_per_video, traits, languages, equipment, availability
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         full_name,
         email || null,
@@ -122,7 +130,13 @@ router.post('/register/:token', async (req, res) => {
         portfolio_url || null,
         firstStage?.id || null,
         'landing',
-        orgId
+        orgId,
+        JSON.stringify(portfolio || {}),
+        rate_per_video ? parseInt(rate_per_video) : null,
+        JSON.stringify(traits || {}),
+        languages || [],
+        equipment || [],
+        JSON.stringify(availability || {})
       ]
     );
 

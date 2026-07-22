@@ -311,7 +311,8 @@ router.post('/creators', async (req, res) => {
     const {
       full_name, email, phone, cedula, social_networks,
       address, city, department, postal_code, shipping_notes,
-      industries, bio, portfolio_url, profile_photo_url, stage_id, notes, source
+      industries, bio, portfolio_url, profile_photo_url, stage_id, notes, source,
+      portfolio, rate_per_video, traits, languages, equipment, availability
     } = req.body;
 
     if (!full_name || !phone) {
@@ -322,12 +323,15 @@ router.post('/creators', async (req, res) => {
       `INSERT INTO ugc_creators (
         full_name, email, phone, cedula, social_networks,
         address, city, department, postal_code, shipping_notes,
-        industries, bio, portfolio_url, profile_photo_url, stage_id, notes, source, organization_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        industries, bio, portfolio_url, profile_photo_url, stage_id, notes, source, organization_id,
+        portfolio, rate_per_video, traits, languages, equipment, availability
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         full_name, email, phone, cedula, JSON.stringify(social_networks || {}),
         address, city, department, postal_code, shipping_notes,
-        industries || [], bio, portfolio_url, profile_photo_url, stage_id, notes, source || 'manual', req.orgId
+        industries || [], bio, portfolio_url, profile_photo_url, stage_id, notes, source || 'manual', req.orgId,
+        JSON.stringify(portfolio || {}), rate_per_video || null, JSON.stringify(traits || {}),
+        languages || [], equipment || [], JSON.stringify(availability || {})
       ]
     );
 
@@ -344,7 +348,8 @@ router.put('/creators/:id', async (req, res) => {
     const {
       full_name, email, phone, cedula, social_networks,
       address, city, department, postal_code, shipping_notes,
-      industries, bio, portfolio_url, profile_photo_url, stage_id, notes
+      industries, bio, portfolio_url, profile_photo_url, stage_id, notes,
+      portfolio, rate_per_video, traits, languages, equipment, availability
     } = req.body;
 
     await db.run(
@@ -352,12 +357,15 @@ router.put('/creators/:id', async (req, res) => {
         full_name = ?, email = ?, phone = ?, cedula = ?, social_networks = ?,
         address = ?, city = ?, department = ?, postal_code = ?, shipping_notes = ?,
         industries = ?, bio = ?, portfolio_url = ?, profile_photo_url = ?, stage_id = ?, notes = ?,
+        portfolio = ?, rate_per_video = ?, traits = ?, languages = ?, equipment = ?, availability = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?`,
       [
         full_name, email, phone, cedula, JSON.stringify(social_networks || {}),
         address, city, department, postal_code, shipping_notes,
         industries || [], bio, portfolio_url, profile_photo_url, stage_id, notes,
+        JSON.stringify(portfolio || {}), rate_per_video || null, JSON.stringify(traits || {}),
+        languages || [], equipment || [], JSON.stringify(availability || {}),
         req.params.id, req.orgId
       ]
     );
@@ -878,11 +886,12 @@ router.get('/registration-links', async (req, res) => {
 // POST /api/ugc/registration-links - Create registration link
 router.post('/registration-links', async (req, res) => {
   try {
+    const { tag } = req.body;
     const token = crypto.randomBytes(16).toString('hex');
 
     const result = await db.run(
-      'INSERT INTO ugc_registration_tokens (token, organization_id) VALUES (?, ?)',
-      [token, req.orgId]
+      'INSERT INTO ugc_registration_tokens (token, organization_id, tag) VALUES (?, ?, ?)',
+      [token, req.orgId, tag || null]
     );
 
     const link = await db.get('SELECT * FROM ugc_registration_tokens WHERE id = ?', [result.lastID]);

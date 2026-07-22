@@ -824,7 +824,7 @@ export const ugcAPI = {
   deletePayment: (id) => api.delete(`/ugc/payments/${id}`),
   // Registration Links
   getRegistrationLinks: () => api.get('/ugc/registration-links'),
-  createRegistrationLink: () => api.post('/ugc/registration-links'),
+  createRegistrationLink: (tag) => api.post('/ugc/registration-links', { tag }),
   deleteRegistrationLink: (id) => api.delete(`/ugc/registration-links/${id}`),
   // Stats
   getStats: () => api.get('/ugc/stats'),
