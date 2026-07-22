@@ -29,6 +29,8 @@ const ALL_PERMISSIONS = [
   { key: 'notas', label: 'Bloc de Notas', icon: '📝', category: 'Admin' },
   { key: 'formularios', label: 'Formularios', icon: '📋', category: 'Admin' },
   { key: 'sops', label: 'SOPs', icon: '📚', category: 'Admin' },
+  // UGC
+  { key: 'ugc', label: 'UGC', icon: '🎬', category: 'UGC' },
 ];
 
 // Permission templates for quick assignment
@@ -45,8 +47,8 @@ const PERMISSION_TEMPLATES = [
     icon: '⚙️',
     permissions: {
       dashboard: true, metricas: true, clients: true, projects: true, plantillas: true,
-      tasks: true, calendario: true,      invoices: false, expenses: false, comisiones: false, siigo: false,
-      team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true,
+      tasks: true, calendario: true, invoices: false, expenses: false, comisiones: false, siigo: false,
+      team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true, ugc: false,
     },
   },
   {
@@ -55,8 +57,8 @@ const PERMISSION_TEMPLATES = [
     icon: '💼',
     permissions: {
       dashboard: true, metricas: true, clients: true, projects: true, plantillas: false,
-      tasks: true, calendario: true,      invoices: true, expenses: false, comisiones: true, siigo: false,
-      team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true,
+      tasks: true, calendario: true, invoices: true, expenses: false, comisiones: true, siigo: false,
+      team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: true, ugc: false,
     },
   },
   {
@@ -65,8 +67,8 @@ const PERMISSION_TEMPLATES = [
     icon: '💵',
     permissions: {
       dashboard: true, metricas: false, clients: true, projects: false, plantillas: false,
-      tasks: false, calendario: false,      invoices: true, expenses: true, comisiones: true, siigo: true,
-      team: false, automatizaciones: false, notas: false, formularios: false, sops: false, reportes: true,
+      tasks: false, calendario: false, invoices: true, expenses: true, comisiones: true, siigo: true,
+      team: false, automatizaciones: false, notas: false, formularios: false, sops: false, reportes: true, ugc: false,
     },
   },
   {
@@ -75,8 +77,8 @@ const PERMISSION_TEMPLATES = [
     icon: '📋',
     permissions: {
       dashboard: false, metricas: false, clients: false, projects: false, plantillas: false,
-      tasks: true, calendario: true,      invoices: false, expenses: false, comisiones: false, siigo: false,
-      team: false, automatizaciones: false, notas: true, formularios: false, sops: true, reportes: false,
+      tasks: true, calendario: true, invoices: false, expenses: false, comisiones: false, siigo: false,
+      team: false, automatizaciones: false, notas: true, formularios: false, sops: true, reportes: false, ugc: false,
     },
   },
 ];
@@ -84,8 +86,8 @@ const PERMISSION_TEMPLATES = [
 // Default permissions for new members
 const DEFAULT_PERMISSIONS = {
   dashboard: true, metricas: false, clients: true, projects: true, plantillas: false,
-  tasks: true, calendario: true,  invoices: false, expenses: false, comisiones: false, siigo: false,
-  team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: false,
+  tasks: true, calendario: true, invoices: false, expenses: false, comisiones: false, siigo: false,
+  team: false, automatizaciones: false, notas: true, formularios: true, sops: true, reportes: false, ugc: false,
 };
 
 const Team = () => {
@@ -629,7 +631,7 @@ const Team = () => {
                   </div>
 
                   {/* Permissions Grid by Category */}
-                  {['General', 'CRM', 'Tareas', 'Finanzas', 'Admin'].map((category) => (
+                  {['General', 'CRM', 'Tareas', 'Finanzas', 'Admin', 'UGC'].map((category) => (
                     <div key={category} className="mb-4">
                       <h4 className="text-sm font-medium text-gray-500 mb-2">{category}</h4>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
