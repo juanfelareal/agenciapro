@@ -410,7 +410,7 @@ export default function UGC() {
       await ugcAPI.updateRegistrationLink(linkId, editingLinkTag || null);
       setEditingLinkId(null);
       setEditingLinkTag('');
-      loadRegistrationLinks();
+      await loadRegistrationLinks();
     } catch (error) {
       console.error('Error updating link tag:', error);
     }

@@ -2780,6 +2780,16 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Add tag column to ugc_registration_tokens if not exists
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_registration_tokens' AND column_name='tag') THEN
+          ALTER TABLE ugc_registration_tokens ADD COLUMN tag TEXT;
+        END IF;
+      END $$
+    `);
+
     // UGC Projects (Campaigns - groups multiple creators)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_projects (
