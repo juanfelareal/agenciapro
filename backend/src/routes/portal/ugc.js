@@ -11,13 +11,22 @@ router.get('/creators', async (req, res) => {
       return res.status(403).json({ error: 'No tienes permiso para ver creadores UGC' });
     }
 
+    // Get creators from both ugc_assignments AND ugc_project_creators
     const creators = await db.all(
       `SELECT DISTINCT c.id, c.full_name, c.profile_photo_url, c.bio, c.social_networks, c.industries
        FROM ugc_creators c
-       INNER JOIN ugc_assignments a ON c.id = a.creator_id
-       WHERE a.client_id = ? AND a.status NOT IN ('cancelled', 'proposed')
+       WHERE c.id IN (
+         -- Creators from direct assignments
+         SELECT a.creator_id FROM ugc_assignments a
+         WHERE a.client_id = ? AND a.status NOT IN ('cancelled', 'proposed')
+         UNION
+         -- Creators from UGC projects
+         SELECT pc.creator_id FROM ugc_project_creators pc
+         INNER JOIN ugc_projects p ON pc.project_id = p.id
+         WHERE p.client_id = ? AND pc.status NOT IN ('rejected')
+       )
        ORDER BY c.full_name`,
-      [req.client.id]
+      [req.client.id, req.client.id]
     );
 
     res.json(creators);
@@ -78,25 +87,58 @@ router.get('/assignments', async (req, res) => {
 
     const { status } = req.query;
 
-    let query = `
+    // Get direct assignments
+    let directQuery = `
       SELECT a.id, a.title, a.description, a.deliverables, a.start_date, a.end_date,
              a.status, a.delivery_url, a.delivered_at, a.created_at,
-             c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo
+             c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo,
+             'assignment' as source_type, NULL as project_title
       FROM ugc_assignments a
       LEFT JOIN ugc_creators c ON a.creator_id = c.id
       WHERE a.client_id = ? AND a.status NOT IN ('cancelled', 'proposed')
     `;
-    const params = [req.client.id];
+    const directParams = [req.client.id];
 
     if (status) {
-      query += ' AND a.status = ?';
-      params.push(status);
+      directQuery += ' AND a.status = ?';
+      directParams.push(status);
     }
 
-    query += ' ORDER BY a.created_at DESC';
+    // Get project creator assignments
+    let projectQuery = `
+      SELECT pc.id, p.title as title, p.description, pc.deliverables, p.start_date, p.deadline as end_date,
+             pc.status, pc.delivery_url, pc.delivered_at, pc.created_at,
+             c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo,
+             'project' as source_type, p.title as project_title
+      FROM ugc_project_creators pc
+      INNER JOIN ugc_projects p ON pc.project_id = p.id
+      LEFT JOIN ugc_creators c ON pc.creator_id = c.id
+      WHERE p.client_id = ? AND pc.status NOT IN ('rejected')
+    `;
+    const projectParams = [req.client.id];
 
-    const assignments = await db.all(query, params);
-    res.json(assignments);
+    if (status) {
+      // Map assignment statuses to project creator statuses
+      const statusMap = {
+        'accepted': ['confirmed', 'contract_signed'],
+        'in_production': ['producing'],
+        'delivered': ['delivered_approved', 'delivered_changes'],
+        'paid': ['paid']
+      };
+      const mappedStatuses = statusMap[status] || [status];
+      projectQuery += ` AND pc.status IN (${mappedStatuses.map(() => '?').join(',')})`;
+      projectParams.push(...mappedStatuses);
+    }
+
+    // Combine both queries
+    const directAssignments = await db.all(directQuery, directParams);
+    const projectAssignments = await db.all(projectQuery, projectParams);
+
+    // Merge and sort by created_at DESC
+    const allAssignments = [...directAssignments, ...projectAssignments]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json(allAssignments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

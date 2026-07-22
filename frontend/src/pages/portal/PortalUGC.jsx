@@ -17,10 +17,20 @@ import {
 } from 'lucide-react';
 
 const ASSIGNMENT_STATUS = {
+  // Direct assignment statuses
   accepted: { label: 'Aceptado', color: 'bg-blue-100 text-blue-700' },
   in_production: { label: 'En producción', color: 'bg-yellow-100 text-yellow-700' },
   delivered: { label: 'Entregado', color: 'bg-green-100 text-green-700' },
   paid: { label: 'Pagado', color: 'bg-emerald-100 text-emerald-700' },
+  // Project creator statuses
+  presented: { label: 'Presentado', color: 'bg-gray-100 text-gray-700' },
+  brand_approved: { label: 'Aprobado', color: 'bg-blue-100 text-blue-700' },
+  negotiating: { label: 'Negociando', color: 'bg-purple-100 text-purple-700' },
+  confirmed: { label: 'Confirmado', color: 'bg-blue-100 text-blue-700' },
+  contract_signed: { label: 'Contrato firmado', color: 'bg-indigo-100 text-indigo-700' },
+  producing: { label: 'En producción', color: 'bg-yellow-100 text-yellow-700' },
+  delivered_approved: { label: 'Entregado', color: 'bg-green-100 text-green-700' },
+  delivered_changes: { label: 'Con cambios', color: 'bg-orange-100 text-orange-700' },
 };
 
 export default function PortalUGC() {
