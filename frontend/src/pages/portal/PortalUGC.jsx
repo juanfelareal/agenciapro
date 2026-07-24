@@ -497,6 +497,7 @@ export default function PortalUGC() {
                         shippingData.full_name,
                         shippingData.cedula ? `CC: ${shippingData.cedula}` : null,
                         shippingData.phone ? `Tel: ${shippingData.phone}` : null,
+                        shippingData.email ? `Email: ${shippingData.email}` : null,
                         shippingData.address,
                         [shippingData.city, shippingData.department].filter(Boolean).join(', '),
                         shippingData.postal_code ? `CP: ${shippingData.postal_code}` : null,
@@ -527,6 +528,9 @@ export default function PortalUGC() {
                     )}
                     {shippingData.phone && (
                       <p className="text-gray-600">Tel: {shippingData.phone}</p>
+                    )}
+                    {shippingData.email && (
+                      <p className="text-gray-600">Email: {shippingData.email}</p>
                     )}
                     {shippingData.address && (
                       <p className="text-gray-700">{shippingData.address}</p>

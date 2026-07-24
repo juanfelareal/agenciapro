@@ -192,7 +192,7 @@ router.get('/project-creators/:id/shipping', clientAuthMiddleware, async (req, r
     // Get project creator with shipping info, verify client ownership
     const projectCreator = await db.get(
       `SELECT pc.id, pc.tracking_number, pc.tracking_carrier, pc.shipping_status, pc.shipped_at,
-              c.id as creator_id, c.full_name, c.cedula, c.phone, c.address, c.city, c.department,
+              c.id as creator_id, c.full_name, c.cedula, c.phone, c.email, c.address, c.city, c.department,
               c.postal_code, c.shipping_notes, c.profile_photo_url,
               p.title as project_title
        FROM ugc_project_creators pc
