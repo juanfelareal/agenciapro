@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Instagram, Video, Link2, MapPin, Phone, Mail, CreditCard,
   Loader2, Plus, X, Edit3, DollarSign, Package, Calendar, CheckCircle,
-  Clock, AlertCircle, User, Building2, FileText
+  Clock, AlertCircle, User, Building2, FileText, Palette, Globe2, Camera,
+  Baby, PawPrint, Dumbbell, Sparkles, Play, Languages, Wrench
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
 
@@ -383,6 +384,184 @@ export default function UGCCreatorDetail() {
               <p>Registrado: {formatDate(creator.created_at)}</p>
             </div>
           </div>
+
+          {/* Características físicas */}
+          {creator.traits && (
+            <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <h3 className="font-semibold text-[#17181A] mb-4 flex items-center gap-2">
+                <Palette className="w-4 h-4 text-gray-400" /> Características
+              </h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {creator.traits.gender && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-gray-600">
+                      {creator.traits.gender === 'male' ? 'Masculino' :
+                       creator.traits.gender === 'female' ? 'Femenino' :
+                       creator.traits.gender === 'non_binary' ? 'No binario' : creator.traits.gender}
+                    </span>
+                  </div>
+                )}
+                {creator.traits.hair_color && (
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-gray-600">Cabello: {creator.traits.hair_color}</span>
+                  </div>
+                )}
+                {creator.traits.eye_color && (
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-gray-600">Ojos: {creator.traits.eye_color}</span>
+                  </div>
+                )}
+                {creator.traits.body_type && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-gray-600">
+                      {creator.traits.body_type === 'slim' ? 'Delgado/a' :
+                       creator.traits.body_type === 'athletic' ? 'Atlético/a' :
+                       creator.traits.body_type === 'average' ? 'Promedio' :
+                       creator.traits.body_type === 'curvy' ? 'Curvy' :
+                       creator.traits.body_type === 'plus_size' ? 'Plus size' : creator.traits.body_type}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* Lifestyle badges */}
+              <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100">
+                {creator.traits.is_parent && (
+                  <span className="flex items-center gap-1 text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded-full">
+                    <Baby className="w-3 h-3" /> Es papá/mamá
+                  </span>
+                )}
+                {creator.traits.has_pets && (
+                  <span className="flex items-center gap-1 text-xs bg-amber-50 text-amber-600 px-2 py-1 rounded-full">
+                    <PawPrint className="w-3 h-3" /> Tiene mascotas
+                  </span>
+                )}
+                {creator.traits.is_fitness && (
+                  <span className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full">
+                    <Dumbbell className="w-3 h-3" /> Fitness
+                  </span>
+                )}
+              </div>
+              {/* Hobbies */}
+              {creator.traits.hobbies && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-400 mb-1">Hobbies</p>
+                  <p className="text-sm text-gray-600">{creator.traits.hobbies}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Trabajo y Portfolio */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <h3 className="font-semibold text-[#17181A] mb-4 flex items-center gap-2">
+              <Camera className="w-4 h-4 text-gray-400" /> Trabajo
+            </h3>
+
+            {/* Tarifa */}
+            {creator.rate_per_video && (
+              <div className="bg-green-50 rounded-lg p-3 mb-4">
+                <p className="text-xs text-green-600 mb-0.5">Tarifa por video</p>
+                <p className="text-lg font-bold text-green-700">{formatCurrency(creator.rate_per_video)}</p>
+              </div>
+            )}
+
+            {/* Idiomas */}
+            {creator.languages?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                  <Globe2 className="w-3 h-3" /> Idiomas
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {creator.languages.map((lang, i) => (
+                    <span key={i} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                      {lang === 'es' ? 'Español' : lang === 'en' ? 'Inglés' : lang === 'pt' ? 'Portugués' : lang}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Equipo */}
+            {creator.equipment?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                  <Wrench className="w-3 h-3" /> Equipo
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {creator.equipment.map((eq, i) => (
+                    <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                      {eq === 'smartphone' ? 'Smartphone' :
+                       eq === 'ring_light' ? 'Aro de luz' :
+                       eq === 'microphone' ? 'Micrófono' :
+                       eq === 'tripod' ? 'Trípode' :
+                       eq === 'professional_camera' ? 'Cámara profesional' :
+                       eq === 'editing_software' ? 'Software de edición' : eq}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Portfolio videos */}
+            {creator.portfolio && (creator.portfolio.video1 || creator.portfolio.video2) && (
+              <div className="pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                  <Play className="w-3 h-3" /> Portfolio
+                </p>
+                <div className="space-y-2">
+                  {creator.portfolio.video1 && (
+                    <a
+                      href={creator.portfolio.video1}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:underline truncate"
+                    >
+                      <Video className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">{creator.portfolio.video1}</span>
+                    </a>
+                  )}
+                  {creator.portfolio.video2 && (
+                    <a
+                      href={creator.portfolio.video2}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:underline truncate"
+                    >
+                      <Video className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">{creator.portfolio.video2}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Disponibilidad */}
+          {creator.availability && (
+            <div className="bg-white rounded-xl border border-gray-100 p-5">
+              <h3 className="font-semibold text-[#17181A] mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gray-400" /> Disponibilidad
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {creator.availability.videos_per_week && (
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-[#17181A]">{creator.availability.videos_per_week}</p>
+                    <p className="text-xs text-gray-500">videos/semana</p>
+                  </div>
+                )}
+                {creator.availability.delivery_time && (
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-[#17181A]">{creator.availability.delivery_time}</p>
+                    <p className="text-xs text-gray-500">días de entrega</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
