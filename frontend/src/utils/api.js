@@ -852,6 +852,11 @@ export const ugcAPI = {
   getDriveStatus: () => api.get('/ugc/drive/status'),
   createDriveFolder: (projectId, creatorId) => api.post(`/ugc/projects/${projectId}/creators/${creatorId}/drive-folder`),
   createAllDriveFolders: (projectId) => api.post(`/ugc/projects/${projectId}/create-all-folders`),
+  // Internal Notes (100% internal - never visible to creators or clients)
+  getCreatorNotes: (creatorId) => api.get(`/ugc/creators/${creatorId}/notes`),
+  createCreatorNote: (creatorId, data) => api.post(`/ugc/creators/${creatorId}/notes`, data),
+  updateCreatorNote: (noteId, data) => api.put(`/ugc/notes/${noteId}`, data),
+  deleteCreatorNote: (noteId) => api.delete(`/ugc/notes/${noteId}`),
 };
 
 // UGC Public Registration (no auth required)

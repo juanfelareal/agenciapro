@@ -4,7 +4,8 @@ import {
   ArrowLeft, Instagram, Video, Link2, MapPin, Phone, Mail, CreditCard,
   Loader2, Plus, X, Edit3, DollarSign, Package, Calendar, CheckCircle,
   Clock, AlertCircle, User, Building2, FileText, Palette, Globe2, Camera,
-  Baby, PawPrint, Dumbbell, Sparkles, Play, Languages, Wrench
+  Baby, PawPrint, Dumbbell, Sparkles, Play, Languages, Wrench, StickyNote,
+  Trash2, Send, MessageSquare
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
 
@@ -35,6 +36,12 @@ export default function UGCCreatorDetail() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
 
+  // Internal notes
+  const [notes, setNotes] = useState([]);
+  const [newNoteContent, setNewNoteContent] = useState('');
+  const [newNoteProjectId, setNewNoteProjectId] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
   // Modals
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -58,13 +65,14 @@ export default function UGCCreatorDetail() {
 
   const loadData = async () => {
     try {
-      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes, projectsRes] = await Promise.all([
+      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes, projectsRes, notesRes] = await Promise.all([
         ugcAPI.getCreator(id),
         ugcAPI.getAssignments({ creator_id: id }),
         ugcAPI.getPayments({ creator_id: id }),
         ugcAPI.getStages(),
         ugcAPI.getUgcClients().catch(() => ({ data: [] })),
         ugcAPI.getProjects().catch(() => ({ data: [] })),
+        ugcAPI.getCreatorNotes(id).catch(() => ({ data: [] })),
       ]);
       setCreator(creatorRes.data);
       setAssignments(assignmentsRes.data);
@@ -72,6 +80,7 @@ export default function UGCCreatorDetail() {
       setStages(stagesRes.data);
       setClients(clientsRes.data || []);
       setProjects(projectsRes.data || []);
+      setNotes(notesRes.data || []);
     } catch (error) {
       console.error('Error loading creator:', error);
     } finally {
@@ -145,6 +154,38 @@ export default function UGCCreatorDetail() {
       ));
     } catch (error) {
       console.error('Error updating assignment:', error);
+    }
+  };
+
+  // Internal notes handlers
+  const handleCreateNote = async (e) => {
+    e.preventDefault();
+    if (!newNoteContent.trim()) return;
+
+    setSavingNote(true);
+    try {
+      const res = await ugcAPI.createCreatorNote(id, {
+        content: newNoteContent.trim(),
+        project_id: newNoteProjectId || null,
+      });
+      setNotes(prev => [res.data, ...prev]);
+      setNewNoteContent('');
+      setNewNoteProjectId('');
+    } catch (error) {
+      console.error('Error creating note:', error);
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (!confirm('¿Eliminar esta nota?')) return;
+
+    try {
+      await ugcAPI.deleteCreatorNote(noteId);
+      setNotes(prev => prev.filter(n => n.id !== noteId));
+    } catch (error) {
+      console.error('Error deleting note:', error);
     }
   };
 
@@ -562,6 +603,84 @@ export default function UGCCreatorDetail() {
               </div>
             </div>
           )}
+
+          {/* Notas Internas - full width */}
+          <div className="col-span-2 bg-amber-50/50 rounded-xl border border-amber-200 p-5">
+            <h3 className="font-semibold text-[#17181A] mb-4 flex items-center gap-2">
+              <StickyNote className="w-4 h-4 text-amber-500" />
+              Notas Internas
+              <span className="text-xs font-normal text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">
+                Solo visible para el equipo
+              </span>
+            </h3>
+
+            {/* New note form */}
+            <form onSubmit={handleCreateNote} className="mb-4">
+              <div className="flex gap-2 mb-2">
+                <select
+                  value={newNoteProjectId}
+                  onChange={(e) => setNewNoteProjectId(e.target.value)}
+                  className="px-3 py-2 text-sm border border-amber-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                >
+                  <option value="">Sin proyecto</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newNoteContent}
+                  onChange={(e) => setNewNoteContent(e.target.value)}
+                  placeholder="Ej: Tiene carro eléctrico, ideal para campaña..."
+                  className="flex-1 px-4 py-2.5 border border-amber-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                />
+                <button
+                  type="submit"
+                  disabled={savingNote || !newNoteContent.trim()}
+                  className="px-4 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {savingNote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </button>
+              </div>
+            </form>
+
+            {/* Notes list */}
+            {notes.length === 0 ? (
+              <div className="text-center py-6 text-amber-600/60">
+                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Sin notas internas todavía</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {notes.map(note => (
+                  <div key={note.id} className="bg-white rounded-lg p-3 border border-amber-100 group">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        {note.project_title && (
+                          <span className="inline-block text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full mb-1">
+                            {note.project_title}
+                          </span>
+                        )}
+                        <p className="text-sm text-gray-700">{note.content}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {note.created_by_name || 'Usuario'} • {formatDate(note.created_at)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                        title="Eliminar nota"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

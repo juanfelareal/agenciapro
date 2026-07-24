@@ -2712,6 +2712,23 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_assignment ON ugc_creator_payments(assignment_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_org ON ugc_creator_payments(organization_id)`);
 
+    // UGC Creator Internal Notes (100% internal, never visible to creators or clients)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_creator_notes (
+        id SERIAL PRIMARY KEY,
+        creator_id INTEGER NOT NULL REFERENCES ugc_creators(id) ON DELETE CASCADE,
+        project_id INTEGER REFERENCES ugc_projects(id) ON DELETE SET NULL,
+        content TEXT NOT NULL,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_creator ON ugc_creator_notes(creator_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_project ON ugc_creator_notes(project_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_org ON ugc_creator_notes(organization_id)`);
+
     // ========================================
     // DOCUMENT SIGNING (NDA / Contracts)
     // ========================================

@@ -1776,4 +1776,101 @@ router.get('/projects/:projectId/signed-contracts', async (req, res) => {
   }
 });
 
+// ========================================
+// INTERNAL NOTES (100% internal, never visible to creators or clients)
+// ========================================
+
+// GET /api/ugc/creators/:id/notes - List all internal notes for a creator
+router.get('/creators/:id/notes', async (req, res) => {
+  try {
+    const notes = await db.all(`
+      SELECT n.*,
+             p.title as project_title,
+             tm.name as created_by_name
+      FROM ugc_creator_notes n
+      LEFT JOIN ugc_projects p ON n.project_id = p.id
+      LEFT JOIN team_members tm ON n.created_by = tm.id
+      WHERE n.creator_id = ? AND n.organization_id = ?
+      ORDER BY n.created_at DESC
+    `, [req.params.id, req.orgId]);
+    res.json(notes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/creators/:id/notes - Create an internal note
+router.post('/creators/:id/notes', async (req, res) => {
+  try {
+    const { content, project_id } = req.body;
+
+    if (!content?.trim()) {
+      return res.status(400).json({ error: 'El contenido de la nota es requerido' });
+    }
+
+    const result = await db.run(`
+      INSERT INTO ugc_creator_notes (creator_id, project_id, content, organization_id, created_by)
+      VALUES (?, ?, ?, ?, ?)
+    `, [req.params.id, project_id || null, content.trim(), req.orgId, req.userId]);
+
+    const note = await db.get(`
+      SELECT n.*,
+             p.title as project_title,
+             tm.name as created_by_name
+      FROM ugc_creator_notes n
+      LEFT JOIN ugc_projects p ON n.project_id = p.id
+      LEFT JOIN team_members tm ON n.created_by = tm.id
+      WHERE n.id = ?
+    `, [result.lastInsertRowid]);
+
+    res.status(201).json(note);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/ugc/notes/:id - Update an internal note
+router.put('/notes/:id', async (req, res) => {
+  try {
+    const { content, project_id } = req.body;
+
+    if (!content?.trim()) {
+      return res.status(400).json({ error: 'El contenido de la nota es requerido' });
+    }
+
+    await db.run(`
+      UPDATE ugc_creator_notes
+      SET content = ?, project_id = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND organization_id = ?
+    `, [content.trim(), project_id || null, req.params.id, req.orgId]);
+
+    const note = await db.get(`
+      SELECT n.*,
+             p.title as project_title,
+             tm.name as created_by_name
+      FROM ugc_creator_notes n
+      LEFT JOIN ugc_projects p ON n.project_id = p.id
+      LEFT JOIN team_members tm ON n.created_by = tm.id
+      WHERE n.id = ?
+    `, [req.params.id]);
+
+    res.json(note);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/ugc/notes/:id - Delete an internal note
+router.delete('/notes/:id', async (req, res) => {
+  try {
+    await db.run(
+      'DELETE FROM ugc_creator_notes WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
