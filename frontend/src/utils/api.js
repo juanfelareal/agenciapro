@@ -857,6 +857,8 @@ export const ugcAPI = {
   createCreatorNote: (creatorId, data) => api.post(`/ugc/creators/${creatorId}/notes`, data),
   updateCreatorNote: (noteId, data) => api.put(`/ugc/notes/${noteId}`, data),
   deleteCreatorNote: (noteId) => api.delete(`/ugc/notes/${noteId}`),
+  // Signed Contracts
+  getProjectSignedContracts: (projectId) => api.get(`/ugc/projects/${projectId}/signed-contracts`),
 };
 
 // UGC Public Registration (no auth required)

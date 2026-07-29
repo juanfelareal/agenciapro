@@ -293,6 +293,10 @@ export default function UGCProjectDetail() {
   const [contractForm, setContractForm] = useState({ video_count: 1, agreed_rate: '' });
   const [savingContract, setSavingContract] = useState(false);
 
+  // Signed contracts viewing
+  const [signedContracts, setSignedContracts] = useState([]);
+  const [viewingContract, setViewingContract] = useState(null); // signed contract being viewed
+
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -361,6 +365,13 @@ export default function UGCProjectDetail() {
       const res = await ugcAPI.getProject(id);
       setProject(res.data.project);
       setCreators(res.data.creators || []);
+      // Also load signed contracts
+      try {
+        const contractsRes = await ugcAPI.getProjectSignedContracts(id);
+        setSignedContracts(contractsRes.data || []);
+      } catch (e) {
+        console.error('Error loading signed contracts:', e);
+      }
     } catch (error) {
       console.error('Error loading project:', error);
     } finally {
@@ -495,6 +506,11 @@ export default function UGCProjectDetail() {
     } finally {
       setSavingContract(false);
     }
+  };
+
+  // Helper to get signed contract for a creator
+  const getSignedContract = (creatorId) => {
+    return signedContracts.find(sc => sc.creator_id === creatorId);
   };
 
   const handleStartEditProjectBrief = () => {
@@ -862,6 +878,16 @@ export default function UGCProjectDetail() {
                               <FileSignature className="w-4 h-4" />
                             </a>
                           )}
+                          {/* View signed contract button - shows when contract has been signed */}
+                          {getSignedContract(creator.creator_id) && (
+                            <button
+                              onClick={() => setViewingContract(getSignedContract(creator.creator_id))}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Ver contrato firmado"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          )}
                           {creator.phone && (
                             <a
                               href={`tel:${creator.phone}`}
@@ -1089,6 +1115,118 @@ export default function UGCProjectDetail() {
               >
                 {savingContract && <Loader2 className="w-4 h-4 animate-spin" />}
                 Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Signed Contract Modal */}
+      {viewingContract && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  Contrato Firmado
+                </h2>
+                <p className="text-sm text-gray-500">{viewingContract.creator_name}</p>
+              </div>
+              <button
+                onClick={() => setViewingContract(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Contract Details */}
+              <div className="bg-green-50 rounded-xl p-4">
+                <h3 className="text-sm font-medium text-green-800 mb-2">Detalles del Contrato</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">Videos:</span>
+                    <span className="ml-2 font-medium">{viewingContract.project_details?.video_count || 1}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Tarifa/video:</span>
+                    <span className="ml-2 font-medium">${viewingContract.project_details?.price_per_video || 0}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Total:</span>
+                    <span className="ml-2 font-bold text-green-700">${viewingContract.project_details?.total_payment || 0} USD</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Signer Info */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-gray-700">Datos del Firmante</h3>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex justify-between py-2 border-b border-gray-100">
+                    <span className="text-gray-500">Nombre</span>
+                    <span className="font-medium">{viewingContract.signer_name}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-gray-100">
+                    <span className="text-gray-500">Cédula</span>
+                    <span className="font-medium">{viewingContract.signer_cedula}</span>
+                  </div>
+                  {viewingContract.signer_email && (
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-500">Email</span>
+                      <span className="font-medium">{viewingContract.signer_email}</span>
+                    </div>
+                  )}
+                  {viewingContract.signer_phone && (
+                    <div className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="text-gray-500">Teléfono</span>
+                      <span className="font-medium">{viewingContract.signer_phone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bank Info */}
+              {viewingContract.bank_name && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">Datos Bancarios</h3>
+                  <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Banco</span>
+                      <span className="font-medium">{viewingContract.bank_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Tipo de cuenta</span>
+                      <span className="font-medium">{viewingContract.bank_account_type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Número de cuenta</span>
+                      <span className="font-medium font-mono">{viewingContract.bank_account_number}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Signature Date */}
+              <div className="text-center text-xs text-gray-400 pt-2">
+                Firmado el {new Date(viewingContract.signed_at).toLocaleDateString('es-CO', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={() => setViewingContract(null)}
+                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cerrar
               </button>
             </div>
           </div>
