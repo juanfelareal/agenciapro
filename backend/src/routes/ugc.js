@@ -1256,6 +1256,7 @@ router.post('/projects/:id/creators', async (req, res) => {
 router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
   try {
     const { status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes } = req.body;
+    console.log('Updating project creator:', { projectId: req.params.projectId, creatorId: req.params.creatorId, body: req.body });
 
     let extraFields = '';
     if (status === 'delivered') {
@@ -1264,19 +1265,19 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
       extraFields = ', paid_at = CURRENT_TIMESTAMP';
     }
 
-    await db.run(
+    await db.query(
       `UPDATE ugc_project_creators SET
-        status = COALESCE(?, status),
-        agreed_rate = COALESCE(?, agreed_rate),
-        currency = COALESCE(?, currency),
-        deliverables = COALESCE(?, deliverables),
-        delivery_url = COALESCE(?, delivery_url),
-        brief_url = COALESCE(?, brief_url),
-        video_count = COALESCE(?, video_count),
-        notes = COALESCE(?, notes),
+        status = COALESCE($1, status),
+        agreed_rate = COALESCE($2, agreed_rate),
+        currency = COALESCE($3, currency),
+        deliverables = COALESCE($4, deliverables),
+        delivery_url = COALESCE($5, delivery_url),
+        brief_url = COALESCE($6, brief_url),
+        video_count = COALESCE($7, video_count),
+        notes = COALESCE($8, notes),
         updated_at = CURRENT_TIMESTAMP
         ${extraFields}
-       WHERE project_id = ? AND creator_id = ?`,
+       WHERE project_id = $9 AND creator_id = $10`,
       [status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes, req.params.projectId, req.params.creatorId]
     );
 
