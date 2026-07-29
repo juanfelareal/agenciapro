@@ -288,6 +288,11 @@ export default function UGCProjectDetail() {
   const [projectBriefValue, setProjectBriefValue] = useState('');
   const [activeId, setActiveId] = useState(null);
 
+  // Contract editing modal
+  const [editingContract, setEditingContract] = useState(null); // creator object being edited
+  const [contractForm, setContractForm] = useState({ video_count: 1, agreed_rate: '' });
+  const [savingContract, setSavingContract] = useState(false);
+
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -458,6 +463,38 @@ export default function UGCProjectDetail() {
   const handleCancelEditBrief = () => {
     setEditingBrief(null);
     setBriefValue('');
+  };
+
+  // Contract editing handlers
+  const handleOpenContractEdit = (creator) => {
+    setEditingContract(creator);
+    setContractForm({
+      video_count: creator.video_count || 1,
+      agreed_rate: creator.agreed_rate || project.creator_cost_per_video || '',
+    });
+  };
+
+  const handleSaveContract = async () => {
+    if (!editingContract) return;
+    setSavingContract(true);
+    try {
+      const data = {
+        video_count: parseInt(contractForm.video_count) || 1,
+        agreed_rate: parseFloat(contractForm.agreed_rate) || 0,
+      };
+      await ugcAPI.updateProjectCreator(id, editingContract.creator_id, data);
+      setCreators(prev => prev.map(c =>
+        c.creator_id === editingContract.creator_id
+          ? { ...c, video_count: data.video_count, agreed_rate: data.agreed_rate }
+          : c
+      ));
+      setEditingContract(null);
+    } catch (error) {
+      console.error('Error saving contract:', error);
+      alert('Error al guardar los cambios');
+    } finally {
+      setSavingContract(false);
+    }
   };
 
   const handleStartEditProjectBrief = () => {
@@ -803,6 +840,16 @@ export default function UGCProjectDetail() {
                               <WhatsAppIcon className="w-4 h-4" />
                             </a>
                           )}
+                          {/* Contract edit button - edit terms before sending */}
+                          {creator.contract_token && CONTRACT_SENDABLE_STATUSES.includes(creator.status) && (
+                            <button
+                              onClick={() => handleOpenContractEdit(creator)}
+                              className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                              title="Editar términos del contrato"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
                           {/* Contract WhatsApp button - only shows when creator is negotiating/confirmed */}
                           {creator.phone && creator.contract_token && CONTRACT_SENDABLE_STATUSES.includes(creator.status) && (
                             <a
@@ -973,6 +1020,76 @@ export default function UGCProjectDetail() {
                   Agregar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contract Edit Modal */}
+      {editingContract && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Editar Contrato</h2>
+                <p className="text-sm text-gray-500">{editingContract.full_name}</p>
+              </div>
+              <button
+                onClick={() => setEditingContract(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad de videos
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={contractForm.video_count}
+                  onChange={(e) => setContractForm(prev => ({ ...prev, video_count: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tarifa acordada (USD)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={contractForm.agreed_rate}
+                  onChange={(e) => setContractForm(prev => ({ ...prev, agreed_rate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder={project?.creator_cost_per_video ? `Default: $${project.creator_cost_per_video}` : ''}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Total: ${(parseFloat(contractForm.agreed_rate || 0) * parseInt(contractForm.video_count || 1)).toFixed(2)} USD
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingContract(null)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveContract}
+                disabled={savingContract}
+                className="px-4 py-2 bg-[#17181A] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {savingContract && <Loader2 className="w-4 h-4 animate-spin" />}
+                Guardar
+              </button>
             </div>
           </div>
         </div>
