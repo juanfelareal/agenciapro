@@ -467,7 +467,29 @@ export default function UGC() {
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight flex items-center gap-2">
             <Video className="w-6 h-6" /> UGC Creators
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gestiona tu red de creadores de contenido</p>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-sm font-medium text-[#17181A] bg-[#D7F653]/30 px-2.5 py-0.5 rounded-full">
+              {creators.length} creadores inscritos
+            </span>
+            {(() => {
+              const sourceStats = creators.reduce((acc, c) => {
+                const src = c.source || 'manual';
+                acc[src] = (acc[src] || 0) + 1;
+                return acc;
+              }, {});
+              const sortedSources = Object.entries(sourceStats).sort((a, b) => b[1] - a[1]);
+              return sortedSources.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  Fuentes: {sortedSources.map(([src, count], i) => (
+                    <span key={src}>
+                      {i > 0 && ', '}
+                      <span className="font-medium text-gray-600">{src}</span> ({count})
+                    </span>
+                  ))}
+                </span>
+              );
+            })()}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
