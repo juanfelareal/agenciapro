@@ -203,6 +203,10 @@ export default function UGC() {
   const [syncingInstagram, setSyncingInstagram] = useState(false);
   const [hoveredCreator, setHoveredCreator] = useState(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [filterDepartment, setFilterDepartment] = useState('');
@@ -267,6 +271,7 @@ export default function UGC() {
   // Reload creators when filters change
   useEffect(() => {
     if (!loading) {
+      setCurrentPage(1); // Reset to first page on filter change
       const timer = setTimeout(() => {
         ugcAPI.getCreators({
           search: search || undefined,
@@ -289,6 +294,12 @@ export default function UGC() {
 
   const activeFilterCount = [filterDepartment, filterCity, filterIndustry].filter(Boolean).length;
   const filterCities = filterDepartment ? getCitiesByDepartment(filterDepartment) : [];
+
+  // Pagination calculations
+  const totalPages = Math.ceil(creators.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCreators = creators.slice(startIndex, endIndex);
 
   const clearFilters = () => {
     setFilterDepartment('');
@@ -717,7 +728,7 @@ export default function UGC() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {creators.map((creator) => {
+              {paginatedCreators.map((creator) => {
                 const stage = stages.find(s => s.id === creator.stage_id);
                 const socialNetworks = creator.social_networks || {};
                 return (
@@ -887,6 +898,96 @@ export default function UGC() {
               No hay creadores que coincidan con los filtros
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pagination Controls - Only in list view */}
+      {viewMode === 'list' && creators.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 px-2">
+          {/* Page size selector */}
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Mostrar</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span>de {creators.length} creadores</span>
+          </div>
+
+          {/* Page navigation */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ««
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              «
+            </button>
+
+            {/* Page numbers */}
+            {(() => {
+              const pages = [];
+              const maxVisible = 5;
+              let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+              let end = Math.min(totalPages, start + maxVisible - 1);
+              if (end - start + 1 < maxVisible) {
+                start = Math.max(1, end - maxVisible + 1);
+              }
+
+              for (let i = start; i <= end; i++) {
+                pages.push(
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i)}
+                    className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                      currentPage === i
+                        ? 'bg-[#D7F653] text-[#17181A] font-medium'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {i}
+                  </button>
+                );
+              }
+              return pages;
+            })()}
+
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              »
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              »»
+            </button>
+          </div>
+
+          {/* Current range indicator */}
+          <div className="text-sm text-gray-500">
+            {startIndex + 1}–{Math.min(endIndex, creators.length)} de {creators.length}
+          </div>
         </div>
       )}
 
