@@ -1748,13 +1748,18 @@ router.get('/projects/:projectId/signed-contracts', async (req, res) => {
         sc.bank_name,
         sc.bank_account_type,
         sc.bank_account_number,
+        sc.signature_data,
         sc.signed_at,
         sc.project_details,
         c.full_name as creator_name,
-        c.id as creator_id
+        c.id as creator_id,
+        p.title as project_title,
+        cl.company as client_name
       FROM ugc_signed_contracts sc
       JOIN ugc_project_creators pc ON sc.project_creator_id = pc.id
       JOIN ugc_creators c ON pc.creator_id = c.id
+      JOIN ugc_projects p ON pc.project_id = p.id
+      JOIN clients cl ON p.client_id = cl.id
       WHERE pc.project_id = ? AND sc.organization_id = ?
       ORDER BY sc.signed_at DESC
     `, [projectId, req.orgId]);

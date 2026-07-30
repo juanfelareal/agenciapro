@@ -7,7 +7,7 @@ import {
   Phone, Instagram, Mail,
   Trash2, FolderOpen, ChevronDown, FileText, Edit2,
   Send, ThumbsUp, FileSignature, Package, RefreshCw, Video,
-  MessageCircle, CheckCircle2, Banknote, XCircle, GripVertical
+  MessageCircle, CheckCircle2, Banknote, XCircle, GripVertical, Download
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
 import {
@@ -511,6 +511,246 @@ export default function UGCProjectDetail() {
   // Helper to get signed contract for a creator
   const getSignedContract = (creatorId) => {
     return signedContracts.find(sc => sc.creator_id === creatorId);
+  };
+
+  // Generate printable PDF document for a signed contract
+  const generateContractPDF = (contract) => {
+    const signedDate = new Date(contract.signed_at).toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const videoCount = contract.project_details?.video_count || 1;
+    const pricePerVideo = contract.project_details?.price_per_video || 0;
+    const totalPayment = contract.project_details?.total_payment || (videoCount * pricePerVideo);
+
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Contrato - ${contract.signer_name}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #16a34a;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      font-size: 24px;
+      color: #16a34a;
+      margin-bottom: 5px;
+    }
+    .header p {
+      color: #666;
+      font-size: 14px;
+    }
+    .section {
+      margin-bottom: 25px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #16a34a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .info-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 2px;
+    }
+    .info-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .highlight-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 10px;
+    }
+    .total-label {
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .total-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #16a34a;
+    }
+    .signature-section {
+      margin-top: 40px;
+      text-align: center;
+    }
+    .signature-box {
+      display: inline-block;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 20px;
+      background: #fafafa;
+      min-width: 250px;
+    }
+    .signature-img {
+      max-width: 200px;
+      max-height: 80px;
+    }
+    .signature-name {
+      font-weight: 600;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #333;
+    }
+    .signature-cedula {
+      font-size: 12px;
+      color: #666;
+    }
+    .footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+    }
+    @media print {
+      body { padding: 20px; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="background:#f3f4f6; padding:10px 20px; margin:-40px -40px 30px; text-align:center;">
+    <button onclick="window.print()" style="background:#16a34a; color:white; border:none; padding:10px 30px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;">
+      Imprimir / Guardar PDF
+    </button>
+  </div>
+
+  <div class="header">
+    <h1>CONTRATO DE SERVICIOS UGC</h1>
+    <p>Proyecto: ${contract.project_title || project?.title || 'N/A'} • Cliente: ${contract.client_name || project?.client_name || 'N/A'}</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Detalles del Contrato</div>
+    <div class="highlight-box">
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Cantidad de Videos</span>
+          <span class="info-value">${videoCount} video${videoCount > 1 ? 's' : ''}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Tarifa por Video</span>
+          <span class="info-value">$${pricePerVideo.toLocaleString()} USD</span>
+        </div>
+      </div>
+      <div class="total-row">
+        <span class="total-label">Pago Total</span>
+        <span class="total-value">$${totalPayment.toLocaleString()} USD</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Datos del Creador</div>
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Nombre Completo</span>
+        <span class="info-value">${contract.signer_name}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Documento de Identidad</span>
+        <span class="info-value">${contract.signer_cedula}</span>
+      </div>
+      ${contract.signer_email ? `
+      <div class="info-item">
+        <span class="info-label">Correo Electrónico</span>
+        <span class="info-value">${contract.signer_email}</span>
+      </div>` : ''}
+      ${contract.signer_phone ? `
+      <div class="info-item">
+        <span class="info-label">Teléfono</span>
+        <span class="info-value">${contract.signer_phone}</span>
+      </div>` : ''}
+    </div>
+  </div>
+
+  ${contract.bank_name ? `
+  <div class="section">
+    <div class="section-title">Información Bancaria</div>
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Banco</span>
+        <span class="info-value">${contract.bank_name}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Tipo de Cuenta</span>
+        <span class="info-value">${contract.bank_account_type}</span>
+      </div>
+      <div class="info-item" style="grid-column: span 2;">
+        <span class="info-label">Número de Cuenta</span>
+        <span class="info-value" style="font-family: monospace;">${contract.bank_account_number}</span>
+      </div>
+    </div>
+  </div>` : ''}
+
+  <div class="signature-section">
+    <div class="section-title" style="text-align:center;">Firma del Creador</div>
+    <div class="signature-box">
+      ${contract.signature_data && contract.signature_data.startsWith('data:') ?
+        `<img src="${contract.signature_data}" alt="Firma" class="signature-img" />` :
+        `<div style="font-style:italic; color:#666; padding: 20px 0;">Firma digital registrada</div>`
+      }
+      <div class="signature-name">${contract.signer_name}</div>
+      <div class="signature-cedula">C.C. ${contract.signer_cedula}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Documento firmado electrónicamente el ${signedDate}</p>
+    <p>Este documento tiene validez legal según la Ley 527 de 1999 de Colombia</p>
+  </div>
+</body>
+</html>`;
+
+    // Open in new window for printing
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   const handleStartEditProjectBrief = () => {
@@ -1221,12 +1461,19 @@ export default function UGCProjectDetail() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-100 flex gap-3">
               <button
                 onClick={() => setViewingContract(null)}
-                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
               >
                 Cerrar
+              </button>
+              <button
+                onClick={() => generateContractPDF(viewingContract)}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Descargar PDF
               </button>
             </div>
           </div>
