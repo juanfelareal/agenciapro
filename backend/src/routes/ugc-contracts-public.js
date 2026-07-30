@@ -167,7 +167,8 @@ router.post('/:token/sign', async (req, res) => {
       client_name: projectCreator.client_name,
       video_count: videoCount,
       price_per_video: pricePerVideo,
-      total_payment: totalPayment
+      total_payment: totalPayment,
+      currency: 'COP'
     };
 
     // Insert signed contract

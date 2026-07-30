@@ -526,6 +526,7 @@ export default function UGCProjectDetail() {
     const videoCount = contract.project_details?.video_count || 1;
     const pricePerVideo = contract.project_details?.price_per_video || 0;
     const totalPayment = contract.project_details?.total_payment || (videoCount * pricePerVideo);
+    const currency = contract.project_details?.currency || 'COP';
 
     const html = `
 <!DOCTYPE html>
@@ -675,12 +676,12 @@ export default function UGCProjectDetail() {
         </div>
         <div class="info-item">
           <span class="info-label">Tarifa por Video</span>
-          <span class="info-value">$${pricePerVideo.toLocaleString()} USD</span>
+          <span class="info-value">$${pricePerVideo.toLocaleString()} ${currency}</span>
         </div>
       </div>
       <div class="total-row">
         <span class="total-label">Pago Total</span>
-        <span class="total-value">$${totalPayment.toLocaleString()} USD</span>
+        <span class="total-value">$${totalPayment.toLocaleString()} ${currency}</span>
       </div>
     </div>
   </div>
