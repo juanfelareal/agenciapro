@@ -129,7 +129,7 @@ router.post('/register/:token', async (req, res) => {
         bio || null,
         portfolio_url || null,
         firstStage?.id || null,
-        'landing',
+        tokenRecord.tag || 'landing',
         orgId,
         JSON.stringify(portfolio || {}),
         rate_per_video ? parseInt(rate_per_video) : null,

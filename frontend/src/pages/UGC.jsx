@@ -242,7 +242,7 @@ export default function UGC() {
 
   const loadData = async () => {
     try {
-      const [stagesRes, creatorsRes, industriesRes] = await Promise.all([
+      const [stagesRes, creatorsRes, industriesRes, linksRes] = await Promise.all([
         ugcAPI.getStages(),
         ugcAPI.getCreators({
           search: search || undefined,
@@ -251,10 +251,12 @@ export default function UGC() {
           industry: filterIndustry || undefined
         }),
         ugcAPI.getIndustries(),
+        ugcAPI.getRegistrationLinks(),
       ]);
       setStages(stagesRes.data);
       setCreators(creatorsRes.data);
       setIndustries(industriesRes.data);
+      setRegistrationLinks(linksRes.data);
     } catch (error) {
       console.error('Error loading UGC:', error);
     } finally {
@@ -467,28 +469,28 @@ export default function UGC() {
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight flex items-center gap-2">
             <Video className="w-6 h-6" /> UGC Creators
           </h1>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex flex-wrap items-center gap-2 mt-1.5">
             <span className="text-sm font-medium text-[#17181A] bg-[#D7F653]/30 px-2.5 py-0.5 rounded-full">
               {creators.length} creadores inscritos
             </span>
-            {(() => {
-              const sourceStats = creators.reduce((acc, c) => {
-                const src = c.source || 'manual';
-                acc[src] = (acc[src] || 0) + 1;
-                return acc;
-              }, {});
-              const sortedSources = Object.entries(sourceStats).sort((a, b) => b[1] - a[1]);
-              return sortedSources.length > 0 && (
-                <span className="text-xs text-gray-500">
-                  Fuentes: {sortedSources.map(([src, count], i) => (
-                    <span key={src}>
-                      {i > 0 && ', '}
-                      <span className="font-medium text-gray-600">{src}</span> ({count})
+            {registrationLinks.filter(l => l.uses_count > 0).length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-gray-400">vía:</span>
+                {registrationLinks
+                  .filter(l => l.uses_count > 0)
+                  .sort((a, b) => b.uses_count - a.uses_count)
+                  .map((link) => (
+                    <span
+                      key={link.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full"
+                    >
+                      <Link2 className="w-3 h-3" />
+                      {link.tag || 'sin etiqueta'}
+                      <span className="font-semibold text-[#17181A]">({link.uses_count})</span>
                     </span>
                   ))}
-                </span>
-              );
-            })()}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">
