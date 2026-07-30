@@ -1325,19 +1325,19 @@ export default function UGCProjectDetail() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tarifa acordada (USD)
+                  Tarifa acordada (COP)
                 </label>
                 <input
                   type="number"
                   min="0"
-                  step="0.01"
+                  step="1"
                   value={contractForm.agreed_rate}
                   onChange={(e) => setContractForm(prev => ({ ...prev, agreed_rate: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder={project?.creator_cost_per_video ? `Default: $${project.creator_cost_per_video}` : ''}
+                  placeholder={project?.creator_cost_per_video ? `Default: $${project.creator_cost_per_video.toLocaleString()}` : ''}
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Total: ${(parseFloat(contractForm.agreed_rate || 0) * parseInt(contractForm.video_count || 1)).toFixed(2)} USD
+                  Total: ${(parseFloat(contractForm.agreed_rate || 0) * parseInt(contractForm.video_count || 1)).toLocaleString()} COP
                 </p>
               </div>
             </div>
@@ -1393,11 +1393,11 @@ export default function UGCProjectDetail() {
                   </div>
                   <div>
                     <span className="text-gray-500">Tarifa/video:</span>
-                    <span className="ml-2 font-medium">${viewingContract.project_details?.price_per_video || 0}</span>
+                    <span className="ml-2 font-medium">${(viewingContract.project_details?.price_per_video || 0).toLocaleString()} {viewingContract.project_details?.currency || 'COP'}</span>
                   </div>
                   <div className="col-span-2">
                     <span className="text-gray-500">Total:</span>
-                    <span className="ml-2 font-bold text-green-700">${viewingContract.project_details?.total_payment || 0} USD</span>
+                    <span className="ml-2 font-bold text-green-700">${(viewingContract.project_details?.total_payment || 0).toLocaleString()} {viewingContract.project_details?.currency || 'COP'}</span>
                   </div>
                 </div>
               </div>
