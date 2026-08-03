@@ -2655,6 +2655,10 @@ export const initializeDatabase = async () => {
     await pool.query(`
       ALTER TABLE ugc_creators ADD COLUMN IF NOT EXISTS other_industry TEXT
     `);
+    // Migration: Add is_favorite column for favorites feature
+    await pool.query(`
+      ALTER TABLE ugc_creators ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE
+    `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_org ON ugc_creators(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_stage ON ugc_creators(stage_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_phone ON ugc_creators(phone)`);

@@ -205,7 +205,7 @@ router.delete('/industries/:id', async (req, res) => {
 // GET /api/ugc/creators - List creators
 router.get('/creators', async (req, res) => {
   try {
-    const { stage_id, industry, city, department, search } = req.query;
+    const { stage_id, industry, city, department, search, favorites_only } = req.query;
 
     let query = `
       SELECT c.*, s.name as stage_name, s.color as stage_color
@@ -214,6 +214,11 @@ router.get('/creators', async (req, res) => {
       WHERE c.organization_id = ?
     `;
     const params = [req.orgId];
+
+    // Filter favorites only
+    if (favorites_only === 'true') {
+      query += ' AND c.is_favorite = TRUE';
+    }
 
     if (stage_id) {
       query += ' AND c.stage_id = ?';
@@ -394,6 +399,36 @@ router.patch('/creators/:id/stage', async (req, res) => {
        WHERE c.id = ?`,
       [req.params.id]
     );
+    res.json(creator);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH /api/ugc/creators/:id/favorite - Toggle favorite status
+router.patch('/creators/:id/favorite', async (req, res) => {
+  try {
+    // Toggle the is_favorite field
+    await db.run(
+      `UPDATE ugc_creators
+       SET is_favorite = NOT COALESCE(is_favorite, FALSE),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND organization_id = ?`,
+      [req.params.id, req.orgId]
+    );
+
+    const creator = await db.get(
+      `SELECT c.*, s.name as stage_name, s.color as stage_color
+       FROM ugc_creators c
+       LEFT JOIN ugc_creator_stages s ON c.stage_id = s.id
+       WHERE c.id = ? AND c.organization_id = ?`,
+      [req.params.id, req.orgId]
+    );
+
+    if (!creator) {
+      return res.status(404).json({ error: 'Creator not found' });
+    }
+
     res.json(creator);
   } catch (error) {
     res.status(500).json({ error: error.message });

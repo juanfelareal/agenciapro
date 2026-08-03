@@ -10,7 +10,7 @@ import {
   Plus, Search, Video, Instagram, Phone, MapPin,
   Loader2, X, GripVertical, Link2, Settings, Users, Copy, CheckCircle,
   Filter, ChevronDown, LayoutGrid, List, RefreshCw, ExternalLink, FolderKanban,
-  Pencil, Check
+  Pencil, Check, Heart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ugcAPI } from '../utils/api';
@@ -19,7 +19,7 @@ import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 // ========================================
 // CREATOR CARD (Draggable)
 // ========================================
-function CreatorCard({ creator, onClick }) {
+function CreatorCard({ creator, onClick, onToggleFavorite }) {
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging
   } = useSortable({ id: `creator-${creator.id}`, data: { creator } });
@@ -61,13 +61,31 @@ function CreatorCard({ creator, onClick }) {
             )}
           </div>
         </div>
-        <div
-          {...attributes}
-          {...listeners}
-          className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="w-4 h-4 text-gray-400" />
+        <div className="flex items-center gap-1">
+          {/* Favorite Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite?.(creator.id);
+            }}
+            className={`p-1 rounded-full transition-colors ${
+              creator.is_favorite
+                ? 'text-red-500 hover:text-red-600'
+                : 'text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100'
+            }`}
+            title={creator.is_favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          >
+            <Heart className="w-4 h-4" fill={creator.is_favorite ? 'currentColor' : 'none'} />
+          </button>
+          {/* Drag Handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="w-4 h-4 text-gray-400" />
+          </div>
         </div>
       </div>
 
@@ -151,7 +169,7 @@ function CreatorCardOverlay({ creator }) {
 // ========================================
 // STAGE COLUMN (Droppable)
 // ========================================
-function StageColumn({ stage, creators, onCreatorClick }) {
+function StageColumn({ stage, creators, onCreatorClick, onToggleFavorite }) {
   const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage.id}` });
 
   return (
@@ -178,7 +196,7 @@ function StageColumn({ stage, creators, onCreatorClick }) {
       {/* Cards */}
       <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2 min-h-[100px]">
         {creators.map((creator) => (
-          <CreatorCard key={creator.id} creator={creator} onClick={onCreatorClick} />
+          <CreatorCard key={creator.id} creator={creator} onClick={onCreatorClick} onToggleFavorite={onToggleFavorite} />
         ))}
       </div>
     </div>
@@ -212,6 +230,7 @@ export default function UGC() {
   const [filterDepartment, setFilterDepartment] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
+  const [filterFavorites, setFilterFavorites] = useState(false);
   const filterRef = useRef(null);
   const [newCreator, setNewCreator] = useState({
     full_name: '', email: '', phone: '', cedula: '',
@@ -252,7 +271,8 @@ export default function UGC() {
           search: search || undefined,
           department: filterDepartment || undefined,
           city: filterCity || undefined,
-          industry: filterIndustry || undefined
+          industry: filterIndustry || undefined,
+          favorites_only: filterFavorites ? 'true' : undefined
         }),
         ugcAPI.getIndustries(),
         ugcAPI.getRegistrationLinks(),
@@ -277,14 +297,15 @@ export default function UGC() {
           search: search || undefined,
           department: filterDepartment || undefined,
           city: filterCity || undefined,
-          industry: filterIndustry || undefined
+          industry: filterIndustry || undefined,
+          favorites_only: filterFavorites ? 'true' : undefined
         })
           .then(res => setCreators(res.data))
           .catch(() => {});
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [search, filterDepartment, filterCity, filterIndustry]);
+  }, [search, filterDepartment, filterCity, filterIndustry, filterFavorites]);
 
   // Reset city when department changes
   const handleFilterDepartmentChange = (dept) => {
@@ -292,7 +313,7 @@ export default function UGC() {
     setFilterCity('');
   };
 
-  const activeFilterCount = [filterDepartment, filterCity, filterIndustry].filter(Boolean).length;
+  const activeFilterCount = [filterDepartment, filterCity, filterIndustry, filterFavorites].filter(Boolean).length;
   const filterCities = filterDepartment ? getCitiesByDepartment(filterDepartment) : [];
 
   // Pagination calculations
@@ -305,6 +326,20 @@ export default function UGC() {
     setFilterDepartment('');
     setFilterCity('');
     setFilterIndustry('');
+    setFilterFavorites(false);
+  };
+
+  // Toggle favorite status for a creator
+  const handleToggleFavorite = async (creatorId) => {
+    try {
+      const res = await ugcAPI.toggleCreatorFavorite(creatorId);
+      // Update the creator in state
+      setCreators(prev => prev.map(c =>
+        c.id === creatorId ? { ...c, is_favorite: res.data.is_favorite } : c
+      ));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   const handleDragEnd = async (event) => {
@@ -596,6 +631,22 @@ export default function UGC() {
                       ))}
                     </select>
                   </div>
+
+                  {/* Favorites Filter */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filterFavorites}
+                        onChange={(e) => setFilterFavorites(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-gray-700 flex items-center gap-1.5">
+                        <Heart className="w-4 h-4 text-red-500" fill="currentColor" />
+                        Solo favoritos
+                      </span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Active Filters Summary */}
@@ -702,6 +753,7 @@ export default function UGC() {
                   stage={stage}
                   creators={creatorsByStage[stage.id] || []}
                   onCreatorClick={handleCreatorClick}
+                  onToggleFavorite={handleToggleFavorite}
                 />
               ))}
             </div>
@@ -719,6 +771,9 @@ export default function UGC() {
           <table className="w-full">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
+                <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 py-3 w-12">
+                  <Heart className="w-4 h-4 mx-auto text-gray-400" />
+                </th>
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Creador</th>
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Ubicación</th>
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Redes</th>
@@ -737,6 +792,23 @@ export default function UGC() {
                     onClick={() => handleCreatorClick(creator)}
                     className="hover:bg-gray-50 cursor-pointer transition-colors"
                   >
+                    {/* Favorite Button */}
+                    <td className="px-2 py-3 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFavorite(creator.id);
+                        }}
+                        className={`p-1.5 rounded-full transition-colors ${
+                          creator.is_favorite
+                            ? 'text-red-500 hover:text-red-600'
+                            : 'text-gray-300 hover:text-red-400'
+                        }`}
+                        title={creator.is_favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                      >
+                        <Heart className="w-4 h-4" fill={creator.is_favorite ? 'currentColor' : 'none'} />
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {creator.profile_photo_url ? (

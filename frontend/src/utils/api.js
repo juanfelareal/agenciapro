@@ -810,6 +810,7 @@ export const ugcAPI = {
   updateCreator: (id, data) => api.put(`/ugc/creators/${id}`, data),
   deleteCreator: (id) => api.delete(`/ugc/creators/${id}`),
   moveCreatorStage: (id, stageId) => api.patch(`/ugc/creators/${id}/stage`, { stage_id: stageId }),
+  toggleCreatorFavorite: (id) => api.patch(`/ugc/creators/${id}/favorite`),
   // Assignments
   getAssignments: (filters) => api.get('/ugc/assignments', { params: filters }),
   getAssignment: (id) => api.get(`/ugc/assignments/${id}`),
