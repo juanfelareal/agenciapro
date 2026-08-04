@@ -2663,6 +2663,44 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_stage ON ugc_creators(stage_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_phone ON ugc_creators(phone)`);
 
+    // Migration: Sanitize Instagram usernames (extract from full URLs)
+    try {
+      const creatorsToFix = await pool.query(`
+        SELECT id, social_networks
+        FROM ugc_creators
+        WHERE social_networks IS NOT NULL
+          AND social_networks::text LIKE '%instagram.com%'
+      `);
+      if (creatorsToFix.rows.length > 0) {
+        console.log(`  🔧 Sanitizing ${creatorsToFix.rows.length} Instagram usernames...`);
+        for (const creator of creatorsToFix.rows) {
+          const sn = creator.social_networks || {};
+          if (sn.instagram && sn.instagram.includes('instagram.com')) {
+            // Extract username from URL
+            let username = sn.instagram;
+            try {
+              const url = username.startsWith('http') ? username : `https://${username}`;
+              const urlObj = new URL(url);
+              const pathParts = urlObj.pathname.split('/').filter(Boolean);
+              if (pathParts.length > 0) username = pathParts[0];
+            } catch {
+              const match = username.match(/instagram\.com\/([^/?]+)/);
+              if (match) username = match[1];
+            }
+            username = username.replace(/^@/, '');
+            sn.instagram = username;
+            await pool.query(
+              `UPDATE ugc_creators SET social_networks = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+              [JSON.stringify(sn), creator.id]
+            );
+          }
+        }
+        console.log(`  ✅ Instagram usernames sanitized`);
+      }
+    } catch (igMigrationError) {
+      console.log('  ⏭️  Instagram sanitization skipped:', igMigrationError.message);
+    }
+
     // UGC Assignments (Creator <-> Client)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_assignments (

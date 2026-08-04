@@ -17,6 +17,40 @@ import { ugcAPI } from '../utils/api';
 import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 
 // ========================================
+// UTILITY: Extract Instagram username from URL or handle
+// ========================================
+function extractInstagramUsername(input) {
+  if (!input) return '';
+
+  // Remove whitespace
+  let value = input.trim();
+
+  // If it's a URL, extract the username
+  if (value.includes('instagram.com')) {
+    try {
+      // Handle URLs with or without protocol
+      const url = value.startsWith('http') ? value : `https://${value}`;
+      const urlObj = new URL(url);
+      // Get pathname and extract first segment (the username)
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      if (pathParts.length > 0) {
+        // First part is the username (ignore profilecard, reels, etc.)
+        value = pathParts[0];
+      }
+    } catch {
+      // If URL parsing fails, try regex fallback
+      const match = value.match(/instagram\.com\/([^/?]+)/);
+      if (match) {
+        value = match[1];
+      }
+    }
+  }
+
+  // Remove @ if present
+  return value.replace(/^@/, '');
+}
+
+// ========================================
 // CREATOR CARD (Draggable)
 // ========================================
 function CreatorCard({ creator, onClick, onToggleFavorite }) {
@@ -93,7 +127,7 @@ function CreatorCard({ creator, onClick, onToggleFavorite }) {
       <div className="flex items-center gap-2 mb-2">
         {socialNetworks.instagram && (
           <a
-            href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+            href={`https://instagram.com/${extractInstagramUsername(socialNetworks.instagram)}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
@@ -388,7 +422,15 @@ export default function UGC() {
 
     setSaving(true);
     try {
-      await ugcAPI.createCreator(newCreator);
+      // Sanitize Instagram username before saving
+      const creatorData = {
+        ...newCreator,
+        social_networks: {
+          ...newCreator.social_networks,
+          instagram: extractInstagramUsername(newCreator.social_networks.instagram)
+        }
+      };
+      await ugcAPI.createCreator(creatorData);
       setShowNewCreator(false);
       setNewCreator({
         full_name: '', email: '', phone: '', cedula: '',
@@ -849,14 +891,14 @@ export default function UGC() {
                             onMouseLeave={() => setHoveredCreator(null)}
                           >
                             <a
-                              href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+                              href={`https://instagram.com/${extractInstagramUsername(socialNetworks.instagram)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="text-pink-500 hover:text-pink-600 flex items-center gap-1"
                             >
                               <Instagram className="w-4 h-4" />
-                              <span className="text-xs">@{socialNetworks.instagram.replace('@', '')}</span>
+                              <span className="text-xs">@{extractInstagramUsername(socialNetworks.instagram)}</span>
                             </a>
                             {/* Instagram Embed Popup */}
                             {hoveredCreator === creator.id && (
@@ -874,7 +916,7 @@ export default function UGC() {
                                   <span className="text-xs font-medium text-gray-500">Vista previa de Instagram</span>
                                   <div className="flex items-center gap-2">
                                     <a
-                                      href={`https://instagram.com/${socialNetworks.instagram.replace('@', '')}`}
+                                      href={`https://instagram.com/${extractInstagramUsername(socialNetworks.instagram)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-xs text-pink-500 flex items-center gap-1 hover:underline"
@@ -890,7 +932,7 @@ export default function UGC() {
                                   </div>
                                 </div>
                                 <iframe
-                                  src={`https://www.instagram.com/${socialNetworks.instagram.replace('@', '')}/embed`}
+                                  src={`https://www.instagram.com/${extractInstagramUsername(socialNetworks.instagram)}/embed`}
                                   width="320"
                                   height="400"
                                   frameBorder="0"
