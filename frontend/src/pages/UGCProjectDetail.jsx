@@ -282,16 +282,14 @@ export default function UGCProjectDetail() {
   const [selectedCreators, setSelectedCreators] = useState([]);
   const [saving, setSaving] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(null);
-  const [editingBrief, setEditingBrief] = useState(null); // creator_id being edited
-  const [briefValue, setBriefValue] = useState('');
   const [editingProjectBrief, setEditingProjectBrief] = useState(false);
   const [projectBriefValue, setProjectBriefValue] = useState('');
   const [activeId, setActiveId] = useState(null);
 
-  // Contract editing modal
-  const [editingContract, setEditingContract] = useState(null); // creator object being edited
-  const [contractForm, setContractForm] = useState({ video_count: 1, agreed_rate: '' });
-  const [savingContract, setSavingContract] = useState(false);
+  // Creator details editing modal (videos, price, brief)
+  const [editingCreatorDetails, setEditingCreatorDetails] = useState(null); // creator object being edited
+  const [creatorDetailsForm, setCreatorDetailsForm] = useState({ video_count: 1, agreed_rate: '', brief_url: '' });
+  const [savingCreatorDetails, setSavingCreatorDetails] = useState(false);
 
   // Signed contracts viewing
   const [signedContracts, setSignedContracts] = useState([]);
@@ -452,59 +450,37 @@ export default function UGCProjectDetail() {
     }
   };
 
-  const handleStartEditBrief = (creator) => {
-    setEditingBrief(creator.creator_id);
-    setBriefValue(creator.brief_url || project.brief_url || '');
-  };
-
-  const handleSaveBrief = async (creatorId) => {
-    try {
-      await ugcAPI.updateProjectCreator(id, creatorId, { brief_url: briefValue });
-      setCreators(prev => prev.map(c =>
-        c.creator_id === creatorId ? { ...c, brief_url: briefValue } : c
-      ));
-      setEditingBrief(null);
-      setBriefValue('');
-    } catch (error) {
-      console.error('Error updating brief:', error);
-      alert('Error guardando el brief');
-    }
-  };
-
-  const handleCancelEditBrief = () => {
-    setEditingBrief(null);
-    setBriefValue('');
-  };
-
-  // Contract editing handlers
-  const handleOpenContractEdit = (creator) => {
-    setEditingContract(creator);
-    setContractForm({
+  // Creator details editing handlers (videos, price, brief)
+  const handleOpenCreatorDetails = (creator) => {
+    setEditingCreatorDetails(creator);
+    setCreatorDetailsForm({
       video_count: creator.video_count || 1,
       agreed_rate: creator.agreed_rate || project.creator_cost_per_video || '',
+      brief_url: creator.brief_url || '',
     });
   };
 
-  const handleSaveContract = async () => {
-    if (!editingContract) return;
-    setSavingContract(true);
+  const handleSaveCreatorDetails = async () => {
+    if (!editingCreatorDetails) return;
+    setSavingCreatorDetails(true);
     try {
       const data = {
-        video_count: parseInt(contractForm.video_count) || 1,
-        agreed_rate: parseFloat(contractForm.agreed_rate) || 0,
+        video_count: parseInt(creatorDetailsForm.video_count) || 1,
+        agreed_rate: parseFloat(creatorDetailsForm.agreed_rate) || 0,
+        brief_url: creatorDetailsForm.brief_url || null,
       };
-      await ugcAPI.updateProjectCreator(id, editingContract.creator_id, data);
+      await ugcAPI.updateProjectCreator(id, editingCreatorDetails.creator_id, data);
       setCreators(prev => prev.map(c =>
-        c.creator_id === editingContract.creator_id
-          ? { ...c, video_count: data.video_count, agreed_rate: data.agreed_rate }
+        c.creator_id === editingCreatorDetails.creator_id
+          ? { ...c, video_count: data.video_count, agreed_rate: data.agreed_rate, brief_url: data.brief_url }
           : c
       ));
-      setEditingContract(null);
+      setEditingCreatorDetails(null);
     } catch (error) {
-      console.error('Error saving contract:', error);
+      console.error('Error saving creator details:', error);
       alert('Error al guardar los cambios');
     } finally {
-      setSavingContract(false);
+      setSavingCreatorDetails(false);
     }
   };
 
@@ -996,62 +972,46 @@ export default function UGCProjectDetail() {
 
                       {/* Videos */}
                       <td className="px-4 py-3">
-                        <span className="text-sm font-medium text-gray-900">
-                          {creator.video_count || 1}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {creator.video_count || 1}
+                            </span>
+                            {creator.agreed_rate > 0 && (
+                              <p className="text-xs text-gray-500">
+                                ${creator.agreed_rate.toLocaleString('es-CO')}/video
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleOpenCreatorDetails(creator)}
+                            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                            title="Editar videos, tarifa y brief"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
 
                       {/* Brief */}
                       <td className="px-4 py-3">
-                        {editingBrief === creator.creator_id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="url"
-                              value={briefValue}
-                              onChange={(e) => setBriefValue(e.target.value)}
-                              placeholder="URL del brief..."
-                              className="w-40 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => handleSaveBrief(creator.creator_id)}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
-                              title="Guardar"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={handleCancelEditBrief}
-                              className="p-1 text-gray-400 hover:bg-gray-100 rounded transition-colors"
-                              title="Cancelar"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
+                        {(creator.brief_url || project.brief_url) ? (
+                          <a
+                            href={creator.brief_url || project.brief_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                              creator.brief_url
+                                ? 'text-green-600 hover:text-green-700'
+                                : 'text-blue-600 hover:text-blue-700'
+                            }`}
+                            title={creator.brief_url ? 'Brief personalizado' : 'Brief del proyecto'}
+                          >
+                            <FileText className="w-4 h-4" />
+                            {creator.brief_url ? 'Ver brief' : 'Brief proyecto'}
+                          </a>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            {(creator.brief_url || project.brief_url) ? (
-                              <a
-                                href={creator.brief_url || project.brief_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                                title={creator.brief_url ? 'Brief personalizado' : 'Brief del proyecto'}
-                              >
-                                <FileText className="w-4 h-4" />
-                                {creator.brief_url ? 'Ver brief' : 'Brief proyecto'}
-                              </a>
-                            ) : (
-                              <span className="text-sm text-gray-400">-</span>
-                            )}
-                            <button
-                              onClick={() => handleStartEditBrief(creator)}
-                              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                              title="Editar brief"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                          <span className="text-sm text-gray-400">-</span>
                         )}
                       </td>
 
@@ -1096,16 +1056,6 @@ export default function UGCProjectDetail() {
                             >
                               <WhatsAppIcon className="w-4 h-4" />
                             </a>
-                          )}
-                          {/* Contract edit button - edit terms before sending */}
-                          {creator.contract_token && CONTRACT_SENDABLE_STATUSES.includes(creator.status) && (
-                            <button
-                              onClick={() => handleOpenContractEdit(creator)}
-                              className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                              title="Editar términos del contrato"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
                           )}
                           {/* Contract WhatsApp button - only shows when creator is negotiating/confirmed */}
                           {creator.phone && creator.contract_token && CONTRACT_SENDABLE_STATUSES.includes(creator.status) && (
@@ -1292,17 +1242,17 @@ export default function UGCProjectDetail() {
         </div>
       )}
 
-      {/* Contract Edit Modal */}
-      {editingContract && (
+      {/* Creator Details Edit Modal (videos, price, brief) */}
+      {editingCreatorDetails && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Editar Contrato</h2>
-                <p className="text-sm text-gray-500">{editingContract.full_name}</p>
+                <h2 className="text-lg font-semibold">Editar detalles del creador</h2>
+                <p className="text-sm text-gray-500">{editingCreatorDetails.full_name}</p>
               </div>
               <button
-                onClick={() => setEditingContract(null)}
+                onClick={() => setEditingCreatorDetails(null)}
                 className="p-2 hover:bg-gray-100 rounded-lg"
               >
                 <X className="w-5 h-5" />
@@ -1310,51 +1260,80 @@ export default function UGCProjectDetail() {
             </div>
 
             <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cantidad de videos
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={contractForm.video_count}
-                  onChange={(e) => setContractForm(prev => ({ ...prev, video_count: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cantidad de videos
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={creatorDetailsForm.video_count}
+                    onChange={(e) => setCreatorDetailsForm(prev => ({ ...prev, video_count: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tarifa por video (COP)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={creatorDetailsForm.agreed_rate}
+                    onChange={(e) => setCreatorDetailsForm(prev => ({ ...prev, agreed_rate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder={project?.creator_cost_per_video ? `${project.creator_cost_per_video.toLocaleString()}` : ''}
+                  />
+                </div>
               </div>
+
+              {/* Total calculation */}
+              {(creatorDetailsForm.agreed_rate || project?.creator_cost_per_video) && (
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Total a pagar:</span>
+                    <span className="font-semibold text-gray-900">
+                      ${((parseFloat(creatorDetailsForm.agreed_rate) || project?.creator_cost_per_video || 0) * parseInt(creatorDetailsForm.video_count || 1)).toLocaleString('es-CO')} COP
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tarifa acordada (COP)
+                  Brief personalizado (URL)
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={contractForm.agreed_rate}
-                  onChange={(e) => setContractForm(prev => ({ ...prev, agreed_rate: e.target.value }))}
+                  type="url"
+                  value={creatorDetailsForm.brief_url}
+                  onChange={(e) => setCreatorDetailsForm(prev => ({ ...prev, brief_url: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder={project?.creator_cost_per_video ? `Default: $${project.creator_cost_per_video.toLocaleString()}` : ''}
+                  placeholder={project?.brief_url ? 'Dejar vacío para usar brief del proyecto' : 'https://...'}
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Total: ${(parseFloat(contractForm.agreed_rate || 0) * parseInt(contractForm.video_count || 1)).toLocaleString()} COP
-                </p>
+                {project?.brief_url && !creatorDetailsForm.brief_url && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Usando brief del proyecto: {project.brief_url.substring(0, 40)}...
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="p-4 border-t border-gray-100 flex justify-end gap-3">
               <button
-                onClick={() => setEditingContract(null)}
+                onClick={() => setEditingCreatorDetails(null)}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleSaveContract}
-                disabled={savingContract}
+                onClick={handleSaveCreatorDetails}
+                disabled={savingCreatorDetails}
                 className="px-4 py-2 bg-[#17181A] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
               >
-                {savingContract && <Loader2 className="w-4 h-4 animate-spin" />}
+                {savingCreatorDetails && <Loader2 className="w-4 h-4 animate-spin" />}
                 Guardar
               </button>
             </div>
