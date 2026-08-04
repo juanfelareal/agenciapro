@@ -349,6 +349,9 @@ const Team = () => {
             <div className="space-y-2 mb-4 text-sm text-gray-500">
               <p>📧 {member.email}</p>
               <p>👤 {roleLabels[member.role]}</p>
+              {member.birthday && (
+                <p>🎂 {new Date(member.birthday + 'T00:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })}</p>
+              )}
             </div>
             <div className="flex gap-2 pt-3 border-t border-gray-100">
               <button
