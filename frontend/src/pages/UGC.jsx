@@ -662,13 +662,13 @@ export default function UGC() {
           </div>
 
           {/* View Toggle */}
-          <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+          <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
             <button
               onClick={() => setViewMode('kanban')}
-              className={`p-2.5 transition-colors ${
+              className={`p-2 rounded-lg transition-all ${
                 viewMode === 'kanban'
-                  ? 'bg-[#17181A] text-white'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'
+                  ? 'bg-white text-[#17181A] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
               title="Vista Kanban"
             >
@@ -676,10 +676,10 @@ export default function UGC() {
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2.5 transition-colors ${
+              className={`p-2 rounded-lg transition-all ${
                 viewMode === 'list'
-                  ? 'bg-[#17181A] text-white'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'
+                  ? 'bg-white text-[#17181A] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               }`}
               title="Vista Lista"
             >
