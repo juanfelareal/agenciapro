@@ -25,6 +25,7 @@ export default function UGCProjects() {
   const [filterClient, setFilterClient] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [statusDropdownId, setStatusDropdownId] = useState(null);
 
   const [newProject, setNewProject] = useState({
     client_id: '',
@@ -42,6 +43,15 @@ export default function UGCProjects() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Close status dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setStatusDropdownId(null);
+    if (statusDropdownId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [statusDropdownId]);
 
   const loadData = async () => {
     try {
@@ -139,6 +149,19 @@ export default function UGCProjects() {
       setProjects(prev => prev.filter(p => p.id !== id));
     } catch (error) {
       console.error('Error deleting project:', error);
+    }
+  };
+
+  const handleStatusChange = async (projectId, newStatus, e) => {
+    e.stopPropagation();
+    setStatusDropdownId(null);
+    try {
+      await ugcAPI.updateProject(projectId, { status: newStatus });
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, status: newStatus } : p
+      ));
+    } catch (error) {
+      console.error('Error updating project status:', error);
     }
   };
 
@@ -266,12 +289,46 @@ export default function UGCProjects() {
                         {project.client_nickname || project.client_name}
                       </p>
                     </div>
-                    <div
-                      className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                      style={{ backgroundColor: `${statusInfo.color}20`, color: statusInfo.color }}
-                    >
-                      <StatusIcon className="w-3 h-3" />
-                      {statusInfo.label}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStatusDropdownId(statusDropdownId === project.id ? null : project.id);
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium hover:ring-2 hover:ring-offset-1 transition-all"
+                        style={{ backgroundColor: `${statusInfo.color}20`, color: statusInfo.color, '--tw-ring-color': statusInfo.color }}
+                      >
+                        <StatusIcon className="w-3 h-3" />
+                        {statusInfo.label}
+                      </button>
+
+                      {/* Status Dropdown */}
+                      {statusDropdownId === project.id && (
+                        <div
+                          className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {Object.entries(PROJECT_STATUSES).map(([key, val]) => {
+                            const Icon = val.icon;
+                            return (
+                              <button
+                                key={key}
+                                onClick={(e) => handleStatusChange(project.id, key, e)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                                  project.status === key ? 'bg-gray-50 font-medium' : ''
+                                }`}
+                                style={{ color: val.color }}
+                              >
+                                <Icon className="w-4 h-4" />
+                                {val.label}
+                                {project.status === key && (
+                                  <CheckCircle2 className="w-3 h-3 ml-auto" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
 
