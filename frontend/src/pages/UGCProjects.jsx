@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   FolderKanban, Plus, Users, Calendar, ExternalLink,
   Loader2, Search, Filter, MoreVertical, Trash2, Edit2,
-  ChevronRight, Clock, CheckCircle2, Archive, Video, Package, DollarSign
+  ChevronRight, Clock, CheckCircle2, Archive, Video, Package, DollarSign,
+  LayoutGrid, List
 } from 'lucide-react';
 import { ugcAPI, clientsAPI } from '../utils/api';
 
@@ -26,6 +27,7 @@ export default function UGCProjects() {
   const [filterStatus, setFilterStatus] = useState('');
   const [saving, setSaving] = useState(false);
   const [statusDropdownId, setStatusDropdownId] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   const [newProject, setNewProject] = useState({
     client_id: '',
@@ -230,6 +232,32 @@ export default function UGCProjects() {
             ))}
           </select>
 
+          {/* View Toggle */}
+          <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-white text-[#17181A] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              title="Vista Grid"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-all ${
+                viewMode === 'list'
+                  ? 'bg-white text-[#17181A] shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              title="Vista Lista"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* New Project Button */}
           <button
             onClick={() => setShowNewModal(true)}
@@ -267,7 +295,7 @@ export default function UGCProjects() {
             <p className="font-medium">No hay proyectos</p>
             <p className="text-sm mt-1">Crea tu primer proyecto para organizar campañas UGC</p>
           </div>
-        ) : (
+        ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredProjects.map(project => {
               const statusInfo = PROJECT_STATUSES[project.status] || PROJECT_STATUSES.draft;
@@ -382,6 +410,153 @@ export default function UGCProjects() {
                 </div>
               );
             })}
+          </div>
+        ) : (
+          /* List View */
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Proyecto</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Creadores</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha límite</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Presupuesto</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Brief</th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredProjects.map(project => {
+                  const statusInfo = PROJECT_STATUSES[project.status] || PROJECT_STATUSES.draft;
+                  const StatusIcon = statusInfo.icon;
+
+                  return (
+                    <tr
+                      key={project.id}
+                      onClick={() => navigate(`/app/ugc/projects/${project.id}`)}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                    >
+                      {/* Project & Client */}
+                      <td className="px-5 py-4">
+                        <div>
+                          <p className="font-medium text-gray-900 group-hover:text-green-600 transition-colors">
+                            {project.title}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {project.client_nickname || project.client_name}
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-5 py-4">
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStatusDropdownId(statusDropdownId === project.id ? null : project.id);
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium hover:ring-2 hover:ring-offset-1 transition-all"
+                            style={{ backgroundColor: `${statusInfo.color}20`, color: statusInfo.color, '--tw-ring-color': statusInfo.color }}
+                          >
+                            <StatusIcon className="w-3 h-3" />
+                            {statusInfo.label}
+                          </button>
+
+                          {/* Status Dropdown */}
+                          {statusDropdownId === project.id && (
+                            <div
+                              className="absolute left-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {Object.entries(PROJECT_STATUSES).map(([key, val]) => {
+                                const Icon = val.icon;
+                                return (
+                                  <button
+                                    key={key}
+                                    onClick={(e) => handleStatusChange(project.id, key, e)}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                                      project.status === key ? 'bg-gray-50 font-medium' : ''
+                                    }`}
+                                    style={{ color: val.color }}
+                                  >
+                                    <Icon className="w-4 h-4" />
+                                    {val.label}
+                                    {project.status === key && (
+                                      <CheckCircle2 className="w-3 h-3 ml-auto" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Creators */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Users className="w-4 h-4" />
+                          <span>{project.creator_count || 0}</span>
+                        </div>
+                      </td>
+
+                      {/* Deadline */}
+                      <td className="px-5 py-4">
+                        {project.deadline ? (
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Calendar className="w-4 h-4" />
+                            <span>{new Date(project.deadline).toLocaleDateString('es-CO', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
+                      </td>
+
+                      {/* Budget */}
+                      <td className="px-5 py-4">
+                        {project.budget > 0 ? (
+                          <span className="text-sm font-medium text-gray-700">
+                            ${project.budget.toLocaleString('es-CO')}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
+                      </td>
+
+                      {/* Brief */}
+                      <td className="px-5 py-4">
+                        {project.brief_url ? (
+                          <a
+                            href={project.brief_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Ver
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-4 text-right">
+                        <button
+                          onClick={(e) => handleDeleteProject(project.id, e)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
