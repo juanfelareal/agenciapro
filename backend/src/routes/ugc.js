@@ -1211,22 +1211,26 @@ router.post('/projects', async (req, res) => {
 // PUT /api/ugc/projects/:id - Update project
 router.put('/projects/:id', async (req, res) => {
   try {
-    const { title, description, brief_url, brief_content, budget, currency, start_date, deadline, status } = req.body;
+    const { title, description, brief_url, brief_content, budget, currency, start_date, deadline, status, sales_angles } = req.body;
 
-    await db.run(
+    // Handle sales_angles as JSONB
+    const salesAnglesJson = sales_angles !== undefined ? JSON.stringify(sales_angles) : null;
+
+    await db.query(
       `UPDATE ugc_projects SET
-        title = COALESCE(?, title),
-        description = COALESCE(?, description),
-        brief_url = COALESCE(?, brief_url),
-        brief_content = COALESCE(?, brief_content),
-        budget = COALESCE(?, budget),
-        currency = COALESCE(?, currency),
-        start_date = COALESCE(?, start_date),
-        deadline = COALESCE(?, deadline),
-        status = COALESCE(?, status),
+        title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        brief_url = COALESCE($3, brief_url),
+        brief_content = COALESCE($4, brief_content),
+        budget = COALESCE($5, budget),
+        currency = COALESCE($6, currency),
+        start_date = COALESCE($7, start_date),
+        deadline = COALESCE($8, deadline),
+        status = COALESCE($9, status),
+        sales_angles = COALESCE($10::jsonb, sales_angles),
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = ? AND organization_id = ?`,
-      [title, description, brief_url, brief_content, budget, currency, start_date, deadline, status, req.params.id, req.orgId]
+       WHERE id = $11 AND organization_id = $12`,
+      [title, description, brief_url, brief_content, budget, currency, start_date, deadline, status, salesAnglesJson, req.params.id, req.orgId]
     );
 
     const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [req.params.id]);
@@ -1290,7 +1294,7 @@ router.post('/projects/:id/creators', async (req, res) => {
 // PUT /api/ugc/projects/:projectId/creators/:creatorId - Update creator status in project
 router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
   try {
-    const { status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes } = req.body;
+    const { status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes, assigned_angles } = req.body;
     console.log('Updating project creator:', { projectId: req.params.projectId, creatorId: req.params.creatorId, body: req.body });
 
     let extraFields = '';
@@ -1299,6 +1303,9 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
     } else if (status === 'paid') {
       extraFields = ', paid_at = CURRENT_TIMESTAMP';
     }
+
+    // Handle assigned_angles as JSONB
+    const assignedAnglesJson = assigned_angles !== undefined ? JSON.stringify(assigned_angles) : null;
 
     await db.query(
       `UPDATE ugc_project_creators SET
@@ -1310,10 +1317,11 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
         brief_url = COALESCE($6, brief_url),
         video_count = COALESCE($7, video_count),
         notes = COALESCE($8, notes),
+        assigned_angles = COALESCE($9::jsonb, assigned_angles),
         updated_at = CURRENT_TIMESTAMP
         ${extraFields}
-       WHERE project_id = $9 AND creator_id = $10`,
-      [status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes, req.params.projectId, req.params.creatorId]
+       WHERE project_id = $10 AND creator_id = $11`,
+      [status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes, assignedAnglesJson, req.params.projectId, req.params.creatorId]
     );
 
     // Auto-create Drive folder when status changes to confirmed or contract_signed

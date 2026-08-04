@@ -2967,6 +2967,9 @@ export const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='product_value') THEN
           ALTER TABLE ugc_projects ADD COLUMN product_value REAL DEFAULT 0;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_projects' AND column_name='sales_angles') THEN
+          ALTER TABLE ugc_projects ADD COLUMN sales_angles JSONB DEFAULT '[]';
+        END IF;
       END $$
     `);
 
@@ -3035,6 +3038,9 @@ export const initializeDatabase = async () => {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='shipped_at') THEN
           ALTER TABLE ugc_project_creators ADD COLUMN shipped_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='ugc_project_creators' AND column_name='assigned_angles') THEN
+          ALTER TABLE ugc_project_creators ADD COLUMN assigned_angles JSONB DEFAULT '[]';
         END IF;
       END $$
     `);

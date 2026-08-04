@@ -113,13 +113,14 @@ router.get('/assignments', clientAuthMiddleware, async (req, res) => {
       directParams.push(status);
     }
 
-    // Get project creator assignments - include shipping data
+    // Get project creator assignments - include shipping data and angles
     let projectQuery = `
       SELECT pc.id, p.title as title, p.description, pc.deliverables, p.start_date, p.deadline as end_date,
              pc.status, pc.delivery_url, pc.delivered_at, pc.created_at,
              c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo,
              'project' as source_type, p.title as project_title, pc.id as project_creator_id,
-             pc.tracking_number, pc.tracking_carrier, pc.shipping_status, pc.shipped_at
+             pc.tracking_number, pc.tracking_carrier, pc.shipping_status, pc.shipped_at,
+             pc.assigned_angles, p.sales_angles
       FROM ugc_project_creators pc
       INNER JOIN ugc_projects p ON pc.project_id = p.id
       LEFT JOIN ugc_creators c ON pc.creator_id = c.id

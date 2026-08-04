@@ -226,6 +226,113 @@ const StatusBadge = ({ status, onChange }) => {
   );
 };
 
+// Angle assigner component for creators
+const AngleAssigner = ({ creatorId, assignedAngles, projectAngles, onToggle }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState({});
+  const buttonRef = useRef(null);
+
+  const handleOpen = () => {
+    if (buttonRef.current && projectAngles.length > 0) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const dropdownHeight = Math.min(projectAngles.length * 40 + 20, 200);
+      const spaceBelow = window.innerHeight - rect.bottom;
+
+      if (spaceBelow < dropdownHeight) {
+        setDropdownStyle({
+          bottom: window.innerHeight - rect.top + 4,
+          left: rect.left,
+          maxHeight: Math.min(rect.top - 20, 200)
+        });
+      } else {
+        setDropdownStyle({
+          top: rect.bottom + 4,
+          left: rect.left,
+          maxHeight: Math.min(spaceBelow - 20, 200)
+        });
+      }
+    }
+    setIsOpen(!isOpen);
+  };
+
+  // Get assigned angle objects
+  const assignedAngleObjects = projectAngles.filter(a => assignedAngles.includes(a.id));
+
+  if (projectAngles.length === 0) {
+    return <span className="text-sm text-gray-400">-</span>;
+  }
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        onClick={handleOpen}
+        className="flex flex-wrap items-center gap-1 max-w-[200px] min-h-[32px] px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
+      >
+        {assignedAngleObjects.length > 0 ? (
+          assignedAngleObjects.map(angle => (
+            <span
+              key={angle.id}
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+              style={{ backgroundColor: `${angle.color}20`, color: angle.color }}
+            >
+              {angle.name}
+            </span>
+          ))
+        ) : (
+          <span className="text-xs text-gray-400 flex items-center gap-1">
+            <Plus className="w-3 h-3" />
+            Asignar
+          </span>
+        )}
+      </button>
+
+      {isOpen && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
+          <div
+            className="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl py-2 min-w-[180px] overflow-y-auto"
+            style={dropdownStyle}
+          >
+            <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Ángulos del proyecto
+            </div>
+            {projectAngles.map(angle => {
+              const isAssigned = assignedAngles.includes(angle.id);
+              return (
+                <button
+                  key={angle.id}
+                  onClick={() => {
+                    onToggle(creatorId, angle.id);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                    isAssigned ? 'bg-gray-50' : ''
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                      isAssigned ? 'border-green-500 bg-green-500' : 'border-gray-300'
+                    }`}
+                  >
+                    {isAssigned && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  <span
+                    className="px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={{ backgroundColor: `${angle.color}20`, color: angle.color }}
+                  >
+                    {angle.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+};
+
 // Sortable row component for drag and drop
 const SortableCreatorRow = ({ creator, children }) => {
   const {
@@ -294,6 +401,19 @@ export default function UGCProjectDetail() {
   // Signed contracts viewing
   const [signedContracts, setSignedContracts] = useState([]);
   const [viewingContract, setViewingContract] = useState(null); // signed contract being viewed
+
+  // Sales angles management
+  const [newAngleName, setNewAngleName] = useState('');
+  const [newAngleColor, setNewAngleColor] = useState('#16a34a');
+  const [addingAngle, setAddingAngle] = useState(false);
+  const angleColors = [
+    { name: 'Verde', value: '#16a34a' },
+    { name: 'Azul', value: '#2563eb' },
+    { name: 'Morado', value: '#9333ea' },
+    { name: 'Naranja', value: '#ea580c' },
+    { name: 'Rosa', value: '#db2777' },
+    { name: 'Amarillo', value: '#ca8a04' },
+  ];
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -746,6 +866,68 @@ export default function UGCProjectDetail() {
     }
   };
 
+  // Sales angles functions
+  const handleAddAngle = async () => {
+    if (!newAngleName.trim()) return;
+    setAddingAngle(true);
+    try {
+      const newAngle = {
+        id: `ang_${Date.now()}`,
+        name: newAngleName.trim(),
+        color: newAngleColor
+      };
+      const currentAngles = project.sales_angles || [];
+      const updatedAngles = [...currentAngles, newAngle];
+      await ugcAPI.updateProject(id, { sales_angles: updatedAngles });
+      setProject(prev => ({ ...prev, sales_angles: updatedAngles }));
+      setNewAngleName('');
+    } catch (error) {
+      console.error('Error adding angle:', error);
+      alert('Error agregando ángulo');
+    } finally {
+      setAddingAngle(false);
+    }
+  };
+
+  const handleRemoveAngle = async (angleId) => {
+    try {
+      const currentAngles = project.sales_angles || [];
+      const updatedAngles = currentAngles.filter(a => a.id !== angleId);
+      await ugcAPI.updateProject(id, { sales_angles: updatedAngles });
+      setProject(prev => ({ ...prev, sales_angles: updatedAngles }));
+      // Also remove this angle from all creators
+      const updatedCreators = creators.map(c => ({
+        ...c,
+        assigned_angles: (c.assigned_angles || []).filter(id => id !== angleId)
+      }));
+      setCreators(updatedCreators);
+    } catch (error) {
+      console.error('Error removing angle:', error);
+      alert('Error eliminando ángulo');
+    }
+  };
+
+  const handleToggleCreatorAngle = async (creatorId, angleId) => {
+    const creator = creators.find(c => c.creator_id === creatorId);
+    if (!creator) return;
+
+    const currentAngles = creator.assigned_angles || [];
+    const hasAngle = currentAngles.includes(angleId);
+    const updatedAngles = hasAngle
+      ? currentAngles.filter(id => id !== angleId)
+      : [...currentAngles, angleId];
+
+    try {
+      await ugcAPI.updateProjectCreator(id, creatorId, { assigned_angles: updatedAngles });
+      setCreators(prev => prev.map(c =>
+        c.creator_id === creatorId ? { ...c, assigned_angles: updatedAngles } : c
+      ));
+    } catch (error) {
+      console.error('Error updating creator angles:', error);
+      alert('Error actualizando ángulos del creador');
+    }
+  };
+
   const filteredAllCreators = allCreators.filter(c =>
     c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     c.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -876,6 +1058,74 @@ export default function UGCProjectDetail() {
         {project.description && (
           <p className="text-sm text-gray-600 mt-3 max-w-2xl">{project.description}</p>
         )}
+
+        {/* Sales Angles Section */}
+        <div className="mt-5 pt-5 border-t border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="text-sm font-medium text-gray-700">Ángulos de venta</h3>
+            <div className="flex-1 h-px bg-gray-100"></div>
+          </div>
+
+          {/* Existing angles */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {(project.sales_angles || []).map(angle => (
+              <span
+                key={angle.id}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+                style={{ backgroundColor: `${angle.color}20`, color: angle.color }}
+              >
+                {angle.name}
+                <button
+                  onClick={() => handleRemoveAngle(angle.id)}
+                  className="p-0.5 hover:bg-white/50 rounded-full transition-colors"
+                  title="Eliminar ángulo"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            ))}
+            {(project.sales_angles || []).length === 0 && (
+              <span className="text-sm text-gray-400 italic">Sin ángulos definidos</span>
+            )}
+          </div>
+
+          {/* Add new angle */}
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newAngleName}
+              onChange={(e) => setNewAngleName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddAngle()}
+              placeholder="Nombre del ángulo..."
+              className="w-48 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+            />
+            <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-xl">
+              {angleColors.map(color => (
+                <button
+                  key={color.value}
+                  onClick={() => setNewAngleColor(color.value)}
+                  className={`w-6 h-6 rounded-full transition-all ${
+                    newAngleColor === color.value ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color.value }}
+                  title={color.name}
+                />
+              ))}
+            </div>
+            <button
+              onClick={handleAddAngle}
+              disabled={!newAngleName.trim() || addingAngle}
+              className="flex items-center gap-1.5 px-3 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {addingAngle ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              Agregar
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Creators Table */}
@@ -910,6 +1160,7 @@ export default function UGCProjectDetail() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ciudad</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Videos</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ángulos</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Brief</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Carpeta Drive</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -991,6 +1242,16 @@ export default function UGCProjectDetail() {
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                      </td>
+
+                      {/* Angles */}
+                      <td className="px-4 py-3">
+                        <AngleAssigner
+                          creatorId={creator.creator_id}
+                          assignedAngles={creator.assigned_angles || []}
+                          projectAngles={project.sales_angles || []}
+                          onToggle={handleToggleCreatorAngle}
+                        />
                       </td>
 
                       {/* Brief */}

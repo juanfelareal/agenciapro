@@ -186,6 +186,39 @@ export default function PortalUGC() {
     return industries;
   };
 
+  const parseAngles = (salesAngles, assignedAngles) => {
+    // Parse sales_angles from project
+    let angles = [];
+    if (salesAngles) {
+      if (typeof salesAngles === 'string') {
+        try {
+          angles = JSON.parse(salesAngles);
+        } catch {
+          angles = [];
+        }
+      } else {
+        angles = salesAngles;
+      }
+    }
+
+    // Parse assigned_angles from project_creator
+    let assigned = [];
+    if (assignedAngles) {
+      if (typeof assignedAngles === 'string') {
+        try {
+          assigned = JSON.parse(assignedAngles);
+        } catch {
+          assigned = [];
+        }
+      } else {
+        assigned = assignedAngles;
+      }
+    }
+
+    // Filter to only show assigned angles
+    return angles.filter(a => assigned.includes(a.id));
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -359,6 +392,7 @@ export default function PortalUGC() {
                 const status = ASSIGNMENT_STATUS[assignment.status] || { label: assignment.status, color: 'bg-gray-100 text-gray-700' };
                 const shippingStatus = assignment.shipping_status ? SHIPPING_STATUS[assignment.shipping_status] : null;
                 const isProjectAssignment = assignment.source_type === 'project';
+                const creatorAngles = isProjectAssignment ? parseAngles(assignment.sales_angles, assignment.assigned_angles) : [];
 
                 return (
                   <div
@@ -389,6 +423,20 @@ export default function PortalUGC() {
                             <p className="text-xs text-gray-400 mt-2">
                               <span className="font-medium">Entregables:</span> {assignment.deliverables}
                             </p>
+                          )}
+                          {/* Sales angles assigned to this creator */}
+                          {creatorAngles.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {creatorAngles.map(angle => (
+                                <span
+                                  key={angle.id}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                                  style={{ backgroundColor: `${angle.color}20`, color: angle.color }}
+                                >
+                                  {angle.name}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
