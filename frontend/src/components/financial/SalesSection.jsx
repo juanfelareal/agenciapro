@@ -1,6 +1,6 @@
 /**
  * Sales Section - Ventas
- * Historical sales, MoM comparison, budget vs actual
+ * Uses platform's glass design system (light theme)
  */
 import { useState } from 'react';
 import {
@@ -21,6 +21,13 @@ import FinancialCard from './shared/FinancialCard';
 import KPICard from './shared/KPICard';
 import DataTable from './shared/DataTable';
 import { formatCurrency, formatPercent, getMonthShort } from './shared/formatters';
+
+const tooltipStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+};
 
 // Mock data - will be replaced with API calls
 const monthlyData = [
@@ -124,36 +131,32 @@ const SalesSection = () => {
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2b35" />
-                <XAxis dataKey="name" stroke="#5c5d66" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" fontSize={11} />
                 <YAxis
-                  stroke="#5c5d66"
+                  stroke="#6b7280"
                   fontSize={11}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
-                  labelStyle={{ color: '#fff' }}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Legend />
                 <Bar
                   dataKey="ventas"
                   name="Ventas"
-                  fill="#2dd4bf"
+                  fill="#10b981"
                   radius={[4, 4, 0, 0]}
                 />
                 <Line
                   type="monotone"
                   dataKey="presupuesto"
                   name="Presupuesto"
-                  stroke="#818cf8"
+                  stroke="#6366f1"
                   strokeWidth={2}
-                  dot={{ fill: '#818cf8', strokeWidth: 2 }}
+                  dot={{ fill: '#6366f1', strokeWidth: 2 }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -166,16 +169,16 @@ const SalesSection = () => {
             {salesByService.map((service) => (
               <div key={service.servicio}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-[#a0a1a9]">{service.servicio}</span>
-                  <span className="font-semibold">{formatCurrency(service.ventas)}</span>
+                  <span className="text-gray-600">{service.servicio}</span>
+                  <span className="font-semibold text-[#17181A]">{formatCurrency(service.ventas)}</span>
                 </div>
-                <div className="h-2 bg-[#2a2b35] rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-teal-500 to-teal-400 rounded-full"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
                     style={{ width: `${service.porcentaje}%` }}
                   />
                 </div>
-                <div className="text-right text-xs text-[#5c5d66] mt-0.5">
+                <div className="text-right text-xs text-gray-500 mt-0.5">
                   {service.porcentaje}%
                 </div>
               </div>
@@ -191,37 +194,33 @@ const SalesSection = () => {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={yoyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2b35" />
-                <XAxis dataKey="name" stroke="#5c5d66" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" fontSize={11} />
                 <YAxis
-                  stroke="#5c5d66"
+                  stroke="#6b7280"
                   fontSize={11}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
-                  labelStyle={{ color: '#fff' }}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Legend />
                 <Area
                   type="monotone"
                   dataKey="actual"
                   name="2024"
-                  stroke="#2dd4bf"
-                  fill="#2dd4bf"
+                  stroke="#10b981"
+                  fill="#10b981"
                   fillOpacity={0.3}
                 />
                 <Area
                   type="monotone"
                   dataKey="lastYear"
                   name="2023"
-                  stroke="#5c5d66"
-                  fill="#5c5d66"
+                  stroke="#9ca3af"
+                  fill="#9ca3af"
                   fillOpacity={0.2}
                 />
               </AreaChart>
@@ -235,14 +234,14 @@ const SalesSection = () => {
             {momComparison.map((item) => (
               <div
                 key={item.metric}
-                className="flex items-center justify-between p-3 bg-[#22232d] rounded-lg"
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
                 <div>
-                  <div className="text-xs text-[#5c5d66]">{item.metric}</div>
-                  <div className="font-semibold">{formatCurrency(item.current)}</div>
+                  <div className="text-xs text-gray-500">{item.metric}</div>
+                  <div className="font-semibold text-[#17181A]">{formatCurrency(item.current)}</div>
                 </div>
                 <div className={`flex items-center gap-1 text-sm ${
-                  item.change >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  item.change >= 0 ? 'text-emerald-600' : 'text-rose-600'
                 }`}>
                   {item.change >= 0 ? (
                     <ArrowUpRight className="w-4 h-4" />
@@ -278,7 +277,7 @@ const SalesSection = () => {
               cells: {
                 variacion: {
                   render: (
-                    <span className={variacion >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                    <span className={variacion >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
                       {variacion >= 0 ? '+' : ''}{formatCurrency(variacion)}
                     </span>
                   ),
@@ -287,10 +286,10 @@ const SalesSection = () => {
                   render: (
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       cumplimiento >= 100
-                        ? 'bg-emerald-500/20 text-emerald-400'
+                        ? 'bg-emerald-100 text-emerald-700'
                         : cumplimiento >= 90
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-rose-500/20 text-rose-400'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-rose-100 text-rose-700'
                     }`}>
                       {formatPercent(cumplimiento, 0)}
                     </span>

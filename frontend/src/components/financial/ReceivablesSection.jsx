@@ -1,6 +1,6 @@
 /**
  * Receivables Section - Cartera
- * Accounts receivable, aging analysis, overdue invoices
+ * Uses platform's glass design system (light theme)
  */
 import {
   BarChart,
@@ -10,8 +10,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
   Cell,
 } from 'recharts';
 import { Wallet, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
@@ -19,6 +17,13 @@ import FinancialCard from './shared/FinancialCard';
 import KPICard from './shared/KPICard';
 import DataTable from './shared/DataTable';
 import { formatCurrency, formatPercent } from './shared/formatters';
+
+const tooltipStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+};
 
 // Mock data - will be replaced with API calls
 const agingData = [
@@ -103,18 +108,18 @@ const ReceivablesSection = () => {
           {agingData.map((aging) => (
             <div
               key={aging.range}
-              className="p-4 rounded-xl text-center"
-              style={{ backgroundColor: `${aging.color}15`, borderColor: `${aging.color}30`, borderWidth: 1 }}
+              className="p-4 rounded-xl text-center bg-white/50"
+              style={{ borderColor: `${aging.color}40`, borderWidth: 1 }}
             >
               <div className="text-2xl font-bold" style={{ color: aging.color }}>
                 {formatCurrency(aging.amount)}
               </div>
-              <div className="text-sm text-[#a0a1a9] mt-1">{aging.range}</div>
-              <div className="text-xs text-[#5c5d66] mt-0.5">{aging.count} facturas</div>
+              <div className="text-sm text-gray-500 mt-1">{aging.range}</div>
+              <div className="text-xs text-gray-400 mt-0.5">{aging.count} facturas</div>
               <div className="mt-2">
                 <span
                   className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={{ backgroundColor: `${aging.color}30`, color: aging.color }}
+                  style={{ backgroundColor: `${aging.color}15`, color: aging.color }}
                 >
                   {formatPercent((aging.amount / totalReceivables) * 100, 0)}
                 </span>
@@ -131,20 +136,17 @@ const ReceivablesSection = () => {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={agingData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2b35" />
-                <XAxis dataKey="range" stroke="#5c5d66" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="range" stroke="#6b7280" fontSize={11} />
                 <YAxis
-                  stroke="#5c5d66"
+                  stroke="#6b7280"
                   fontSize={11}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
                   {agingData.map((entry, index) => (
@@ -161,20 +163,17 @@ const ReceivablesSection = () => {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={collectionHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2b35" />
-                <XAxis dataKey="month" stroke="#5c5d66" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" stroke="#6b7280" fontSize={11} />
                 <YAxis
-                  stroke="#5c5d66"
+                  stroke="#6b7280"
                   fontSize={11}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Bar dataKey="collected" name="Recaudado" fill="#10b981" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="pending" name="Pendiente" fill="#f59e0b" radius={[4, 4, 0, 0]} />
@@ -207,12 +206,12 @@ const ReceivablesSection = () => {
             cells: {
               id: {
                 render: (
-                  <span className="font-mono text-xs text-indigo-400">{inv.id}</span>
+                  <span className="font-mono text-xs text-indigo-600">{inv.id}</span>
                 ),
               },
               days: {
                 render: (
-                  <span className={inv.days > 30 ? 'text-rose-400 font-bold' : 'text-amber-400'}>
+                  <span className={inv.days > 30 ? 'text-rose-600 font-bold' : 'text-amber-600'}>
                     {inv.days}d
                   </span>
                 ),
@@ -221,8 +220,8 @@ const ReceivablesSection = () => {
                 render: (
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                     inv.status === 'overdue'
-                      ? 'bg-rose-500/20 text-rose-400'
-                      : 'bg-amber-500/20 text-amber-400'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-amber-100 text-amber-700'
                   }`}>
                     {inv.status === 'overdue' ? (
                       <>
@@ -249,22 +248,22 @@ const ReceivablesSection = () => {
           {clientsWithDebt.map((client) => {
             const overdueRatio = client.total > 0 ? (client.overdue / client.total) * 100 : 0;
             return (
-              <div key={client.client} className="p-4 bg-[#22232d] rounded-xl">
+              <div key={client.client} className="p-4 bg-gray-50 rounded-xl">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h4 className="font-semibold">{client.client}</h4>
-                    <p className="text-xs text-[#5c5d66]">
+                    <h4 className="font-semibold text-[#17181A]">{client.client}</h4>
+                    <p className="text-xs text-gray-500">
                       {client.overdue > 0
                         ? `${formatPercent(overdueRatio, 0)} vencido`
                         : 'Sin vencimientos'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold">{formatCurrency(client.total)}</div>
-                    <div className="text-xs text-[#5c5d66]">saldo total</div>
+                    <div className="font-bold text-[#17181A]">{formatCurrency(client.total)}</div>
+                    <div className="text-xs text-gray-500">saldo total</div>
                   </div>
                 </div>
-                <div className="h-2 bg-[#1a1b23] rounded-full overflow-hidden flex">
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex">
                   {client.overdue > 0 && (
                     <div
                       className="h-full bg-rose-500"
@@ -277,10 +276,10 @@ const ReceivablesSection = () => {
                   />
                 </div>
                 <div className="flex justify-between mt-2 text-xs">
-                  <span className="text-rose-400">
+                  <span className="text-rose-600">
                     Vencido: {formatCurrency(client.overdue)}
                   </span>
-                  <span className="text-emerald-400">
+                  <span className="text-emerald-600">
                     Vigente: {formatCurrency(client.current)}
                   </span>
                 </div>

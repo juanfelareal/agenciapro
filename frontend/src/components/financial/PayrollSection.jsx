@@ -1,11 +1,23 @@
+/**
+ * Payroll Section - Nómina
+ * Uses platform's glass design system (light theme)
+ */
 import { useState, useMemo } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart
 } from 'recharts';
+import { Users, Briefcase, TrendingUp, Percent } from 'lucide-react';
 import KPICard from './shared/KPICard';
 import FinancialCard from './shared/FinancialCard';
 import { formatCurrency, formatPercent, formatMultiplier } from './shared/formatters';
+
+const tooltipStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+};
 
 const COLORS = {
   payroll: '#818cf8',
@@ -148,7 +160,7 @@ const PayrollSection = ({ data, loading }) => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-[#1a1b23] rounded-2xl animate-pulse" />
+            <div key={i} className="h-32 glass rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -160,36 +172,34 @@ const PayrollSection = ({ data, loading }) => {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          icon="👔"
-          label="Empleados"
+          icon={Users}
+          title="Empleados"
           value={kpis.employeeCount}
-          change="Planta fija"
-          changeType="neutral"
-          iconColor="blue"
+          subtitle="Planta fija"
+          iconColor="indigo"
         />
         <KPICard
-          icon="💼"
-          label="Costo Nómina Jul"
+          icon={Briefcase}
+          title="Costo Nómina Jul"
           value={formatCurrency(kpis.currentPayroll)}
-          change={`${kpis.monthChange > 0 ? '↑' : '↓'} ${Math.abs(kpis.monthChange).toFixed(0)}% vs Jun`}
-          changeType={kpis.monthChange > 0 ? 'down' : 'up'}
-          iconColor="purple"
+          change={kpis.monthChange}
+          subtitle="vs mes anterior"
+          iconColor="violet"
         />
         <KPICard
-          icon="📈"
-          label="Productividad"
+          icon={TrendingUp}
+          title="Productividad"
           value={formatMultiplier(kpis.productivity)}
-          change="Ingresos/Nómina"
-          changeType="up"
-          iconColor="green"
+          subtitle="Ingresos/Nómina"
+          iconColor="emerald"
         />
         <KPICard
-          icon="⚖️"
-          label="% de Ingresos"
+          icon={Percent}
+          title="% de Ingresos"
           value={formatPercent(kpis.incomePercent, 0)}
-          change="↓ 2pp vs Jun"
-          changeType="up"
-          iconColor="yellow"
+          change={-2}
+          subtitle="vs mes anterior"
+          iconColor="amber"
         />
       </div>
 
@@ -207,21 +217,18 @@ const PayrollSection = ({ data, loading }) => {
                   dataKey="month"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#5c5d66', fontSize: 12 }}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#5c5d66', fontSize: 12 }}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '12px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Bar dataKey="payroll" fill={COLORS.payroll} radius={[4, 4, 0, 0]} name="Nómina" />
                 <Line
@@ -244,14 +251,14 @@ const PayrollSection = ({ data, loading }) => {
         >
           <div className="py-5">
             <div className="text-center mb-6">
-              <div className="text-sm text-[#5c5d66] mb-2">Costo Nómina</div>
-              <div className="text-5xl font-extrabold text-indigo-400">45%</div>
-              <div className="text-xs text-[#5c5d66]">de los gastos totales</div>
+              <div className="text-sm text-gray-500 mb-2">Costo Nómina</div>
+              <div className="text-5xl font-extrabold text-indigo-500">45%</div>
+              <div className="text-xs text-gray-400">de los gastos totales</div>
             </div>
             <div className="text-center">
-              <div className="text-sm text-[#5c5d66] mb-2">Costo Terceros</div>
-              <div className="text-5xl font-extrabold text-purple-400">55%</div>
-              <div className="text-xs text-[#5c5d66]">de los gastos totales</div>
+              <div className="text-sm text-gray-500 mb-2">Costo Terceros</div>
+              <div className="text-5xl font-extrabold text-purple-500">55%</div>
+              <div className="text-xs text-gray-400">de los gastos totales</div>
             </div>
           </div>
         </FinancialCard>
@@ -271,22 +278,19 @@ const PayrollSection = ({ data, loading }) => {
                   dataKey="month"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#5c5d66', fontSize: 12 }}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#5c5d66', fontSize: 12 }}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
                   tickFormatter={(v) => `${v.toFixed(1)}x`}
                   domain={[1, 6]}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '12px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => `${value.toFixed(2)}x`}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Line
                   type="monotone"
@@ -313,21 +317,18 @@ const PayrollSection = ({ data, loading }) => {
                   dataKey="month"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#5c5d66', fontSize: 12 }}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#5c5d66', fontSize: 12 }}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '12px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Bar dataKey="salario" stackId="a" fill={COLORS.salario} name="Salario Base" />
                 <Bar dataKey="prestaciones" stackId="a" fill={COLORS.prestaciones} name="Prestaciones" />
@@ -349,18 +350,18 @@ const PayrollSection = ({ data, loading }) => {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#5c5d66] uppercase tracking-wider border-b border-white/5 min-w-[180px]">
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 min-w-[180px]">
                   Empleado
                 </th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#5c5d66] uppercase tracking-wider border-b border-white/5">
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">
                   Cargo
                 </th>
                 {months.map((m) => (
-                  <th key={m} className="text-right px-4 py-3 text-[11px] font-semibold text-[#5c5d66] uppercase tracking-wider border-b border-white/5 whitespace-nowrap">
+                  <th key={m} className="text-right px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
                     {m}
                   </th>
                 ))}
-                <th className="text-right px-4 py-3 text-[11px] font-semibold text-[#5c5d66] uppercase tracking-wider border-b border-white/5 bg-[#13141a]">
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50">
                   Acumulado
                 </th>
               </tr>
@@ -374,23 +375,23 @@ const PayrollSection = ({ data, loading }) => {
                   <tbody key={emp.id}>
                     {/* Main Employee Row */}
                     <tr
-                      className="cursor-pointer group hover:bg-[#22232d] transition-colors"
+                      className="cursor-pointer group hover:bg-gray-50 transition-colors"
                       onClick={() => toggleEmployee(emp.id)}
                     >
-                      <td className="px-4 py-3 border-b border-white/5">
-                        <span className="font-semibold group-hover:text-indigo-400 transition-colors">
+                      <td className="px-4 py-3 border-b border-gray-100">
+                        <span className="font-semibold text-[#17181A] group-hover:text-indigo-600 transition-colors">
                           {isExpanded ? '▾' : '▸'} {emp.name}
                         </span>
                       </td>
-                      <td className="px-4 py-3 border-b border-white/5 text-[#5c5d66] whitespace-nowrap">
+                      <td className="px-4 py-3 border-b border-gray-100 text-gray-500 whitespace-nowrap">
                         {emp.position}
                       </td>
                       {emp.monthly.map((v, i) => (
-                        <td key={i} className="px-4 py-3 text-right border-b border-white/5 whitespace-nowrap text-xs">
+                        <td key={i} className="px-4 py-3 text-right border-b border-gray-100 whitespace-nowrap text-xs text-[#17181A]">
                           {formatCurrency(v)}
                         </td>
                       ))}
-                      <td className="px-4 py-3 text-right border-b border-white/5 bg-[#13141a] font-semibold whitespace-nowrap">
+                      <td className="px-4 py-3 text-right border-b border-gray-100 bg-gray-50 font-semibold whitespace-nowrap text-[#17181A]">
                         {formatCurrency(empTotal)}
                       </td>
                     </tr>
@@ -399,61 +400,61 @@ const PayrollSection = ({ data, loading }) => {
                     {isExpanded && (
                       <>
                         {/* Salario Base */}
-                        <tr className="bg-indigo-500/10">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs">
-                            <span className="text-indigo-400">●</span> Salario base
+                        <tr className="bg-indigo-50">
+                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs text-[#17181A]">
+                            <span className="text-indigo-500">●</span> Salario base
                           </td>
                           {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap">
+                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap text-[#17181A]">
                               {formatCurrency(v * emp.breakdown.salario)}
                             </td>
                           ))}
-                          <td className="px-4 py-2 text-right text-xs bg-[#13141a] whitespace-nowrap">
+                          <td className="px-4 py-2 text-right text-xs bg-gray-50 whitespace-nowrap text-[#17181A]">
                             {formatCurrency(empTotal * emp.breakdown.salario)}
                           </td>
                         </tr>
 
                         {/* Prestaciones */}
-                        <tr className="bg-teal-500/10">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs">
-                            <span className="text-teal-400">●</span> Prestaciones
+                        <tr className="bg-teal-50">
+                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs text-[#17181A]">
+                            <span className="text-teal-500">●</span> Prestaciones
                           </td>
                           {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap">
+                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap text-[#17181A]">
                               {formatCurrency(v * emp.breakdown.prestaciones)}
                             </td>
                           ))}
-                          <td className="px-4 py-2 text-right text-xs bg-[#13141a] whitespace-nowrap">
+                          <td className="px-4 py-2 text-right text-xs bg-gray-50 whitespace-nowrap text-[#17181A]">
                             {formatCurrency(empTotal * emp.breakdown.prestaciones)}
                           </td>
                         </tr>
 
                         {/* Parafiscales */}
-                        <tr className="bg-amber-500/10">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs">
-                            <span className="text-amber-400">●</span> Parafiscales
+                        <tr className="bg-amber-50">
+                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs text-[#17181A]">
+                            <span className="text-amber-500">●</span> Parafiscales
                           </td>
                           {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap">
+                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap text-[#17181A]">
                               {formatCurrency(v * emp.breakdown.parafiscales)}
                             </td>
                           ))}
-                          <td className="px-4 py-2 text-right text-xs bg-[#13141a] whitespace-nowrap">
+                          <td className="px-4 py-2 text-right text-xs bg-gray-50 whitespace-nowrap text-[#17181A]">
                             {formatCurrency(empTotal * emp.breakdown.parafiscales)}
                           </td>
                         </tr>
 
                         {/* Beneficios */}
-                        <tr className="bg-purple-500/10">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs border-b border-white/5">
-                            <span className="text-purple-400">●</span> Beneficios
+                        <tr className="bg-purple-50">
+                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs border-b border-gray-100 text-[#17181A]">
+                            <span className="text-purple-500">●</span> Beneficios
                           </td>
                           {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs border-b border-white/5 whitespace-nowrap">
+                            <td key={i} className="px-4 py-2 text-right text-xs border-b border-gray-100 whitespace-nowrap text-[#17181A]">
                               {formatCurrency(v * emp.breakdown.beneficios)}
                             </td>
                           ))}
-                          <td className="px-4 py-2 text-right text-xs bg-[#13141a] border-b border-white/5 whitespace-nowrap">
+                          <td className="px-4 py-2 text-right text-xs bg-gray-50 border-b border-gray-100 whitespace-nowrap text-[#17181A]">
                             {formatCurrency(empTotal * emp.breakdown.beneficios)}
                           </td>
                         </tr>
@@ -464,16 +465,16 @@ const PayrollSection = ({ data, loading }) => {
               })}
 
               {/* Totals Row */}
-              <tr className="bg-[#0c0d10] font-semibold">
-                <td colSpan="2" className="px-4 py-3 border-t-2 border-white/10">
+              <tr className="bg-gray-100 font-semibold">
+                <td colSpan="2" className="px-4 py-3 border-t-2 border-gray-200 text-[#17181A]">
                   TOTAL NÓMINA
                 </td>
                 {totals.monthlyTotals.map((v, i) => (
-                  <td key={i} className="px-4 py-3 text-right border-t-2 border-white/10 whitespace-nowrap">
+                  <td key={i} className="px-4 py-3 text-right border-t-2 border-gray-200 whitespace-nowrap text-[#17181A]">
                     {formatCurrency(v)}
                   </td>
                 ))}
-                <td className="px-4 py-3 text-right bg-[#13141a] border-t-2 border-white/10 text-teal-400 whitespace-nowrap">
+                <td className="px-4 py-3 text-right bg-gray-100 border-t-2 border-gray-200 text-emerald-600 whitespace-nowrap">
                   {formatCurrency(totals.yearTotal)}
                 </td>
               </tr>
@@ -482,21 +483,21 @@ const PayrollSection = ({ data, loading }) => {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-white/5">
-          <div className="flex items-center gap-2 text-xs text-[#94959c]">
-            <span className="w-3 h-3 rounded bg-indigo-500/30" />
+        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="w-3 h-3 rounded bg-indigo-100 border border-indigo-300" />
             Salario base (~60%)
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#94959c]">
-            <span className="w-3 h-3 rounded bg-teal-500/30" />
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="w-3 h-3 rounded bg-teal-100 border border-teal-300" />
             Prestaciones (~22%)
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#94959c]">
-            <span className="w-3 h-3 rounded bg-amber-500/30" />
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
             Parafiscales (~9%)
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#94959c]">
-            <span className="w-3 h-3 rounded bg-purple-500/30" />
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="w-3 h-3 rounded bg-purple-100 border border-purple-300" />
             Beneficios (~9%)
           </div>
         </div>

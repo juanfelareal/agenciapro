@@ -1,6 +1,6 @@
 /**
  * Clients Section - Clientes
- * Top clients, concentration analysis, sectors
+ * Uses platform's glass design system (light theme)
  */
 import {
   PieChart,
@@ -20,6 +20,13 @@ import KPICard from './shared/KPICard';
 import DataTable from './shared/DataTable';
 import { formatCurrency, formatPercent } from './shared/formatters';
 
+const tooltipStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+};
+
 // Mock data - will be replaced with API calls
 const topClients = [
   { id: 1, name: 'TechCorp Colombia', revenue: 85000000, percentage: 19.3, sector: 'Tecnología', status: 'active', trend: 12.5 },
@@ -33,11 +40,11 @@ const topClients = [
 ];
 
 const sectorData = [
-  { name: 'Tecnología', value: 125000000, color: '#2dd4bf' },
-  { name: 'Retail', value: 98000000, color: '#818cf8' },
+  { name: 'Tecnología', value: 125000000, color: '#10b981' },
+  { name: 'Retail', value: 98000000, color: '#6366f1' },
   { name: 'Alimentos', value: 72000000, color: '#f59e0b' },
   { name: 'Seguros', value: 58000000, color: '#ec4899' },
-  { name: 'Educación', value: 45000000, color: '#10b981' },
+  { name: 'Educación', value: 45000000, color: '#14b8a6' },
   { name: 'Otros', value: 42000000, color: '#6b7280' },
 ];
 
@@ -125,15 +132,15 @@ const ClientsSection = () => {
                   render: (
                     <div className="flex items-center gap-2">
                       {client.status === 'at_risk' && (
-                        <span className="w-2 h-2 rounded-full bg-rose-400" title="En riesgo" />
+                        <span className="w-2 h-2 rounded-full bg-rose-500" title="En riesgo" />
                       )}
-                      <span>{client.name}</span>
+                      <span className="text-[#17181A]">{client.name}</span>
                     </div>
                   ),
                 },
                 trend: {
                   render: (
-                    <span className={client.trend >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                    <span className={client.trend >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
                       {client.trend >= 0 ? '+' : ''}{formatPercent(client.trend)}
                     </span>
                   ),
@@ -162,11 +169,7 @@ const ClientsSection = () => {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
                 />
               </PieChart>
@@ -179,7 +182,7 @@ const ClientsSection = () => {
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: sector.color }}
                 />
-                <span className="text-[#a0a1a9] truncate">{sector.name}</span>
+                <span className="text-gray-600 truncate">{sector.name}</span>
               </div>
             ))}
           </div>
@@ -201,10 +204,10 @@ const ClientsSection = () => {
               return (
                 <div key={item.label}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-[#a0a1a9]">{item.label}</span>
-                    <span className="font-semibold">{formatPercent(item.percentage, 0)}</span>
+                    <span className="text-gray-600">{item.label}</span>
+                    <span className="font-semibold text-[#17181A]">{formatPercent(item.percentage, 0)}</span>
                   </div>
-                  <div className="h-3 bg-[#2a2b35] rounded-full overflow-hidden">
+                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${colors[riskLevel]} rounded-full transition-all`}
                       style={{ width: `${item.percentage}%` }}
@@ -213,10 +216,10 @@ const ClientsSection = () => {
                 </div>
               );
             })}
-            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5" />
-                <div className="text-xs text-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
+                <div className="text-xs text-amber-800">
                   <strong>Alerta:</strong> El Top 5 representa más del 60% de los ingresos.
                   Considera diversificar la cartera de clientes.
                 </div>
@@ -230,37 +233,33 @@ const ClientsSection = () => {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={clientsBySize} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2b35" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis
                   type="number"
-                  stroke="#5c5d66"
+                  stroke="#6b7280"
                   fontSize={11}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  stroke="#5c5d66"
+                  stroke="#6b7280"
                   fontSize={11}
                   width={120}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
                 />
-                <Bar dataKey="revenue" fill="#2dd4bf" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="revenue" fill="#10b981" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="grid grid-cols-4 gap-2 mt-4">
             {clientsBySize.map((segment) => (
-              <div key={segment.name} className="text-center p-2 bg-[#22232d] rounded-lg">
-                <div className="text-lg font-bold text-teal-400">{segment.count}</div>
-                <div className="text-[10px] text-[#5c5d66]">clientes</div>
+              <div key={segment.name} className="text-center p-2 bg-gray-50 rounded-lg">
+                <div className="text-lg font-bold text-emerald-600">{segment.count}</div>
+                <div className="text-[10px] text-gray-500">clientes</div>
               </div>
             ))}
           </div>
@@ -276,27 +275,27 @@ const ClientsSection = () => {
             .map((client, idx) => (
               <div
                 key={client.id}
-                className="p-4 bg-gradient-to-br from-teal-500/10 to-indigo-500/10 border border-teal-500/20 rounded-xl"
+                className="p-4 bg-gradient-to-br from-emerald-50 to-indigo-50 border border-emerald-200 rounded-xl"
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                      <span className="text-xs text-[#5c5d66]">#{idx + 1}</span>
+                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                      <span className="text-xs text-gray-500">#{idx + 1}</span>
                     </div>
-                    <h4 className="font-semibold">{client.name}</h4>
-                    <p className="text-xs text-[#5c5d66]">{client.sector}</p>
+                    <h4 className="font-semibold text-[#17181A]">{client.name}</h4>
+                    <p className="text-xs text-gray-500">{client.sector}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-emerald-400 font-bold">
+                    <div className="text-emerald-600 font-bold">
                       +{formatPercent(client.trend)}
                     </div>
-                    <div className="text-xs text-[#5c5d66]">crecimiento</div>
+                    <div className="text-xs text-gray-500">crecimiento</div>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-white/5">
-                  <div className="text-sm font-semibold">{formatCurrency(client.revenue)}</div>
-                  <div className="text-xs text-[#5c5d66]">ingresos YTD</div>
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="text-sm font-semibold text-[#17181A]">{formatCurrency(client.revenue)}</div>
+                  <div className="text-xs text-gray-500">ingresos YTD</div>
                 </div>
               </div>
             ))}

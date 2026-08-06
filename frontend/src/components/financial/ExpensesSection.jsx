@@ -1,6 +1,6 @@
 /**
  * Expenses Section - Gastos
- * Expenses by vendor, category, accounts payable
+ * Uses platform's glass design system (light theme)
  */
 import {
   PieChart,
@@ -13,14 +13,19 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  LineChart,
-  Line,
 } from 'recharts';
 import { CreditCard, Building2, TrendingDown, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import FinancialCard from './shared/FinancialCard';
 import KPICard from './shared/KPICard';
 import DataTable from './shared/DataTable';
 import { formatCurrency, formatPercent, getMonthShort } from './shared/formatters';
+
+const tooltipStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+};
 
 // Mock data - will be replaced with API calls
 const expensesByCategory = [
@@ -139,11 +144,7 @@ const ExpensesSection = () => {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
                 />
               </PieChart>
@@ -157,9 +158,9 @@ const ExpensesSection = () => {
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: cat.color }}
                   />
-                  <span className="text-[#a0a1a9]">{cat.name}</span>
+                  <span className="text-gray-600">{cat.name}</span>
                 </div>
-                <span className="font-semibold">{formatPercent(cat.percentage, 0)}</span>
+                <span className="font-semibold text-[#17181A]">{formatPercent(cat.percentage, 0)}</span>
               </div>
             ))}
           </div>
@@ -170,20 +171,17 @@ const ExpensesSection = () => {
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2a2b35" />
-                <XAxis dataKey="name" stroke="#5c5d66" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" fontSize={11} />
                 <YAxis
-                  stroke="#5c5d66"
+                  stroke="#6b7280"
                   fontSize={11}
                   tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1b23',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                  }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => formatCurrency(value)}
+                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
                 />
                 <Bar
                   dataKey="gastos"
@@ -223,7 +221,7 @@ const ExpensesSection = () => {
               cells: {
                 category: {
                   render: (
-                    <span className="px-2 py-0.5 bg-[#2a2b35] rounded text-xs text-[#a0a1a9]">
+                    <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">
                       {v.category}
                     </span>
                   ),
@@ -231,7 +229,7 @@ const ExpensesSection = () => {
                 trend: {
                   render: v.trend !== 0 ? (
                     <span className={`flex items-center justify-end gap-1 ${
-                      v.trend > 0 ? 'text-rose-400' : 'text-emerald-400'
+                      v.trend > 0 ? 'text-rose-600' : 'text-emerald-600'
                     }`}>
                       {v.trend > 0 ? (
                         <ArrowUpRight className="w-3 h-3" />
@@ -241,7 +239,7 @@ const ExpensesSection = () => {
                       {formatPercent(Math.abs(v.trend))}
                     </span>
                   ) : (
-                    <span className="text-[#5c5d66]">—</span>
+                    <span className="text-gray-400">—</span>
                   ),
                 },
               },
@@ -271,10 +269,10 @@ const ExpensesSection = () => {
                   render: (
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                       ap.status === 'overdue'
-                        ? 'bg-rose-500/20 text-rose-400'
+                        ? 'bg-rose-100 text-rose-700'
                         : ap.status === 'pending'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-emerald-500/20 text-emerald-400'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-emerald-100 text-emerald-700'
                     }`}>
                       {ap.status === 'overdue' && 'Vencido'}
                       {ap.status === 'pending' && 'Pendiente'}
@@ -294,24 +292,23 @@ const ExpensesSection = () => {
           {expensesByCategory.map((cat) => (
             <div
               key={cat.name}
-              className="p-4 rounded-xl text-center"
+              className="p-4 rounded-xl text-center bg-white/50"
               style={{
-                backgroundColor: `${cat.color}10`,
-                borderColor: `${cat.color}30`,
+                borderColor: `${cat.color}40`,
                 borderWidth: 1,
               }}
             >
               <div
                 className="w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center"
-                style={{ backgroundColor: `${cat.color}20` }}
+                style={{ backgroundColor: `${cat.color}15` }}
               >
                 <CreditCard className="w-5 h-5" style={{ color: cat.color }} />
               </div>
-              <div className="text-xs text-[#5c5d66] mb-1">{cat.name}</div>
+              <div className="text-xs text-gray-500 mb-1">{cat.name}</div>
               <div className="font-bold" style={{ color: cat.color }}>
                 {formatCurrency(cat.value)}
               </div>
-              <div className="text-xs text-[#5c5d66] mt-1">
+              <div className="text-xs text-gray-400 mt-1">
                 {formatPercent(cat.percentage, 0)} del total
               </div>
             </div>

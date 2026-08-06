@@ -1,5 +1,6 @@
 /**
  * DataTable component for financial dashboard
+ * Uses platform's glass design system (light theme)
  * Supports expandable rows for employee detail
  */
 const DataTable = ({ columns, data, className = '' }) => {
@@ -11,9 +12,9 @@ const DataTable = ({ columns, data, className = '' }) => {
             {columns.map((col, idx) => (
               <th
                 key={col.key || idx}
-                className={`text-left px-4 py-3 text-[11px] font-semibold text-[#5c5d66] uppercase tracking-wider border-b border-white/5 ${
+                className={`text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 ${
                   col.align === 'right' ? 'text-right' : ''
-                } ${col.className || ''}`}
+                } ${col.align === 'center' ? 'text-center' : ''} ${col.className || ''}`}
                 style={{ minWidth: col.minWidth }}
               >
                 {col.label}
@@ -32,9 +33,9 @@ const DataTable = ({ columns, data, className = '' }) => {
               {columns.map((col, colIdx) => (
                 <td
                   key={col.key || colIdx}
-                  className={`px-4 py-3.5 text-[13px] border-b border-white/5 group-hover:bg-[#22232d] transition-colors ${
+                  className={`px-4 py-3.5 text-[13px] text-[#17181A] border-b border-gray-100 group-hover:bg-white/60 transition-colors ${
                     col.align === 'right' ? 'text-right font-semibold' : ''
-                  } ${row.cells?.[col.key]?.className || ''}`}
+                  } ${col.align === 'center' ? 'text-center' : ''} ${row.cells?.[col.key]?.className || ''}`}
                   style={row.cells?.[col.key]?.style}
                 >
                   {row.cells?.[col.key]?.render || row[col.key]}
