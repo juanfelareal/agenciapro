@@ -53,6 +53,7 @@ import UGCProjectDetail from './pages/UGCProjectDetail';
 import UGCRegister from './pages/UGCRegister';
 import DocumentTemplates from './pages/DocumentTemplates';
 import Social from './pages/Social';
+import FinancialDashboard from './pages/FinancialDashboard';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -311,6 +312,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="comisiones">
                       <Comisiones />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="finanzas-dashboard"
+                  element={
+                    <ProtectedRoute permission="invoices">
+                      <FinancialDashboard />
                     </ProtectedRoute>
                   }
                 />

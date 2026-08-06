@@ -66,6 +66,7 @@ const Layout = ({ children }) => {
 
   // Submenú de Finanzas
   const finanzasSubItems = [
+    { name: 'Dashboard', path: '/app/finanzas-dashboard', icon: BarChart3, permission: 'invoices' },
     { name: 'Facturas', path: '/app/invoices', icon: FileText, permission: 'invoices' },
     { name: 'Cartera', path: '/app/cartera', icon: Receipt, permission: 'invoices' },
     { name: 'Gastos', path: '/app/expenses', icon: CreditCard, permission: 'expenses' },
