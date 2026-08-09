@@ -1198,7 +1198,7 @@ router.post('/projects', async (req, res) => {
     const result = await db.run(
       `INSERT INTO ugc_projects (client_id, title, description, brief_url, brief_content, budget, currency, start_date, deadline, package_id, video_count, price_per_video, creator_cost_per_video, product_value, organization_id, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [client_id, title, description, brief_url, brief_content, budget || 0, currency || 'COP', start_date, deadline, package_id, video_count || 0, price_per_video || 0, creator_cost_per_video || 0, product_value || 0, req.orgId, req.userId]
+      [client_id, title, description, brief_url, brief_content, budget || 0, currency || 'COP', start_date, deadline, package_id, video_count || 0, price_per_video || 0, creator_cost_per_video || 0, product_value || 0, req.orgId, req.user?.id]
     );
 
     const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [result.lastInsertRowid]);
@@ -1860,7 +1860,7 @@ router.post('/creators/:id/notes', async (req, res) => {
     const result = await db.run(`
       INSERT INTO ugc_creator_notes (creator_id, project_id, content, organization_id, created_by)
       VALUES (?, ?, ?, ?, ?)
-    `, [req.params.id, project_id || null, content.trim(), req.orgId, req.userId]);
+    `, [req.params.id, project_id || null, content.trim(), req.orgId, req.user?.id]);
 
     const note = await db.get(`
       SELECT n.*,

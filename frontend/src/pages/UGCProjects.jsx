@@ -26,6 +26,7 @@ export default function UGCProjects() {
   const [filterClient, setFilterClient] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [statusDropdownId, setStatusDropdownId] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
@@ -119,6 +120,7 @@ export default function UGCProjects() {
     if (!newProject.client_id || !newProject.title) return;
 
     setSaving(true);
+    setSaveError('');
     try {
       const res = await ugcAPI.createProject({
         ...newProject,
@@ -138,6 +140,7 @@ export default function UGCProjects() {
       navigate(`/app/ugc/projects/${res.data.id}`);
     } catch (error) {
       console.error('Error creating project:', error);
+      setSaveError(error.response?.data?.error || 'Error al crear el proyecto. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -260,7 +263,7 @@ export default function UGCProjects() {
 
           {/* New Project Button */}
           <button
-            onClick={() => setShowNewModal(true)}
+            onClick={() => { setSaveError(''); setShowNewModal(true); }}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -571,6 +574,13 @@ export default function UGCProjects() {
             </div>
 
             <form onSubmit={handleCreateProject} className="p-6 space-y-4">
+              {/* Error Message */}
+              {saveError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                  {saveError}
+                </div>
+              )}
+
               {/* Client */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
