@@ -29,6 +29,7 @@ import {
   Video,
   FileSignature,
   Share2,
+  Mail,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -56,6 +57,7 @@ const Layout = ({ children }) => {
     { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard' },
     { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients' },
     { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm' },
+    { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients' },
     { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc' },
     { name: 'Social', path: '/app/social', icon: Share2, permission: null },
     { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos' },

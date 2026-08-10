@@ -42,6 +42,7 @@ import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
 import ClientReports from './pages/ClientReports';
 import ClientEmailMarketing from './pages/ClientEmailMarketing';
+import EmailMarketingDashboard from './pages/EmailMarketingDashboard';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 import Briefs from './pages/Briefs';
@@ -441,6 +442,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="metricas">
                       <MetricsDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="email-marketing"
+                  element={
+                    <ProtectedRoute permission="clients">
+                      <EmailMarketingDashboard />
                     </ProtectedRoute>
                   }
                 />

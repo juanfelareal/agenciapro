@@ -512,6 +512,9 @@ export const clientMetricsAPI = {
     api.get(`/client-metrics/${clientId}/email-monthly/history`, { params: { limit } }),
   saveEmailMonthly: (clientId, data) =>
     api.post(`/client-metrics/${clientId}/email-monthly`, data),
+  // Email Marketing Dashboard (all clients)
+  getEmailDashboard: (year, month) =>
+    api.get('/client-metrics/email-dashboard', { params: { year, month } }),
 };
 
 // Growth Dashboard API

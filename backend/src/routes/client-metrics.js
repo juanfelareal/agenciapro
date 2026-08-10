@@ -922,4 +922,120 @@ router.post('/:clientId/email-monthly', async (req, res) => {
   }
 });
 
+// ============ EMAIL MARKETING DASHBOARD (all clients overview) ============
+
+// GET /api/client-metrics/email-dashboard - Get overview of all clients with email data
+router.get('/email-dashboard', async (req, res) => {
+  try {
+    const orgId = req.user.organization_id;
+    const { year, month } = req.query;
+
+    // Get current month if not specified
+    const now = new Date();
+    const targetYear = year ? parseInt(year) : now.getFullYear();
+    const targetMonth = month ? parseInt(month) : now.getMonth() + 1;
+
+    // Get all clients with their email metrics for the specified month
+    const clientsWithMetrics = await db.prepare(`
+      SELECT
+        c.id as client_id,
+        c.company as client_name,
+        c.nickname,
+        c.status,
+        m.year,
+        m.month,
+        m.campaigns_revenue,
+        m.campaigns_deliveries,
+        m.campaigns_opens,
+        m.campaigns_clicks,
+        m.campaigns_conversions,
+        m.flows_revenue,
+        m.flows_deliveries,
+        m.flows_opens,
+        m.flows_clicks,
+        m.flows_conversions,
+        m.master_segment_size,
+        m.monthly_subscriptions,
+        m.monthly_unsubscribes,
+        m.updated_at
+      FROM clients c
+      LEFT JOIN client_monthly_email_metrics m
+        ON c.id = m.client_id
+        AND m.year = ?
+        AND m.month = ?
+      WHERE c.organization_id = ?
+        AND c.status = 'active'
+      ORDER BY (m.campaigns_revenue + m.flows_revenue) DESC NULLS LAST, c.company ASC
+    `).all(targetYear, targetMonth, orgId);
+
+    // Calculate totals
+    const totals = clientsWithMetrics.reduce((acc, c) => ({
+      total_revenue: acc.total_revenue + (c.campaigns_revenue || 0) + (c.flows_revenue || 0),
+      total_campaigns_revenue: acc.total_campaigns_revenue + (c.campaigns_revenue || 0),
+      total_flows_revenue: acc.total_flows_revenue + (c.flows_revenue || 0),
+      total_deliveries: acc.total_deliveries + (c.campaigns_deliveries || 0) + (c.flows_deliveries || 0),
+      total_opens: acc.total_opens + (c.campaigns_opens || 0) + (c.flows_opens || 0),
+      total_clicks: acc.total_clicks + (c.campaigns_clicks || 0) + (c.flows_clicks || 0),
+      total_conversions: acc.total_conversions + (c.campaigns_conversions || 0) + (c.flows_conversions || 0),
+      total_subscribers: acc.total_subscribers + (c.master_segment_size || 0),
+      clients_with_data: acc.clients_with_data + (c.campaigns_deliveries || c.flows_deliveries ? 1 : 0),
+    }), {
+      total_revenue: 0,
+      total_campaigns_revenue: 0,
+      total_flows_revenue: 0,
+      total_deliveries: 0,
+      total_opens: 0,
+      total_clicks: 0,
+      total_conversions: 0,
+      total_subscribers: 0,
+      clients_with_data: 0,
+    });
+
+    // Calculate rates
+    totals.avg_open_rate = totals.total_deliveries > 0
+      ? (totals.total_opens / totals.total_deliveries) * 100
+      : 0;
+    totals.avg_click_rate = totals.total_deliveries > 0
+      ? (totals.total_clicks / totals.total_deliveries) * 100
+      : 0;
+    totals.avg_conversion_rate = totals.total_deliveries > 0
+      ? (totals.total_conversions / totals.total_deliveries) * 100
+      : 0;
+
+    // Get historical data for trend (last 6 months)
+    const sixMonthsAgo = new Date(targetYear, targetMonth - 7, 1);
+    const history = await db.prepare(`
+      SELECT
+        year,
+        month,
+        SUM(campaigns_revenue + flows_revenue) as total_revenue,
+        SUM(campaigns_deliveries + flows_deliveries) as total_deliveries,
+        SUM(campaigns_opens + flows_opens) as total_opens,
+        SUM(campaigns_conversions + flows_conversions) as total_conversions,
+        COUNT(DISTINCT client_id) as clients_with_data
+      FROM client_monthly_email_metrics
+      WHERE organization_id = ?
+        AND (year > ? OR (year = ? AND month >= ?))
+        AND (year < ? OR (year = ? AND month <= ?))
+      GROUP BY year, month
+      ORDER BY year ASC, month ASC
+    `).all(
+      orgId,
+      sixMonthsAgo.getFullYear(), sixMonthsAgo.getFullYear(), sixMonthsAgo.getMonth() + 1,
+      targetYear, targetYear, targetMonth
+    );
+
+    res.json({
+      year: targetYear,
+      month: targetMonth,
+      totals,
+      clients: clientsWithMetrics,
+      history,
+    });
+  } catch (error) {
+    console.error('Error fetching email dashboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
