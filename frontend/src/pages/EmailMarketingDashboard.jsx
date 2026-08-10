@@ -4,7 +4,7 @@ import { clientMetricsAPI } from '../utils/api';
 import {
   Mail, Loader2, TrendingUp, TrendingDown, Users, DollarSign,
   Send, MousePointerClick, Eye, ShoppingCart, ChevronLeft, ChevronRight,
-  ArrowUpRight, BarChart3,
+  BarChart3,
 } from 'lucide-react';
 
 const MONTHS = [
@@ -100,9 +100,16 @@ function ClientRow({ client, onClick }) {
         {convRate !== null ? fmtPct(convRate) : '—'}
       </td>
       <td className="py-3 px-3 text-right">{hasData ? fmtInt(client.master_segment_size || 0) : '—'}</td>
-      <td className="py-3 px-3 text-center">
-        <button className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-          <ArrowUpRight size={16} />
+      <td className="py-3 px-3 text-right">
+        <button
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+            hasData
+              ? 'text-purple-600 bg-purple-50 hover:bg-purple-100'
+              : 'text-white bg-purple-600 hover:bg-purple-700'
+          }`}
+        >
+          {hasData ? 'Editar' : 'Registrar'}
         </button>
       </td>
     </tr>
@@ -320,7 +327,7 @@ export default function EmailMarketingDashboard() {
                   <th className="text-right py-3 px-3 font-medium">CTR</th>
                   <th className="text-right py-3 px-3 font-medium">Conv Rate</th>
                   <th className="text-right py-3 px-3 font-medium">Suscriptores</th>
-                  <th className="text-center py-3 px-3 font-medium w-12"></th>
+                  <th className="text-right py-3 px-3 font-medium w-24">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
