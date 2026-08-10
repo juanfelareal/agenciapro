@@ -1580,6 +1580,47 @@ export const initializeDatabase = async () => {
       }
     }
 
+    // Monthly aggregated email marketing metrics (Campaigns + Flows + List Growth)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_monthly_email_metrics (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+
+        -- EMAIL CAMPAIGNS
+        campaigns_revenue REAL DEFAULT 0,
+        campaigns_avg_ticket REAL DEFAULT 0,
+        campaigns_deliveries INTEGER DEFAULT 0,
+        campaigns_opens INTEGER DEFAULT 0,
+        campaigns_clicks INTEGER DEFAULT 0,
+        campaigns_conversions INTEGER DEFAULT 0,
+        campaigns_bounces INTEGER DEFAULT 0,
+
+        -- EMAIL FLOWS
+        flows_revenue REAL DEFAULT 0,
+        flows_avg_ticket REAL DEFAULT 0,
+        flows_deliveries INTEGER DEFAULT 0,
+        flows_opens INTEGER DEFAULT 0,
+        flows_clicks INTEGER DEFAULT 0,
+        flows_conversions INTEGER DEFAULT 0,
+        flows_bounces INTEGER DEFAULT 0,
+
+        -- LIST GROWTH
+        master_segment_size INTEGER DEFAULT 0,
+        monthly_subscriptions INTEGER DEFAULT 0,
+        monthly_unsubscribes INTEGER DEFAULT 0,
+        popup_subscriptions INTEGER DEFAULT 0,
+        popup_views INTEGER DEFAULT 0,
+
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, year, month)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_email_monthly_client ON client_monthly_email_metrics(client_id, year DESC, month DESC)`);
+
     // Reports the agency uploads for a client (monthly close, biweekly partial, etc.)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_reports (
@@ -3101,6 +3142,16 @@ export const initializeDatabase = async () => {
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_portal_settings' AND column_name='can_view_ugc') THEN
           ALTER TABLE client_portal_settings ADD COLUMN can_view_ugc INTEGER DEFAULT 0;
+        END IF;
+      END $$
+    `);
+
+    // Add expires_at to client_facebook_credentials for token expiration tracking
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='client_facebook_credentials' AND column_name='expires_at') THEN
+          ALTER TABLE client_facebook_credentials ADD COLUMN expires_at TIMESTAMP;
         END IF;
       END $$
     `);

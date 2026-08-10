@@ -30,17 +30,20 @@ import {
   Facebook,
   Chrome,
   Music2,
-  ShoppingBag
+  ShoppingBag,
+  AlertTriangle,
+  Link2
 } from 'lucide-react';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { clientsAPI, clientMetricsAPI, adTagsAPI } from '../utils/api';
+import { clientsAPI, clientMetricsAPI, adTagsAPI, platformCredentialsAPI, facebookOAuthAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import MetricsTable from '../components/MetricsTable';
 import CollapsibleSection from '../components/CollapsibleSection';
 import DashboardShareModal from '../components/DashboardShareModal';
+import EmailMarketingForm from '../components/EmailMarketingForm';
 
 // Get current date in Colombia timezone (YYYY-MM-DD)
 const getColombiaDate = (offsetDays = 0) => {
@@ -82,6 +85,12 @@ function ClientMetrics() {
   const [analysisMetric, setAnalysisMetric] = useState('roas');
   const tagDropdownRef = useRef(null);
 
+  // Platform connection status
+  const [platformStatus, setPlatformStatus] = useState(null);
+  const [connectionError, setConnectionError] = useState(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [oauthSessionId, setOauthSessionId] = useState(null);
+
   const [dateRange, setDateRange] = useState({
     start: getColombiaDate(-7),
     end: getColombiaDate()
@@ -91,6 +100,45 @@ function ClientMetrics() {
   useEffect(() => {
     loadClient();
     loadTagCategories();
+    loadPlatformStatus();
+  }, [clientId]);
+
+  // Listen for OAuth popup messages (for reconnect flow)
+  useEffect(() => {
+    const handleOAuthMessage = async (event) => {
+      if (!event.data?.type?.startsWith('facebook_oauth')) return;
+
+      if (event.data.type === 'facebook_oauth_success') {
+        setOauthSessionId(event.data.sessionId);
+        // Auto-link the accounts (relink existing ones)
+        try {
+          const accountsRes = await facebookOAuthAPI.getAdAccounts(event.data.sessionId);
+          const accounts = accountsRes.data.accounts || [];
+          // Link all accounts that were previously linked
+          const accountIds = accounts.filter(a => a.isLinked).map(a => a.id);
+          if (accountIds.length > 0) {
+            await facebookOAuthAPI.linkAccounts({
+              session_id: event.data.sessionId,
+              client_id: parseInt(clientId),
+              account_ids: accountIds
+            });
+          }
+          setConnectionError(null);
+          loadPlatformStatus();
+          loadMetrics();
+        } catch (err) {
+          console.error('Error relinking accounts:', err);
+        } finally {
+          setReconnecting(false);
+        }
+      } else if (event.data.type === 'facebook_oauth_error') {
+        setConnectionError({ platform: 'facebook', message: event.data.error });
+        setReconnecting(false);
+      }
+    };
+
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
   }, [clientId]);
 
   // Close tag dropdown on outside click
@@ -156,6 +204,53 @@ function ClientMetrics() {
       }
     } catch (error) {
       console.error('Error loading tag categories:', error);
+    }
+  };
+
+  // Load platform connection status to detect errors
+  const loadPlatformStatus = async () => {
+    try {
+      const res = await platformCredentialsAPI.getByClient(clientId);
+      setPlatformStatus(res.data);
+
+      // Check for Facebook connection errors
+      const fbAccounts = res.data.facebook || [];
+      const fbWithErrors = fbAccounts.filter(fb => fb.status === 'error' || fb.last_error);
+      if (fbWithErrors.length > 0) {
+        setConnectionError({
+          platform: 'facebook',
+          message: fbWithErrors[0].last_error || 'Token de Facebook inválido o expirado',
+          accounts: fbWithErrors
+        });
+      } else if (connectionError?.platform === 'facebook') {
+        // Clear error if previously set and now resolved
+        setConnectionError(null);
+      }
+    } catch (error) {
+      console.error('Error loading platform status:', error);
+    }
+  };
+
+  // Handle Facebook reconnect flow
+  const handleFacebookReconnect = async () => {
+    try {
+      setReconnecting(true);
+      const res = await facebookOAuthAPI.getAuthUrl(clientId);
+
+      // Open OAuth popup
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.innerWidth - width) / 2;
+      const top = window.screenY + (window.innerHeight - height) / 2;
+
+      window.open(
+        res.data.authUrl,
+        'facebook_oauth',
+        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
+      );
+    } catch (error) {
+      setReconnecting(false);
+      alert('Error al iniciar reconexión: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -308,6 +403,9 @@ function ClientMetrics() {
       setCompareMetrics(compareMode ? results[2].data : null);
     } catch (error) {
       console.error('Error loading metrics:', error);
+      // Check if the error might be related to platform connection issues
+      // Refresh platform status to show reconnect banner if needed
+      loadPlatformStatus();
     } finally {
       setLoading(false);
     }
@@ -470,6 +568,43 @@ function ClientMetrics() {
           </button>
         </div>
       </div>
+
+      {/* Connection Error Banner */}
+      {connectionError && (
+        <div className="flex items-center gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="flex-shrink-0">
+            <AlertTriangle className="w-6 h-6 text-amber-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-amber-900">
+              {connectionError.platform === 'facebook' && 'Conexión de Facebook Ads perdida'}
+            </h3>
+            <p className="text-sm text-amber-700 mt-0.5 truncate">
+              {connectionError.message}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleFacebookReconnect}
+              disabled={reconnecting}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 text-sm font-medium"
+            >
+              {reconnecting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Link2 className="w-4 h-4" />
+              )}
+              Reconectar
+            </button>
+            <button
+              onClick={() => setConnectionError(null)}
+              className="p-2 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Date Range */}
       <div className="glass rounded-xl p-4">
@@ -667,25 +802,8 @@ function ClientMetrics() {
         />
       </div>
 
-      {/* ============ EMAIL MARKETING (no colapsable, debajo de Combinadas) ============ */}
-      <div className="glass rounded-xl p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center">
-              <Mail className="w-4 h-4 text-pink-600" />
-            </div>
-            <h2 className="text-lg font-semibold text-[#17181A]">Email Marketing</h2>
-          </div>
-          <span className="text-xs text-gray-400">
-            Datos manuales desde Shopify Email
-          </span>
-        </div>
-        <div className="py-8 text-center text-gray-500">
-          <Mail className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-          <p className="text-sm">Próximamente: registro de campañas de email marketing</p>
-          <p className="text-xs text-gray-400 mt-1">Esperando los pantallazos de Shopify Email para definir las métricas a registrar</p>
-        </div>
-      </div>
+      {/* ============ EMAIL MARKETING ============ */}
+      <EmailMarketingForm clientId={clientId} />
 
       {/* ============ FACEBOOK ADS (colapsable) ============ */}
       <CollapsibleSection

@@ -505,6 +505,13 @@ export const clientMetricsAPI = {
     api.get(`/client-metrics/${clientId}/tiktok-campaigns`, { params: { start_date: startDate, end_date: endDate } }),
   getTopProducts: (clientId, startDate, endDate) =>
     api.get(`/client-metrics/${clientId}/top-products`, { params: { start_date: startDate, end_date: endDate } }),
+  // Email Marketing Monthly
+  getEmailMonthly: (clientId, year, month) =>
+    api.get(`/client-metrics/${clientId}/email-monthly`, { params: { year, month } }),
+  getEmailMonthlyHistory: (clientId, limit = 12) =>
+    api.get(`/client-metrics/${clientId}/email-monthly/history`, { params: { limit } }),
+  saveEmailMonthly: (clientId, data) =>
+    api.post(`/client-metrics/${clientId}/email-monthly`, data),
 };
 
 // Growth Dashboard API

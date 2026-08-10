@@ -775,4 +775,151 @@ router.get('/sync-status', async (req, res) => {
   }
 });
 
+// ============================================
+// EMAIL MARKETING MONTHLY METRICS
+// ============================================
+
+/**
+ * GET /api/client-metrics/:clientId/email-monthly
+ * Get monthly email marketing metrics for a specific month
+ */
+router.get('/:clientId/email-monthly', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { clientId } = req.params;
+    const { year, month } = req.query;
+
+    if (!year || !month) {
+      return res.status(400).json({ error: 'year y month son requeridos' });
+    }
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    const metrics = await db.prepare(`
+      SELECT * FROM client_monthly_email_metrics
+      WHERE client_id = ? AND year = ? AND month = ?
+    `).get(clientId, parseInt(year), parseInt(month));
+
+    res.json(metrics || null);
+  } catch (error) {
+    console.error('Error getting email monthly metrics:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/client-metrics/:clientId/email-monthly/history
+ * Get history of monthly email marketing metrics
+ */
+router.get('/:clientId/email-monthly/history', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { clientId } = req.params;
+    const limit = parseInt(req.query.limit) || 12;
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    const history = await db.prepare(`
+      SELECT * FROM client_monthly_email_metrics
+      WHERE client_id = ?
+      ORDER BY year DESC, month DESC
+      LIMIT ?
+    `).all(clientId, limit);
+
+    res.json(history);
+  } catch (error) {
+    console.error('Error getting email monthly history:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/client-metrics/:clientId/email-monthly
+ * Create or update monthly email marketing metrics
+ */
+router.post('/:clientId/email-monthly', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { clientId } = req.params;
+    const {
+      year, month,
+      // Email Campaigns
+      campaigns_revenue, campaigns_avg_ticket, campaigns_deliveries,
+      campaigns_opens, campaigns_clicks, campaigns_conversions, campaigns_bounces,
+      // Email Flows
+      flows_revenue, flows_avg_ticket, flows_deliveries,
+      flows_opens, flows_clicks, flows_conversions, flows_bounces,
+      // List Growth
+      master_segment_size, monthly_subscriptions, monthly_unsubscribes,
+      popup_subscriptions, popup_views
+    } = req.body;
+
+    if (!year || !month) {
+      return res.status(400).json({ error: 'year y month son requeridos' });
+    }
+
+    // Verify client belongs to org
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    // Upsert using ON CONFLICT
+    const result = await db.prepare(`
+      INSERT INTO client_monthly_email_metrics (
+        client_id, organization_id, year, month,
+        campaigns_revenue, campaigns_avg_ticket, campaigns_deliveries,
+        campaigns_opens, campaigns_clicks, campaigns_conversions, campaigns_bounces,
+        flows_revenue, flows_avg_ticket, flows_deliveries,
+        flows_opens, flows_clicks, flows_conversions, flows_bounces,
+        master_segment_size, monthly_subscriptions, monthly_unsubscribes,
+        popup_subscriptions, popup_views
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(client_id, year, month) DO UPDATE SET
+        campaigns_revenue = excluded.campaigns_revenue,
+        campaigns_avg_ticket = excluded.campaigns_avg_ticket,
+        campaigns_deliveries = excluded.campaigns_deliveries,
+        campaigns_opens = excluded.campaigns_opens,
+        campaigns_clicks = excluded.campaigns_clicks,
+        campaigns_conversions = excluded.campaigns_conversions,
+        campaigns_bounces = excluded.campaigns_bounces,
+        flows_revenue = excluded.flows_revenue,
+        flows_avg_ticket = excluded.flows_avg_ticket,
+        flows_deliveries = excluded.flows_deliveries,
+        flows_opens = excluded.flows_opens,
+        flows_clicks = excluded.flows_clicks,
+        flows_conversions = excluded.flows_conversions,
+        flows_bounces = excluded.flows_bounces,
+        master_segment_size = excluded.master_segment_size,
+        monthly_subscriptions = excluded.monthly_subscriptions,
+        monthly_unsubscribes = excluded.monthly_unsubscribes,
+        popup_subscriptions = excluded.popup_subscriptions,
+        popup_views = excluded.popup_views,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `).get(
+      clientId, orgId, parseInt(year), parseInt(month),
+      campaigns_revenue || 0, campaigns_avg_ticket || 0, campaigns_deliveries || 0,
+      campaigns_opens || 0, campaigns_clicks || 0, campaigns_conversions || 0, campaigns_bounces || 0,
+      flows_revenue || 0, flows_avg_ticket || 0, flows_deliveries || 0,
+      flows_opens || 0, flows_clicks || 0, flows_conversions || 0, flows_bounces || 0,
+      master_segment_size || 0, monthly_subscriptions || 0, monthly_unsubscribes || 0,
+      popup_subscriptions || 0, popup_views || 0
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error saving email monthly metrics:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
