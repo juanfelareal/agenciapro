@@ -995,8 +995,8 @@ router.get('/email-dashboard', async (req, res) => {
     totals.avg_open_rate = totals.total_deliveries > 0
       ? (totals.total_opens / totals.total_deliveries) * 100
       : 0;
-    totals.avg_click_rate = totals.total_deliveries > 0
-      ? (totals.total_clicks / totals.total_deliveries) * 100
+    totals.avg_click_rate = totals.total_opens > 0
+      ? (totals.total_clicks / totals.total_opens) * 100
       : 0;
     totals.avg_conversion_rate = totals.total_deliveries > 0
       ? (totals.total_conversions / totals.total_deliveries) * 100

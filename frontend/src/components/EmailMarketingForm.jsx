@@ -127,12 +127,12 @@ export default function EmailMarketingForm({ clientId }) {
     return {
       // Campaigns
       campaigns_open_rate: calc(data.campaigns_opens, data.campaigns_deliveries),
-      campaigns_ctr: calc(data.campaigns_clicks, data.campaigns_deliveries),
+      campaigns_ctr: calc(data.campaigns_clicks, data.campaigns_opens),
       campaigns_conv_rate: calc(data.campaigns_conversions, data.campaigns_deliveries),
       campaigns_bounce_rate: calc(data.campaigns_bounces, data.campaigns_deliveries),
       // Flows
       flows_open_rate: calc(data.flows_opens, data.flows_deliveries),
-      flows_ctr: calc(data.flows_clicks, data.flows_deliveries),
+      flows_ctr: calc(data.flows_clicks, data.flows_opens),
       flows_conv_rate: calc(data.flows_conversions, data.flows_deliveries),
       flows_bounce_rate: calc(data.flows_bounces, data.flows_deliveries),
       // List Growth

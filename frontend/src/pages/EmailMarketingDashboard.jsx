@@ -54,7 +54,7 @@ function ClientRow({ client, onClick }) {
   const hasData = totalDeliveries > 0;
 
   const openRate = totalDeliveries > 0 ? (totalOpens / totalDeliveries) * 100 : null;
-  const clickRate = totalDeliveries > 0 ? (totalClicks / totalDeliveries) * 100 : null;
+  const clickRate = totalOpens > 0 ? (totalClicks / totalOpens) * 100 : null;
   const convRate = totalDeliveries > 0 ? (totalConversions / totalDeliveries) * 100 : null;
 
   return (
