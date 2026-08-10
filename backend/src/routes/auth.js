@@ -216,6 +216,113 @@ router.post('/login', async (req, res) => {
 });
 
 /**
+ * POST /api/auth/reset-pin
+ * Reset PIN and send new one via email
+ * Public endpoint (no auth required - user forgot their PIN)
+ */
+router.post('/reset-pin', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email es requerido' });
+    }
+
+    const emailLower = email.toLowerCase().trim();
+
+    // Find user
+    const user = await db.get(`SELECT * FROM users WHERE email = ?`, [emailLower]);
+    if (!user) {
+      // Don't reveal if user exists or not
+      return res.json({ success: true, message: 'Si el email existe, recibirás un nuevo PIN.' });
+    }
+
+    // Generate new 6-digit PIN
+    const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+    const pinHash = await bcrypt.hash(newPin, 10);
+
+    // Update user's PIN
+    await db.run(`UPDATE users SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [pinHash, user.id]);
+
+    // Also update team_members PIN for consistency
+    await db.run(`UPDATE team_members SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`, [pinHash, user.id]);
+
+    // Send email with new PIN
+    const { sendEmail } = await import('../utils/emailHelper.js');
+
+    const loginUrl = process.env.FRONTEND_URL || 'https://orbit.larealmarketing.com';
+
+    await sendEmail({
+      to: emailLower,
+      subject: 'Tu nuevo PIN de acceso - AgenciaPro',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:12px;overflow:hidden;">
+                  <tr>
+                    <td style="background-color:#1A1A2E;padding:32px 40px;text-align:center;">
+                      <h1 style="color:#BFFF00;margin:0;font-size:22px;font-weight:700;">
+                        AgenciaPro
+                      </h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:40px;">
+                      <h2 style="color:#1A1A2E;margin:0 0 8px;font-size:20px;">
+                        Hola ${user.name || 'Usuario'},
+                      </h2>
+                      <p style="color:#6b7280;margin:0 0 28px;font-size:15px;line-height:1.6;">
+                        Recibimos una solicitud para restablecer tu PIN. Aquí está tu nuevo PIN de acceso:
+                      </p>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:28px;">
+                        <tr>
+                          <td style="padding:24px;text-align:center;">
+                            <span style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Tu nuevo PIN</span><br>
+                            <span style="color:#1A1A2E;font-size:32px;font-weight:700;letter-spacing:4px;">${newPin}</span>
+                          </td>
+                        </tr>
+                      </table>
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td align="center">
+                            <a href="${loginUrl}" style="display:inline-block;background-color:#1A1A2E;color:#BFFF00;text-decoration:none;padding:14px 36px;border-radius:10px;font-size:15px;font-weight:600;">
+                              Iniciar Sesión
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="color:#9ca3af;margin:28px 0 0;font-size:13px;text-align:center;">
+                        Si no solicitaste este cambio, ignora este email.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `
+    });
+
+    console.log(`[Auth] PIN reset for ${emailLower}`);
+
+    res.json({ success: true, message: 'Se envió un nuevo PIN a tu email.' });
+  } catch (error) {
+    console.error('Reset PIN error:', error);
+    res.status(500).json({ error: 'Error al restablecer el PIN' });
+  }
+});
+
+/**
  * Legacy login fallback for instances that haven't run migration yet
  */
 async function legacyLogin(req, res, emailLower, pin) {
