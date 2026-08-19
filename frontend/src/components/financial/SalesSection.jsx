@@ -1,304 +1,210 @@
 /**
  * Sales Section - Ventas
  * Uses platform's glass design system (light theme)
+ * Shows only real data from API - no hardcoded/fake data
  */
-import { useState } from 'react';
-import {
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  AreaChart,
-  Area,
-} from 'recharts';
-import { TrendingUp, TrendingDown, Target, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useMemo } from 'react';
+import { TrendingUp, FileText, DollarSign, Users } from 'lucide-react';
 import FinancialCard from './shared/FinancialCard';
 import KPICard from './shared/KPICard';
-import DataTable from './shared/DataTable';
-import { formatCurrency, formatPercent, getMonthShort } from './shared/formatters';
+import { formatCurrency } from './shared/formatters';
 
-const tooltipStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-};
+const SalesSection = ({ data, loading }) => {
+  // Calculate sales metrics from real data
+  const salesMetrics = useMemo(() => {
+    if (!data?.finances) {
+      return {
+        totalSales: 0,
+        paidSales: 0,
+        pendingSales: 0,
+        invoiceCount: 0,
+      };
+    }
+    const f = data.finances;
+    return {
+      totalSales: f.total_invoiced_net || 0,
+      paidSales: f.total_paid_net || 0,
+      pendingSales: f.total_pending_gross || 0,
+      invoiceCount: f.invoice_count || 0,
+    };
+  }, [data]);
 
-// Mock data - will be replaced with API calls
-const monthlyData = [
-  { month: 1, ventas: 45000000, presupuesto: 42000000, year: 2024 },
-  { month: 2, ventas: 52000000, presupuesto: 48000000, year: 2024 },
-  { month: 3, ventas: 48000000, presupuesto: 50000000, year: 2024 },
-  { month: 4, ventas: 61000000, presupuesto: 55000000, year: 2024 },
-  { month: 5, ventas: 55000000, presupuesto: 52000000, year: 2024 },
-  { month: 6, ventas: 67000000, presupuesto: 60000000, year: 2024 },
-  { month: 7, ventas: 72000000, presupuesto: 65000000, year: 2024 },
-  { month: 8, ventas: 68000000, presupuesto: 68000000, year: 2024 },
-];
+  // Get invoices by client from real data
+  const invoicesByClient = useMemo(() => {
+    if (!data?.invoices?.by_client) return [];
+    return data.invoices.by_client.map(client => ({
+      name: client.client_name || 'Sin nombre',
+      total: client.total_amount || 0,
+      count: client.invoice_count || 0,
+    })).sort((a, b) => b.total - a.total);
+  }, [data]);
 
-const salesByService = [
-  { servicio: 'Gestión de Pauta', ventas: 185000000, porcentaje: 42 },
-  { servicio: 'Social Media', ventas: 120000000, porcentaje: 27 },
-  { servicio: 'Producción UGC', ventas: 85000000, porcentaje: 19 },
-  { servicio: 'Consultoría', ventas: 52000000, porcentaje: 12 },
-];
+  // Recent invoices
+  const recentInvoices = useMemo(() => {
+    if (!data?.invoices?.recent) return [];
+    return data.invoices.recent.slice(0, 10);
+  }, [data]);
 
-const momComparison = [
-  { metric: 'Ventas Totales', current: 68000000, previous: 72000000, change: -5.6 },
-  { metric: 'Nuevos Contratos', current: 12500000, previous: 8000000, change: 56.3 },
-  { metric: 'Renovaciones', current: 45000000, previous: 52000000, change: -13.5 },
-  { metric: 'Upsells', current: 10500000, previous: 12000000, change: -12.5 },
-];
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 glass rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-const yearlyComparison = [
-  { month: 1, actual: 45000000, lastYear: 38000000 },
-  { month: 2, actual: 52000000, lastYear: 42000000 },
-  { month: 3, actual: 48000000, lastYear: 45000000 },
-  { month: 4, actual: 61000000, lastYear: 48000000 },
-  { month: 5, actual: 55000000, lastYear: 52000000 },
-  { month: 6, actual: 67000000, lastYear: 58000000 },
-  { month: 7, actual: 72000000, lastYear: 62000000 },
-  { month: 8, actual: 68000000, lastYear: 65000000 },
-];
+  const hasData = salesMetrics.totalSales > 0 || salesMetrics.invoiceCount > 0;
 
-const SalesSection = () => {
-  const totalSales = monthlyData.reduce((sum, m) => sum + m.ventas, 0);
-  const totalBudget = monthlyData.reduce((sum, m) => sum + m.presupuesto, 0);
-  const budgetVariance = ((totalSales - totalBudget) / totalBudget) * 100;
-  const avgMonthlySales = totalSales / monthlyData.length;
+  if (!hasData) {
+    return (
+      <div className="space-y-6">
+        {/* Empty KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard icon={DollarSign} title="Ventas Totales" value="$0" subtitle="Sin datos" iconColor="emerald" />
+          <KPICard icon={TrendingUp} title="Cobrado" value="$0" subtitle="Sin datos" iconColor="teal" />
+          <KPICard icon={FileText} title="Por Cobrar" value="$0" subtitle="Sin datos" iconColor="amber" />
+          <KPICard icon={Users} title="Facturas" value="0" subtitle="Sin datos" iconColor="indigo" />
+        </div>
 
-  const currentMonth = monthlyData[monthlyData.length - 1];
-  const previousMonth = monthlyData[monthlyData.length - 2];
-  const momChange = ((currentMonth.ventas - previousMonth.ventas) / previousMonth.ventas) * 100;
-
-  const chartData = monthlyData.map((m) => ({
-    ...m,
-    name: getMonthShort(m.month),
-    cumplimiento: ((m.ventas / m.presupuesto) * 100).toFixed(1),
-  }));
-
-  const yoyData = yearlyComparison.map((m) => ({
-    ...m,
-    name: getMonthShort(m.month),
-    growth: (((m.actual - m.lastYear) / m.lastYear) * 100).toFixed(1),
-  }));
+        {/* Empty state */}
+        <div className="glass rounded-2xl p-12 text-center">
+          <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="w-8 h-8 text-emerald-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin datos de ventas</h3>
+          <p className="text-gray-500 max-w-md mx-auto">
+            Sincroniza con Siigo o crea facturas para ver las ventas aquí.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Ventas YTD"
-          value={formatCurrency(totalSales)}
-          change={budgetVariance}
-          subtitle="vs presupuesto"
+          title="Ventas Totales"
+          value={formatCurrency(salesMetrics.totalSales)}
+          subtitle="Período seleccionado"
+          icon={DollarSign}
+          iconColor="emerald"
+        />
+        <KPICard
+          title="Cobrado"
+          value={formatCurrency(salesMetrics.paidSales)}
+          subtitle="Facturas pagadas"
           icon={TrendingUp}
           iconColor="teal"
         />
         <KPICard
-          title="Presupuesto YTD"
-          value={formatCurrency(totalBudget)}
-          subtitle="Meta del año"
-          icon={Target}
-          iconColor="indigo"
-        />
-        <KPICard
-          title="Promedio Mensual"
-          value={formatCurrency(avgMonthlySales)}
-          subtitle="Este año"
-          icon={Calendar}
+          title="Por Cobrar"
+          value={formatCurrency(salesMetrics.pendingSales)}
+          subtitle="Pendiente de pago"
+          icon={FileText}
           iconColor="amber"
         />
         <KPICard
-          title="Mes Actual"
-          value={formatCurrency(currentMonth.ventas)}
-          change={momChange}
-          subtitle="vs mes anterior"
-          icon={momChange >= 0 ? TrendingUp : TrendingDown}
-          iconColor={momChange >= 0 ? 'emerald' : 'rose'}
+          title="Facturas"
+          value={salesMetrics.invoiceCount}
+          subtitle="En el período"
+          icon={Users}
+          iconColor="indigo"
         />
       </div>
 
-      {/* Charts Row */}
+      {/* Content Row */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Budget vs Actual Chart */}
-        <FinancialCard title="Ventas vs Presupuesto" subtitle="Comparación mensual" span={8}>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" stroke="#6b7280" fontSize={11} />
-                <YAxis
-                  stroke="#6b7280"
-                  fontSize={11}
-                  tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => formatCurrency(value)}
-                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
-                />
-                <Legend />
-                <Bar
-                  dataKey="ventas"
-                  name="Ventas"
-                  fill="#10b981"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="presupuesto"
-                  name="Presupuesto"
-                  stroke="#6366f1"
-                  strokeWidth={2}
-                  dot={{ fill: '#6366f1', strokeWidth: 2 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+        {/* Sales by Client */}
+        <FinancialCard title="Ventas por Cliente" subtitle="Ordenado por monto" span={6}>
+          {invoicesByClient.length > 0 ? (
+            <div className="space-y-3 mt-4">
+              {invoicesByClient.slice(0, 8).map((client, idx) => {
+                const maxTotal = invoicesByClient[0]?.total || 1;
+                const percentage = (client.total / maxTotal) * 100;
+                return (
+                  <div key={idx}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600 truncate max-w-[60%]">{client.name}</span>
+                      <span className="font-semibold text-[#17181A]">{formatCurrency(client.total)}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <div className="text-right text-xs text-gray-500 mt-0.5">
+                      {client.count} factura{client.count !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                );
+              })}
+              {invoicesByClient.length > 8 && (
+                <div className="text-xs text-gray-400 text-center pt-2">
+                  +{invoicesByClient.length - 8} clientes más
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-sm">Sin datos por cliente</p>
+            </div>
+          )}
         </FinancialCard>
 
-        {/* Sales by Service */}
-        <FinancialCard title="Ventas por Servicio" subtitle="Distribución YTD" span={4}>
-          <div className="space-y-4">
-            {salesByService.map((service) => (
-              <div key={service.servicio}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">{service.servicio}</span>
-                  <span className="font-semibold text-[#17181A]">{formatCurrency(service.ventas)}</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
-                    style={{ width: `${service.porcentaje}%` }}
-                  />
-                </div>
-                <div className="text-right text-xs text-gray-500 mt-0.5">
-                  {service.porcentaje}%
-                </div>
-              </div>
-            ))}
-          </div>
-        </FinancialCard>
-      </div>
-
-      {/* Second Row */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* YoY Comparison */}
-        <FinancialCard title="Comparación Año vs Año" subtitle="2024 vs 2023" span={8}>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={yoyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" stroke="#6b7280" fontSize={11} />
-                <YAxis
-                  stroke="#6b7280"
-                  fontSize={11}
-                  tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => formatCurrency(value)}
-                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
-                />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="actual"
-                  name="2024"
-                  stroke="#10b981"
-                  fill="#10b981"
-                  fillOpacity={0.3}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="lastYear"
-                  name="2023"
-                  stroke="#9ca3af"
-                  fill="#9ca3af"
-                  fillOpacity={0.2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </FinancialCard>
-
-        {/* MoM Comparison Table */}
-        <FinancialCard title="Comparación MoM" subtitle="Agosto vs Julio" span={4}>
-          <div className="space-y-3">
-            {momComparison.map((item) => (
-              <div
-                key={item.metric}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div>
-                  <div className="text-xs text-gray-500">{item.metric}</div>
-                  <div className="font-semibold text-[#17181A]">{formatCurrency(item.current)}</div>
-                </div>
-                <div className={`flex items-center gap-1 text-sm ${
-                  item.change >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                }`}>
-                  {item.change >= 0 ? (
-                    <ArrowUpRight className="w-4 h-4" />
-                  ) : (
-                    <ArrowDownRight className="w-4 h-4" />
-                  )}
-                  {formatPercent(Math.abs(item.change))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </FinancialCard>
-      </div>
-
-      {/* Monthly Detail Table */}
-      <FinancialCard title="Detalle Mensual" subtitle="Ventas y cumplimiento de presupuesto">
-        <DataTable
-          columns={[
-            { key: 'month', label: 'Mes' },
-            { key: 'ventas', label: 'Ventas', align: 'right' },
-            { key: 'presupuesto', label: 'Presupuesto', align: 'right' },
-            { key: 'variacion', label: 'Variación', align: 'right' },
-            { key: 'cumplimiento', label: 'Cumplimiento', align: 'right' },
-          ]}
-          data={monthlyData.map((m) => {
-            const variacion = m.ventas - m.presupuesto;
-            const cumplimiento = (m.ventas / m.presupuesto) * 100;
-            return {
-              id: m.month,
-              month: getMonthShort(m.month),
-              ventas: formatCurrency(m.ventas),
-              presupuesto: formatCurrency(m.presupuesto),
-              cells: {
-                variacion: {
-                  render: (
-                    <span className={variacion >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                      {variacion >= 0 ? '+' : ''}{formatCurrency(variacion)}
-                    </span>
-                  ),
-                },
-                cumplimiento: {
-                  render: (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      cumplimiento >= 100
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : cumplimiento >= 90
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-rose-100 text-rose-700'
+        {/* Recent Invoices */}
+        <FinancialCard title="Facturas Recientes" subtitle="Últimas facturas emitidas" span={6}>
+          {recentInvoices.length > 0 ? (
+            <div className="space-y-2 mt-4">
+              {recentInvoices.map((inv, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-[#17181A]">{inv.number || `FAC-${inv.id}`}</div>
+                    <div className="text-xs text-gray-500">{inv.client_name || 'Sin cliente'}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-[#17181A]">{formatCurrency(inv.amount || 0)}</div>
+                    <div className={`text-xs ${
+                      inv.status === 'paid' ? 'text-emerald-600' :
+                      inv.status === 'invoiced' ? 'text-amber-600' : 'text-gray-500'
                     }`}>
-                      {formatPercent(cumplimiento, 0)}
-                    </span>
-                  ),
-                },
-              },
-            };
-          })}
-        />
+                      {inv.status === 'paid' ? 'Pagada' :
+                       inv.status === 'invoiced' ? 'Pendiente' : inv.status}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-sm">Sin facturas recientes</p>
+            </div>
+          )}
+        </FinancialCard>
+      </div>
+
+      {/* Summary Card */}
+      <FinancialCard title="Resumen de Ventas" subtitle="Período seleccionado" span={12}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          <div className="bg-emerald-50 rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-emerald-600">{formatCurrency(salesMetrics.totalSales)}</div>
+            <div className="text-sm text-gray-600 mt-2">Total Facturado</div>
+          </div>
+          <div className="bg-teal-50 rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-teal-600">{formatCurrency(salesMetrics.paidSales)}</div>
+            <div className="text-sm text-gray-600 mt-2">Total Cobrado</div>
+          </div>
+          <div className="bg-amber-50 rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-amber-600">{formatCurrency(salesMetrics.pendingSales)}</div>
+            <div className="text-sm text-gray-600 mt-2">Pendiente de Cobro</div>
+          </div>
+        </div>
       </FinancialCard>
     </div>
   );

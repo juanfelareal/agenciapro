@@ -1,318 +1,209 @@
 /**
  * Expenses Section - Gastos
  * Uses platform's glass design system (light theme)
+ * Shows only real data from API - no hardcoded/fake data
  */
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from 'recharts';
-import { CreditCard, Building2, TrendingDown, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useMemo } from 'react';
+import { CreditCard, TrendingDown, FileText } from 'lucide-react';
 import FinancialCard from './shared/FinancialCard';
 import KPICard from './shared/KPICard';
-import DataTable from './shared/DataTable';
-import { formatCurrency, formatPercent, getMonthShort } from './shared/formatters';
+import { formatCurrency } from './shared/formatters';
 
-const tooltipStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-};
+const ExpensesSection = ({ data, loading }) => {
+  // Calculate expense metrics from real data
+  const expenseMetrics = useMemo(() => {
+    if (!data?.finances) {
+      return {
+        totalExpenses: 0,
+        expenseCount: 0,
+      };
+    }
+    return {
+      totalExpenses: data.finances.total_expenses_amount || 0,
+      expenseCount: data.expenses?.count || 0,
+    };
+  }, [data]);
 
-// Mock data - will be replaced with API calls
-const expensesByCategory = [
-  { name: 'Nómina', value: 145000000, color: '#818cf8', percentage: 48.3 },
-  { name: 'Software & Tools', value: 42000000, color: '#2dd4bf', percentage: 14.0 },
-  { name: 'Marketing', value: 35000000, color: '#f59e0b', percentage: 11.7 },
-  { name: 'Oficina', value: 28000000, color: '#ec4899', percentage: 9.3 },
-  { name: 'Servicios Prof.', value: 25000000, color: '#10b981', percentage: 8.3 },
-  { name: 'Otros', value: 25000000, color: '#6b7280', percentage: 8.3 },
-];
+  // Get expenses by category from real data
+  const expensesByCategory = useMemo(() => {
+    if (!data?.expenses?.by_category) return [];
+    const total = data.expenses.by_category.reduce((sum, cat) => sum + (cat.total || 0), 0);
+    return data.expenses.by_category.map(cat => ({
+      name: cat.category || 'Sin categoría',
+      value: cat.total || 0,
+      count: cat.count || 0,
+      percentage: total > 0 ? ((cat.total || 0) / total) * 100 : 0,
+    })).sort((a, b) => b.value - a.value);
+  }, [data]);
 
-const expensesByVendor = [
-  { vendor: 'Meta Ads', category: 'Marketing', amount: 18500000, trend: 12.5 },
-  { vendor: 'Google Ads', category: 'Marketing', amount: 12000000, trend: 8.2 },
-  { vendor: 'AWS', category: 'Software', amount: 8500000, trend: -5.3 },
-  { vendor: 'Slack', category: 'Software', amount: 4200000, trend: 0 },
-  { vendor: 'Figma', category: 'Software', amount: 3800000, trend: 15.0 },
-  { vendor: 'WeWork', category: 'Oficina', amount: 12500000, trend: 0 },
-  { vendor: 'Contador Externo', category: 'Servicios Prof.', amount: 8000000, trend: -10.0 },
-  { vendor: 'Seguros', category: 'Otros', amount: 5500000, trend: 5.0 },
-];
+  // Recent expenses
+  const recentExpenses = useMemo(() => {
+    if (!data?.expenses?.recent) return [];
+    return data.expenses.recent.slice(0, 10);
+  }, [data]);
 
-const monthlyExpenses = [
-  { month: 1, gastos: 32000000, presupuesto: 35000000 },
-  { month: 2, gastos: 35000000, presupuesto: 35000000 },
-  { month: 3, gastos: 38000000, presupuesto: 36000000 },
-  { month: 4, gastos: 34000000, presupuesto: 36000000 },
-  { month: 5, gastos: 42000000, presupuesto: 38000000 },
-  { month: 6, gastos: 39000000, presupuesto: 38000000 },
-  { month: 7, gastos: 41000000, presupuesto: 40000000 },
-  { month: 8, gastos: 39000000, presupuesto: 40000000 },
-];
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 glass rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-const accountsPayable = [
-  { id: 'CXP-001', vendor: 'Meta Ads', amount: 18500000, dueDate: '2024-08-15', status: 'pending' },
-  { id: 'CXP-002', vendor: 'WeWork', amount: 12500000, dueDate: '2024-08-20', status: 'pending' },
-  { id: 'CXP-003', vendor: 'AWS', amount: 8500000, dueDate: '2024-08-25', status: 'pending' },
-  { id: 'CXP-004', vendor: 'Google Ads', amount: 12000000, dueDate: '2024-08-10', status: 'overdue' },
-  { id: 'CXP-005', vendor: 'Contador Externo', amount: 8000000, dueDate: '2024-08-30', status: 'scheduled' },
-];
+  const hasData = expenseMetrics.totalExpenses > 0 || expenseMetrics.expenseCount > 0;
 
-const ExpensesSection = () => {
-  const totalExpenses = expensesByCategory.reduce((sum, c) => sum + c.value, 0);
-  const totalBudget = monthlyExpenses.reduce((sum, m) => sum + m.presupuesto, 0);
-  const actualSpend = monthlyExpenses.reduce((sum, m) => sum + m.gastos, 0);
-  const budgetVariance = ((actualSpend - totalBudget) / totalBudget) * 100;
+  if (!hasData) {
+    return (
+      <div className="space-y-6">
+        {/* Empty KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard icon={CreditCard} title="Total Gastos" value="$0" subtitle="Sin datos" iconColor="orange" />
+          <KPICard icon={TrendingDown} title="Mes Actual" value="$0" subtitle="Sin datos" iconColor="rose" />
+          <KPICard icon={FileText} title="Registros" value="0" subtitle="Sin datos" iconColor="indigo" />
+          <KPICard icon={CreditCard} title="Promedio" value="$0" subtitle="Sin datos" iconColor="amber" />
+        </div>
 
-  const currentMonth = monthlyExpenses[monthlyExpenses.length - 1];
-  const previousMonth = monthlyExpenses[monthlyExpenses.length - 2];
-  const momChange = ((currentMonth.gastos - previousMonth.gastos) / previousMonth.gastos) * 100;
+        {/* Empty state */}
+        <div className="glass rounded-2xl p-12 text-center">
+          <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CreditCard className="w-8 h-8 text-orange-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin gastos registrados</h3>
+          <p className="text-gray-500 max-w-md mx-auto">
+            Registra gastos o sincroniza con Siigo para verlos aquí.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const pendingPayables = accountsPayable
-    .filter((ap) => ap.status !== 'paid')
-    .reduce((sum, ap) => sum + ap.amount, 0);
-
-  const chartData = monthlyExpenses.map((m) => ({
-    ...m,
-    name: getMonthShort(m.month),
-  }));
+  const avgExpense = expenseMetrics.expenseCount > 0
+    ? expenseMetrics.totalExpenses / expenseMetrics.expenseCount
+    : 0;
 
   return (
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Gastos YTD"
-          value={formatCurrency(actualSpend)}
-          change={budgetVariance}
-          subtitle="vs presupuesto"
+          title="Total Gastos"
+          value={formatCurrency(expenseMetrics.totalExpenses)}
+          subtitle="Período seleccionado"
           icon={CreditCard}
-          iconColor={budgetVariance > 0 ? 'rose' : 'emerald'}
+          iconColor="orange"
         />
         <KPICard
-          title="Mes Actual"
-          value={formatCurrency(currentMonth.gastos)}
-          change={momChange}
-          subtitle="vs mes anterior"
-          icon={Calendar}
-          iconColor={momChange > 0 ? 'rose' : 'emerald'}
+          title="Registros"
+          value={expenseMetrics.expenseCount}
+          subtitle="Gastos registrados"
+          icon={FileText}
+          iconColor="indigo"
         />
         <KPICard
-          title="Cuentas por Pagar"
-          value={formatCurrency(pendingPayables)}
-          subtitle="próximos 30 días"
-          icon={Building2}
+          title="Promedio por Gasto"
+          value={formatCurrency(avgExpense)}
+          subtitle="Por registro"
+          icon={TrendingDown}
           iconColor="amber"
         />
         <KPICard
-          title="Gasto/Ingreso"
-          value={formatPercent(68.5)}
-          change={-2.3}
-          subtitle="ratio operativo"
-          icon={TrendingDown}
-          iconColor="indigo"
+          title="Categorías"
+          value={expensesByCategory.length}
+          subtitle="Con gastos"
+          icon={CreditCard}
+          iconColor="violet"
         />
       </div>
 
-      {/* Charts Row */}
+      {/* Content Row */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Expenses by Category Donut */}
-        <FinancialCard title="Gastos por Categoría" subtitle="Distribución YTD" span={4}>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={expensesByCategory}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {expensesByCategory.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => formatCurrency(value)}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-2 mt-2">
-            {expensesByCategory.slice(0, 5).map((cat) => (
-              <div key={cat.name} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: cat.color }}
-                  />
-                  <span className="text-gray-600">{cat.name}</span>
+        {/* Expenses by Category */}
+        <FinancialCard title="Gastos por Categoría" subtitle="Ordenado por monto" span={6}>
+          {expensesByCategory.length > 0 ? (
+            <div className="space-y-3 mt-4">
+              {expensesByCategory.slice(0, 8).map((cat, idx) => {
+                const maxValue = expensesByCategory[0]?.value || 1;
+                const percentage = (cat.value / maxValue) * 100;
+                return (
+                  <div key={idx}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600 truncate max-w-[60%]">{cat.name}</span>
+                      <span className="font-semibold text-[#17181A]">{formatCurrency(cat.value)}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <div className="text-right text-xs text-gray-500 mt-0.5">
+                      {cat.count} registro{cat.count !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                );
+              })}
+              {expensesByCategory.length > 8 && (
+                <div className="text-xs text-gray-400 text-center pt-2">
+                  +{expensesByCategory.length - 8} categorías más
                 </div>
-                <span className="font-semibold text-[#17181A]">{formatPercent(cat.percentage, 0)}</span>
-              </div>
-            ))}
-          </div>
-        </FinancialCard>
-
-        {/* Monthly Expenses vs Budget */}
-        <FinancialCard title="Gastos vs Presupuesto" subtitle="Tendencia mensual" span={8}>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" stroke="#6b7280" fontSize={11} />
-                <YAxis
-                  stroke="#6b7280"
-                  fontSize={11}
-                  tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => formatCurrency(value)}
-                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
-                />
-                <Bar
-                  dataKey="gastos"
-                  name="Gastos"
-                  fill="#f97316"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="presupuesto"
-                  name="Presupuesto"
-                  fill="#3b82f6"
-                  radius={[4, 4, 0, 0]}
-                  fillOpacity={0.4}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </FinancialCard>
-      </div>
-
-      {/* Vendors and Payables Row */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Top Vendors */}
-        <FinancialCard title="Top Proveedores" subtitle="Por monto de gasto" span={6}>
-          <DataTable
-            columns={[
-              { key: 'vendor', label: 'Proveedor' },
-              { key: 'category', label: 'Categoría' },
-              { key: 'amount', label: 'Monto', align: 'right' },
-              { key: 'trend', label: 'vs Anterior', align: 'right' },
-            ]}
-            data={expensesByVendor.map((v) => ({
-              id: v.vendor,
-              vendor: v.vendor,
-              category: v.category,
-              amount: formatCurrency(v.amount),
-              cells: {
-                category: {
-                  render: (
-                    <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">
-                      {v.category}
-                    </span>
-                  ),
-                },
-                trend: {
-                  render: v.trend !== 0 ? (
-                    <span className={`flex items-center justify-end gap-1 ${
-                      v.trend > 0 ? 'text-rose-600' : 'text-emerald-600'
-                    }`}>
-                      {v.trend > 0 ? (
-                        <ArrowUpRight className="w-3 h-3" />
-                      ) : (
-                        <ArrowDownRight className="w-3 h-3" />
-                      )}
-                      {formatPercent(Math.abs(v.trend))}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  ),
-                },
-              },
-            }))}
-          />
-        </FinancialCard>
-
-        {/* Accounts Payable */}
-        <FinancialCard title="Cuentas por Pagar" subtitle="Próximos vencimientos" span={6}>
-          <DataTable
-            columns={[
-              { key: 'vendor', label: 'Proveedor' },
-              { key: 'amount', label: 'Monto', align: 'right' },
-              { key: 'dueDate', label: 'Vencimiento' },
-              { key: 'status', label: 'Estado', align: 'center' },
-            ]}
-            data={accountsPayable.map((ap) => ({
-              id: ap.id,
-              vendor: ap.vendor,
-              amount: formatCurrency(ap.amount),
-              dueDate: new Date(ap.dueDate).toLocaleDateString('es-CO', {
-                day: '2-digit',
-                month: 'short',
-              }),
-              cells: {
-                status: {
-                  render: (
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                      ap.status === 'overdue'
-                        ? 'bg-rose-100 text-rose-700'
-                        : ap.status === 'pending'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-emerald-100 text-emerald-700'
-                    }`}>
-                      {ap.status === 'overdue' && 'Vencido'}
-                      {ap.status === 'pending' && 'Pendiente'}
-                      {ap.status === 'scheduled' && 'Programado'}
-                    </span>
-                  ),
-                },
-              },
-            }))}
-          />
-        </FinancialCard>
-      </div>
-
-      {/* Category Breakdown Cards */}
-      <FinancialCard title="Desglose por Categoría" subtitle="Detalle de gastos operativos">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {expensesByCategory.map((cat) => (
-            <div
-              key={cat.name}
-              className="p-4 rounded-xl text-center bg-white/50"
-              style={{
-                borderColor: `${cat.color}40`,
-                borderWidth: 1,
-              }}
-            >
-              <div
-                className="w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center"
-                style={{ backgroundColor: `${cat.color}15` }}
-              >
-                <CreditCard className="w-5 h-5" style={{ color: cat.color }} />
-              </div>
-              <div className="text-xs text-gray-500 mb-1">{cat.name}</div>
-              <div className="font-bold" style={{ color: cat.color }}>
-                {formatCurrency(cat.value)}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                {formatPercent(cat.percentage, 0)} del total
-              </div>
+              )}
             </div>
-          ))}
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-sm">Sin datos por categoría</p>
+            </div>
+          )}
+        </FinancialCard>
+
+        {/* Recent Expenses */}
+        <FinancialCard title="Gastos Recientes" subtitle="Últimos registros" span={6}>
+          {recentExpenses.length > 0 ? (
+            <div className="space-y-2 mt-4">
+              {recentExpenses.map((exp, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="text-sm font-medium text-[#17181A]">{exp.description || 'Sin descripción'}</div>
+                    <div className="text-xs text-gray-500">{exp.category || 'Sin categoría'}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-orange-600">-{formatCurrency(exp.amount || 0)}</div>
+                    <div className="text-xs text-gray-500">
+                      {exp.expense_date ? new Date(exp.expense_date).toLocaleDateString('es-CO', {
+                        day: '2-digit',
+                        month: 'short',
+                      }) : '-'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-sm">Sin gastos recientes</p>
+            </div>
+          )}
+        </FinancialCard>
+      </div>
+
+      {/* Summary Card */}
+      <FinancialCard title="Resumen de Gastos" subtitle="Período seleccionado" span={12}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          <div className="bg-orange-50 rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-orange-600">{formatCurrency(expenseMetrics.totalExpenses)}</div>
+            <div className="text-sm text-gray-600 mt-2">Total Gastado</div>
+          </div>
+          <div className="bg-indigo-50 rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-indigo-600">{expenseMetrics.expenseCount}</div>
+            <div className="text-sm text-gray-600 mt-2">Registros</div>
+          </div>
+          <div className="bg-amber-50 rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-amber-600">{formatCurrency(avgExpense)}</div>
+            <div className="text-sm text-gray-600 mt-2">Promedio por Gasto</div>
+          </div>
         </div>
       </FinancialCard>
     </div>
