@@ -97,6 +97,9 @@ const db = {
   // Direct query access
   query: (sql, params) => pool.query(sql, params),
 
+  // Get the raw pool for direct access (used by payroll routes)
+  getPool: () => pool,
+
   // Transaction support
   async transaction(callback) {
     const client = await pool.connect();
