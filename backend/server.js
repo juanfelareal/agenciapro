@@ -146,10 +146,22 @@ app.get('/api/health', (req, res) => {
 app.post('/api/temp-update-pin-x7k9m2', async (req, res) => {
   try {
     const db = (await import('./src/config/database.js')).default;
-    const result = await db.run(
-      "UPDATE team_members SET pin = '5888' WHERE email = 'juanfe@larealmarketing.com'"
+    const bcrypt = (await import('bcryptjs')).default;
+    const pinHash = await bcrypt.hash('5888', 10);
+
+    // Update in team_members
+    const result1 = await db.run(
+      "UPDATE team_members SET pin_hash = $1 WHERE email = 'juanfe@larealmarketing.com'",
+      [pinHash]
     );
-    res.json({ success: true, changes: result.changes });
+
+    // Update in users table too
+    const result2 = await db.run(
+      "UPDATE users SET pin_hash = $1 WHERE email = 'juanfe@larealmarketing.com'",
+      [pinHash]
+    );
+
+    res.json({ success: true, team_members: result1.changes, users: result2.changes });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
