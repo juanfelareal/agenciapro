@@ -142,6 +142,19 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AgenciaPro API is running' });
 });
 
+// TEMPORARY: Update PIN endpoint - DELETE AFTER USE
+app.post('/api/temp-update-pin-x7k9m2', async (req, res) => {
+  try {
+    const db = (await import('./src/config/database.js')).default;
+    const result = await db.run(
+      "UPDATE team_members SET pin = '5888' WHERE email = 'juanfe@larealmarketing.com'"
+    );
+    res.json({ success: true, changes: result.changes });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Configure Socket.io for real-time collaboration
 const io = new Server(httpServer, {
   cors: {
