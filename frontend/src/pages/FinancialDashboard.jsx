@@ -59,14 +59,21 @@ const FinancialDashboard = () => {
     setSyncing(true);
     setSyncResult(null);
     try {
-      // Sync invoices and expenses in parallel
+      // Calculate date range for selected month
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+      const dateStart = startDate.toISOString().split('T')[0];
+      const dateEnd = endDate.toISOString().split('T')[0];
+
+      // Sync invoices and expenses in parallel with date range
       const [invoicesRes, expensesRes] = await Promise.all([
-        siigoAPI.syncInvoicesFromSiigo(),
-        siigoAPI.syncExpensesFromSiigo(),
+        siigoAPI.syncInvoicesFromSiigo(dateStart, dateEnd),
+        siigoAPI.syncExpensesFromSiigo(dateStart, dateEnd),
       ]);
 
-      const invoiceCount = invoicesRes.data?.synced || 0;
-      const expenseCount = expensesRes.data?.synced || 0;
+      const invoiceCount = invoicesRes.data?.imported || 0;
+      const expenseCount = expensesRes.data?.imported || 0;
 
       setSyncResult({
         type: 'success',

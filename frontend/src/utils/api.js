@@ -232,8 +232,8 @@ export const expensesAPI = {
 
 // Siigo API
 export const siigoAPI = {
-  syncInvoicesFromSiigo: () => api.post('/siigo/sync-invoices-from-siigo'),
-  syncExpensesFromSiigo: () => api.post('/siigo/sync-expenses-from-siigo'),
+  syncInvoicesFromSiigo: (dateStart, dateEnd) => api.post('/siigo/sync-invoices-from-siigo', { date_start: dateStart, date_end: dateEnd }),
+  syncExpensesFromSiigo: (dateStart, dateEnd) => api.post('/siigo/sync-expenses-from-siigo', { date_start: dateStart, date_end: dateEnd }),
   getSettings: () => api.get('/siigo/settings'),
   testConnection: () => api.post('/siigo/test-connection'),
 };
