@@ -230,6 +230,14 @@ export const expensesAPI = {
   getSummary: (filters) => api.get('/expenses/summary/by-category', { params: filters }),
 };
 
+// Siigo API
+export const siigoAPI = {
+  syncInvoicesFromSiigo: () => api.post('/siigo/sync-invoices-from-siigo'),
+  syncExpensesFromSiigo: () => api.post('/siigo/sync-expenses-from-siigo'),
+  getSettings: () => api.get('/siigo/settings'),
+  testConnection: () => api.post('/siigo/test-connection'),
+};
+
 // Dashboard API
 export const dashboardAPI = {
   getStats: (dateRange) => api.get('/dashboard/stats', { params: dateRange }),

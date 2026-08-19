@@ -13,8 +13,11 @@ import {
   Building2,
   Calendar,
   ChevronDown,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
-import { dashboardAPI } from '../utils/api';
+import { dashboardAPI, siigoAPI } from '../utils/api';
 
 // Section components
 import OverviewSection from '../components/financial/OverviewSection';
@@ -45,10 +48,45 @@ const FinancialDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null); // { type: 'success' | 'error', message: string }
 
   useEffect(() => {
     loadFinancialData();
   }, [period, selectedMonth]);
+
+  const handleSiigoSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      // Sync invoices and expenses in parallel
+      const [invoicesRes, expensesRes] = await Promise.all([
+        siigoAPI.syncInvoicesFromSiigo(),
+        siigoAPI.syncExpensesFromSiigo(),
+      ]);
+
+      const invoiceCount = invoicesRes.data?.synced || 0;
+      const expenseCount = expensesRes.data?.synced || 0;
+
+      setSyncResult({
+        type: 'success',
+        message: `Sincronizado: ${invoiceCount} facturas, ${expenseCount} gastos`,
+      });
+
+      // Reload data
+      loadFinancialData();
+    } catch (error) {
+      console.error('Error syncing with Siigo:', error);
+      setSyncResult({
+        type: 'error',
+        message: error.response?.data?.error || 'Error sincronizando con Siigo',
+      });
+    } finally {
+      setSyncing(false);
+      // Clear result after 5 seconds
+      setTimeout(() => setSyncResult(null), 5000);
+    }
+  };
 
   const loadFinancialData = async () => {
     setLoading(true);
@@ -130,16 +168,50 @@ const FinancialDashboard = () => {
           </p>
         </div>
 
-        {/* Period Selector */}
-        <div className="relative">
+        {/* Controls */}
+        <div className="flex items-center gap-3">
+          {/* Siigo Sync Button */}
           <button
-            onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-            className="flex items-center gap-2 px-4 py-2.5 glass rounded-xl text-sm font-medium text-[#17181A] hover:bg-white/80 transition-colors"
+            onClick={handleSiigoSync}
+            disabled={syncing}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              syncing
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+            }`}
           >
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <span>{formatPeriodLabel()}</span>
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{syncing ? 'Sincronizando...' : 'Sync Siigo'}</span>
           </button>
+
+          {/* Sync Result Toast */}
+          {syncResult && (
+            <div
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                syncResult.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}
+            >
+              {syncResult.type === 'success' ? (
+                <CheckCircle className="w-4 h-4" />
+              ) : (
+                <AlertCircle className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{syncResult.message}</span>
+            </div>
+          )}
+
+          {/* Period Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+              className="flex items-center gap-2 px-4 py-2.5 glass rounded-xl text-sm font-medium text-[#17181A] hover:bg-white/80 transition-colors"
+            >
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <span>{formatPeriodLabel()}</span>
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            </button>
 
           {showPeriodDropdown && (
             <>
@@ -214,6 +286,7 @@ const FinancialDashboard = () => {
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
 

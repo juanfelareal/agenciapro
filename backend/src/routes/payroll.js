@@ -1,7 +1,10 @@
 import express from 'express';
 import multer from 'multer';
-import Anthropic from '@anthropic-ai/sdk';
+import { createRequire } from 'module';
 import db from '../config/database.js';
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 const router = express.Router();
 
@@ -18,14 +21,271 @@ const upload = multer({
   }
 });
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+/**
+ * Parse Colombian currency format
+ * Handles: $1.234.567,89 or 1.234.567,89 or 1234567.89
+ */
+function parseColombianMoney(str) {
+  if (!str) return 0;
+  // Remove $ and spaces
+  str = str.replace(/\$|\s/g, '').trim();
+  if (!str || str === '-') return 0;
+
+  // Colombian format: 1.234.567,89
+  if (str.includes('.') && str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes(',') && !str.includes('.')) {
+    str = str.replace(',', '.');
+  }
+
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : Math.abs(num);
+}
+
+/**
+ * Parse Aleluya payroll PDF text
+ * Extracts employee data from each page
+ */
+function parseAleluyaPDF(text) {
+  // Split by page markers or employee sections
+  const pages = text.split(/(?=NOMINA INDIVIDUAL|COLILLA DE PAGO|COMPROBANTE DE NÓMINA)/i);
+
+  const employees = [];
+  let empresa = '';
+  let fechaPago = '';
+  let periodo = '';
+  let year = new Date().getFullYear();
+  let month = new Date().getMonth() + 1;
+
+  // Try to extract company name and period from first page
+  const empresaMatch = text.match(/(?:EMPRESA|RAZÓN SOCIAL|EMPLEADOR)[:\s]*([^\n]+)/i);
+  if (empresaMatch) {
+    empresa = empresaMatch[1].trim();
+  }
+
+  // Try to extract period - look for month names
+  const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const periodoMatch = text.match(/(?:PERIODO|PERÍODO|MES)[:\s]*([^\n]+)/i) ||
+                       text.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s*(?:de\s*)?(\d{4})/i);
+
+  if (periodoMatch) {
+    periodo = periodoMatch[1].trim();
+    // Try to extract year
+    const yearMatch = periodo.match(/(\d{4})/);
+    if (yearMatch) {
+      year = parseInt(yearMatch[1]);
+    }
+    // Try to extract month
+    for (let i = 0; i < monthNames.length; i++) {
+      if (periodo.toLowerCase().includes(monthNames[i])) {
+        month = i + 1;
+        break;
+      }
+    }
+  }
+
+  // Try to extract payment date
+  const fechaMatch = text.match(/(?:FECHA DE PAGO|FECHA PAGO)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
+  if (fechaMatch) {
+    fechaPago = fechaMatch[1];
+  }
+
+  // Process each page/section for employee data
+  for (const page of pages) {
+    if (page.trim().length < 100) continue; // Skip empty pages
+
+    const employee = extractEmployeeData(page);
+    if (employee && employee.nombre) {
+      employees.push(employee);
+    }
+  }
+
+  // If no employees found with page splitting, try to parse as single employee
+  if (employees.length === 0) {
+    const employee = extractEmployeeData(text);
+    if (employee && employee.nombre) {
+      employees.push(employee);
+    }
+  }
+
+  // Calculate totals
+  const totales = {
+    total_devengados: employees.reduce((sum, e) => sum + (e.total_devengados || 0), 0),
+    total_deducciones: employees.reduce((sum, e) => sum + (e.total_deducciones || 0), 0),
+    total_neto: employees.reduce((sum, e) => sum + (e.total_pagado || 0), 0),
+  };
+
+  // Generate period name
+  const monthNamesEs = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  return {
+    empresa: empresa || 'LA REAL MARKETING SAS',
+    fecha_pago: fechaPago || null,
+    periodo: periodo || `${monthNamesEs[month - 1]} ${year}`,
+    year,
+    month,
+    empleados: employees,
+    totales,
+  };
+}
+
+/**
+ * Extract data for a single employee from text
+ */
+function extractEmployeeData(text) {
+  const employee = {
+    nombre: '',
+    identificacion: '',
+    cargo: '',
+    salario_base: 0,
+    dias_laborados: 30,
+    devengados: {
+      salario: 0,
+      transporte: 0,
+      prestaciones_sociales: 0,
+      bonificaciones: 0,
+      auxilios: 0,
+      otros: 0,
+    },
+    deducciones: {
+      seguridad_social: 0,
+      retencion_fuente: 0,
+      otros: 0,
+    },
+    total_devengados: 0,
+    total_deducciones: 0,
+    total_pagado: 0,
+  };
+
+  // Extract name - look for common patterns
+  const nombrePatterns = [
+    /(?:NOMBRE|EMPLEADO|TRABAJADOR)[:\s]*([A-ZÁÉÍÓÚÑ\s]+?)(?:\n|CEDULA|C\.?C\.?|IDENTIFICACIÓN)/i,
+    /(?:^|\n)([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{5,40})(?:\n)/m,
+  ];
+
+  for (const pattern of nombrePatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      // Filter out section headers
+      if (!name.match(/DEVENGADOS|DEDUCCIONES|TOTAL|NETO|EMPRESA|NOMINA/i) && name.length > 3) {
+        employee.nombre = name;
+        break;
+      }
+    }
+  }
+
+  // Extract ID (cédula)
+  const idMatch = text.match(/(?:CEDULA|C\.?C\.?|IDENTIFICACIÓN|DOCUMENTO)[:\s#]*(\d{5,12})/i);
+  if (idMatch) {
+    employee.identificacion = idMatch[1];
+  }
+
+  // Extract cargo
+  const cargoMatch = text.match(/(?:CARGO|POSICIÓN|PUESTO)[:\s]*([^\n]+)/i);
+  if (cargoMatch) {
+    employee.cargo = cargoMatch[1].trim();
+  }
+
+  // Extract salario base
+  const salarioMatch = text.match(/(?:SALARIO\s*(?:BASE|BÁSICO)?|SUELDO)[:\s]*\$?([\d\.,]+)/i);
+  if (salarioMatch) {
+    employee.salario_base = parseColombianMoney(salarioMatch[1]);
+    employee.devengados.salario = employee.salario_base;
+  }
+
+  // Extract días laborados
+  const diasMatch = text.match(/(?:DÍAS?\s*(?:LABORADOS?|TRABAJADOS?))[:\s]*(\d+)/i);
+  if (diasMatch) {
+    employee.dias_laborados = parseInt(diasMatch[1]) || 30;
+  }
+
+  // Extract devengados section values
+  const transporteMatch = text.match(/(?:AUXILIO\s*)?(?:TRANSPORTE|TRANSP\.?)[:\s]*\$?([\d\.,]+)/i);
+  if (transporteMatch) {
+    employee.devengados.transporte = parseColombianMoney(transporteMatch[1]);
+  }
+
+  const bonificacionMatch = text.match(/(?:BONIFICACIÓN|BONIFICACION|BONO)[:\s]*\$?([\d\.,]+)/i);
+  if (bonificacionMatch) {
+    employee.devengados.bonificaciones = parseColombianMoney(bonificacionMatch[1]);
+  }
+
+  const auxiliosMatch = text.match(/(?:AUXILIOS?(?!\s*TRANSPORTE))[:\s]*\$?([\d\.,]+)/i);
+  if (auxiliosMatch) {
+    employee.devengados.auxilios = parseColombianMoney(auxiliosMatch[1]);
+  }
+
+  // Extract total devengados
+  const totalDevMatch = text.match(/(?:TOTAL\s*DEVENGADOS?|DEVENGADO\s*TOTAL)[:\s]*\$?([\d\.,]+)/i);
+  if (totalDevMatch) {
+    employee.total_devengados = parseColombianMoney(totalDevMatch[1]);
+  } else {
+    // Calculate if not found
+    employee.total_devengados =
+      employee.devengados.salario +
+      employee.devengados.transporte +
+      employee.devengados.bonificaciones +
+      employee.devengados.auxilios +
+      employee.devengados.otros;
+  }
+
+  // Extract deducciones section values
+  const saludMatch = text.match(/(?:SALUD|EPS)[:\s]*\$?([\d\.,]+)/i);
+  const pensionMatch = text.match(/(?:PENSIÓN|PENSION|AFP)[:\s]*\$?([\d\.,]+)/i);
+  const seguridadMatch = text.match(/(?:SEGURIDAD\s*SOCIAL)[:\s]*\$?([\d\.,]+)/i);
+
+  if (seguridadMatch) {
+    employee.deducciones.seguridad_social = parseColombianMoney(seguridadMatch[1]);
+  } else if (saludMatch || pensionMatch) {
+    const salud = saludMatch ? parseColombianMoney(saludMatch[1]) : 0;
+    const pension = pensionMatch ? parseColombianMoney(pensionMatch[1]) : 0;
+    employee.deducciones.seguridad_social = salud + pension;
+  }
+
+  const retencionMatch = text.match(/(?:RETENCIÓN|RETENCION)(?:\s*(?:EN\s*LA\s*)?FUENTE)?[:\s]*\$?([\d\.,]+)/i);
+  if (retencionMatch) {
+    employee.deducciones.retencion_fuente = parseColombianMoney(retencionMatch[1]);
+  }
+
+  // Extract total deducciones
+  const totalDedMatch = text.match(/(?:TOTAL\s*DEDUCCIONES?|DEDUCCIONES?\s*TOTAL)[:\s]*\$?([\d\.,]+)/i);
+  if (totalDedMatch) {
+    employee.total_deducciones = parseColombianMoney(totalDedMatch[1]);
+  } else {
+    employee.total_deducciones =
+      employee.deducciones.seguridad_social +
+      employee.deducciones.retencion_fuente +
+      employee.deducciones.otros;
+  }
+
+  // Extract neto a pagar
+  const netoPatterns = [
+    /(?:NETO\s*A?\s*PAGAR|TOTAL\s*A?\s*PAGAR|VALOR\s*NETO)[:\s]*\$?([\d\.,]+)/i,
+    /(?:TOTAL\s*NETO)[:\s]*\$?([\d\.,]+)/i,
+  ];
+
+  for (const pattern of netoPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      employee.total_pagado = parseColombianMoney(match[1]);
+      break;
+    }
+  }
+
+  // If total_pagado not found, calculate it
+  if (employee.total_pagado === 0 && employee.total_devengados > 0) {
+    employee.total_pagado = employee.total_devengados - employee.total_deducciones;
+  }
+
+  return employee;
+}
 
 /**
  * POST /api/payroll/upload
- * Uploads and parses an Aleluya payroll PDF
+ * Uploads and parses an Aleluya payroll PDF using pdf-parse (no API key needed)
  */
 router.post('/upload', upload.single('pdf'), async (req, res) => {
   const pool = db.getPool();
@@ -36,120 +296,23 @@ router.post('/upload', upload.single('pdf'), async (req, res) => {
       return res.status(400).json({ error: 'Se requiere un archivo PDF' });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: 'ANTHROPIC_API_KEY no configurado' });
+    // Parse PDF using pdf-parse
+    const pdfData = await pdfParse(req.file.buffer);
+    const text = pdfData.text;
+
+    if (!text || text.trim().length < 50) {
+      return res.status(400).json({ error: 'No se pudo extraer texto del PDF. ¿Es un PDF escaneado?' });
     }
 
-    // Convert PDF to base64
-    const pdfBase64 = req.file.buffer.toString('base64');
+    // Parse the extracted text
+    const payrollData = parseAleluyaPDF(text);
 
-    // Use Claude to analyze the payroll PDF
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: 'application/pdf',
-                data: pdfBase64,
-              },
-            },
-            {
-              type: 'text',
-              text: `Analiza este documento de nómina de Aleluya (Colombia) y extrae la información de TODOS los empleados.
-El documento tiene una página por empleado con la siguiente estructura típica:
-- Encabezado: Empresa, Fecha de pago, Periodo de liquidación
-- Datos del empleado: Nombre, Identificación, Cargo, Salario base, Días laborados
-- Devengados: Salario, Transporte, Prestaciones Sociales, Bonificaciones, Auxilios
-- Deducciones: Seguridad Social, Retención en la Fuente
-- Total pagado
-
-Responde ÚNICAMENTE con un JSON válido (sin markdown, sin explicaciones) con esta estructura exacta:
-{
-  "empresa": "Nombre de la empresa",
-  "fecha_pago": "YYYY-MM-DD",
-  "periodo": "Descripción del periodo (ej: 'Junio 2026')",
-  "year": 2026,
-  "month": 6,
-  "empleados": [
-    {
-      "nombre": "Nombre completo",
-      "identificacion": "número de cédula",
-      "cargo": "Cargo del empleado",
-      "salario_base": 0,
-      "dias_laborados": 30,
-      "devengados": {
-        "salario": 0,
-        "transporte": 0,
-        "prestaciones_sociales": 0,
-        "bonificaciones": 0,
-        "auxilios": 0,
-        "otros": 0
-      },
-      "deducciones": {
-        "seguridad_social": 0,
-        "retencion_fuente": 0,
-        "otros": 0
-      },
-      "total_devengados": 0,
-      "total_deducciones": 0,
-      "total_pagado": 0
-    }
-  ],
-  "totales": {
-    "total_devengados": 0,
-    "total_deducciones": 0,
-    "total_neto": 0
-  }
-}
-
-Nota: Todos los valores monetarios deben ser números (sin puntos ni comas de formato), no strings.`
-            }
-          ]
-        }
-      ]
-    });
-
-    // Parse the response
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent) {
-      return res.status(500).json({ error: 'No se pudo analizar el PDF' });
-    }
-
-    let payrollData;
-    try {
-      // Clean the response (remove potential markdown formatting)
-      let jsonText = textContent.text.trim();
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.slice(7);
-      }
-      if (jsonText.startsWith('```')) {
-        jsonText = jsonText.slice(3);
-      }
-      if (jsonText.endsWith('```')) {
-        jsonText = jsonText.slice(0, -3);
-      }
-      payrollData = JSON.parse(jsonText.trim());
-    } catch (parseError) {
-      console.error('Error parsing payroll JSON:', parseError);
-      console.error('Raw response:', textContent.text);
-      return res.status(500).json({
-        error: 'Error parseando datos de nómina',
-        details: parseError.message,
-        raw: textContent.text.substring(0, 500)
-      });
-    }
-
-    // Validate required fields
-    if (!payrollData.year || !payrollData.month || !payrollData.empleados) {
+    // Validate we found at least one employee
+    if (!payrollData.empleados || payrollData.empleados.length === 0) {
       return res.status(400).json({
-        error: 'Datos de nómina incompletos',
-        data: payrollData
+        error: 'No se encontraron empleados en el PDF',
+        hint: 'Asegúrate de que el PDF sea un comprobante de nómina de Aleluya',
+        extractedText: text.substring(0, 500),
       });
     }
 
