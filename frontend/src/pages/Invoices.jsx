@@ -46,6 +46,8 @@ const Invoices = () => {
   const [emailModalInvoice, setEmailModalInvoice] = useState(null);
   const [emailValue, setEmailValue] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [syncingSiigo, setSyncingSiigo] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null);
   const [filters, setFilters] = useState({
     client_id: '',
     status: '',
@@ -223,6 +225,46 @@ const Invoices = () => {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncFromSiigo = async () => {
+    if (!siigoConnected) {
+      setSyncMessage({ type: 'error', text: 'Siigo no está conectado. Ve a Configuración > Siigo.' });
+      return;
+    }
+
+    setSyncingSiigo(true);
+    setSyncMessage(null);
+
+    try {
+      const res = await fetch(`${API_URL}/siigo/sync-invoices-from-siigo`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          date_start: filters.date_from || undefined,
+          date_end: filters.date_to || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setSyncMessage({
+          type: 'success',
+          text: `✓ ${data.imported} importadas, ${data.skipped} ya existían${data.errors?.length ? `, ${data.errors.length} errores` : ''}`
+        });
+        loadData(); // Refresh the list
+      } else {
+        setSyncMessage({ type: 'error', text: data.error || 'Error sincronizando' });
+      }
+    } catch (error) {
+      console.error('Error syncing from Siigo:', error);
+      setSyncMessage({ type: 'error', text: 'Error conectando con Siigo' });
+    } finally {
+      setSyncingSiigo(false);
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSyncMessage(null), 5000);
     }
   };
 
@@ -784,14 +826,36 @@ const Invoices = () => {
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Facturas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de facturas e ingresos</p>
         </div>
-        <button
-          onClick={handleNew}
-          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
-        >
-          <Plus size={20} />
-          Nueva Factura
-        </button>
+        <div className="flex items-center gap-3">
+          {siigoConnected && (
+            <button
+              onClick={handleSyncFromSiigo}
+              disabled={syncingSiigo}
+              className="border border-gray-200 text-[#17181A] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={18} className={syncingSiigo ? 'animate-spin' : ''} />
+              {syncingSiigo ? 'Sincronizando...' : 'Importar de Siigo'}
+            </button>
+          )}
+          <button
+            onClick={handleNew}
+            className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+          >
+            <Plus size={20} />
+            Nueva Factura
+          </button>
+        </div>
       </div>
+
+      {/* Sync message */}
+      {syncMessage && (
+        <div className={`px-4 py-3 rounded-xl flex items-center gap-2 ${
+          syncMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+        }`}>
+          {syncMessage.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          {syncMessage.text}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="glass-card p-4">

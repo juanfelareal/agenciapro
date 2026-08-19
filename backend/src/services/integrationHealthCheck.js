@@ -235,3 +235,80 @@ export async function runIntegrationHealthCheck() {
 
   return { startedAt, finishedAt, durationMs, summary, failures };
 }
+
+/**
+ * Refreshes Facebook tokens that are expiring within the next 7 days.
+ * Facebook long-lived tokens (60 days) can be exchanged for new ones while still valid.
+ */
+export async function refreshExpiringFacebookTokens() {
+  const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
+  const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
+
+  if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) {
+    console.log('[TokenRefresh] Facebook credentials not configured, skipping refresh');
+    return { refreshed: 0, failed: 0, errors: [] };
+  }
+
+  // Find tokens expiring within the next 7 days
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiringTokens = await db.prepare(`
+    SELECT cfc.id, cfc.client_id, cfc.access_token, cfc.ad_account_id, cfc.ad_account_name, cfc.expires_at,
+           c.name as client_name, c.company
+    FROM client_facebook_credentials cfc
+    JOIN clients c ON cfc.client_id = c.id
+    WHERE cfc.status = 'active'
+      AND cfc.expires_at IS NOT NULL
+      AND cfc.expires_at < ?
+      AND cfc.expires_at > CURRENT_TIMESTAMP
+  `).all(sevenDaysFromNow.toISOString());
+
+  console.log(`[TokenRefresh] Found ${expiringTokens.length} Facebook tokens expiring within 7 days`);
+
+  const results = { refreshed: 0, failed: 0, errors: [] };
+
+  for (const token of expiringTokens) {
+    try {
+      // Exchange current token for a new long-lived token
+      const refreshUrl = `https://graph.facebook.com/v18.0/oauth/access_token?` +
+        `grant_type=fb_exchange_token` +
+        `&client_id=${FACEBOOK_APP_ID}` +
+        `&client_secret=${FACEBOOK_APP_SECRET}` +
+        `&fb_exchange_token=${token.access_token}`;
+
+      const response = await fetch(refreshUrl);
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      const newToken = data.access_token;
+      const expiresInSeconds = data.expires_in || 5184000; // Default 60 days
+      const newExpiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+
+      // Update the database with new token and expiration
+      await db.prepare(`
+        UPDATE client_facebook_credentials
+        SET access_token = ?, expires_at = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(newToken, newExpiresAt.toISOString(), token.id);
+
+      console.log(`[TokenRefresh] ✓ Refreshed token for ${token.company || token.client_name} (${token.ad_account_name})`);
+      results.refreshed++;
+    } catch (err) {
+      console.error(`[TokenRefresh] ✗ Failed to refresh token for ${token.company || token.client_name}: ${err.message}`);
+      results.failed++;
+      results.errors.push({
+        client: token.company || token.client_name,
+        account: token.ad_account_name || token.ad_account_id,
+        error: err.message,
+      });
+
+      // Mark token as expiring soon but don't change status to error yet
+      // The health check will handle that when it actually fails
+    }
+  }
+
+  console.log(`[TokenRefresh] Complete: ${results.refreshed} refreshed, ${results.failed} failed`);
+  return results;
+}

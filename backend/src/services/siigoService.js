@@ -628,6 +628,68 @@ class SiigoService {
     return results;
   }
 
+  // ========== PAYMENT RECEIPTS (EGRESOS) ==========
+  // Fetches payment receipts (comprobantes de egreso) from Siigo
+  async getPaymentReceipts(orgId, dateStart = null, dateEnd = null) {
+    const allResults = [];
+    let currentPage = 1;
+    const pageSize = 100;
+
+    while (true) {
+      let url = `/payment-receipts?page=${currentPage}&page_size=${pageSize}`;
+      if (dateStart) url += `&created_start=${dateStart}`;
+
+      const data = await this.apiRequest(orgId, 'GET', url);
+      const pageResults = data?.results || [];
+      allResults.push(...pageResults);
+
+      const total = data?.pagination?.total_results || 0;
+      if (allResults.length >= total || pageResults.length === 0) break;
+      currentPage++;
+    }
+
+    // Filter by document date if range provided
+    if (!dateStart && !dateEnd) return allResults;
+    return allResults.filter((pr) => {
+      const d = pr.date?.split('T')[0];
+      if (!d) return false;
+      if (dateStart && d < dateStart) return false;
+      if (dateEnd && d > dateEnd) return false;
+      return true;
+    });
+  }
+
+  // ========== PURCHASES (FACTURAS DE COMPRA / GASTOS) ==========
+  // Fetches purchase invoices from Siigo
+  async getPurchases(orgId, dateStart = null, dateEnd = null) {
+    const allResults = [];
+    let currentPage = 1;
+    const pageSize = 100;
+
+    while (true) {
+      let url = `/purchases?page=${currentPage}&page_size=${pageSize}`;
+      if (dateStart) url += `&created_start=${dateStart}`;
+
+      const data = await this.apiRequest(orgId, 'GET', url);
+      const pageResults = data?.results || [];
+      allResults.push(...pageResults);
+
+      const total = data?.pagination?.total_results || 0;
+      if (allResults.length >= total || pageResults.length === 0) break;
+      currentPage++;
+    }
+
+    // Filter by document date if range provided
+    if (!dateStart && !dateEnd) return allResults;
+    return allResults.filter((p) => {
+      const d = p.date?.split('T')[0];
+      if (!d) return false;
+      if (dateStart && d < dateStart) return false;
+      if (dateEnd && d > dateEnd) return false;
+      return true;
+    });
+  }
+
   // Test connection
   async testConnection(orgId) {
     try {

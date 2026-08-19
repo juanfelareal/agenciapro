@@ -592,4 +592,214 @@ router.post('/invoices/sync-bulk', async (req, res) => {
   }
 });
 
+// ========== SYNC FROM SIIGO (IMPORT) ==========
+
+// Import invoices FROM Siigo INTO Orbit
+router.post('/sync-invoices-from-siigo', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { date_start, date_end } = req.body || {};
+
+    // Get invoices from Siigo
+    const siigoInvoices = await siigoService.getInvoices(orgId, 1, 100, date_start, date_end);
+    const invoices = siigoInvoices?.results || [];
+
+    const results = { imported: 0, updated: 0, skipped: 0, errors: [] };
+
+    for (const siigoInv of invoices) {
+      try {
+        // Check if invoice already exists in Orbit by siigo_id
+        const existing = await db.prepare(
+          'SELECT id FROM invoices WHERE siigo_id = ? AND organization_id = ?'
+        ).get(siigoInv.id, orgId);
+
+        if (existing) {
+          results.skipped++;
+          continue;
+        }
+
+        // Try to match client by NIT or name
+        const customerName = siigoInv.customer?.name?.[0] || 'Cliente Siigo';
+        const customerNit = siigoInv.customer?.identification;
+
+        let clientId = null;
+        if (customerNit) {
+          const clientByNit = await db.prepare(
+            'SELECT id FROM clients WHERE nit = ? AND organization_id = ?'
+          ).get(customerNit, orgId);
+          clientId = clientByNit?.id;
+        }
+
+        if (!clientId) {
+          const clientByName = await db.prepare(
+            'SELECT id FROM clients WHERE (company LIKE ? OR name LIKE ?) AND organization_id = ?'
+          ).get(`%${customerName}%`, `%${customerName}%`, orgId);
+          clientId = clientByName?.id;
+        }
+
+        // Calculate amount (sum of items)
+        const amount = siigoInv.items?.reduce((sum, item) => {
+          const qty = item.quantity || 1;
+          const price = item.price || 0;
+          return sum + (qty * price);
+        }, 0) || 0;
+
+        // Determine status based on Siigo balance
+        const balance = siigoInv.balance || 0;
+        const status = balance <= 0 ? 'paid' : 'invoiced';
+
+        // Insert invoice
+        await db.prepare(`
+          INSERT INTO invoices (
+            client_id, amount, issue_date, status, siigo_id, siigo_status,
+            invoice_type, notes, organization_id, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, 'sent', 'con_iva', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).run(
+          clientId,
+          amount,
+          siigoInv.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+          status,
+          siigoInv.id,
+          `Importado de Siigo: ${siigoInv.name || siigoInv.prefix || ''}-${siigoInv.number || ''}`,
+          orgId
+        );
+
+        results.imported++;
+      } catch (err) {
+        results.errors.push({ siigoId: siigoInv.id, error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Sincronización completada: ${results.imported} importadas, ${results.skipped} ya existían`,
+      ...results,
+      totalFromSiigo: invoices.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Import expenses/purchases FROM Siigo INTO Orbit
+router.post('/sync-expenses-from-siigo', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { date_start, date_end } = req.body || {};
+
+    // Get both payment receipts (egresos) and purchases from Siigo
+    const [paymentReceipts, purchases] = await Promise.all([
+      siigoService.getPaymentReceipts(orgId, date_start, date_end),
+      siigoService.getPurchases(orgId, date_start, date_end)
+    ]);
+
+    const results = { imported: 0, updated: 0, skipped: 0, errors: [] };
+
+    // Process payment receipts (egresos)
+    for (const pr of paymentReceipts) {
+      try {
+        const siigoId = `pr_${pr.id}`;
+
+        // Check if already exists
+        const existing = await db.prepare(
+          'SELECT id FROM expenses WHERE siigo_id = ? AND organization_id = ?'
+        ).get(siigoId, orgId);
+
+        if (existing) {
+          results.skipped++;
+          continue;
+        }
+
+        // Calculate amount from items
+        const amount = pr.items?.reduce((sum, item) => {
+          return sum + Math.abs(item.value || 0);
+        }, 0) || 0;
+
+        // Get supplier name
+        const supplierName = pr.supplier?.name || 'Proveedor Siigo';
+
+        await db.prepare(`
+          INSERT INTO expenses (
+            description, amount, expense_date, category, siigo_id, notes,
+            organization_id, created_at, updated_at
+          ) VALUES (?, ?, ?, 'Operación', ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).run(
+          `Egreso Siigo: ${supplierName}`,
+          amount,
+          pr.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+          siigoId,
+          pr.observations || '',
+          orgId
+        );
+
+        results.imported++;
+      } catch (err) {
+        results.errors.push({ siigoId: pr.id, type: 'payment_receipt', error: err.message });
+      }
+    }
+
+    // Process purchases (facturas de compra)
+    for (const purchase of purchases) {
+      try {
+        const siigoId = `pu_${purchase.id}`;
+
+        // Check if already exists
+        const existing = await db.prepare(
+          'SELECT id FROM expenses WHERE siigo_id = ? AND organization_id = ?'
+        ).get(siigoId, orgId);
+
+        if (existing) {
+          results.skipped++;
+          continue;
+        }
+
+        // Calculate amount from items
+        const amount = purchase.items?.reduce((sum, item) => {
+          const qty = item.quantity || 1;
+          const price = item.price || 0;
+          return sum + (qty * price);
+        }, 0) || 0;
+
+        // Get supplier name
+        const supplierName = purchase.supplier?.name || 'Proveedor Siigo';
+
+        // Categorize based on account or type
+        let category = 'Operación';
+        const accountCode = purchase.items?.[0]?.account?.code || '';
+        if (accountCode.startsWith('51')) category = 'Operación';
+        else if (accountCode.startsWith('52')) category = 'Nómina';
+        else if (accountCode.startsWith('53')) category = 'Otros';
+
+        await db.prepare(`
+          INSERT INTO expenses (
+            description, amount, expense_date, category, siigo_id, notes,
+            organization_id, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).run(
+          `Compra: ${supplierName} - ${purchase.name || ''}${purchase.number || ''}`,
+          amount,
+          purchase.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+          category,
+          siigoId,
+          purchase.observations || '',
+          orgId
+        );
+
+        results.imported++;
+      } catch (err) {
+        results.errors.push({ siigoId: purchase.id, type: 'purchase', error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Sincronización completada: ${results.imported} gastos importados, ${results.skipped} ya existían`,
+      ...results,
+      totalFromSiigo: paymentReceipts.length + purchases.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

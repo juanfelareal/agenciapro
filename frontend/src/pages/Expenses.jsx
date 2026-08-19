@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { expensesAPI, projectsAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Edit, Trash2, X, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+const authHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -8,6 +18,9 @@ const Expenses = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [siigoConnected, setSiigoConnected] = useState(false);
+  const [syncingSiigo, setSyncingSiigo] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null);
   const [formData, setFormData] = useState({
     description: '',
     category: '',
@@ -20,7 +33,19 @@ const Expenses = () => {
 
   useEffect(() => {
     loadData();
+    checkSiigoConnection();
   }, []);
+
+  const checkSiigoConnection = async () => {
+    try {
+      const res = await fetch(`${API_URL}/siigo/settings`, { headers: authHeaders() });
+      const data = await res.json();
+      setSiigoConnected(data?.has_token === 1);
+    } catch (error) {
+      console.error('Error checking Siigo connection:', error);
+      setSiigoConnected(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -34,6 +59,43 @@ const Expenses = () => {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncFromSiigo = async () => {
+    if (!siigoConnected) {
+      setSyncMessage({ type: 'error', text: 'Siigo no está conectado. Ve a Configuración > Siigo.' });
+      return;
+    }
+
+    setSyncingSiigo(true);
+    setSyncMessage(null);
+
+    try {
+      const res = await fetch(`${API_URL}/siigo/sync-expenses-from-siigo`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setSyncMessage({
+          type: 'success',
+          text: `✓ ${data.imported} importados, ${data.skipped} ya existían${data.errors?.length ? `, ${data.errors.length} errores` : ''}`
+        });
+        loadData(); // Refresh the list
+      } else {
+        setSyncMessage({ type: 'error', text: data.error || 'Error sincronizando' });
+      }
+    } catch (error) {
+      console.error('Error syncing from Siigo:', error);
+      setSyncMessage({ type: 'error', text: 'Error conectando con Siigo' });
+    } finally {
+      setSyncingSiigo(false);
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSyncMessage(null), 5000);
     }
   };
 
@@ -123,14 +185,36 @@ const Expenses = () => {
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Gastos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Registro de gastos y egresos</p>
         </div>
-        <button
-          onClick={handleNew}
-          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
-        >
-          <Plus size={20} />
-          Nuevo Gasto
-        </button>
+        <div className="flex items-center gap-3">
+          {siigoConnected && (
+            <button
+              onClick={handleSyncFromSiigo}
+              disabled={syncingSiigo}
+              className="border border-gray-200 text-[#17181A] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={18} className={syncingSiigo ? 'animate-spin' : ''} />
+              {syncingSiigo ? 'Sincronizando...' : 'Importar de Siigo'}
+            </button>
+          )}
+          <button
+            onClick={handleNew}
+            className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+          >
+            <Plus size={20} />
+            Nuevo Gasto
+          </button>
+        </div>
       </div>
+
+      {/* Sync message */}
+      {syncMessage && (
+        <div className={`px-4 py-3 rounded-xl flex items-center gap-2 ${
+          syncMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+        }`}>
+          {syncMessage.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          {syncMessage.text}
+        </div>
+      )}
 
       <div className="glass-card p-6">
         <p className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Total de Gastos</p>

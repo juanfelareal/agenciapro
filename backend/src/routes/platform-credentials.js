@@ -69,10 +69,31 @@ router.get('/client/:clientId', async (req, res) => {
 
 // Run the integration health check on demand (tests every connected
 // Facebook, Shopify, and Siigo integration and updates their status).
+// Also refreshes Facebook tokens that are about to expire.
 router.post('/health-check', async (req, res) => {
   try {
-    const { runIntegrationHealthCheck } = await import('../services/integrationHealthCheck.js');
-    const result = await runIntegrationHealthCheck();
+    const { runIntegrationHealthCheck, refreshExpiringFacebookTokens } = await import('../services/integrationHealthCheck.js');
+
+    // First, refresh any expiring Facebook tokens
+    const tokenRefreshResult = await refreshExpiringFacebookTokens();
+
+    // Then run the health check
+    const healthCheckResult = await runIntegrationHealthCheck();
+
+    res.json({
+      ...healthCheckResult,
+      tokenRefresh: tokenRefreshResult
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Refresh Facebook tokens that are about to expire (within 7 days)
+router.post('/refresh-facebook-tokens', async (req, res) => {
+  try {
+    const { refreshExpiringFacebookTokens } = await import('../services/integrationHealthCheck.js');
+    const result = await refreshExpiringFacebookTokens();
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

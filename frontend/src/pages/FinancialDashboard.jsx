@@ -10,6 +10,7 @@ import {
   Wallet,
   CreditCard,
   UserCheck,
+  Building2,
   Calendar,
   ChevronDown,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ import ClientsSection from '../components/financial/ClientsSection';
 import ReceivablesSection from '../components/financial/ReceivablesSection';
 import ExpensesSection from '../components/financial/ExpensesSection';
 import PayrollSection from '../components/financial/PayrollSection';
+import BankSection from '../components/financial/BankSection';
 
 const SECTIONS = [
   { id: 'overview', name: 'Resumen', icon: LayoutDashboard },
@@ -29,7 +31,8 @@ const SECTIONS = [
   { id: 'clientes', name: 'Clientes', icon: Users },
   { id: 'cartera', name: 'Cartera', icon: Wallet },
   { id: 'gastos', name: 'Gastos', icon: CreditCard },
-  { id: 'nomina', name: 'Nómina', icon: UserCheck },
+  { id: 'nomina', name: 'Nomina', icon: UserCheck },
+  { id: 'banco', name: 'Banco', icon: Building2 },
 ];
 
 const FinancialDashboard = () => {
@@ -107,6 +110,8 @@ const FinancialDashboard = () => {
         return <ExpensesSection {...props} />;
       case 'nomina':
         return <PayrollSection {...props} />;
+      case 'banco':
+        return <BankSection {...props} />;
       default:
         return <OverviewSection {...props} />;
     }

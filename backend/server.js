@@ -109,6 +109,10 @@ import portalUGCRoutes from './src/routes/portal/ugc.js';
 // Document Signing (NDA, Contracts)
 import documentTemplatesRoutes from './src/routes/document-templates.js';
 import portalDocumentsRoutes from './src/routes/portal/documents.js';
+// Payroll (Nómina - Aleluya integration)
+import payrollRoutes from './src/routes/payroll.js';
+// Bank Statements (Extractos Bancolombia CSV)
+import bankStatementsRoutes from './src/routes/bank-statements.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -303,6 +307,12 @@ app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);  // Authenticated routes aft
 
 // Document Signing (NDA, Contracts)
 app.use('/api/document-templates', teamAuthMiddleware, documentTemplatesRoutes);
+
+// Payroll (Nómina - Aleluya integration)
+app.use('/api/payroll', teamAuthMiddleware, payrollRoutes);
+
+// Bank Statements (Extractos Bancolombia CSV)
+app.use('/api/bank-statements', teamAuthMiddleware, bankStatementsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

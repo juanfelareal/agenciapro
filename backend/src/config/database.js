@@ -3424,6 +3424,102 @@ export const initializeDatabase = async () => {
       ])
     ]);
 
+    // =========================================================================
+    // PAYROLL / NÓMINA (from Aleluya PDF uploads)
+    // =========================================================================
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payroll_periods (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        period_name TEXT,
+        payment_date DATE,
+        source TEXT DEFAULT 'aleluya',
+        total_devengados REAL DEFAULT 0,
+        total_deducciones REAL DEFAULT 0,
+        total_neto REAL DEFAULT 0,
+        employee_count INTEGER DEFAULT 0,
+        raw_data JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(organization_id, year, month)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payroll_employees (
+        id SERIAL PRIMARY KEY,
+        payroll_period_id INTEGER NOT NULL REFERENCES payroll_periods(id) ON DELETE CASCADE,
+        nombre TEXT NOT NULL,
+        identificacion TEXT,
+        cargo TEXT,
+        salario_base REAL DEFAULT 0,
+        dias_laborados INTEGER DEFAULT 0,
+
+        -- Devengados
+        dev_salario REAL DEFAULT 0,
+        dev_transporte REAL DEFAULT 0,
+        dev_prestaciones_sociales REAL DEFAULT 0,
+        dev_bonificaciones REAL DEFAULT 0,
+        dev_auxilios REAL DEFAULT 0,
+        dev_otros REAL DEFAULT 0,
+        total_devengados REAL DEFAULT 0,
+
+        -- Deducciones
+        ded_seguridad_social REAL DEFAULT 0,
+        ded_retencion_fuente REAL DEFAULT 0,
+        ded_otros REAL DEFAULT 0,
+        total_deducciones REAL DEFAULT 0,
+
+        -- Neto
+        total_pagado REAL DEFAULT 0,
+
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Bank statements (Bancolombia CSV uploads)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bank_statement_periods (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        bank_name TEXT DEFAULT 'Bancolombia',
+        account_number TEXT,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        period_name TEXT,
+        opening_balance REAL DEFAULT 0,
+        closing_balance REAL DEFAULT 0,
+        total_credits REAL DEFAULT 0,
+        total_debits REAL DEFAULT 0,
+        transaction_count INTEGER DEFAULT 0,
+        raw_data JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(organization_id, account_number, year, month)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bank_transactions (
+        id SERIAL PRIMARY KEY,
+        statement_period_id INTEGER NOT NULL REFERENCES bank_statement_periods(id) ON DELETE CASCADE,
+        transaction_date DATE NOT NULL,
+        description TEXT,
+        reference TEXT,
+        doc_number TEXT,
+        office TEXT,
+        debit REAL DEFAULT 0,
+        credit REAL DEFAULT 0,
+        balance REAL DEFAULT 0,
+        category TEXT,
+        matched_expense_id INTEGER REFERENCES expenses(id),
+        matched_invoice_id INTEGER REFERENCES invoices(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

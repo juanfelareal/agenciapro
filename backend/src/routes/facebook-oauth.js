@@ -148,11 +148,16 @@ router.get('/callback', async (req, res) => {
     const longTokenData = await longTokenResponse.json();
 
     const longLivedToken = longTokenData.access_token || access_token;
+    // Facebook returns expires_in in seconds (typically 5184000 = 60 days)
+    const expiresInSeconds = longTokenData.expires_in || 5184000;
+    // Calculate expiration timestamp
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
     // Store token temporarily with session ID
     const sessionId = `fb_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     oauthSessions.set(sessionId, {
       accessToken: longLivedToken,
+      expiresAt: expiresAt.toISOString(),
       clientId: clientId,
       orgId: session.orgId,
       createdAt: Date.now()
@@ -291,7 +296,7 @@ router.post('/link-accounts', async (req, res) => {
       return res.status(401).json({ error: 'Sesion expirada. Por favor reconecta con Facebook.' });
     }
 
-    const { accessToken } = session;
+    const { accessToken, expiresAt } = session;
 
     // Verify client exists and belongs to org
     const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);
@@ -315,13 +320,14 @@ router.post('/link-accounts', async (req, res) => {
     // Insert or update each selected account
     const insertStmt = db.prepare(`
       INSERT INTO client_facebook_credentials
-        (client_id, access_token, ad_account_id, ad_account_name, status)
-      VALUES (?, ?, ?, ?, 'active')
+        (client_id, access_token, ad_account_id, ad_account_name, status, expires_at)
+      VALUES (?, ?, ?, ?, 'active', ?)
       ON CONFLICT(client_id, ad_account_id)
       DO UPDATE SET
         access_token = excluded.access_token,
         ad_account_name = excluded.ad_account_name,
         status = 'active',
+        expires_at = excluded.expires_at,
         last_error = NULL,
         updated_at = CURRENT_TIMESTAMP
     `);
@@ -330,7 +336,7 @@ router.post('/link-accounts', async (req, res) => {
     for (const accountId of account_ids) {
       const accountName = accountsMap.get(accountId) || 'Cuenta de anuncios';
       try {
-        await insertStmt.run(client_id, accessToken, accountId, accountName);
+        await insertStmt.run(client_id, accessToken, accountId, accountName, expiresAt || null);
         results.push({ accountId, success: true });
       } catch (err) {
         results.push({ accountId, success: false, error: err.message });

@@ -2,34 +2,97 @@
  * Payroll Section - Nómina
  * Uses platform's glass design system (light theme)
  */
-import { useState, useMemo } from 'react';
-import {
-  ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart
-} from 'recharts';
-import { Users, Briefcase, TrendingUp, Percent } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Users, Briefcase, TrendingUp, Percent, Upload, X, CheckCircle, AlertCircle, FileText, Loader2 } from 'lucide-react';
 import KPICard from './shared/KPICard';
 import FinancialCard from './shared/FinancialCard';
-import { formatCurrency, formatPercent, formatMultiplier } from './shared/formatters';
+import { formatCurrency } from './shared/formatters';
 
-const tooltipStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  border: '1px solid #e5e7eb',
-  borderRadius: '8px',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-};
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-const COLORS = {
-  payroll: '#818cf8',
-  income: '#2dd4bf',
-  salario: '#818cf8',
-  prestaciones: '#2dd4bf',
-  parafiscales: '#fbbf24',
-  beneficios: '#c084fc',
+const authHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
 };
 
 const PayrollSection = ({ data, loading }) => {
   const [expandedEmployees, setExpandedEmployees] = useState({});
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
+  const [payrollData, setPayrollData] = useState(null);
+  const [loadingPayroll, setLoadingPayroll] = useState(true);
+  const fileInputRef = useRef(null);
+
+  // Load payroll data from API
+  useEffect(() => {
+    loadPayrollData();
+  }, []);
+
+  const loadPayrollData = async () => {
+    setLoadingPayroll(true);
+    try {
+      const res = await fetch(`${API_URL}/payroll/current`, { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setPayrollData(data);
+      }
+    } catch (error) {
+      console.error('Error loading payroll data:', error);
+    } finally {
+      setLoadingPayroll(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      setUploadMessage({ type: 'error', text: 'Solo se permiten archivos PDF' });
+      return;
+    }
+
+    setUploading(true);
+    setUploadMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const res = await fetch(`${API_URL}/payroll/upload`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setUploadMessage({
+          type: 'success',
+          text: `✓ ${data.message}`
+        });
+        loadPayrollData(); // Refresh data
+        setTimeout(() => {
+          setShowUploadModal(false);
+          setUploadMessage(null);
+        }, 2000);
+      } else {
+        setUploadMessage({ type: 'error', text: data.error || 'Error procesando el PDF' });
+      }
+    } catch (error) {
+      console.error('Error uploading payroll:', error);
+      setUploadMessage({ type: 'error', text: 'Error subiendo el archivo' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const toggleEmployee = (empId) => {
     setExpandedEmployees((prev) => ({
@@ -38,124 +101,75 @@ const PayrollSection = ({ data, loading }) => {
     }));
   };
 
-  // Mock employee data (will be replaced with real API data)
-  const employees = useMemo(() => [
-    {
-      id: 'emp1',
-      name: 'Juan Felipe León',
-      position: 'Director',
-      monthly: [4235000, 4235000, 4520000, 4520000, 4850000, 5012000, 5228000],
-      // Breakdown percentages: ~60% salario, ~22% prestaciones, ~9% parafiscales, ~9% beneficios
-      breakdown: {
-        salario: 0.60,
-        prestaciones: 0.22,
-        parafiscales: 0.09,
-        beneficios: 0.09,
-      },
-    },
-    {
-      id: 'emp2',
-      name: 'Mariana Sanín',
-      position: 'Dir. Creativa',
-      monthly: [4235000, 4235000, 4520000, 4520000, 4850000, 5012000, 5228000],
-      breakdown: {
-        salario: 0.60,
-        prestaciones: 0.22,
-        parafiscales: 0.09,
-        beneficios: 0.09,
-      },
-    },
-    {
-      id: 'emp3',
-      name: 'Carlos Rodríguez',
-      position: 'Media Buyer',
-      monthly: [3200000, 3200000, 3500000, 3500000, 3700000, 3900000, 4100000],
-      breakdown: {
-        salario: 0.60,
-        prestaciones: 0.22,
-        parafiscales: 0.09,
-        beneficios: 0.09,
-      },
-    },
-    {
-      id: 'emp4',
-      name: 'Ana García',
-      position: 'Community Manager',
-      monthly: [3330000, 3330000, 3460000, 3460000, 4400000, 5076000, 5244000],
-      breakdown: {
-        salario: 0.60,
-        prestaciones: 0.22,
-        parafiscales: 0.09,
-        beneficios: 0.09,
-      },
-    },
-  ], []);
+  // Transform API data to display format
+  const employees = useMemo(() => {
+    if (!payrollData?.employees) return [];
 
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
+    return payrollData.employees.map((emp, idx) => ({
+      id: emp.id || `emp-${idx}`,
+      name: emp.nombre,
+      position: emp.cargo || 'N/A',
+      totalPagado: emp.total_pagado || 0,
+      totalDevengados: emp.total_devengados || 0,
+      totalDeducciones: emp.total_deducciones || 0,
+      breakdown: {
+        salario: emp.dev_salario || 0,
+        transporte: emp.dev_transporte || 0,
+        prestaciones: emp.dev_prestaciones_sociales || 0,
+        bonificaciones: emp.dev_bonificaciones || 0,
+        auxilios: emp.dev_auxilios || 0,
+        otros: emp.dev_otros || 0,
+        dedSeguridadSocial: emp.ded_seguridad_social || 0,
+        dedRetencion: emp.ded_retencion_fuente || 0,
+        dedOtros: emp.ded_otros || 0,
+      },
+    }));
+  }, [payrollData]);
 
-  // Calculate totals
+  // Period info
+  const periodInfo = useMemo(() => {
+    if (!payrollData) return null;
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return {
+      label: payrollData.period_name || `${monthNames[payrollData.month - 1]} ${payrollData.year}`,
+      month: payrollData.month,
+      year: payrollData.year,
+    };
+  }, [payrollData]);
+
+  // Calculate totals from real data
   const totals = useMemo(() => {
-    const monthlyTotals = months.map((_, i) =>
-      employees.reduce((sum, emp) => sum + emp.monthly[i], 0)
-    );
-    const yearTotal = monthlyTotals.reduce((a, b) => a + b, 0);
-    const currentMonthTotal = monthlyTotals[monthlyTotals.length - 1];
-    const prevMonthTotal = monthlyTotals[monthlyTotals.length - 2];
-
-    return { monthlyTotals, yearTotal, currentMonthTotal, prevMonthTotal };
-  }, [employees]);
-
-  // Chart data
-  const chartData = useMemo(() => {
-    const income = [32300000, 60900000, 78200000, 57400000, 83100000, 68200000, 82400000];
-    return months.map((month, i) => ({
-      month,
-      payroll: totals.monthlyTotals[i],
-      income: income[i],
-      productivity: income[i] / totals.monthlyTotals[i],
-    }));
-  }, [totals]);
-
-  // Productivity trend
-  const productivityData = useMemo(() => {
-    return chartData.map((d) => ({
-      month: d.month,
-      productivity: d.productivity,
-    }));
-  }, [chartData]);
-
-  // Cost groups data
-  const costGroupData = useMemo(() => {
-    return months.map((month, i) => {
-      const total = totals.monthlyTotals[i];
-      return {
-        month,
-        salario: total * 0.60,
-        prestaciones: total * 0.22,
-        parafiscales: total * 0.09,
-        beneficios: total * 0.09,
-      };
-    });
-  }, [totals]);
+    if (!payrollData) {
+      return { totalDevengados: 0, totalDeducciones: 0, totalNeto: 0 };
+    }
+    return {
+      totalDevengados: payrollData.total_devengados || 0,
+      totalDeducciones: payrollData.total_deducciones || 0,
+      totalNeto: payrollData.total_neto || 0,
+    };
+  }, [payrollData]);
 
   // KPI calculations
   const kpis = useMemo(() => {
     const employeeCount = employees.length;
-    const currentIncome = 82400000; // July income
-    const productivity = currentIncome / totals.currentMonthTotal;
-    const incomePercent = (totals.currentMonthTotal / currentIncome) * 100;
-    const monthChange = ((totals.currentMonthTotal - totals.prevMonthTotal) / totals.prevMonthTotal) * 100;
+    const currentPayroll = totals.totalNeto;
+    // These would come from real income data in a full implementation
+    const estimatedIncome = currentPayroll * 4; // Placeholder
+    const productivity = currentPayroll > 0 ? estimatedIncome / currentPayroll : 0;
+    const incomePercent = estimatedIncome > 0 ? (currentPayroll / estimatedIncome) * 100 : 0;
 
     return {
       employeeCount,
-      currentPayroll: totals.currentMonthTotal,
+      currentPayroll,
+      totalDevengados: totals.totalDevengados,
+      totalDeducciones: totals.totalDeducciones,
       productivity,
       incomePercent,
-      monthChange,
+      monthChange: 0, // Would need historical data
     };
   }, [employees, totals]);
 
-  if (loading) {
+  if (loading || loadingPayroll) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -167,183 +181,178 @@ const PayrollSection = ({ data, loading }) => {
     );
   }
 
+  // Empty state - no payroll data yet
+  if (!payrollData) {
+    return (
+      <div className="space-y-6">
+        {/* Header with upload button */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-lg font-semibold text-[#17181A]">Nómina</h2>
+            <p className="text-sm text-gray-500">Importa tu nómina desde Aleluya</p>
+          </div>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+          >
+            <Upload size={18} />
+            Importar PDF de Aleluya
+          </button>
+        </div>
+
+        {/* Empty state card */}
+        <div className="glass rounded-2xl p-12 text-center">
+          <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-indigo-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin datos de nómina</h3>
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            Sube tu PDF de nómina exportado desde Aleluya para ver el detalle de pagos y deducciones de tu equipo.
+          </p>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-indigo-500 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-indigo-600 transition-colors mx-auto"
+          >
+            <Upload size={18} />
+            Subir PDF de Aleluya
+          </button>
+        </div>
+
+        {/* Upload Modal */}
+        {showUploadModal && renderUploadModal()}
+      </div>
+    );
+  }
+
+  // Render upload modal helper
+  function renderUploadModal() {
+    return (
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-[#17181A]">Importar Nómina de Aleluya</h2>
+            <button
+              onClick={() => {
+                setShowUploadModal(false);
+                setUploadMessage(null);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <X size={20} className="text-gray-500" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-indigo-300 transition-colors">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="payroll-upload"
+                disabled={uploading}
+              />
+              <label
+                htmlFor="payroll-upload"
+                className="cursor-pointer block"
+              >
+                {uploading ? (
+                  <Loader2 className="w-12 h-12 text-indigo-500 mx-auto mb-3 animate-spin" />
+                ) : (
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                )}
+                <p className="text-sm font-medium text-[#17181A] mb-1">
+                  {uploading ? 'Procesando PDF...' : 'Haz clic para seleccionar PDF'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  PDF de nómina exportado desde Aleluya (máx. 15MB)
+                </p>
+              </label>
+            </div>
+
+            {uploadMessage && (
+              <div className={`px-4 py-3 rounded-xl flex items-center gap-2 ${
+                uploadMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              }`}>
+                {uploadMessage.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                {uploadMessage.text}
+              </div>
+            )}
+
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h4 className="text-sm font-medium text-[#17181A] mb-2">¿Cómo exportar desde Aleluya?</h4>
+              <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                <li>Ingresa a tu cuenta de Aleluya</li>
+                <li>Ve a Nómina → Historial de Liquidaciones</li>
+                <li>Selecciona el período y haz clic en "Exportar PDF"</li>
+                <li>Sube el archivo aquí</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Header with period info and upload button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-semibold text-[#17181A]">
+            Nómina {periodInfo?.label || ''}
+          </h2>
+          <p className="text-sm text-gray-500">{employees.length} empleados</p>
+        </div>
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="border border-gray-200 text-[#17181A] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors"
+        >
+          <Upload size={18} />
+          Importar otro período
+        </button>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           icon={Users}
           title="Empleados"
           value={kpis.employeeCount}
-          subtitle="Planta fija"
+          subtitle="En nómina"
           iconColor="indigo"
         />
         <KPICard
           icon={Briefcase}
-          title="Costo Nómina Jul"
+          title="Total Pagado"
           value={formatCurrency(kpis.currentPayroll)}
-          change={kpis.monthChange}
-          subtitle="vs mes anterior"
+          subtitle={periodInfo?.label || 'Este mes'}
           iconColor="violet"
         />
         <KPICard
           icon={TrendingUp}
-          title="Productividad"
-          value={formatMultiplier(kpis.productivity)}
-          subtitle="Ingresos/Nómina"
+          title="Total Devengados"
+          value={formatCurrency(kpis.totalDevengados)}
+          subtitle="Antes de deducciones"
           iconColor="emerald"
         />
         <KPICard
           icon={Percent}
-          title="% de Ingresos"
-          value={formatPercent(kpis.incomePercent, 0)}
-          change={-2}
-          subtitle="vs mes anterior"
+          title="Total Deducciones"
+          value={formatCurrency(kpis.totalDeducciones)}
+          subtitle="Seg. Social + Retención"
           iconColor="amber"
         />
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-12 gap-4">
-        <FinancialCard
-          title="Costo Nómina vs Ingresos"
-          subtitle="Evolución mensual 2026"
-          span={8}
-        >
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => formatCurrency(value)}
-                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
-                />
-                <Bar dataKey="payroll" fill={COLORS.payroll} radius={[4, 4, 0, 0]} name="Nómina" />
-                <Line
-                  type="monotone"
-                  dataKey="income"
-                  stroke={COLORS.income}
-                  strokeWidth={2}
-                  dot={{ fill: COLORS.income, r: 4 }}
-                  name="Ingresos"
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </FinancialCard>
-
-        <FinancialCard
-          title="Distribución Costos"
-          subtitle="Nómina vs Terceros"
-          span={4}
-        >
-          <div className="py-5">
-            <div className="text-center mb-6">
-              <div className="text-sm text-gray-500 mb-2">Costo Nómina</div>
-              <div className="text-5xl font-extrabold text-indigo-500">45%</div>
-              <div className="text-xs text-gray-400">de los gastos totales</div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm text-gray-500 mb-2">Costo Terceros</div>
-              <div className="text-5xl font-extrabold text-purple-500">55%</div>
-              <div className="text-xs text-gray-400">de los gastos totales</div>
-            </div>
-          </div>
-        </FinancialCard>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-12 gap-4">
-        <FinancialCard
-          title="Productividad de la Nómina"
-          subtitle="Ingresos generados por peso de nómina"
-          span={6}
-        >
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={productivityData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  tickFormatter={(v) => `${v.toFixed(1)}x`}
-                  domain={[1, 6]}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => `${value.toFixed(2)}x`}
-                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="productivity"
-                  stroke={COLORS.income}
-                  strokeWidth={2}
-                  dot={{ fill: COLORS.income, r: 4 }}
-                  name="Productividad"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </FinancialCard>
-
-        <FinancialCard
-          title="Costos por Agrupación"
-          subtitle="Distribución mensual 2026"
-          span={6}
-        >
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={costGroupData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  tickFormatter={(v) => `$${(v / 1000000).toFixed(0)}M`}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => formatCurrency(value)}
-                  labelStyle={{ color: '#17181A', fontWeight: 600 }}
-                />
-                <Bar dataKey="salario" stackId="a" fill={COLORS.salario} name="Salario Base" />
-                <Bar dataKey="prestaciones" stackId="a" fill={COLORS.prestaciones} name="Prestaciones" />
-                <Bar dataKey="parafiscales" stackId="a" fill={COLORS.parafiscales} name="Parafiscales" />
-                <Bar dataKey="beneficios" stackId="a" fill={COLORS.beneficios} name="Beneficios" radius={[4, 4, 0, 0]} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </FinancialCard>
-      </div>
+      {/* Upload Modal */}
+      {showUploadModal && renderUploadModal()}
 
       {/* Employee Cost Table with Expandable Rows */}
       <FinancialCard
-        title="Costo Total por Empleado"
-        subtitle="Incluye salario + prestaciones + parafiscales + beneficios"
+        title="Detalle por Empleado"
+        subtitle={`Liquidación ${periodInfo?.label || ''}`}
         span={12}
       >
         <div className="overflow-x-auto">
@@ -356,20 +365,20 @@ const PayrollSection = ({ data, loading }) => {
                 <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">
                   Cargo
                 </th>
-                {months.map((m) => (
-                  <th key={m} className="text-right px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
-                    {m}
-                  </th>
-                ))}
-                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50">
-                  Acumulado
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
+                  Devengados
+                </th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
+                  Deducciones
+                </th>
+                <th className="text-right px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50 whitespace-nowrap">
+                  Neto Pagado
                 </th>
               </tr>
             </thead>
             <tbody>
               {employees.map((emp) => {
                 const isExpanded = expandedEmployees[emp.id];
-                const empTotal = emp.monthly.reduce((a, b) => a + b, 0);
 
                 return (
                   <tbody key={emp.id}>
@@ -386,78 +395,132 @@ const PayrollSection = ({ data, loading }) => {
                       <td className="px-4 py-3 border-b border-gray-100 text-gray-500 whitespace-nowrap">
                         {emp.position}
                       </td>
-                      {emp.monthly.map((v, i) => (
-                        <td key={i} className="px-4 py-3 text-right border-b border-gray-100 whitespace-nowrap text-xs text-[#17181A]">
-                          {formatCurrency(v)}
-                        </td>
-                      ))}
+                      <td className="px-4 py-3 text-right border-b border-gray-100 whitespace-nowrap text-xs text-emerald-600 font-medium">
+                        {formatCurrency(emp.totalDevengados)}
+                      </td>
+                      <td className="px-4 py-3 text-right border-b border-gray-100 whitespace-nowrap text-xs text-red-500 font-medium">
+                        -{formatCurrency(emp.totalDeducciones)}
+                      </td>
                       <td className="px-4 py-3 text-right border-b border-gray-100 bg-gray-50 font-semibold whitespace-nowrap text-[#17181A]">
-                        {formatCurrency(empTotal)}
+                        {formatCurrency(emp.totalPagado)}
                       </td>
                     </tr>
 
                     {/* Detail Rows - Shown when expanded */}
                     {isExpanded && (
                       <>
-                        {/* Salario Base */}
-                        <tr className="bg-indigo-50">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs text-[#17181A]">
-                            <span className="text-indigo-500">●</span> Salario base
-                          </td>
-                          {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap text-[#17181A]">
-                              {formatCurrency(v * emp.breakdown.salario)}
-                            </td>
-                          ))}
-                          <td className="px-4 py-2 text-right text-xs bg-gray-50 whitespace-nowrap text-[#17181A]">
-                            {formatCurrency(empTotal * emp.breakdown.salario)}
+                        {/* Devengados Section Header */}
+                        <tr className="bg-emerald-50">
+                          <td colSpan="5" className="px-4 py-2 text-xs font-semibold text-emerald-700">
+                            DEVENGADOS
                           </td>
                         </tr>
-
+                        {/* Salario */}
+                        {emp.breakdown.salario > 0 && (
+                          <tr className="bg-emerald-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Salario
+                            </td>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-emerald-600">
+                              {formatCurrency(emp.breakdown.salario)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Transporte */}
+                        {emp.breakdown.transporte > 0 && (
+                          <tr className="bg-emerald-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Auxilio de Transporte
+                            </td>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-emerald-600">
+                              {formatCurrency(emp.breakdown.transporte)}
+                            </td>
+                          </tr>
+                        )}
                         {/* Prestaciones */}
-                        <tr className="bg-teal-50">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs text-[#17181A]">
-                            <span className="text-teal-500">●</span> Prestaciones
-                          </td>
-                          {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap text-[#17181A]">
-                              {formatCurrency(v * emp.breakdown.prestaciones)}
+                        {emp.breakdown.prestaciones > 0 && (
+                          <tr className="bg-emerald-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Prestaciones Sociales
                             </td>
-                          ))}
-                          <td className="px-4 py-2 text-right text-xs bg-gray-50 whitespace-nowrap text-[#17181A]">
-                            {formatCurrency(empTotal * emp.breakdown.prestaciones)}
-                          </td>
-                        </tr>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-emerald-600">
+                              {formatCurrency(emp.breakdown.prestaciones)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Bonificaciones */}
+                        {emp.breakdown.bonificaciones > 0 && (
+                          <tr className="bg-emerald-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Bonificaciones
+                            </td>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-emerald-600">
+                              {formatCurrency(emp.breakdown.bonificaciones)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Auxilios */}
+                        {emp.breakdown.auxilios > 0 && (
+                          <tr className="bg-emerald-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Auxilios
+                            </td>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-emerald-600">
+                              {formatCurrency(emp.breakdown.auxilios)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Otros devengados */}
+                        {emp.breakdown.otros > 0 && (
+                          <tr className="bg-emerald-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Otros
+                            </td>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-emerald-600">
+                              {formatCurrency(emp.breakdown.otros)}
+                            </td>
+                          </tr>
+                        )}
 
-                        {/* Parafiscales */}
-                        <tr className="bg-amber-50">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs text-[#17181A]">
-                            <span className="text-amber-500">●</span> Parafiscales
-                          </td>
-                          {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs whitespace-nowrap text-[#17181A]">
-                              {formatCurrency(v * emp.breakdown.parafiscales)}
-                            </td>
-                          ))}
-                          <td className="px-4 py-2 text-right text-xs bg-gray-50 whitespace-nowrap text-[#17181A]">
-                            {formatCurrency(empTotal * emp.breakdown.parafiscales)}
+                        {/* Deducciones Section Header */}
+                        <tr className="bg-red-50">
+                          <td colSpan="5" className="px-4 py-2 text-xs font-semibold text-red-700">
+                            DEDUCCIONES
                           </td>
                         </tr>
-
-                        {/* Beneficios */}
-                        <tr className="bg-purple-50">
-                          <td colSpan="2" className="px-4 py-2 pl-8 text-xs border-b border-gray-100 text-[#17181A]">
-                            <span className="text-purple-500">●</span> Beneficios
-                          </td>
-                          {emp.monthly.map((v, i) => (
-                            <td key={i} className="px-4 py-2 text-right text-xs border-b border-gray-100 whitespace-nowrap text-[#17181A]">
-                              {formatCurrency(v * emp.breakdown.beneficios)}
+                        {/* Seguridad Social */}
+                        {emp.breakdown.dedSeguridadSocial > 0 && (
+                          <tr className="bg-red-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Seguridad Social
                             </td>
-                          ))}
-                          <td className="px-4 py-2 text-right text-xs bg-gray-50 border-b border-gray-100 whitespace-nowrap text-[#17181A]">
-                            {formatCurrency(empTotal * emp.breakdown.beneficios)}
-                          </td>
-                        </tr>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-red-500">
+                              -{formatCurrency(emp.breakdown.dedSeguridadSocial)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Retención */}
+                        {emp.breakdown.dedRetencion > 0 && (
+                          <tr className="bg-red-50/50">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Retención en la Fuente
+                            </td>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-red-500">
+                              -{formatCurrency(emp.breakdown.dedRetencion)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Otros descuentos */}
+                        {emp.breakdown.dedOtros > 0 && (
+                          <tr className="bg-red-50/50 border-b border-gray-100">
+                            <td colSpan="3" className="px-4 py-1.5 pl-8 text-xs text-gray-600">
+                              Otros Descuentos
+                            </td>
+                            <td colSpan="2" className="px-4 py-1.5 text-right text-xs text-red-500">
+                              -{formatCurrency(emp.breakdown.dedOtros)}
+                            </td>
+                          </tr>
+                        )}
                       </>
                     )}
                   </tbody>
@@ -469,13 +532,14 @@ const PayrollSection = ({ data, loading }) => {
                 <td colSpan="2" className="px-4 py-3 border-t-2 border-gray-200 text-[#17181A]">
                   TOTAL NÓMINA
                 </td>
-                {totals.monthlyTotals.map((v, i) => (
-                  <td key={i} className="px-4 py-3 text-right border-t-2 border-gray-200 whitespace-nowrap text-[#17181A]">
-                    {formatCurrency(v)}
-                  </td>
-                ))}
-                <td className="px-4 py-3 text-right bg-gray-100 border-t-2 border-gray-200 text-emerald-600 whitespace-nowrap">
-                  {formatCurrency(totals.yearTotal)}
+                <td className="px-4 py-3 text-right border-t-2 border-gray-200 whitespace-nowrap text-emerald-600">
+                  {formatCurrency(totals.totalDevengados)}
+                </td>
+                <td className="px-4 py-3 text-right border-t-2 border-gray-200 whitespace-nowrap text-red-500">
+                  -{formatCurrency(totals.totalDeducciones)}
+                </td>
+                <td className="px-4 py-3 text-right bg-gray-100 border-t-2 border-gray-200 text-[#17181A] whitespace-nowrap">
+                  {formatCurrency(totals.totalNeto)}
                 </td>
               </tr>
             </tbody>
@@ -485,20 +549,12 @@ const PayrollSection = ({ data, loading }) => {
         {/* Legend */}
         <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="w-3 h-3 rounded bg-indigo-100 border border-indigo-300" />
-            Salario base (~60%)
+            <span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-300" />
+            Devengados (Salario + Prestaciones + Auxilios)
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="w-3 h-3 rounded bg-teal-100 border border-teal-300" />
-            Prestaciones (~22%)
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
-            Parafiscales (~9%)
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span className="w-3 h-3 rounded bg-purple-100 border border-purple-300" />
-            Beneficios (~9%)
+            <span className="w-3 h-3 rounded bg-red-100 border border-red-300" />
+            Deducciones (Seg. Social + Retención)
           </div>
         </div>
       </FinancialCard>
