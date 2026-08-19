@@ -316,8 +316,11 @@ app.use('/api/bank-statements', teamAuthMiddleware, bankStatementsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('Global error handler:', err.message, err.stack);
+  res.status(500).json({
+    error: err.message || 'Error interno del servidor',
+    code: err.code || 'INTERNAL_ERROR'
+  });
 });
 
 // Setup cron job for recurring invoices
