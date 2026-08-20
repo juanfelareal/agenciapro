@@ -658,22 +658,6 @@ export const initializeDatabase = async () => {
       )
     `);
 
-    // Fix foreign key constraint for note_share_tokens.created_by (if it exists without ON DELETE)
-    await pool.query(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'note_share_tokens_created_by_fkey'
-          AND table_name = 'note_share_tokens'
-        ) THEN
-          ALTER TABLE note_share_tokens DROP CONSTRAINT note_share_tokens_created_by_fkey;
-          ALTER TABLE note_share_tokens ADD CONSTRAINT note_share_tokens_created_by_fkey
-            FOREIGN KEY (created_by) REFERENCES team_members(id) ON DELETE SET NULL;
-        END IF;
-      END $$;
-    `);
-
     // Note comments (from clients via public link)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS note_comments (
@@ -3542,10 +3526,14 @@ export const initializeDatabase = async () => {
     // Migration: Fix all foreign key constraints referencing team_members to allow deletion
     // This fixes constraints that were created without ON DELETE SET NULL
     const fkConstraintsToFix = [
+      { table: 'note_share_tokens', column: 'created_by', constraint: 'note_share_tokens_created_by_fkey' },
       { table: 'note_comments', column: 'resolved_by', constraint: 'note_comments_resolved_by_fkey' },
-      { table: 'note_comment_reactions', column: 'reviewed_by', constraint: 'note_comment_reactions_reviewed_by_fkey' },
+      { table: 'note_client_edits', column: 'reviewed_by', constraint: 'note_client_edits_reviewed_by_fkey' },
       { table: 'notes', column: 'edited_by', constraint: 'notes_edited_by_fkey' },
       { table: 'notes', column: 'last_edited_by', constraint: 'notes_last_edited_by_fkey' },
+      { table: 'note_versions', column: 'edited_by', constraint: 'note_versions_edited_by_fkey' },
+      { table: 'client_groups', column: 'created_by', constraint: 'client_groups_created_by_fkey' },
+      { table: 'reference_ads', column: 'created_by', constraint: 'reference_ads_created_by_fkey' },
       { table: 'sops', column: 'created_by', constraint: 'sops_created_by_fkey' },
       { table: 'sop_sections', column: 'created_by', constraint: 'sop_sections_created_by_fkey' },
       { table: 'call_recordings', column: 'created_by', constraint: 'call_recordings_created_by_fkey' },
