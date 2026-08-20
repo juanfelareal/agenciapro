@@ -463,16 +463,47 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
 // Delete team member (org-scoped)
 router.delete('/:id', teamAuthMiddleware, async (req, res) => {
   try {
+    const memberId = parseInt(req.params.id);
+
+    // Prevent deleting yourself
+    if (memberId === req.teamMember.id) {
+      return res.status(400).json({ error: 'No puedes eliminarte a ti mismo. Usa "Salir de organización" en su lugar.' });
+    }
+
+    // Get the member to be deleted
+    const memberToDelete = await db.get(
+      'SELECT id, role, name FROM team_members WHERE id = ? AND organization_id = ?',
+      [memberId, req.orgId]
+    );
+
+    if (!memberToDelete) {
+      return res.status(404).json({ error: 'Miembro no encontrado en esta organización' });
+    }
+
+    // If deleting an admin, check if it's the last one
+    if (memberToDelete.role === 'admin') {
+      const adminCount = await db.get(
+        `SELECT COUNT(*) as count FROM team_members WHERE organization_id = ? AND role = 'admin' AND status = 'active'`,
+        [req.orgId]
+      );
+      if (adminCount.count <= 1) {
+        return res.status(400).json({ error: 'No puedes eliminar al único administrador de la organización' });
+      }
+    }
+
     const result = await db.run(
       'DELETE FROM team_members WHERE id = ? AND organization_id = ?',
-      [req.params.id, req.orgId]
+      [memberId, req.orgId]
     );
+
     if (result.changes === 0) {
-      return res.status(404).json({ error: 'Team member not found' });
+      return res.status(404).json({ error: 'No se pudo eliminar el miembro' });
     }
-    res.json({ message: 'Team member deleted successfully' });
+
+    res.json({ message: `${memberToDelete.name} eliminado del equipo` });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error deleting team member:', error);
+    res.status(500).json({ error: 'Error al eliminar miembro: ' + error.message });
   }
 });
 

@@ -189,6 +189,7 @@ const Team = () => {
       loadMembers();
     } catch (error) {
       console.error('Error deleting team member:', error);
+      alert(error.response?.data?.error || 'Error al eliminar miembro del equipo');
     }
   };
 
