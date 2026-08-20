@@ -41,23 +41,66 @@ router.get('/:token', async (req, res) => {
       return res.status(404).json({ error: 'Contrato no encontrado o token inválido' });
     }
 
-    // Check if already signed
-    const existingSignature = await db.get(
-      'SELECT id FROM ugc_signed_contracts WHERE project_creator_id = ?',
-      [projectCreator.id]
-    );
-
-    if (existingSignature) {
-      return res.status(400).json({
-        error: 'Este contrato ya fue firmado',
-        already_signed: true
-      });
-    }
-
     // Calculate payment details
     const videoCount = projectCreator.video_count || 1;
     const pricePerVideo = projectCreator.agreed_rate || projectCreator.creator_cost_per_video || 0;
     const totalPayment = videoCount * pricePerVideo;
+
+    // Check if already signed
+    const existingSignature = await db.get(
+      `SELECT
+        id, signer_name, signer_cedula, signer_email, signer_phone,
+        signed_at, project_details
+       FROM ugc_signed_contracts WHERE project_creator_id = ?`,
+      [projectCreator.id]
+    );
+
+    if (existingSignature) {
+      // Return the signed contract info so the user can view it
+      let projectDetails = {};
+      try {
+        projectDetails = existingSignature.project_details
+          ? JSON.parse(existingSignature.project_details)
+          : {};
+      } catch (e) {
+        projectDetails = {};
+      }
+
+      return res.json({
+        already_signed: true,
+        signed_at: existingSignature.signed_at,
+        signer: {
+          name: existingSignature.signer_name,
+          cedula: existingSignature.signer_cedula,
+          email: existingSignature.signer_email,
+          phone: existingSignature.signer_phone
+        },
+        contract: {
+          id: projectCreator.id,
+          status: projectCreator.status,
+          creator: {
+            name: projectCreator.creator_name,
+            email: projectCreator.creator_email,
+            phone: projectCreator.creator_phone,
+            cedula: projectCreator.creator_cedula
+          },
+          project: {
+            title: projectCreator.project_title,
+            description: projectCreator.project_description,
+            client_name: projectCreator.client_name
+          },
+          payment: {
+            video_count: projectDetails.video_count || videoCount,
+            price_per_video: projectDetails.price_per_video || pricePerVideo,
+            total: projectDetails.total_payment || totalPayment,
+            currency: projectDetails.currency || 'COP'
+          },
+          organization: {
+            name: projectCreator.organization_name
+          }
+        }
+      });
+    }
 
     res.json({
       contract: {

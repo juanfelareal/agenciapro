@@ -14,6 +14,103 @@ function generateContractToken() {
 // MIGRATION ENDPOINT (temporary)
 // ========================================
 
+// POST /api/ugc/sync-assignments - Sync all project_creators with assignments
+router.post('/sync-assignments', async (req, res) => {
+  try {
+    // Get all project_creators with video_count and agreed_rate
+    const projectCreators = await db.all(`
+      SELECT
+        pc.id, pc.project_id, pc.creator_id, pc.video_count, pc.agreed_rate, pc.status, pc.deliverables,
+        p.title as project_title, p.client_id, p.organization_id,
+        c.company as client_name
+      FROM ugc_project_creators pc
+      JOIN ugc_projects p ON pc.project_id = p.id
+      JOIN clients c ON p.client_id = c.id
+      WHERE pc.video_count IS NOT NULL AND pc.agreed_rate IS NOT NULL
+    `);
+
+    const statusMap = {
+      'presented': 'proposed',
+      'brand_approved': 'proposed',
+      'negotiating': 'proposed',
+      'confirmed': 'accepted',
+      'contract_signed': 'accepted',
+      'producing': 'in_production',
+      'delivered_approved': 'delivered',
+      'delivered_changes': 'delivered',
+      'paid': 'paid',
+      'rejected': 'cancelled'
+    };
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const pc of projectCreators) {
+      const totalValue = (pc.video_count || 1) * (pc.agreed_rate || 0);
+
+      if (totalValue <= 0) {
+        skipped++;
+        continue;
+      }
+
+      const assignmentStatus = statusMap[pc.status] || 'proposed';
+      const title = `${pc.video_count || 1} video${(pc.video_count || 1) > 1 ? 's' : ''} - ${pc.project_title}`;
+      const deliverables = pc.deliverables || `${pc.video_count || 1} video(s) para ${pc.project_title}`;
+
+      // Check if assignment already exists
+      const existingAssignment = await db.get(
+        'SELECT id FROM ugc_assignments WHERE project_id = ? AND creator_id = ?',
+        [pc.project_id, pc.creator_id]
+      );
+
+      if (existingAssignment) {
+        // Update existing assignment
+        await db.run(
+          `UPDATE ugc_assignments SET
+            title = ?,
+            agreed_value = ?,
+            deliverables = ?,
+            status = ?,
+            updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`,
+          [title, totalValue, deliverables, assignmentStatus, existingAssignment.id]
+        );
+        updated++;
+      } else {
+        // Create new assignment
+        await db.run(
+          `INSERT INTO ugc_assignments (
+            creator_id, client_id, project_id, title, deliverables,
+            agreed_value, currency, status, organization_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            pc.creator_id,
+            pc.client_id,
+            pc.project_id,
+            title,
+            deliverables,
+            totalValue,
+            'COP',
+            assignmentStatus,
+            pc.organization_id
+          ]
+        );
+        created++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Migration completed: ${created} created, ${updated} updated, ${skipped} skipped`,
+      stats: { created, updated, skipped, total: projectCreators.length }
+    });
+  } catch (error) {
+    console.error('Error syncing assignments:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/ugc/migrate-statuses - Force migrate project creator statuses
 router.post('/migrate-statuses', async (req, res) => {
   try {
@@ -1323,6 +1420,123 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
        WHERE project_id = $10 AND creator_id = $11`,
       [status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes, assignedAnglesJson, req.params.projectId, req.params.creatorId]
     );
+
+    // Sync assignment when video_count or agreed_rate changes
+    if (video_count !== undefined || agreed_rate !== undefined) {
+      // Get current project creator data to calculate total
+      const projectCreator = await db.get(
+        'SELECT video_count, agreed_rate, status FROM ugc_project_creators WHERE project_id = ? AND creator_id = ?',
+        [req.params.projectId, req.params.creatorId]
+      );
+
+      if (projectCreator) {
+        const totalValue = (projectCreator.video_count || 1) * (projectCreator.agreed_rate || 0);
+
+        // Get project info for assignment title
+        const project = await db.get(
+          `SELECT p.title, p.client_id, c.company as client_name
+           FROM ugc_projects p
+           JOIN clients c ON p.client_id = c.id
+           WHERE p.id = ?`,
+          [req.params.projectId]
+        );
+
+        if (project && totalValue > 0) {
+          // Check if assignment already exists for this project+creator
+          const existingAssignment = await db.get(
+            'SELECT id FROM ugc_assignments WHERE project_id = ? AND creator_id = ?',
+            [req.params.projectId, req.params.creatorId]
+          );
+
+          // Map project creator status to assignment status
+          const statusMap = {
+            'presented': 'proposed',
+            'brand_approved': 'proposed',
+            'negotiating': 'proposed',
+            'confirmed': 'accepted',
+            'contract_signed': 'accepted',
+            'producing': 'in_production',
+            'delivered_approved': 'delivered',
+            'delivered_changes': 'delivered',
+            'paid': 'paid',
+            'rejected': 'cancelled'
+          };
+          const currentStatus = projectCreator.status || status || 'presented';
+          const assignmentStatus = statusMap[currentStatus] || 'proposed';
+
+          if (existingAssignment) {
+            // Update existing assignment
+            await db.run(
+              `UPDATE ugc_assignments SET
+                title = ?,
+                agreed_value = ?,
+                deliverables = ?,
+                status = ?,
+                updated_at = CURRENT_TIMESTAMP
+               WHERE id = ?`,
+              [
+                `${projectCreator.video_count || 1} video${(projectCreator.video_count || 1) > 1 ? 's' : ''} - ${project.title}`,
+                totalValue,
+                deliverables || `${projectCreator.video_count || 1} video(s) para ${project.title}`,
+                assignmentStatus,
+                existingAssignment.id
+              ]
+            );
+            console.log(`Updated assignment ${existingAssignment.id} with agreed_value: ${totalValue}`);
+          } else {
+            // Create new assignment
+            await db.run(
+              `INSERT INTO ugc_assignments (
+                creator_id, client_id, project_id, title, deliverables,
+                agreed_value, currency, status, organization_id
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                req.params.creatorId,
+                project.client_id,
+                req.params.projectId,
+                `${projectCreator.video_count || 1} video${(projectCreator.video_count || 1) > 1 ? 's' : ''} - ${project.title}`,
+                deliverables || `${projectCreator.video_count || 1} video(s) para ${project.title}`,
+                totalValue,
+                currency || 'COP',
+                assignmentStatus,
+                req.orgId
+              ]
+            );
+            console.log(`Created assignment for creator ${req.params.creatorId} in project ${req.params.projectId} with agreed_value: ${totalValue}`);
+          }
+        }
+      }
+    }
+
+    // Also sync assignment status when project creator status changes
+    if (status !== undefined) {
+      const existingAssignment = await db.get(
+        'SELECT id FROM ugc_assignments WHERE project_id = ? AND creator_id = ?',
+        [req.params.projectId, req.params.creatorId]
+      );
+
+      if (existingAssignment) {
+        const statusMap = {
+          'presented': 'proposed',
+          'brand_approved': 'proposed',
+          'negotiating': 'proposed',
+          'confirmed': 'accepted',
+          'contract_signed': 'accepted',
+          'producing': 'in_production',
+          'delivered_approved': 'delivered',
+          'delivered_changes': 'delivered',
+          'paid': 'paid',
+          'rejected': 'cancelled'
+        };
+        const assignmentStatus = statusMap[status] || 'proposed';
+
+        await db.run(
+          'UPDATE ugc_assignments SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [assignmentStatus, existingAssignment.id]
+        );
+        console.log(`Synced assignment ${existingAssignment.id} status to: ${assignmentStatus}`);
+      }
+    }
 
     // Auto-create Drive folder when status changes to confirmed or contract_signed
     if ((status === 'confirmed' || status === 'contract_signed') && googleDriveService.isConfigured()) {
