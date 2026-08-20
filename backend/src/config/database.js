@@ -3524,8 +3524,8 @@ export const initializeDatabase = async () => {
     `);
 
     // Migration: Fix all foreign key constraints referencing team_members to allow deletion
-    // This fixes constraints that were created without ON DELETE SET NULL
-    const fkConstraintsToFix = [
+    // SET NULL for nullable columns
+    const fkSetNull = [
       { table: 'note_share_tokens', column: 'created_by', constraint: 'note_share_tokens_created_by_fkey' },
       { table: 'note_comments', column: 'resolved_by', constraint: 'note_comments_resolved_by_fkey' },
       { table: 'note_client_edits', column: 'reviewed_by', constraint: 'note_client_edits_reviewed_by_fkey' },
@@ -3540,10 +3540,14 @@ export const initializeDatabase = async () => {
       { table: 'crm_deals', column: 'created_by', constraint: 'crm_deals_created_by_fkey' },
       { table: 'chat_media', column: 'uploaded_by', constraint: 'chat_media_uploaded_by_fkey' },
       { table: 'chat_conversations', column: 'created_by', constraint: 'chat_conversations_created_by_fkey' },
+    ];
+
+    // CASCADE for NOT NULL columns (deletes related records when team member is deleted)
+    const fkCascade = [
       { table: 'chat_messages', column: 'sender_id', constraint: 'chat_messages_sender_id_fkey' },
     ];
 
-    for (const fk of fkConstraintsToFix) {
+    for (const fk of fkSetNull) {
       await pool.query(`
         DO $$
         BEGIN
@@ -3555,6 +3559,23 @@ export const initializeDatabase = async () => {
             ALTER TABLE ${fk.table} DROP CONSTRAINT ${fk.constraint};
             ALTER TABLE ${fk.table} ADD CONSTRAINT ${fk.constraint}
               FOREIGN KEY (${fk.column}) REFERENCES team_members(id) ON DELETE SET NULL;
+          END IF;
+        END $$;
+      `);
+    }
+
+    for (const fk of fkCascade) {
+      await pool.query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = '${fk.constraint}'
+            AND table_name = '${fk.table}'
+          ) THEN
+            ALTER TABLE ${fk.table} DROP CONSTRAINT ${fk.constraint};
+            ALTER TABLE ${fk.table} ADD CONSTRAINT ${fk.constraint}
+              FOREIGN KEY (${fk.column}) REFERENCES team_members(id) ON DELETE CASCADE;
           END IF;
         END $$;
       `);
