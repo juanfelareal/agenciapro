@@ -649,13 +649,29 @@ export const initializeDatabase = async () => {
         status TEXT CHECK(status IN ('active', 'revoked')) DEFAULT 'active',
         allow_comments INTEGER DEFAULT 1,
         allow_edits INTEGER DEFAULT 0,
-        created_by INTEGER REFERENCES team_members(id),
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP,
         last_accessed_at TIMESTAMP,
         access_count INTEGER DEFAULT 0,
         organization_id INTEGER REFERENCES organizations(id)
       )
+    `);
+
+    // Fix foreign key constraint for note_share_tokens.created_by (if it exists without ON DELETE)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'note_share_tokens_created_by_fkey'
+          AND table_name = 'note_share_tokens'
+        ) THEN
+          ALTER TABLE note_share_tokens DROP CONSTRAINT note_share_tokens_created_by_fkey;
+          ALTER TABLE note_share_tokens ADD CONSTRAINT note_share_tokens_created_by_fkey
+            FOREIGN KEY (created_by) REFERENCES team_members(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
     `);
 
     // Note comments (from clients via public link)
@@ -3522,6 +3538,39 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migration: Fix all foreign key constraints referencing team_members to allow deletion
+    // This fixes constraints that were created without ON DELETE SET NULL
+    const fkConstraintsToFix = [
+      { table: 'note_comments', column: 'resolved_by', constraint: 'note_comments_resolved_by_fkey' },
+      { table: 'note_comment_reactions', column: 'reviewed_by', constraint: 'note_comment_reactions_reviewed_by_fkey' },
+      { table: 'notes', column: 'edited_by', constraint: 'notes_edited_by_fkey' },
+      { table: 'notes', column: 'last_edited_by', constraint: 'notes_last_edited_by_fkey' },
+      { table: 'sops', column: 'created_by', constraint: 'sops_created_by_fkey' },
+      { table: 'sop_sections', column: 'created_by', constraint: 'sop_sections_created_by_fkey' },
+      { table: 'call_recordings', column: 'created_by', constraint: 'call_recordings_created_by_fkey' },
+      { table: 'crm_deals', column: 'created_by', constraint: 'crm_deals_created_by_fkey' },
+      { table: 'chat_media', column: 'uploaded_by', constraint: 'chat_media_uploaded_by_fkey' },
+      { table: 'chat_conversations', column: 'created_by', constraint: 'chat_conversations_created_by_fkey' },
+      { table: 'chat_messages', column: 'sender_id', constraint: 'chat_messages_sender_id_fkey' },
+    ];
+
+    for (const fk of fkConstraintsToFix) {
+      await pool.query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = '${fk.constraint}'
+            AND table_name = '${fk.table}'
+          ) THEN
+            ALTER TABLE ${fk.table} DROP CONSTRAINT ${fk.constraint};
+            ALTER TABLE ${fk.table} ADD CONSTRAINT ${fk.constraint}
+              FOREIGN KEY (${fk.column}) REFERENCES team_members(id) ON DELETE SET NULL;
+          END IF;
+        END $$;
+      `);
+    }
 
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
