@@ -686,9 +686,9 @@ export default function Forms() {
           {forms.map(form => (
             <div key={form.id} onClick={() => openBuilder(form)}
               className="glass rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer group">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-slate-800 group-hover:text-[#17181A] line-clamp-1">{form.title}</h3>
-                <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${STATUS_LABELS[form.status]?.color || 'bg-slate-100'}`}>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h3 className="font-semibold text-slate-800 group-hover:text-[#17181A] line-clamp-2" title={form.title}>{form.title}</h3>
+                <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${STATUS_LABELS[form.status]?.color || 'bg-slate-100'}`}>
                   {STATUS_LABELS[form.status]?.label || form.status}
                 </span>
               </div>
