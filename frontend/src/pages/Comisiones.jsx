@@ -405,7 +405,7 @@ const Comisiones = () => {
               <TrendingUp className="text-blue-600" size={24} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Ventas Netas</p>
+              <p className="text-sm text-gray-600">Venta / Utilidad</p>
               <p className="text-xl font-bold text-gray-800">{formatCurrency(filteredTotals.total_net_sales)}</p>
             </div>
           </div>
@@ -458,7 +458,7 @@ const Comisiones = () => {
                   Cliente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ventas Netas
+                  Venta / Utilidad
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Comisión
@@ -645,7 +645,7 @@ const Comisiones = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Ventas Netas *</label>
+                    <label className="block text-sm font-medium mb-1">Base Comisionable *</label>
                     <input
                       type="number"
                       required
@@ -656,6 +656,7 @@ const Comisiones = () => {
                       onChange={(e) => handleNetSalesChange(e.target.value)}
                       placeholder="0"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Venta neta o utilidad según el acuerdo</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
