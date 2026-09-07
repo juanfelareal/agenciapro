@@ -531,6 +531,7 @@ export const growthAPI = {
   hideClient: (clientId, isHidden) => api.put(`/growth/clients/${clientId}/hide`, { is_hidden: isHidden }),
   setServiceType: (clientId, serviceType) => api.put(`/growth/clients/${clientId}/service-type`, { service_type: serviceType }),
   getClientData: (clientId, period) => api.get(`/growth/${clientId}`, { params: { period } }),
+  getPalancasDashboard: (clientId, period) => api.get(`/growth/${clientId}/palancas-dashboard`, { params: { period } }),
   // Objectives
   createObjective: (clientId, data) => api.post(`/growth/${clientId}/objectives`, data),
   updateObjective: (id, data) => api.put(`/growth/objectives/${id}`, data),

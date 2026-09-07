@@ -252,4 +252,144 @@ router.delete('/banderas/:id', async (req, res) => {
   }
 });
 
+// ─── Palancas Dashboard (from Structured Briefs) ───
+
+const AREA_DISPLAY_NAMES = {
+  email_marketing: 'Email Marketing',
+  web: 'Optimización Web',
+  traffic: 'Tráfico Pago',
+  design: 'Diseño',
+  ugc: 'Contenido UGC',
+  social: 'Redes Sociales',
+  seo: 'SEO',
+  crm: 'CRM',
+  other: 'Otros'
+};
+
+router.get('/:clientId/palancas-dashboard', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const period = req.query.period || getCurrentPeriod();
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+
+    // 1. Get structured briefs for this client in this period
+    const briefs = await db.all(`
+      SELECT b.id, b.title
+      FROM briefs b
+      WHERE b.client_id = $1
+        AND b.organization_id = $2
+        AND b.brief_type = 'structured'
+        AND b.month = $3
+    `, [clientId, req.orgId, period]);
+
+    if (briefs.length === 0) {
+      return res.json({
+        areas: [],
+        summary: { total_tasks: 0, completed: 0, in_progress: 0, progress_pct: 0 },
+        has_brief: false
+      });
+    }
+
+    const briefIds = briefs.map(b => b.id);
+    const briefIdsPlaceholder = briefIds.map((_, i) => `$${i + 1}`).join(',');
+
+    // 2. Get sections from those briefs
+    const sections = await db.all(`
+      SELECT bs.*, tm.name as responsible_name
+      FROM brief_sections bs
+      LEFT JOIN team_members tm ON bs.responsible_id = tm.id
+      WHERE bs.brief_id IN (${briefIdsPlaceholder})
+      ORDER BY bs.area_key, bs.order_index
+    `, briefIds);
+
+    // 3. Get tasks with real status (linked via generated_task_id)
+    const tasks = await db.all(`
+      SELECT
+        bst.id,
+        bst.title,
+        bst.description,
+        bst.due_date,
+        bst.priority,
+        bst.section_id,
+        bs.area_key,
+        COALESCE(t.status, 'todo') as task_status,
+        t.id as real_task_id
+      FROM brief_section_tasks bst
+      JOIN brief_sections bs ON bst.section_id = bs.id
+      LEFT JOIN tasks t ON bst.generated_task_id = t.id
+      WHERE bs.brief_id IN (${briefIdsPlaceholder})
+      ORDER BY bst.order_index
+    `, briefIds);
+
+    // 4. Group by area_key
+    const areaMap = {};
+
+    for (const section of sections) {
+      const areaKey = section.area_key || 'other';
+      if (!areaMap[areaKey]) {
+        areaMap[areaKey] = {
+          area_key: areaKey,
+          area_name: section.area_name || AREA_DISPLAY_NAMES[areaKey] || areaKey,
+          context: section.context_text,
+          responsible: section.responsible_id ? {
+            id: section.responsible_id,
+            name: section.responsible_name
+          } : null,
+          tasks: [],
+          stats: { total: 0, done: 0, in_progress: 0, todo: 0, blocked: 0 }
+        };
+      } else if (section.context_text && !areaMap[areaKey].context) {
+        // Use first non-empty context
+        areaMap[areaKey].context = section.context_text;
+      }
+      // If section has a responsible and area doesn't, use it
+      if (section.responsible_id && !areaMap[areaKey].responsible) {
+        areaMap[areaKey].responsible = {
+          id: section.responsible_id,
+          name: section.responsible_name
+        };
+      }
+    }
+
+    // 5. Add tasks to each area
+    for (const task of tasks) {
+      const areaKey = task.area_key || 'other';
+      const area = areaMap[areaKey];
+      if (!area) continue;
+
+      const status = task.task_status || 'todo';
+      area.tasks.push({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        due_date: task.due_date,
+        priority: task.priority,
+        status: status,
+        real_task_id: task.real_task_id
+      });
+      area.stats.total++;
+      area.stats[status] = (area.stats[status] || 0) + 1;
+    }
+
+    const areas = Object.values(areaMap);
+
+    // Calculate summary
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.task_status === 'done').length;
+    const inProgressTasks = tasks.filter(t => t.task_status === 'in_progress').length;
+
+    const summary = {
+      total_tasks: totalTasks,
+      completed: completedTasks,
+      in_progress: inProgressTasks,
+      progress_pct: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+    };
+
+    res.json({ areas, summary, has_brief: true });
+  } catch (error) {
+    console.error('Error getting palancas dashboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

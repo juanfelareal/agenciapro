@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
-  Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus
+  Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus,
+  Mail, Globe, Megaphone, Palette, Video, User, CheckCircle2, Calendar, ChevronDown, ChevronUp, Layers
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
 
@@ -35,7 +35,6 @@ const formatCOP = (val) => {
 };
 
 export default function GrowthDashboard() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(getCurrentPeriod());
   const [growthClients, setGrowthClients] = useState([]);
@@ -358,7 +357,7 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
 
       {/* Tab Content */}
       {activeTab === 'financiero' && <FinancieroTab metrics={m} objectives={gd.objectives} formatCOP={formatCOP} clientId={client.id} period={period} onRefresh={onRefresh} />}
-      {activeTab === 'palancas' && <PalancasTab palancas={gd.palancas} clientId={client.id} period={period} onRefresh={onRefresh} />}
+      {activeTab === 'palancas' && <PalancasTab clientId={client.id} period={period} />}
       {activeTab === 'roadmap' && <RoadmapTab milestones={gd.milestones} clientId={client.id} period={period} onRefresh={onRefresh} />}
       {activeTab === 'alertas' && <AlertasTab banderas={gd.banderas} clientId={client.id} period={period} onRefresh={onRefresh} />}
     </div>
@@ -383,8 +382,91 @@ function FinancieroTab({ metrics, objectives, formatCOP, clientId, period, onRef
   const revenueObj = objectives.find(o => o.metric === 'revenue');
   const roasObj = objectives.find(o => o.metric === 'roas');
 
+  // Projection calculation
+  const [y, mo] = period.split('-').map(Number);
+  const daysInMonth = new Date(y, mo, 0).getDate();
+  const today = new Date();
+  const colombiaDate = new Date(today.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  const isCurrentMonth = colombiaDate.getFullYear() === y && (colombiaDate.getMonth() + 1) === mo;
+  const daysPassed = isCurrentMonth ? colombiaDate.getDate() : daysInMonth;
+
+  const currentRevenue = m.display_revenue || 0;
+  const meta = revenueObj?.base || 0;
+  const avgDailyRevenue = daysPassed > 0 ? currentRevenue / daysPassed : 0;
+  const projection = avgDailyRevenue * daysInMonth;
+  const metaCompletePct = meta > 0 ? Math.round((currentRevenue / meta) * 100) : 0;
+  const projectionDiff = projection - meta;
+  const onTrack = projection >= meta;
+
   return (
     <div className="space-y-6">
+      {/* Meta del Mes Card - only show if we have a revenue objective */}
+      {revenueObj && meta > 0 && (
+        <div className="glass-solid rounded-xl p-5 border-l-4 border-l-green-500">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">Meta del mes</p>
+              <p className="text-2xl font-bold text-[#17181A] mt-1">{formatCOP(meta)}</p>
+            </div>
+            <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${
+              onTrack ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+            }`}>
+              {onTrack ? (
+                <><TrendingUp size={14} /> On track</>
+              ) : (
+                <><TrendingDown size={14} /> Off track</>
+              )}
+            </div>
+          </div>
+
+          {/* Progress bar toward goal */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-gray-500">Progreso actual</span>
+              <span className="text-sm font-bold text-[#17181A]">{metaCompletePct}%</span>
+            </div>
+            <div className="h-3 bg-gray-100 rounded-full overflow-hidden relative">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  metaCompletePct >= 100 ? 'bg-green-500' : metaCompletePct >= 70 ? 'bg-blue-500' : 'bg-yellow-500'
+                }`}
+                style={{ width: `${Math.min(100, metaCompletePct)}%` }}
+              />
+              {/* Marker for expected progress based on day of month */}
+              {isCurrentMonth && (
+                <div
+                  className="absolute top-0 h-full w-0.5 bg-gray-400"
+                  style={{ left: `${(daysPassed / daysInMonth) * 100}%` }}
+                  title={`Día ${daysPassed} de ${daysInMonth}`}
+                />
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-1.5 text-xs text-gray-400">
+              <span>Actual: {formatCOP(currentRevenue)}</span>
+              <span>Meta: {formatCOP(meta)}</span>
+            </div>
+          </div>
+
+          {/* Projection stats */}
+          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Proyección</p>
+              <p className="text-lg font-bold text-[#17181A]">{formatCOP(projection)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider">vs Meta</p>
+              <p className={`text-lg font-bold ${projectionDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {projectionDiff >= 0 ? '+' : ''}{formatCOP(projectionDiff)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Día / Mes</p>
+              <p className="text-lg font-bold text-gray-600">{daysPassed} / {daysInMonth}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI Grid */}
       <div>
         <SectionHeader label="Revenue & Performance" />
@@ -471,16 +553,21 @@ function ScenarioCard({ title, actual, conservador, base, optimista, format }) {
 // ─── Objectives Form ───
 function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ revenue: { conservador: '', base: '', optimista: '' }, roas: { conservador: '', base: '', optimista: '' } });
 
-  useEffect(() => {
+  const initialForm = useMemo(() => {
     const rev = objectives.find(o => o.metric === 'revenue');
     const roas = objectives.find(o => o.metric === 'roas');
-    setForm({
+    return {
       revenue: { conservador: rev?.conservador || '', base: rev?.base || '', optimista: rev?.optimista || '' },
       roas: { conservador: roas?.conservador || '', base: roas?.base || '', optimista: roas?.optimista || '' },
-    });
+    };
   }, [objectives]);
+
+  const [form, setForm] = useState(initialForm);
+
+  useEffect(() => {
+    setForm(initialForm);
+  }, [initialForm]);
 
   const handleSave = async () => {
     try {
@@ -541,88 +628,241 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
   );
 }
 
-// ─── Palancas Tab ───
-function PalancasTab({ palancas, clientId, period, onRefresh }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nombre: '', estado: '', kpi_label: '', kpi_valor: '', impacto: 'medio' });
+// ─── Palancas Tab (from Structured Briefs) ───
 
-  const handleCreate = async () => {
-    if (!form.nombre) return;
+const AREA_ICONS = {
+  email_marketing: Mail,
+  web: Globe,
+  traffic: Megaphone,
+  design: Palette,
+  ugc: Video,
+  social: Users,
+  seo: Globe,
+  crm: Users,
+  other: Layers,
+};
+
+const TASK_STATUS_CONFIG = {
+  todo: { label: 'Pendiente', color: 'text-gray-500', bg: 'bg-gray-100', icon: Clock },
+  in_progress: { label: 'En progreso', color: 'text-blue-600', bg: 'bg-blue-50', icon: Clock },
+  done: { label: 'Completada', color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle2 },
+  blocked: { label: 'Bloqueada', color: 'text-red-600', bg: 'bg-red-50', icon: AlertTriangle },
+};
+
+function PalancasTab({ clientId, period }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedAreas, setExpandedAreas] = useState({});
+
+  useEffect(() => {
+    loadPalancasDashboard();
+  }, [clientId, period]);
+
+  const loadPalancasDashboard = async () => {
     try {
-      await growthAPI.createPalanca(clientId, { ...form, period, rank: palancas.length + 1 });
-      setForm({ nombre: '', estado: '', kpi_label: '', kpi_valor: '', impacto: 'medio' });
-      setShowForm(false);
-      onRefresh();
+      setLoading(true);
+      const res = await growthAPI.getPalancasDashboard(clientId, period);
+      setData(res.data);
+      // Expand all areas by default
+      const expanded = {};
+      (res.data?.areas || []).forEach(a => { expanded[a.area_key] = true; });
+      setExpandedAreas(expanded);
     } catch (error) {
-      console.error('Error creating palanca:', error);
+      console.error('Error loading palancas dashboard:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    try { await growthAPI.deletePalanca(id); onRefresh(); } catch (e) { console.error(e); }
+  const toggleArea = (areaKey) => {
+    setExpandedAreas(prev => ({ ...prev, [areaKey]: !prev[areaKey] }));
   };
 
-  const handleStatusUpdate = async (palanca, estado) => {
-    try { await growthAPI.updatePalanca(palanca.id, { ...palanca, estado }); onRefresh(); } catch (e) { console.error(e); }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
-  const impactoColors = { alto: 'bg-green-100 text-green-700', medio: 'bg-yellow-100 text-yellow-700', bajo: 'bg-gray-100 text-gray-500' };
+  if (!data?.has_brief) {
+    return (
+      <div className="space-y-4">
+        <SectionHeader label="Palancas de crecimiento" />
+        <div className="glass-solid rounded-xl p-8 text-center">
+          <Layers className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">Sin brief estructurado para este período</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Crea un brief estructurado para este cliente y mes para ver las palancas de crecimiento aquí.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { areas, summary } = data;
 
   return (
-    <div className="space-y-4">
-      <SectionHeader label="Palancas de crecimiento priorizadas" />
-      {palancas.length === 0 && !showForm && (
-        <div className="glass-solid rounded-xl p-8 text-center">
-          <Zap className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-400 text-sm">No hay palancas definidas para este período</p>
+    <div className="space-y-5">
+      <SectionHeader label="Palancas de crecimiento" />
+
+      {/* Overall Progress */}
+      {summary.total_tasks > 0 && (
+        <div className="glass-solid rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-gray-500">Progreso general del mes</span>
+            <span className="text-sm font-bold text-[#17181A]">
+              {summary.completed}/{summary.total_tasks} tareas ({summary.progress_pct}%)
+            </span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full transition-all duration-500"
+              style={{ width: `${summary.progress_pct}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              {summary.completed} completadas
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              {summary.in_progress} en progreso
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+              {summary.total_tasks - summary.completed - summary.in_progress} pendientes
+            </span>
+          </div>
         </div>
       )}
-      <div className="space-y-2">
-        {palancas.map((p) => (
-          <div key={p.id} className="glass-solid rounded-xl p-4 flex items-center gap-4 hover:border-green-200 transition-colors">
-            <span className="text-2xl font-bold text-gray-200 w-8 text-center">{p.rank}</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-[#17181A]">{p.nombre}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{p.estado}</p>
-            </div>
-            {p.kpi_label && (
-              <div className="text-right flex-shrink-0">
-                <p className="text-xs text-gray-400">{p.kpi_label}</p>
-                <p className="font-bold text-sm text-[#17181A]">{p.kpi_valor}</p>
-              </div>
-            )}
-            <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded font-medium flex-shrink-0 ${impactoColors[p.impacto] || impactoColors.medio}`}>
-              {p.impacto}
-            </span>
-            <button onClick={() => handleDelete(p.id)} className="p-1.5 text-gray-300 hover:text-red-500 rounded transition-colors flex-shrink-0">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
 
-      {showForm ? (
-        <div className="glass-solid rounded-xl p-4 space-y-3">
-          <input value={form.nombre} onChange={(e) => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre de la palanca" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          <input value={form.estado} onChange={(e) => setForm(f => ({ ...f, estado: e.target.value }))} placeholder="Estado (ej: Activa · Optimizando creativos)" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          <div className="grid grid-cols-3 gap-2">
-            <input value={form.kpi_label} onChange={(e) => setForm(f => ({ ...f, kpi_label: e.target.value }))} placeholder="KPI" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-            <input value={form.kpi_valor} onChange={(e) => setForm(f => ({ ...f, kpi_valor: e.target.value }))} placeholder="Valor" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-            <select value={form.impacto} onChange={(e) => setForm(f => ({ ...f, impacto: e.target.value }))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option value="alto">Alto</option>
-              <option value="medio">Medio</option>
-              <option value="bajo">Bajo</option>
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-lg">Agregar</button>
-          </div>
+      {/* Areas */}
+      {areas.length === 0 ? (
+        <div className="glass-solid rounded-xl p-8 text-center">
+          <Layers className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-400 text-sm">El brief no tiene áreas definidas</p>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#17181A] transition-colors">
-          <Plus className="w-4 h-4" /> Agregar palanca
-        </button>
+        <div className="space-y-3">
+          {areas.map((area) => {
+            const AreaIcon = AREA_ICONS[area.area_key] || AREA_ICONS.other;
+            const isExpanded = expandedAreas[area.area_key];
+            const { stats } = area;
+            const progressPct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+
+            return (
+              <div key={area.area_key} className="glass-solid rounded-xl overflow-hidden">
+                {/* Area header */}
+                <div
+                  onClick={() => toggleArea(area.area_key)}
+                  className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                      <AreaIcon className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm text-[#17181A]">{area.area_name}</h3>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
+                        {area.responsible && (
+                          <span className="flex items-center gap-1">
+                            <User size={10} />
+                            {area.responsible.name}
+                          </span>
+                        )}
+                        {stats.total > 0 && (
+                          <span>· {stats.done}/{stats.total} tareas</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {stats.total > 0 && (
+                      <div className="hidden sm:flex items-center gap-2">
+                        <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 rounded-full"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-400 w-8">{progressPct}%</span>
+                      </div>
+                    )}
+                    {isExpanded ? (
+                      <ChevronUp size={16} className="text-gray-400" />
+                    ) : (
+                      <ChevronDown size={16} className="text-gray-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Area content */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t border-gray-50">
+                    {/* Context */}
+                    {area.context && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600 leading-relaxed">{area.context}</p>
+                      </div>
+                    )}
+
+                    {/* Tasks */}
+                    {area.tasks.length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        {area.tasks.map((task) => {
+                          const statusConfig = TASK_STATUS_CONFIG[task.status] || TASK_STATUS_CONFIG.todo;
+                          const StatusIcon = statusConfig.icon;
+
+                          return (
+                            <div
+                              key={task.id}
+                              className={`p-2.5 rounded-lg border ${
+                                task.status === 'done'
+                                  ? 'bg-green-50/50 border-green-100'
+                                  : 'bg-white border-gray-100'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2.5">
+                                <div className={`w-5 h-5 rounded-md ${statusConfig.bg} flex items-center justify-center shrink-0 mt-0.5`}>
+                                  <StatusIcon size={12} className={statusConfig.color} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm ${
+                                    task.status === 'done' ? 'text-gray-400 line-through' : 'text-[#17181A]'
+                                  }`}>
+                                    {task.title}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px]">
+                                    <span className={`px-1.5 py-0.5 rounded ${statusConfig.bg} ${statusConfig.color}`}>
+                                      {statusConfig.label}
+                                    </span>
+                                    {task.due_date && (
+                                      <span className="text-gray-400 flex items-center gap-0.5">
+                                        <Calendar size={9} />
+                                        {new Date(task.due_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {!area.context && area.tasks.length === 0 && (
+                      <p className="mt-3 text-xs text-gray-400 italic">Sin contenido en esta área</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
