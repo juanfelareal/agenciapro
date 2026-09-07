@@ -59,11 +59,11 @@ const Briefs = () => {
     try {
       const [briefsRes, structuredRes, clientsRes] = await Promise.all([
         briefsAPI.getAll(),
-        structuredBriefsAPI.getAll(),
+        structuredBriefsAPI.getAll().catch(() => ({ data: [] })), // Fail gracefully if table doesn't exist
         clientsAPI.getAll(),
       ]);
       setBriefs(briefsRes.data);
-      setStructuredBriefs(structuredRes.data);
+      setStructuredBriefs(structuredRes.data || []);
       setClients(clientsRes.data.filter(c => c.status === 'active'));
     } catch (error) {
       console.error('Error loading briefs:', error);
