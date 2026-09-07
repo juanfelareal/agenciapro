@@ -90,6 +90,7 @@ import { setupChat } from './src/services/chatService.js';
 import growthRoutes from './src/routes/growth.js';
 // Briefs
 import briefRoutes from './src/routes/briefs.js';
+import structuredBriefRoutes from './src/routes/structuredBriefs.js';
 // AI Agents
 import agentRoutes from './src/routes/agents.js';
 import auditLogRoutes from './src/routes/audit-log.js';
@@ -292,6 +293,7 @@ app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 app.use('/api/chat', teamAuthMiddleware, chatRoutes);
 // Briefs
 app.use('/api/briefs', teamAuthMiddleware, briefRoutes);
+app.use('/api/structured-briefs', teamAuthMiddleware, structuredBriefRoutes);
 // AI Agents
 app.use('/api/agents', teamAuthMiddleware, agentRoutes);
 // Auditoría (historial de borrados vía MCP)

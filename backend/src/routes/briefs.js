@@ -3,10 +3,10 @@ import db from '../config/database.js';
 
 const router = express.Router();
 
-// Get all briefs (optionally filter by client_id)
+// Get all briefs (optionally filter by client_id and/or month)
 router.get('/', async (req, res) => {
   try {
-    const { client_id } = req.query;
+    const { client_id, month } = req.query;
     let query = `
       SELECT b.*, c.company as client_company, c.nickname as client_nickname, c.name as client_name
       FROM briefs b
@@ -18,6 +18,11 @@ router.get('/', async (req, res) => {
     if (client_id) {
       query += ' AND b.client_id = ?';
       params.push(client_id);
+    }
+
+    if (month) {
+      query += ' AND b.month = ?';
+      params.push(month);
     }
 
     query += ' ORDER BY b.updated_at DESC';
@@ -47,13 +52,13 @@ router.get('/:id', async (req, res) => {
 // Create brief
 router.post('/', async (req, res) => {
   try {
-    const { client_id, title, html_content, visible_to_client } = req.body;
+    const { client_id, title, html_content, visible_to_client, month } = req.body;
     if (!client_id || !title) return res.status(400).json({ error: 'client_id and title are required' });
 
     const result = await db.prepare(`
-      INSERT INTO briefs (client_id, title, html_content, visible_to_client, organization_id, created_by)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(client_id, title, html_content || '', visible_to_client ? 1 : 0, req.orgId, req.teamMember?.id || null);
+      INSERT INTO briefs (client_id, title, html_content, visible_to_client, month, organization_id, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(client_id, title, html_content || '', visible_to_client ? 1 : 0, month || null, req.orgId, req.teamMember?.id || null);
 
     const brief = await db.prepare('SELECT * FROM briefs WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(brief);
@@ -65,7 +70,7 @@ router.post('/', async (req, res) => {
 // Update brief
 router.put('/:id', async (req, res) => {
   try {
-    const { title, html_content, visible_to_client, client_id } = req.body;
+    const { title, html_content, visible_to_client, client_id, month } = req.body;
 
     const existing = await db.prepare('SELECT * FROM briefs WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!existing) return res.status(404).json({ error: 'Brief not found' });
@@ -76,6 +81,7 @@ router.put('/:id', async (req, res) => {
         html_content = COALESCE(?, html_content),
         visible_to_client = COALESCE(?, visible_to_client),
         client_id = COALESCE(?, client_id),
+        month = COALESCE(?, month),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `).run(
@@ -83,6 +89,7 @@ router.put('/:id', async (req, res) => {
       html_content !== undefined ? html_content : null,
       visible_to_client !== undefined ? (visible_to_client ? 1 : 0) : null,
       client_id !== undefined ? client_id : null,
+      month !== undefined ? month : null,
       req.params.id, req.orgId
     );
 

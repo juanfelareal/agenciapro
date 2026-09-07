@@ -1,16 +1,46 @@
-import { useEffect, useState, useRef } from 'react';
-import { briefsAPI, clientsAPI } from '../utils/api';
-import { Plus, X, Trash2, Eye, EyeOff, Upload, FileCode, ChevronDown, Maximize2, Minimize2 } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { briefsAPI, structuredBriefsAPI, clientsAPI } from '../utils/api';
+import { Plus, X, Trash2, Eye, EyeOff, Upload, FileCode, ChevronDown, Maximize2, Minimize2, Calendar, Layers, Rocket, Check } from 'lucide-react';
+
+// Generate month options for selectors (current + past 12 months + next 3 months)
+const generateMonthOptions = () => {
+  const months = [];
+  const now = new Date();
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  // 12 months back + current + 3 months ahead
+  for (let i = -12; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+    months.push({ value, label });
+  }
+  return months.reverse(); // Most recent first
+};
+
+const MONTH_OPTIONS = generateMonthOptions();
+
+// Get current month as default
+const getCurrentMonth = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
 
 const Briefs = () => {
+  const navigate = useNavigate();
   const [briefs, setBriefs] = useState([]);
+  const [structuredBriefs, setStructuredBriefs] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [editingBrief, setEditingBrief] = useState(null);
   const [previewBrief, setPreviewBrief] = useState(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [filterClient, setFilterClient] = useState('all');
+  const [filterMonth, setFilterMonth] = useState('all');
+  const [filterType, setFilterType] = useState('all');
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -18,6 +48,7 @@ const Briefs = () => {
     title: '',
     html_content: '',
     visible_to_client: false,
+    month: getCurrentMonth(),
   });
 
   useEffect(() => {
@@ -26,11 +57,13 @@ const Briefs = () => {
 
   const loadData = async () => {
     try {
-      const [briefsRes, clientsRes] = await Promise.all([
+      const [briefsRes, structuredRes, clientsRes] = await Promise.all([
         briefsAPI.getAll(),
+        structuredBriefsAPI.getAll(),
         clientsAPI.getAll(),
       ]);
       setBriefs(briefsRes.data);
+      setStructuredBriefs(structuredRes.data);
       setClients(clientsRes.data.filter(c => c.status === 'active'));
     } catch (error) {
       console.error('Error loading briefs:', error);
@@ -91,6 +124,7 @@ const Briefs = () => {
       title: brief.title,
       html_content: brief.html_content || '',
       visible_to_client: !!brief.visible_to_client,
+      month: brief.month || '',
     });
     setShowModal(true);
   };
@@ -115,7 +149,7 @@ const Briefs = () => {
   };
 
   const resetForm = () => {
-    setFormData({ client_id: '', title: '', html_content: '', visible_to_client: false });
+    setFormData({ client_id: '', title: '', html_content: '', visible_to_client: false, month: getCurrentMonth() });
   };
 
   const handleNew = () => {
@@ -126,9 +160,27 @@ const Briefs = () => {
 
   const clientName = (brief) => brief.client_nickname || brief.client_company || brief.client_name || 'Sin cliente';
 
-  const filteredBriefs = filterClient === 'all'
-    ? briefs
-    : briefs.filter(b => String(b.client_id) === filterClient);
+  // Format month for display (e.g., "2026-09" -> "Sep 2026")
+  const formatMonth = (month) => {
+    if (!month) return null;
+    const [year, m] = month.split('-');
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${monthNames[parseInt(m, 10) - 1]} ${year}`;
+  };
+
+  // Combine HTML briefs and structured briefs into one list with type markers
+  const allBriefs = useMemo(() => {
+    const htmlBriefs = briefs.map(b => ({ ...b, brief_type: 'html' }));
+    const structured = structuredBriefs.map(b => ({ ...b, brief_type: 'structured' }));
+    return [...htmlBriefs, ...structured];
+  }, [briefs, structuredBriefs]);
+
+  const filteredBriefs = allBriefs.filter(b => {
+    if (filterClient !== 'all' && String(b.client_id) !== filterClient) return false;
+    if (filterMonth !== 'all' && b.month !== filterMonth) return false;
+    if (filterType !== 'all' && b.brief_type !== filterType) return false;
+    return true;
+  });
 
   // Group by client
   const grouped = {};
@@ -145,31 +197,98 @@ const Briefs = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Briefs</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Archivos HTML por cliente</p>
+          <p className="text-sm text-gray-500 mt-0.5">Planes mensuales por cliente</p>
         </div>
-        <button
-          onClick={handleNew}
-          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
-        >
-          <Plus size={20} />
-          Nuevo Brief
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowCreateMenu(!showCreateMenu)}
+            className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+          >
+            <Plus size={20} />
+            Nuevo Brief
+            <ChevronDown size={16} className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} />
+          </button>
+          {showCreateMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowCreateMenu(false)} />
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden">
+                <button
+                  onClick={() => {
+                    setShowCreateMenu(false);
+                    navigate('/app/briefs/structured/new');
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="w-10 h-10 bg-[#10B981]/10 rounded-xl flex items-center justify-center">
+                    <Layers className="w-5 h-5 text-[#10B981]" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#17181A]">Estructurado</p>
+                    <p className="text-xs text-gray-500">Por áreas con tareas</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateMenu(false);
+                    handleNew();
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left border-t border-gray-50"
+                >
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <FileCode className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#17181A]">HTML</p>
+                    <p className="text-xs text-gray-500">Subir archivo HTML</p>
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Filter by client */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">Filtrar:</span>
-        <select
-          value={filterClient}
-          onChange={e => setFilterClient(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
-        >
-          <option value="all">Todos los clientes</option>
-          {clients.map(c => (
-            <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}</option>
-          ))}
-        </select>
-        <span className="text-sm text-gray-400 ml-2">{filteredBriefs.length} brief{filteredBriefs.length !== 1 ? 's' : ''}</span>
+      {/* Filters */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Cliente:</span>
+          <select
+            value={filterClient}
+            onChange={e => setFilterClient(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+          >
+            <option value="all">Todos</option>
+            {clients.map(c => (
+              <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Mes:</span>
+          <select
+            value={filterMonth}
+            onChange={e => setFilterMonth(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+          >
+            <option value="all">Todos</option>
+            {MONTH_OPTIONS.map(m => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Tipo:</span>
+          <select
+            value={filterType}
+            onChange={e => setFilterType(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+          >
+            <option value="all">Todos</option>
+            <option value="structured">Estructurado</option>
+            <option value="html">HTML</option>
+          </select>
+        </div>
+        <span className="text-sm text-gray-400">{filteredBriefs.length} brief{filteredBriefs.length !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Briefs grouped by client */}
@@ -187,51 +306,141 @@ const Briefs = () => {
             </div>
             <div className="divide-y divide-gray-50">
               {group.briefs.map(brief => (
-                <div key={brief.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div key={`${brief.brief_type}-${brief.id}`} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-9 h-9 bg-[#17181A]/5 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <FileCode className="w-4 h-4 text-[#17181A]" />
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      brief.brief_type === 'structured' ? 'bg-[#10B981]/10' : 'bg-[#17181A]/5'
+                    }`}>
+                      {brief.brief_type === 'structured' ? (
+                        <Layers className="w-4 h-4 text-[#10B981]" />
+                      ) : (
+                        <FileCode className="w-4 h-4 text-[#17181A]" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p
                         className="font-medium text-[#17181A] cursor-pointer hover:underline truncate"
-                        onClick={() => setPreviewBrief(brief)}
+                        onClick={() => {
+                          if (brief.brief_type === 'structured') {
+                            navigate(`/app/briefs/structured/${brief.id}`);
+                          } else {
+                            setPreviewBrief(brief);
+                          }
+                        }}
                       >
                         {brief.title}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-400 flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          brief.brief_type === 'structured'
+                            ? 'bg-[#10B981]/10 text-[#10B981]'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {brief.brief_type === 'structured' ? (
+                            <>
+                              <Layers size={10} />
+                              Estructurado
+                            </>
+                          ) : (
+                            <>
+                              <FileCode size={10} />
+                              HTML
+                            </>
+                          )}
+                        </span>
+                        {brief.month && (
+                          <>
+                            <span>·</span>
+                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                              <Calendar size={10} />
+                              {formatMonth(brief.month)}
+                            </span>
+                          </>
+                        )}
+                        {brief.brief_type === 'structured' && brief.generated_project_id && (
+                          <>
+                            <span>·</span>
+                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                              <Rocket size={10} />
+                              Proyecto generado
+                            </span>
+                          </>
+                        )}
+                        <span>·</span>
                         {new Date(brief.updated_at).toLocaleDateString('es-CO')}
-                        {brief.html_content ? ` · ${Math.round(brief.html_content.length / 1024)}KB` : ''}
+                        {brief.brief_type === 'html' && brief.html_content ? ` · ${Math.round(brief.html_content.length / 1024)}KB` : ''}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {brief.brief_type === 'html' && (
+                      <button
+                        onClick={() => handleToggleVisibility(brief)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          brief.visible_to_client
+                            ? 'text-[#10B981] bg-[#10B981]/10 hover:bg-[#10B981]/20'
+                            : 'text-gray-400 bg-gray-100 hover:bg-gray-200'
+                        }`}
+                        title={brief.visible_to_client ? 'Visible para el cliente' : 'Oculto para el cliente'}
+                      >
+                        {brief.visible_to_client ? <Eye size={16} /> : <EyeOff size={16} />}
+                      </button>
+                    )}
+                    {brief.brief_type === 'structured' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await structuredBriefsAPI.update(brief.id, { visible_to_client: !brief.visible_to_client });
+                            loadData();
+                          } catch (error) {
+                            console.error('Error toggling visibility:', error);
+                          }
+                        }}
+                        className={`p-2 rounded-lg transition-colors ${
+                          brief.visible_to_client
+                            ? 'text-[#10B981] bg-[#10B981]/10 hover:bg-[#10B981]/20'
+                            : 'text-gray-400 bg-gray-100 hover:bg-gray-200'
+                        }`}
+                        title={brief.visible_to_client ? 'Visible para el cliente' : 'Oculto para el cliente'}
+                      >
+                        {brief.visible_to_client ? <Eye size={16} /> : <EyeOff size={16} />}
+                      </button>
+                    )}
+                    {brief.brief_type === 'html' && (
+                      <button
+                        onClick={() => setPreviewBrief(brief)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Vista previa"
+                      >
+                        <Maximize2 size={16} />
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleToggleVisibility(brief)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        brief.visible_to_client
-                          ? 'text-[#10B981] bg-[#10B981]/10 hover:bg-[#10B981]/20'
-                          : 'text-gray-400 bg-gray-100 hover:bg-gray-200'
-                      }`}
-                      title={brief.visible_to_client ? 'Visible para el cliente' : 'Oculto para el cliente'}
-                    >
-                      {brief.visible_to_client ? <Eye size={16} /> : <EyeOff size={16} />}
-                    </button>
-                    <button
-                      onClick={() => setPreviewBrief(brief)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Vista previa"
-                    >
-                      <Maximize2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(brief)}
+                      onClick={() => {
+                        if (brief.brief_type === 'structured') {
+                          navigate(`/app/briefs/structured/${brief.id}`);
+                        } else {
+                          handleEdit(brief);
+                        }
+                      }}
                       className="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                     >
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(brief.id)}
+                      onClick={async () => {
+                        if (!confirm('¿Eliminar este brief?')) return;
+                        try {
+                          if (brief.brief_type === 'structured') {
+                            await structuredBriefsAPI.delete(brief.id);
+                          } else {
+                            await briefsAPI.delete(brief.id);
+                          }
+                          loadData();
+                        } catch (error) {
+                          console.error('Error deleting brief:', error);
+                        }
+                      }}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 size={16} />
@@ -330,16 +539,31 @@ const Briefs = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Título *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Ej: Brief Campaña Navidad 2026"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Título *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.title}
+                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Ej: Brief Campaña Navidad"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Mes</label>
+                  <select
+                    value={formData.month}
+                    onChange={e => setFormData({ ...formData, month: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+                  >
+                    <option value="">Sin asignar</option>
+                    {MONTH_OPTIONS.map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

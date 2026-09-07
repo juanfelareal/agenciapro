@@ -15,6 +15,7 @@ import notesRoutes from './notes.js';
 import referenceAdsRoutes from './reference-ads.js';
 import ugcRoutes from './ugc.js';
 import documentsRoutes from './documents.js';
+import structuredBriefsRoutes from './structured-briefs.js';
 
 const router = express.Router();
 
@@ -35,5 +36,6 @@ router.use('/notes', notesRoutes);
 router.use('/reference-ads', referenceAdsRoutes);
 router.use('/ugc', ugcRoutes);
 router.use('/documents', documentsRoutes);
+router.use('/structured-briefs', structuredBriefsRoutes);
 
 export default router;

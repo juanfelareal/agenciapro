@@ -46,6 +46,7 @@ import EmailMarketingDashboard from './pages/EmailMarketingDashboard';
 import Chat from './pages/Chat';
 import Agents from './pages/Agents';
 import Briefs from './pages/Briefs';
+import StructuredBriefCreator from './pages/StructuredBriefCreator';
 import Anuncios from './pages/Anuncios';
 import UGC from './pages/UGC';
 import UGCCreatorDetail from './pages/UGCCreatorDetail';
@@ -76,6 +77,8 @@ import PortalCallDetail from './pages/portal/PortalCallDetail';
 import PortalUGC from './pages/portal/PortalUGC';
 import PortalDocuments from './components/portal/PortalDocuments';
 import PortalDocumentSign from './components/portal/PortalDocumentSign';
+import PortalStructuredBriefs from './pages/portal/PortalStructuredBriefs';
+import PortalStructuredBriefDetail from './pages/portal/PortalStructuredBriefDetail';
 
 function App() {
   return (
@@ -220,6 +223,22 @@ function App() {
           />
           <Route path="documents" element={<PortalDocuments />} />
           <Route path="documents/:signatureId/sign" element={<PortalDocumentSign />} />
+          <Route
+            path="briefs"
+            element={
+              <PortalProtectedRoute>
+                <PortalStructuredBriefs />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="briefs/:id"
+            element={
+              <PortalProtectedRoute>
+                <PortalStructuredBriefDetail />
+              </PortalProtectedRoute>
+            }
+          />
         </Route>
 
         {/* App routes with Layout */}
@@ -510,6 +529,8 @@ function App() {
                   }
                 />
                 <Route path="briefs" element={<Briefs />} />
+                <Route path="briefs/structured/new" element={<StructuredBriefCreator />} />
+                <Route path="briefs/structured/:id" element={<StructuredBriefCreator />} />
                 <Route
                   path="plantillas-proyecto"
                   element={

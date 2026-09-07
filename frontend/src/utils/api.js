@@ -557,6 +557,29 @@ export const briefsAPI = {
   delete: (id) => api.delete(`/briefs/${id}`),
 };
 
+// Structured Briefs API
+export const structuredBriefsAPI = {
+  // Areas config
+  getAreas: () => api.get('/structured-briefs/areas'),
+  updateAreas: (areas) => api.put('/structured-briefs/areas', { areas }),
+  // Brief CRUD
+  getAll: (params) => api.get('/structured-briefs', { params }),
+  getById: (id) => api.get(`/structured-briefs/${id}`),
+  create: (data) => api.post('/structured-briefs', data),
+  update: (id, data) => api.put(`/structured-briefs/${id}`, data),
+  delete: (id) => api.delete(`/structured-briefs/${id}`),
+  // Sections
+  addSection: (briefId, data) => api.post(`/structured-briefs/${briefId}/sections`, data),
+  updateSection: (briefId, sectionId, data) => api.put(`/structured-briefs/${briefId}/sections/${sectionId}`, data),
+  deleteSection: (briefId, sectionId) => api.delete(`/structured-briefs/${briefId}/sections/${sectionId}`),
+  // Section Tasks
+  addTask: (briefId, sectionId, data) => api.post(`/structured-briefs/${briefId}/sections/${sectionId}/tasks`, data),
+  updateTask: (briefId, sectionId, taskId, data) => api.put(`/structured-briefs/${briefId}/sections/${sectionId}/tasks/${taskId}`, data),
+  deleteTask: (briefId, sectionId, taskId) => api.delete(`/structured-briefs/${briefId}/sections/${sectionId}/tasks/${taskId}`),
+  // Generate project
+  generateProject: (id) => api.post(`/structured-briefs/${id}/generate-project`),
+};
+
 // Facebook OAuth API
 export const facebookOAuthAPI = {
   getAuthUrl: (clientId) => api.get(`/oauth/facebook/url?client_id=${clientId}`),

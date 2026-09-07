@@ -401,4 +401,18 @@ export const portalDocumentsAPI = {
   },
 };
 
+// ============================================
+// STRUCTURED BRIEFS API (Portal)
+// ============================================
+export const portalStructuredBriefsAPI = {
+  list: async () => {
+    const response = await portalApi.get('/structured-briefs');
+    return response.data;
+  },
+  getById: async (id) => {
+    const response = await portalApi.get(`/structured-briefs/${id}`);
+    return response.data;
+  },
+};
+
 export default portalApi;
