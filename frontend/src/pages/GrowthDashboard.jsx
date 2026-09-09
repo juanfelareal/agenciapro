@@ -70,6 +70,12 @@ const formatCOP = (val) => {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
 };
 
+// Full number format (no abbreviation) - for daily tables
+const formatCOPFull = (val) => {
+  if (!val) return '$0';
+  return '$' + Math.round(val).toLocaleString('es-CO');
+};
+
 export default function GrowthDashboard() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(getCurrentPeriod());
@@ -463,8 +469,8 @@ export default function GrowthDashboard() {
                                         <tr key={day.metric_date} className="hover:bg-gray-50">
                                           <td className="px-4 py-2 text-gray-600">{formatShortDate(day.metric_date)}</td>
                                           <td className="px-4 py-2 text-gray-400 capitalize">{formatWeekday(day.metric_date)}</td>
-                                          <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCOP(revenue)}</td>
-                                          <td className="px-4 py-2 text-right text-gray-600">{formatCOP(spend)}</td>
+                                          <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCOPFull(revenue)}</td>
+                                          <td className="px-4 py-2 text-right text-gray-600">{formatCOPFull(spend)}</td>
                                           <td className="px-4 py-2 text-right text-gray-600">{day.shopify_orders || 0}</td>
                                           <td className="px-4 py-2 text-right">
                                             <span className={`font-medium ${roas >= 3 ? 'text-green-600' : roas >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
