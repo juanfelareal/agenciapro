@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { createRequire } from 'module';
+import * as XLSX from 'xlsx';
 import db from '../config/database.js';
 
 const require = createRequire(import.meta.url);
@@ -8,15 +9,22 @@ const pdfParse = require('pdf-parse');
 
 const router = express.Router();
 
-// Configure multer for PDF uploads (in memory)
+// Allowed MIME types for payroll files
+const ALLOWED_MIMES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel', // .xls
+];
+
+// Configure multer for PDF and XLSX uploads (in memory)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB for multi-page PDFs
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    if (ALLOWED_MIMES.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Solo se permiten archivos PDF'), false);
+      cb(new Error('Solo se permiten archivos PDF o Excel (.xlsx)'), false);
     }
   }
 });
@@ -284,28 +292,256 @@ function extractEmployeeData(text) {
 }
 
 /**
- * POST /api/payroll/upload
- * Uploads and parses an Aleluya payroll PDF using pdf-parse (no API key needed)
+ * Parse Aleluya payroll XLSX file
+ * Maps the 102-column Aleluya export format to our schema
  */
-router.post('/upload', upload.single('pdf'), async (req, res) => {
+function parseAleluyaXLSX(buffer) {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const sheetName = workbook.SheetNames[0]; // Usually "Empleados"
+  const sheet = workbook.Sheets[sheetName];
+
+  // Convert to array of arrays
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+  // Row 1 (index 0): Period info - ["Desde", "01/09/2026", "Hasta", "15/09/2026", ...]
+  const periodoRow = rows[0] || [];
+  let fechaDesde = null;
+  let fechaHasta = null;
+  let year = new Date().getFullYear();
+  let month = new Date().getMonth() + 1;
+  let periodType = 'mensual'; // 'quincenal' or 'mensual'
+
+  // Extract period dates
+  for (let i = 0; i < periodoRow.length; i++) {
+    const cell = String(periodoRow[i] || '').trim();
+    if (cell.toLowerCase() === 'desde' && periodoRow[i + 1]) {
+      fechaDesde = String(periodoRow[i + 1]).trim();
+    }
+    if (cell.toLowerCase() === 'hasta' && periodoRow[i + 1]) {
+      fechaHasta = String(periodoRow[i + 1]).trim();
+    }
+  }
+
+  // Parse dates to determine year/month
+  if (fechaHasta) {
+    const parts = fechaHasta.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0]);
+      month = parseInt(parts[1]);
+      year = parseInt(parts[2]);
+      // Determine if quincenal (ends on 15th) or full month
+      periodType = day === 15 ? 'quincenal_1' : (day >= 28 ? 'quincenal_2' : 'mensual');
+    }
+  }
+
+  // Row 3 (index 2): Headers
+  const headers = (rows[2] || []).map(h => String(h || '').trim().toLowerCase());
+
+  // Find column indices by header name
+  const findColumn = (keywords) => {
+    for (const kw of keywords) {
+      const idx = headers.findIndex(h => h.includes(kw.toLowerCase()));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+
+  // Map columns to indices - based on Aleluya export structure
+  const cols = {
+    nombre: findColumn(['nombre']),
+    apellido: findColumn(['apellido']),
+    identificacion: findColumn(['número de identificación', 'identificación', 'identificacion', 'cedula']),
+    sede: findColumn(['sede']),
+    area: findColumn(['área', 'area']),
+    cargo: findColumn(['cargo']),
+    salarioMensual: findColumn(['salario mensual']),
+    salarioBasico: findColumn(['salario básico', 'salario basico']),
+    // Devengados
+    totalIngresos: findColumn(['total ingresos']),
+    auxTransporte: findColumn(['auxilio de transporte', 'aux transporte']),
+    bonificacion: findColumn(['bonificación', 'bonificacion']),
+    // Deducciones empleado
+    pensionEmpleado: findColumn(['pensión empleado', 'pension empleado']),
+    saludEmpleado: findColumn(['salud empleado']),
+    totalDeducciones: findColumn(['total deducciones']),
+    // Neto
+    pagoNeto: findColumn(['pago neto empleado', 'pago neto', 'neto a pagar']),
+    // Aportes empleador
+    pensionEmpleador: findColumn(['pensión empleador', 'pension empleador']),
+    saludEmpleador: findColumn(['salud empleador']),
+    riesgosARL: findColumn(['riesgos laborales', 'arl']),
+    sena: findColumn(['sena']),
+    icbf: findColumn(['icbf']),
+    ccf: findColumn(['caja de compensación', 'ccf']),
+    // Provisiones
+    cesantias: findColumn(['cesantías', 'cesantias']),
+    intCesantias: findColumn(['intereses cesantías', 'intereses cesantias', 'int. cesant']),
+    prima: findColumn(['prima']),
+    vacaciones: findColumn(['vacaciones']),
+    // Total costo empresa
+    totalCostoEmpresa: findColumn(['total costo empresa', 'costo empresa']),
+  };
+
+  const employees = [];
+
+  // Process employee rows (starting from row 4, index 3)
+  for (let i = 3; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+
+    // Check if row has valid employee data (has name or identification)
+    const nombre = row[cols.nombre] ? String(row[cols.nombre]).trim() : '';
+    const apellido = row[cols.apellido] ? String(row[cols.apellido]).trim() : '';
+    const identificacion = row[cols.identificacion] ? String(row[cols.identificacion]).trim() : '';
+
+    if (!nombre && !identificacion) continue;
+
+    const getNum = (colIdx) => {
+      if (colIdx < 0 || !row[colIdx]) return 0;
+      const val = row[colIdx];
+      return typeof val === 'number' ? Math.abs(val) : parseColombianMoney(String(val));
+    };
+
+    const fullName = apellido ? `${nombre} ${apellido}` : nombre;
+    const salarioBase = getNum(cols.salarioBasico) || getNum(cols.salarioMensual);
+    const totalDevengados = getNum(cols.totalIngresos);
+    const totalDeducciones = getNum(cols.totalDeducciones);
+    const pagoNeto = getNum(cols.pagoNeto);
+
+    // Aportes parafiscales del empleador
+    const pensionEmpleador = getNum(cols.pensionEmpleador);
+    const saludEmpleador = getNum(cols.saludEmpleador);
+    const arl = getNum(cols.riesgosARL);
+    const sena = getNum(cols.sena);
+    const icbf = getNum(cols.icbf);
+    const ccf = getNum(cols.ccf);
+
+    // Provisiones
+    const cesantias = getNum(cols.cesantias);
+    const intCesantias = getNum(cols.intCesantias);
+    const prima = getNum(cols.prima);
+    const vacaciones = getNum(cols.vacaciones);
+
+    // Total costo empresa
+    const totalCostoEmpresa = getNum(cols.totalCostoEmpresa);
+
+    const employee = {
+      nombre: fullName,
+      identificacion,
+      cargo: row[cols.cargo] ? String(row[cols.cargo]).trim() : '',
+      area: row[cols.area] ? String(row[cols.area]).trim() : '',
+      sede: row[cols.sede] ? String(row[cols.sede]).trim() : '',
+      salario_base: salarioBase,
+      dias_laborados: 15, // Quincenal default, could be 30 for monthly
+      devengados: {
+        salario: salarioBase,
+        transporte: getNum(cols.auxTransporte),
+        prestaciones_sociales: 0,
+        bonificaciones: getNum(cols.bonificacion),
+        auxilios: 0,
+        otros: 0,
+      },
+      deducciones: {
+        seguridad_social: getNum(cols.pensionEmpleado) + getNum(cols.saludEmpleado),
+        pension_empleado: getNum(cols.pensionEmpleado),
+        salud_empleado: getNum(cols.saludEmpleado),
+        retencion_fuente: 0,
+        otros: 0,
+      },
+      aportes_empleador: {
+        pension: pensionEmpleador,
+        salud: saludEmpleador,
+        arl,
+        sena,
+        icbf,
+        ccf,
+        total_parafiscales: pensionEmpleador + saludEmpleador + arl + sena + icbf + ccf,
+      },
+      provisiones: {
+        cesantias,
+        intereses_cesantias: intCesantias,
+        prima,
+        vacaciones,
+        total_provisiones: cesantias + intCesantias + prima + vacaciones,
+      },
+      total_devengados: totalDevengados,
+      total_deducciones: totalDeducciones,
+      total_pagado: pagoNeto,
+      total_costo_empresa: totalCostoEmpresa,
+    };
+
+    employees.push(employee);
+  }
+
+  // Generate period name
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+  let periodoName = `${monthNames[month - 1]} ${year}`;
+  if (periodType === 'quincenal_1') {
+    periodoName = `1-15 ${monthNames[month - 1]} ${year}`;
+  } else if (periodType === 'quincenal_2') {
+    periodoName = `16-${new Date(year, month, 0).getDate()} ${monthNames[month - 1]} ${year}`;
+  }
+
+  // Calculate totals
+  const totales = {
+    total_devengados: employees.reduce((sum, e) => sum + (e.total_devengados || 0), 0),
+    total_deducciones: employees.reduce((sum, e) => sum + (e.total_deducciones || 0), 0),
+    total_neto: employees.reduce((sum, e) => sum + (e.total_pagado || 0), 0),
+    total_costo_empresa: employees.reduce((sum, e) => sum + (e.total_costo_empresa || 0), 0),
+    total_parafiscales: employees.reduce((sum, e) => sum + (e.aportes_empleador?.total_parafiscales || 0), 0),
+    total_provisiones: employees.reduce((sum, e) => sum + (e.provisiones?.total_provisiones || 0), 0),
+  };
+
+  return {
+    empresa: 'LA REAL MARKETING SAS',
+    fecha_inicio: fechaDesde,
+    fecha_fin: fechaHasta,
+    periodo: periodoName,
+    period_type: periodType,
+    year,
+    month,
+    empleados: employees,
+    totales,
+    source: 'aleluya_xlsx',
+  };
+}
+
+/**
+ * POST /api/payroll/upload
+ * Uploads and parses an Aleluya payroll file (PDF or XLSX)
+ */
+router.post('/upload', upload.single('file'), async (req, res) => {
   const pool = db.getPool();
   const orgId = req.orgId;
 
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'Se requiere un archivo PDF' });
+      return res.status(400).json({ error: 'Se requiere un archivo PDF o Excel (.xlsx)' });
     }
 
-    // Parse PDF using pdf-parse
-    const pdfData = await pdfParse(req.file.buffer);
-    const text = pdfData.text;
+    const isXLSX = req.file.mimetype.includes('spreadsheet') || req.file.mimetype.includes('excel');
+    const isPDF = req.file.mimetype === 'application/pdf';
 
-    if (!text || text.trim().length < 50) {
-      return res.status(400).json({ error: 'No se pudo extraer texto del PDF. ¿Es un PDF escaneado?' });
+    let payrollData;
+
+    if (isXLSX) {
+      // Parse XLSX file
+      payrollData = parseAleluyaXLSX(req.file.buffer);
+    } else if (isPDF) {
+      // Parse PDF using pdf-parse
+      const pdfData = await pdfParse(req.file.buffer);
+      const text = pdfData.text;
+
+      if (!text || text.trim().length < 50) {
+        return res.status(400).json({ error: 'No se pudo extraer texto del PDF. ¿Es un PDF escaneado?' });
+      }
+
+      payrollData = parseAleluyaPDF(text);
+    } else {
+      return res.status(400).json({ error: 'Formato de archivo no soportado. Use PDF o Excel (.xlsx)' });
     }
-
-    // Parse the extracted text
-    const payrollData = parseAleluyaPDF(text);
 
     // Validate we found at least one employee
     if (!payrollData.empleados || payrollData.empleados.length === 0) {

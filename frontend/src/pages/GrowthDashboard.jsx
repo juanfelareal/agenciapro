@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
   Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus,
-  Mail, Globe, Megaphone, Palette, Video, User, CheckCircle2, Calendar, ChevronDown, ChevronUp, Layers
+  Mail, Globe, Megaphone, Palette, Video, User, CheckCircle2, Calendar, ChevronDown, ChevronUp, Layers,
+  CalendarDays, BarChart2
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
 
@@ -11,6 +12,27 @@ const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone:
 const getCurrentPeriod = () => {
   const d = getColombiaDate();
   return d.substring(0, 7); // YYYY-MM
+};
+
+// Get dates for "last 7 days" (default)
+const getLast7Days = () => {
+  const today = getColombiaDate();
+  const d = new Date(today + 'T12:00:00');
+  d.setDate(d.getDate() - 6);
+  return {
+    start: d.toISOString().split('T')[0],
+    end: today
+  };
+};
+
+// Get dates for current month
+const getCurrentMonthDates = () => {
+  const today = getColombiaDate();
+  const [y, m] = today.split('-');
+  const start = `${y}-${m}-01`;
+  const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
+  const end = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+  return { start, end };
 };
 
 const getPeriodLabel = (period) => {
@@ -27,6 +49,20 @@ const getPeriodDates = (period) => {
   return { start, end };
 };
 
+// Format short date
+const formatShortDate = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+};
+
+// Format weekday
+const formatWeekday = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('es-CO', { weekday: 'short' });
+};
+
 const formatCOP = (val) => {
   if (!val) return '$0';
   if (val >= 1e6) return `$${(val / 1e6).toFixed(1)}M`;
@@ -37,6 +73,9 @@ const formatCOP = (val) => {
 export default function GrowthDashboard() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(getCurrentPeriod());
+  // Date range state (for flexible filtering)
+  const [dateRange, setDateRange] = useState(getCurrentMonthDates());
+  const [dateMode, setDateMode] = useState('month'); // 'month' | 'custom'
   const [growthClients, setGrowthClients] = useState([]);
   const [allClients, setAllClients] = useState([]);
   const [metricsData, setMetricsData] = useState({ clients: [] });
@@ -44,20 +83,30 @@ export default function GrowthDashboard() {
   const [clientGrowthData, setClientGrowthData] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [activeTab, setActiveTab] = useState('financiero');
+  // Expanded daily tracking for clients
+  const [expandedClients, setExpandedClients] = useState({});
+  const [clientDailyMetrics, setClientDailyMetrics] = useState({});
+  const [loadingDaily, setLoadingDaily] = useState({});
 
-  useEffect(() => { loadOverview(); }, [period]);
+  useEffect(() => { loadOverview(); }, [dateRange.start, dateRange.end]);
 
   useEffect(() => {
     if (selectedClient) loadClientDetail(selectedClient.id);
   }, [selectedClient, period]);
 
+  // When period changes (month navigation), update dateRange
+  useEffect(() => {
+    if (dateMode === 'month') {
+      setDateRange(getPeriodDates(period));
+    }
+  }, [period, dateMode]);
+
   const loadOverview = async () => {
     try {
       setLoading(true);
-      const { start, end } = getPeriodDates(period);
       const [gcRes, metricsRes, clientsRes] = await Promise.all([
         growthAPI.getClients(),
-        clientMetricsAPI.getAggregate(start, end),
+        clientMetricsAPI.getAggregate(dateRange.start, dateRange.end),
         clientsAPI.getAll(),
       ]);
       setGrowthClients(gcRes.data || []);
@@ -67,6 +116,31 @@ export default function GrowthDashboard() {
       console.error('Error loading growth overview:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load daily metrics for a client (last 7 days)
+  const loadClientDailyMetrics = async (clientId) => {
+    if (loadingDaily[clientId]) return;
+    setLoadingDaily(prev => ({ ...prev, [clientId]: true }));
+    try {
+      const { start, end } = getLast7Days();
+      const res = await clientMetricsAPI.getDailyMetrics(clientId, start, end);
+      setClientDailyMetrics(prev => ({ ...prev, [clientId]: res.data || [] }));
+    } catch (error) {
+      console.error('Error loading daily metrics:', error);
+      setClientDailyMetrics(prev => ({ ...prev, [clientId]: [] }));
+    } finally {
+      setLoadingDaily(prev => ({ ...prev, [clientId]: false }));
+    }
+  };
+
+  // Toggle expanded state for a client
+  const toggleClientExpanded = (clientId) => {
+    const isExpanded = expandedClients[clientId];
+    setExpandedClients(prev => ({ ...prev, [clientId]: !isExpanded }));
+    if (!isExpanded && !clientDailyMetrics[clientId]) {
+      loadClientDailyMetrics(clientId);
     }
   };
 
@@ -144,17 +218,103 @@ export default function GrowthDashboard() {
   // OVERVIEW VIEW
   return (
     <div className="space-y-6">
-      {/* Period Selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => changePeriod(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <ChevronLeft className="w-5 h-5 text-gray-500" />
-          </button>
-          <span className="text-lg font-semibold text-[#17181A] min-w-[160px] text-center">{getPeriodLabel(period)}</span>
-          <button onClick={() => changePeriod(1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          </button>
+      {/* Date Range Selector */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick filters */}
+          <div className="flex items-center bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => {
+                setDateMode('month');
+                setPeriod(getCurrentPeriod());
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                dateMode === 'month' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Mes
+            </button>
+            <button
+              onClick={() => {
+                setDateMode('custom');
+                setDateRange(getLast7Days());
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                dateMode === 'custom' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Personalizado
+            </button>
+          </div>
+
+          {dateMode === 'month' ? (
+            /* Month navigation */
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-1">
+              <button onClick={() => changePeriod(-1)} className="p-1.5 hover:bg-gray-100 rounded transition-colors">
+                <ChevronLeft className="w-4 h-4 text-gray-500" />
+              </button>
+              <span className="text-sm font-medium text-[#17181A] min-w-[120px] text-center">{getPeriodLabel(period)}</span>
+              <button onClick={() => changePeriod(1)} className="p-1.5 hover:bg-gray-100 rounded transition-colors">
+                <ChevronRight className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+          ) : (
+            /* Custom date range */
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                <CalendarDays className="w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  className="text-sm border-0 focus:ring-0 p-0 w-28"
+                />
+              </div>
+              <span className="text-gray-400 text-sm">a</span>
+              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                <CalendarDays className="w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  className="text-sm border-0 focus:ring-0 p-0 w-28"
+                />
+              </div>
+              {/* Quick presets */}
+              <div className="hidden sm:flex items-center gap-1">
+                <button
+                  onClick={() => setDateRange(getLast7Days())}
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                >
+                  7 días
+                </button>
+                <button
+                  onClick={() => {
+                    const today = getColombiaDate();
+                    const d = new Date(today + 'T12:00:00');
+                    d.setDate(d.getDate() - 14);
+                    setDateRange({ start: d.toISOString().split('T')[0], end: today });
+                  }}
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                >
+                  14 días
+                </button>
+                <button
+                  onClick={() => {
+                    const today = getColombiaDate();
+                    const d = new Date(today + 'T12:00:00');
+                    d.setDate(d.getDate() - 29);
+                    setDateRange({ start: d.toISOString().split('T')[0], end: today });
+                  }}
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                >
+                  30 días
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
         <button
           onClick={() => setShowAddClient(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors text-sm"
@@ -216,43 +376,112 @@ export default function GrowthDashboard() {
               <tbody className="divide-y divide-gray-100">
                 {enrichedClients.map((client) => {
                   const m = client.metrics;
+                  const isExpanded = expandedClients[client.id];
+                  const dailyData = clientDailyMetrics[client.id] || [];
+                  const isLoadingDaily = loadingDaily[client.id];
                   return (
-                    <tr
-                      key={client.id}
-                      onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{client.nickname || client.name}</p>
-                        <p className="text-xs text-gray-400">{client.company}</p>
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-gray-900">{formatCOP(m?.display_revenue)}</td>
-                      <td className="px-6 py-4 text-right text-gray-600">{formatCOP(m?.total_ad_spend)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`font-medium ${(m?.roas || 0) >= 3 ? 'text-green-600' : (m?.roas || 0) >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {m?.roas?.toFixed(2) || '—'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right text-gray-600">{m?.total_orders || 0}</td>
-                      <td className="px-6 py-4 text-right text-gray-600">{formatCOP(m?.ticket_promedio)}</td>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
-                            className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
-                          >
-                            <ChevronRight className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleRemoveGrowthClient(client.id)}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Quitar de Growth"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                    <React.Fragment key={client.id}>
+                      <tr
+                        onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
+                        className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-gray-900">{client.nickname || client.name}</p>
+                          <p className="text-xs text-gray-400">{client.company}</p>
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium text-gray-900">{formatCOP(m?.display_revenue)}</td>
+                        <td className="px-6 py-4 text-right text-gray-600">{formatCOP(m?.total_ad_spend)}</td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={`font-medium ${(m?.roas || 0) >= 3 ? 'text-green-600' : (m?.roas || 0) >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            {m?.roas?.toFixed(2) || '—'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">{m?.total_orders || 0}</td>
+                        <td className="px-6 py-4 text-right text-gray-600">{formatCOP(m?.ticket_promedio)}</td>
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => toggleClientExpanded(client.id)}
+                              className={`p-2 rounded-lg transition-colors ${isExpanded ? 'text-[#17181A] bg-gray-100' : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'}`}
+                              title="Ver últimos 7 días"
+                            >
+                              <BarChart2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
+                              className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              <ChevronRight className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveGrowthClient(client.id)}
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Quitar de Growth"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Expandable daily metrics row */}
+                      {isExpanded && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={7} className="px-6 py-4">
+                            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                                <span className="text-xs font-medium text-gray-600">Últimos 7 días</span>
+                                <span className="text-[10px] text-gray-400">
+                                  {m?.revenue_type === 'net' ? 'Venta Neta' : 'Venta Total'}
+                                </span>
+                              </div>
+                              {isLoadingDaily ? (
+                                <div className="py-8 flex justify-center">
+                                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                </div>
+                              ) : dailyData.length === 0 ? (
+                                <div className="py-6 text-center text-gray-400 text-sm">
+                                  Sin datos en los últimos 7 días
+                                </div>
+                              ) : (
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="text-xs text-gray-500 border-b border-gray-100">
+                                      <th className="px-4 py-2 text-left font-medium">Fecha</th>
+                                      <th className="px-4 py-2 text-left font-medium">Día</th>
+                                      <th className="px-4 py-2 text-right font-medium">Ventas</th>
+                                      <th className="px-4 py-2 text-right font-medium">Inversión</th>
+                                      <th className="px-4 py-2 text-right font-medium">Pedidos</th>
+                                      <th className="px-4 py-2 text-right font-medium">ROAS</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-50">
+                                    {dailyData.sort((a, b) => b.metric_date.localeCompare(a.metric_date)).map((day) => {
+                                      const revenue = m?.revenue_type === 'net' ? day.shopify_net_revenue : day.shopify_revenue;
+                                      const spend = (day.fb_spend || 0) + (day.ga_spend || 0) + (day.tt_spend || 0);
+                                      const roas = spend > 0 ? revenue / spend : 0;
+                                      return (
+                                        <tr key={day.metric_date} className="hover:bg-gray-50">
+                                          <td className="px-4 py-2 text-gray-600">{formatShortDate(day.metric_date)}</td>
+                                          <td className="px-4 py-2 text-gray-400 capitalize">{formatWeekday(day.metric_date)}</td>
+                                          <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCOP(revenue)}</td>
+                                          <td className="px-4 py-2 text-right text-gray-600">{formatCOP(spend)}</td>
+                                          <td className="px-4 py-2 text-right text-gray-600">{day.shopify_orders || 0}</td>
+                                          <td className="px-4 py-2 text-right">
+                                            <span className={`font-medium ${roas >= 3 ? 'text-green-600' : roas >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                              {roas.toFixed(2)}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

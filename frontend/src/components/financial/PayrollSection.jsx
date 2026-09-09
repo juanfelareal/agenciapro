@@ -50,8 +50,14 @@ const PayrollSection = ({ data, loading }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
-      setUploadMessage({ type: 'error', text: 'Solo se permiten archivos PDF' });
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setUploadMessage({ type: 'error', text: 'Solo se permiten archivos PDF o Excel (.xlsx)' });
       return;
     }
 
@@ -60,7 +66,7 @@ const PayrollSection = ({ data, loading }) => {
 
     try {
       const formData = new FormData();
-      formData.append('pdf', file);
+      formData.append('file', file);
 
       const res = await fetch(`${API_URL}/payroll/upload`, {
         method: 'POST',
@@ -196,7 +202,7 @@ const PayrollSection = ({ data, loading }) => {
             className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
           >
             <Upload size={18} />
-            Importar PDF de Aleluya
+            Importar desde Aleluya
           </button>
         </div>
 
@@ -207,14 +213,14 @@ const PayrollSection = ({ data, loading }) => {
           </div>
           <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin datos de nómina</h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
-            Sube tu PDF de nómina exportado desde Aleluya para ver el detalle de pagos y deducciones de tu equipo.
+            Sube tu archivo de nómina exportado desde Aleluya (PDF o Excel) para ver el detalle de pagos y deducciones de tu equipo.
           </p>
           <button
             onClick={() => setShowUploadModal(true)}
             className="bg-indigo-500 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-indigo-600 transition-colors mx-auto"
           >
             <Upload size={18} />
-            Subir PDF de Aleluya
+            Subir archivo de Aleluya
           </button>
         </div>
 
@@ -247,7 +253,7 @@ const PayrollSection = ({ data, loading }) => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.xlsx,.xls"
                 onChange={handleFileUpload}
                 className="hidden"
                 id="payroll-upload"
@@ -263,10 +269,10 @@ const PayrollSection = ({ data, loading }) => {
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 )}
                 <p className="text-sm font-medium text-[#17181A] mb-1">
-                  {uploading ? 'Procesando PDF...' : 'Haz clic para seleccionar PDF'}
+                  {uploading ? 'Procesando archivo...' : 'Haz clic para seleccionar archivo'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  PDF de nómina exportado desde Aleluya (máx. 15MB)
+                  Excel (.xlsx) o PDF de nómina exportado desde Aleluya (máx. 15MB)
                 </p>
               </label>
             </div>
@@ -285,9 +291,12 @@ const PayrollSection = ({ data, loading }) => {
               <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
                 <li>Ingresa a tu cuenta de Aleluya</li>
                 <li>Ve a Nómina → Historial de Liquidaciones</li>
-                <li>Selecciona el período y haz clic en "Exportar PDF"</li>
+                <li>Selecciona el período y haz clic en "Exportar Excel" (recomendado) o "Exportar PDF"</li>
                 <li>Sube el archivo aquí</li>
               </ol>
+              <p className="text-xs text-indigo-600 mt-2 font-medium">
+                💡 El Excel (.xlsx) importa más datos que el PDF (parafiscales, provisiones, costo empresa)
+              </p>
             </div>
           </div>
         </div>

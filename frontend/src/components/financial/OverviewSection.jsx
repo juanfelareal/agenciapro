@@ -14,21 +14,23 @@ const OverviewSection = ({ data, loading }) => {
   const kpis = useMemo(() => {
     if (!data?.finances) {
       return {
-        income: 0,
+        netSales: 0,
+        collected: 0,
+        pending: 0,
         expenses: 0,
         profit: 0,
         margin: 0,
-        receivables: 0,
       };
     }
     const f = data.finances;
-    const income = f.total_invoiced_net || 0;
+    const netSales = f.total_invoiced_net || 0;
+    const collected = f.total_paid_net || 0;
+    const pending = f.total_pending_net || 0;
     const expenses = f.total_expenses_amount || 0;
-    const profit = f.net_income || income - expenses;
-    const margin = income > 0 ? (profit / income) * 100 : 0;
-    const receivables = f.total_pending_gross || 0;
+    const profit = f.net_income || netSales - expenses;
+    const margin = netSales > 0 ? (profit / netSales) * 100 : 0;
 
-    return { income, expenses, profit, margin, receivables };
+    return { netSales, collected, pending, expenses, profit, margin };
   }, [data]);
 
   // Real expense breakdown from API
@@ -54,8 +56,8 @@ const OverviewSection = ({ data, loading }) => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="h-32 glass rounded-2xl animate-pulse" />
           ))}
         </div>
@@ -64,18 +66,19 @@ const OverviewSection = ({ data, loading }) => {
   }
 
   // Empty state when no data
-  const hasData = kpis.income > 0 || kpis.expenses > 0 || kpis.receivables > 0;
+  const hasData = kpis.netSales > 0 || kpis.expenses > 0 || kpis.pending > 0;
 
   if (!hasData) {
     return (
       <div className="space-y-6">
         {/* Empty KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <KPICard icon={DollarSign} title="Ingresos" value="$0" subtitle="Sin datos" iconColor="emerald" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          <KPICard icon={DollarSign} title="Venta neta" value="$0" subtitle="Sin datos" iconColor="emerald" />
+          <KPICard icon={DollarSign} title="Cobrado" value="$0" subtitle="Sin datos" iconColor="teal" />
+          <KPICard icon={Clock} title="Por cobrar" value="$0" subtitle="Sin datos" iconColor="amber" />
           <KPICard icon={TrendingDown} title="Gastos" value="$0" subtitle="Sin datos" iconColor="orange" />
           <KPICard icon={Star} title="Utilidad" value="$0" subtitle="Sin datos" iconColor="indigo" />
           <KPICard icon={Percent} title="Margen" value="0%" subtitle="Sin datos" iconColor="violet" />
-          <KPICard icon={Clock} title="Cartera" value="$0" subtitle="Sin datos" iconColor="amber" />
         </div>
 
         {/* Empty state message */}
@@ -95,13 +98,27 @@ const OverviewSection = ({ data, loading }) => {
   return (
     <div className="space-y-6">
       {/* KPIs - Real data only, no fake percentages */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <KPICard
           icon={DollarSign}
-          title="Ingresos"
-          value={formatCurrency(kpis.income)}
-          subtitle="Período seleccionado"
+          title="Venta neta"
+          value={formatCurrency(kpis.netSales)}
+          subtitle="Total facturado (sin IVA)"
           iconColor="emerald"
+        />
+        <KPICard
+          icon={DollarSign}
+          title="Cobrado"
+          value={formatCurrency(kpis.collected)}
+          subtitle="Facturas pagadas"
+          iconColor="teal"
+        />
+        <KPICard
+          icon={Clock}
+          title="Por cobrar"
+          value={formatCurrency(kpis.pending)}
+          subtitle="Pendiente de pago"
+          iconColor="amber"
         />
         <KPICard
           icon={TrendingDown}
@@ -114,22 +131,15 @@ const OverviewSection = ({ data, loading }) => {
           icon={Star}
           title="Utilidad"
           value={formatCurrency(kpis.profit)}
-          subtitle="Ingresos - Gastos"
+          subtitle="Venta neta - Gastos"
           iconColor="indigo"
         />
         <KPICard
           icon={Percent}
           title="Margen"
           value={formatPercent(kpis.margin)}
-          subtitle="Utilidad / Ingresos"
+          subtitle="Utilidad / Venta neta"
           iconColor="violet"
-        />
-        <KPICard
-          icon={Clock}
-          title="Cartera"
-          value={formatCurrency(kpis.receivables)}
-          subtitle="Pendiente de cobro"
-          iconColor="amber"
         />
       </div>
 
@@ -143,8 +153,8 @@ const OverviewSection = ({ data, loading }) => {
         >
           <div className="space-y-4 mt-4">
             <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <span className="text-gray-600">Ingresos</span>
-              <span className="font-semibold text-[#17181A]">{formatCurrency(kpis.income)}</span>
+              <span className="text-gray-600">Venta neta</span>
+              <span className="font-semibold text-[#17181A]">{formatCurrency(kpis.netSales)}</span>
             </div>
             <div className="flex justify-between items-center py-3 border-b border-gray-100">
               <span className="text-gray-600">Gastos</span>
@@ -225,13 +235,13 @@ const OverviewSection = ({ data, loading }) => {
         >
           <div className="mt-4">
             <div className="bg-amber-50 rounded-xl p-6 text-center">
-              <div className="text-3xl font-bold text-amber-600">{formatCurrency(kpis.receivables)}</div>
-              <div className="text-sm text-gray-500 mt-2">Total pendiente de cobro</div>
+              <div className="text-3xl font-bold text-amber-600">{formatCurrency(kpis.pending)}</div>
+              <div className="text-sm text-gray-500 mt-2">Total pendiente de cobro (sin IVA)</div>
             </div>
-            {kpis.income > 0 && (
+            {kpis.netSales > 0 && (
               <div className="mt-4 text-center">
                 <span className="text-sm text-gray-500">
-                  Representa el {formatPercent((kpis.receivables / kpis.income) * 100)} de los ingresos
+                  Representa el {formatPercent((kpis.pending / kpis.netSales) * 100)} de las ventas
                 </span>
               </div>
             )}
