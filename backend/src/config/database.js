@@ -1817,6 +1817,12 @@ export const initializeDatabase = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='commission_deduction') THEN
           ALTER TABLE clients ADD COLUMN commission_deduction REAL DEFAULT 0;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='commission_threshold') THEN
+          ALTER TABLE clients ADD COLUMN commission_threshold REAL DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='clients' AND column_name='commission_rate_above') THEN
+          ALTER TABLE clients ADD COLUMN commission_rate_above REAL DEFAULT 0;
+        END IF;
       END $$
     `);
 

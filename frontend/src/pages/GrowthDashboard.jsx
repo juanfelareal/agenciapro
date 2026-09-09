@@ -215,13 +215,29 @@ export default function GrowthDashboard() {
     }
   };
 
-  // Calculate commission for a client
+  // Calculate commission for a client (supports tiered rates)
   const calcCommission = (client, revenue) => {
     const rate = client.commission_rate || 0;
     const deduction = client.commission_deduction || 0;
+    const threshold = client.commission_threshold || 0;
+    const rateAbove = client.commission_rate_above || 0;
+
     if (rate <= 0) return 0;
-    const base = Math.max(0, (revenue || 0) - deduction);
-    return base * (rate / 100);
+    const netSales = Math.max(0, (revenue || 0) - deduction);
+
+    // If no threshold, simple calculation
+    if (threshold <= 0) {
+      return netSales * (rate / 100);
+    }
+
+    // Tiered calculation
+    if (netSales <= threshold) {
+      return netSales * (rate / 100);
+    } else {
+      const basePortion = threshold * (rate / 100);
+      const abovePortion = (netSales - threshold) * (rateAbove / 100);
+      return basePortion + abovePortion;
+    }
   };
 
   // Open commission modal
@@ -230,7 +246,9 @@ export default function GrowthDashboard() {
       clientId: client.id,
       clientName: client.nickname || client.name,
       rate: client.commission_rate || 0,
-      deduction: client.commission_deduction || 0
+      deduction: client.commission_deduction || 0,
+      threshold: client.commission_threshold || 0,
+      rateAbove: client.commission_rate_above || 0
     });
   };
 
@@ -241,12 +259,20 @@ export default function GrowthDashboard() {
     try {
       await growthAPI.updateCommission(commissionModal.clientId, {
         commission_rate: commissionModal.rate,
-        commission_deduction: commissionModal.deduction
+        commission_deduction: commissionModal.deduction,
+        commission_threshold: commissionModal.threshold,
+        commission_rate_above: commissionModal.rateAbove
       });
       // Update local state
       setGrowthClients(prev => prev.map(c =>
         c.id === commissionModal.clientId
-          ? { ...c, commission_rate: commissionModal.rate, commission_deduction: commissionModal.deduction }
+          ? {
+              ...c,
+              commission_rate: commissionModal.rate,
+              commission_deduction: commissionModal.deduction,
+              commission_threshold: commissionModal.threshold,
+              commission_rate_above: commissionModal.rateAbove
+            }
           : c
       ));
       setCommissionModal(null);
@@ -711,11 +737,61 @@ export default function GrowthDashboard() {
                 />
                 <p className="text-xs text-gray-400 mt-1">Monto que se resta de la venta antes de calcular la comisión</p>
               </div>
+
+              {/* Tiered Commission Section */}
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Comisión escalonada (opcional)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Umbral de ventas
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000000"
+                      value={commissionModal.threshold}
+                      onChange={(e) => setCommissionModal(prev => ({ ...prev, threshold: parseFloat(e.target.value) || 0 }))}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Ej: 20000000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      % sobre umbral
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={commissionModal.rateAbove}
+                      onChange={(e) => setCommissionModal(prev => ({ ...prev, rateAbove: parseFloat(e.target.value) || 0 }))}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="Ej: 5"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Si se define un umbral, se aplica el % base hasta ese monto y el % sobre umbral para el excedente
+                </p>
+              </div>
+
+              {/* Formula Preview */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 mb-2">Fórmula:</p>
-                <p className="text-sm font-mono text-gray-700">
-                  Comisión = {commissionModal.rate}% × (Venta Neta{commissionModal.deduction > 0 ? ` - ${formatCOPFull(commissionModal.deduction)}` : ''})
-                </p>
+                {commissionModal.threshold > 0 ? (
+                  <div className="text-sm font-mono text-gray-700 space-y-1">
+                    <p>Si ventas ≤ {formatCOPFull(commissionModal.threshold)}:</p>
+                    <p className="pl-3">Comisión = {commissionModal.rate}% × Venta{commissionModal.deduction > 0 ? ` - ${formatCOPFull(commissionModal.deduction)}` : ''}</p>
+                    <p className="mt-2">Si ventas &gt; {formatCOPFull(commissionModal.threshold)}:</p>
+                    <p className="pl-3">Comisión = {commissionModal.rate}% × {formatCOPFull(commissionModal.threshold)} + {commissionModal.rateAbove}% × excedente</p>
+                  </div>
+                ) : (
+                  <p className="text-sm font-mono text-gray-700">
+                    Comisión = {commissionModal.rate}% × (Venta / Utilidad{commissionModal.deduction > 0 ? ` - ${formatCOPFull(commissionModal.deduction)}` : ''})
+                  </p>
+                )}
               </div>
             </div>
             <div className="p-4 border-t border-gray-100 flex gap-3">

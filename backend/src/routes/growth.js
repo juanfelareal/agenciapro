@@ -52,12 +52,12 @@ router.put('/clients/:clientId/service-type', async (req, res) => {
 router.put('/clients/:clientId/commission', async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { commission_rate, commission_deduction } = req.body;
+    const { commission_rate, commission_deduction, commission_threshold, commission_rate_above } = req.body;
     await db.run(
       `UPDATE clients
-       SET commission_rate = $1, commission_deduction = $2, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 AND organization_id = $4`,
-      [commission_rate || 0, commission_deduction || 0, clientId, req.orgId]
+       SET commission_rate = $1, commission_deduction = $2, commission_threshold = $3, commission_rate_above = $4, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 AND organization_id = $6`,
+      [commission_rate || 0, commission_deduction || 0, commission_threshold || 0, commission_rate_above || 0, clientId, req.orgId]
     );
     res.json({ success: true });
   } catch (error) {
@@ -71,10 +71,10 @@ router.get('/clients/:clientId/commission', async (req, res) => {
   try {
     const { clientId } = req.params;
     const client = await db.get(
-      'SELECT commission_rate, commission_deduction FROM clients WHERE id = $1 AND organization_id = $2',
+      'SELECT commission_rate, commission_deduction, commission_threshold, commission_rate_above FROM clients WHERE id = $1 AND organization_id = $2',
       [clientId, req.orgId]
     );
-    res.json(client || { commission_rate: 0, commission_deduction: 0 });
+    res.json(client || { commission_rate: 0, commission_deduction: 0, commission_threshold: 0, commission_rate_above: 0 });
   } catch (error) {
     console.error('Error getting commission settings:', error);
     res.status(500).json({ error: error.message });
@@ -87,7 +87,9 @@ router.get('/clients', async (req, res) => {
     const clients = await db.all(`
       SELECT c.id, c.name, c.nickname, c.company, c.service_type, c.is_hidden_from_metrics,
              COALESCE(c.commission_rate, 0) as commission_rate,
-             COALESCE(c.commission_deduction, 0) as commission_deduction
+             COALESCE(c.commission_deduction, 0) as commission_deduction,
+             COALESCE(c.commission_threshold, 0) as commission_threshold,
+             COALESCE(c.commission_rate_above, 0) as commission_rate_above
       FROM clients c
       WHERE c.organization_id = $1 AND c.service_type = 'growth' AND c.status != 'inactive'
       ORDER BY c.nickname ASC, c.name ASC
