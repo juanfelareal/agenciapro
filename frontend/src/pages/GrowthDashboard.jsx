@@ -93,6 +93,9 @@ export default function GrowthDashboard() {
   const [expandedClients, setExpandedClients] = useState({});
   const [clientDailyMetrics, setClientDailyMetrics] = useState({});
   const [loadingDaily, setLoadingDaily] = useState({});
+  // Sorting state
+  const [sortField, setSortField] = useState('display_revenue'); // default sort by ventas
+  const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
 
   useEffect(() => { loadOverview(); }, [dateRange.start, dateRange.end]);
 
@@ -187,10 +190,27 @@ export default function GrowthDashboard() {
   };
 
   // Merge growth client list with metrics
-  const enrichedClients = growthClients.map(gc => {
+  const enrichedClientsUnsorted = growthClients.map(gc => {
     const metrics = metricsData.clients.find(m => m.client_id === gc.id);
     return { ...gc, metrics };
   });
+
+  // Sort clients
+  const enrichedClients = [...enrichedClientsUnsorted].sort((a, b) => {
+    const aVal = a.metrics?.[sortField] || 0;
+    const bVal = b.metrics?.[sortField] || 0;
+    return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
+  });
+
+  // Toggle sort
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
 
   // Non-growth clients available to add
   const availableClients = allClients.filter(c => !growthClients.some(gc => gc.id === c.id));
@@ -371,11 +391,51 @@ export default function GrowthDashboard() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ventas</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Inversión</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ROAS</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pedidos</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
+                  <th
+                    onClick={() => handleSort('display_revenue')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Ventas
+                      {sortField === 'display_revenue' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+                    </span>
+                  </th>
+                  <th
+                    onClick={() => handleSort('total_ad_spend')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Inversión
+                      {sortField === 'total_ad_spend' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+                    </span>
+                  </th>
+                  <th
+                    onClick={() => handleSort('roas')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      ROAS
+                      {sortField === 'roas' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+                    </span>
+                  </th>
+                  <th
+                    onClick={() => handleSort('total_orders')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Pedidos
+                      {sortField === 'total_orders' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+                    </span>
+                  </th>
+                  <th
+                    onClick={() => handleSort('ticket_promedio')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Ticket
+                      {sortField === 'ticket_promedio' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+                    </span>
+                  </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
