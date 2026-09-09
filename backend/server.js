@@ -58,6 +58,7 @@ import sopsRoutes from './src/routes/sops.js';
 import projectTemplatesRoutes from './src/routes/projectTemplates.js';
 // Siigo Integration
 import siigoRoutes from './src/routes/siigo.js';
+import { syncSiigoForAllOrgs } from './src/services/siigoAutoSync.js';
 // Zernio Integration (Social Media Management)
 import zernioRoutes from './src/routes/zernio.js';
 // Client Portal
@@ -416,3 +417,29 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 console.log('✅ Scheduled reminders cron job running (every 2 hours Colombia time)');
+
+// Setup cron jobs for Siigo automatic sync
+// Runs 5 times daily: 7AM, 10AM, 1PM, 4PM, 7PM Colombia time
+const siigoSyncSchedules = [
+  { time: '0 7 * * *', label: '7:00 AM' },
+  { time: '0 10 * * *', label: '10:00 AM' },
+  { time: '0 13 * * *', label: '1:00 PM' },
+  { time: '0 16 * * *', label: '4:00 PM' },
+  { time: '0 19 * * *', label: '7:00 PM' },
+];
+
+siigoSyncSchedules.forEach(({ time, label }) => {
+  cron.schedule(time, async () => {
+    console.log(`⏰ [${label}] Running Siigo auto-sync...`);
+    try {
+      await syncSiigoForAllOrgs();
+    } catch (error) {
+      console.error(`❌ Error in Siigo auto-sync (${label}):`, error.message);
+    }
+  }, {
+    scheduled: true,
+    timezone: "America/Bogota"
+  });
+});
+
+console.log('✅ Siigo auto-sync cron jobs scheduled (5x daily: 7AM, 10AM, 1PM, 4PM, 7PM Colombia time)');
