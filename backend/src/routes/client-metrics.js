@@ -27,7 +27,7 @@ function getColombiaDate(offsetDays = 0) {
 // GET /api/client-metrics/email-dashboard - Get overview of all clients with email data
 router.get('/email-dashboard', async (req, res) => {
   try {
-    const orgId = req.user.organization_id;
+    const orgId = req.orgId;
     const { year, month } = req.query;
 
     // Get current month if not specified
