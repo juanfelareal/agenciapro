@@ -395,15 +395,15 @@ export default function GrowthDashboard() {
                           <p className="font-medium text-gray-900">{client.nickname || client.name}</p>
                           <p className="text-xs text-gray-400">{client.company}</p>
                         </td>
-                        <td className="px-6 py-4 text-right font-medium text-gray-900">{formatCOP(m?.display_revenue)}</td>
-                        <td className="px-6 py-4 text-right text-gray-600">{formatCOP(m?.total_ad_spend)}</td>
+                        <td className="px-6 py-4 text-right font-medium text-gray-900">{formatCOPFull(m?.display_revenue)}</td>
+                        <td className="px-6 py-4 text-right text-gray-600">{formatCOPFull(m?.total_ad_spend)}</td>
                         <td className="px-6 py-4 text-right">
                           <span className={`font-medium ${(m?.roas || 0) >= 3 ? 'text-green-600' : (m?.roas || 0) >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
                             {m?.roas?.toFixed(2) || '—'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right text-gray-600">{m?.total_orders || 0}</td>
-                        <td className="px-6 py-4 text-right text-gray-600">{formatCOP(m?.ticket_promedio)}</td>
+                        <td className="px-6 py-4 text-right text-gray-600">{formatCOPFull(m?.ticket_promedio)}</td>
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-1">
                             <button
