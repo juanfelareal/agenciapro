@@ -547,6 +547,9 @@ export const growthAPI = {
   createBandera: (clientId, data) => api.post(`/growth/${clientId}/banderas`, data),
   updateBandera: (id, data) => api.put(`/growth/banderas/${id}`, data),
   deleteBandera: (id) => api.delete(`/growth/banderas/${id}`),
+  // Commission
+  getCommission: (clientId) => api.get(`/growth/clients/${clientId}/commission`),
+  updateCommission: (clientId, data) => api.put(`/growth/clients/${clientId}/commission`, data),
 };
 
 // Briefs API

@@ -3,7 +3,7 @@ import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
   Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus,
   Mail, Globe, Megaphone, Palette, Video, User, CheckCircle2, Calendar, ChevronDown, ChevronUp, Layers,
-  CalendarDays, BarChart2
+  CalendarDays, BarChart2, Settings2, DollarSign
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
 
@@ -96,6 +96,9 @@ export default function GrowthDashboard() {
   // Sorting state
   const [sortField, setSortField] = useState('display_revenue'); // default sort by ventas
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
+  // Commission modal state
+  const [commissionModal, setCommissionModal] = useState(null); // { clientId, clientName, rate, deduction }
+  const [savingCommission, setSavingCommission] = useState(false);
 
   useEffect(() => { loadOverview(); }, [dateRange.start, dateRange.end]);
 
@@ -209,6 +212,48 @@ export default function GrowthDashboard() {
     } else {
       setSortField(field);
       setSortDir('desc');
+    }
+  };
+
+  // Calculate commission for a client
+  const calcCommission = (client, revenue) => {
+    const rate = client.commission_rate || 0;
+    const deduction = client.commission_deduction || 0;
+    if (rate <= 0) return 0;
+    const base = Math.max(0, (revenue || 0) - deduction);
+    return base * (rate / 100);
+  };
+
+  // Open commission modal
+  const openCommissionModal = (client) => {
+    setCommissionModal({
+      clientId: client.id,
+      clientName: client.nickname || client.name,
+      rate: client.commission_rate || 0,
+      deduction: client.commission_deduction || 0
+    });
+  };
+
+  // Save commission settings
+  const saveCommission = async () => {
+    if (!commissionModal) return;
+    setSavingCommission(true);
+    try {
+      await growthAPI.updateCommission(commissionModal.clientId, {
+        commission_rate: commissionModal.rate,
+        commission_deduction: commissionModal.deduction
+      });
+      // Update local state
+      setGrowthClients(prev => prev.map(c =>
+        c.id === commissionModal.clientId
+          ? { ...c, commission_rate: commissionModal.rate, commission_deduction: commissionModal.deduction }
+          : c
+      ));
+      setCommissionModal(null);
+    } catch (error) {
+      console.error('Error saving commission:', error);
+    } finally {
+      setSavingCommission(false);
     }
   };
 
@@ -351,7 +396,7 @@ export default function GrowthDashboard() {
 
       {/* Overview KPIs */}
       {enrichedClients.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <KpiCard label="Clientes Growth" value={enrichedClients.length} accent />
           <KpiCard
             label="Venta total Growth"
@@ -367,6 +412,11 @@ export default function GrowthDashboard() {
           <KpiCard
             label="Inversión total"
             value={formatCOP(enrichedClients.reduce((s, c) => s + (c.metrics?.total_ad_spend || 0), 0))}
+          />
+          <KpiCard
+            label="Comisión total"
+            value={formatCOP(enrichedClients.reduce((s, c) => s + calcCommission(c, c.metrics?.display_revenue), 0))}
+            accent
           />
         </div>
       )}
@@ -436,6 +486,7 @@ export default function GrowthDashboard() {
                       {sortField === 'ticket_promedio' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
                     </span>
                   </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Comisión</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
@@ -464,6 +515,26 @@ export default function GrowthDashboard() {
                         </td>
                         <td className="px-6 py-4 text-right text-gray-600">{m?.total_orders || 0}</td>
                         <td className="px-6 py-4 text-right text-gray-600">{formatCOPFull(m?.ticket_promedio)}</td>
+                        <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          {client.commission_rate > 0 ? (
+                            <button
+                              onClick={() => openCommissionModal(client)}
+                              className="inline-flex items-center gap-1 text-emerald-600 font-medium hover:text-emerald-700 transition-colors"
+                              title={`${client.commission_rate}% sobre venta${client.commission_deduction > 0 ? ` - ${formatCOPFull(client.commission_deduction)} deducción` : ''}`}
+                            >
+                              {formatCOPFull(calcCommission(client, m?.display_revenue))}
+                              <Settings2 className="w-3 h-3 opacity-50" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openCommissionModal(client)}
+                              className="text-gray-400 hover:text-[#17181A] transition-colors text-sm flex items-center gap-1"
+                            >
+                              <Settings2 className="w-3 h-3" />
+                              Configurar
+                            </button>
+                          )}
+                        </td>
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-1">
                             <button
@@ -492,7 +563,7 @@ export default function GrowthDashboard() {
                       {/* Expandable daily metrics row */}
                       {isExpanded && (
                         <tr className="bg-gray-50">
-                          <td colSpan={7} className="px-6 py-4">
+                          <td colSpan={8} className="px-6 py-4">
                             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                               <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                                 <span className="text-xs font-medium text-gray-600">Últimos 7 días</span>
@@ -587,6 +658,80 @@ export default function GrowthDashboard() {
             <div className="p-4 border-t border-gray-100">
               <button onClick={() => setShowAddClient(false)} className="w-full px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Commission Settings Modal */}
+      {commissionModal && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setCommissionModal(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[#17181A]">Configurar comisión</h3>
+                  <p className="text-sm text-gray-500">{commissionModal.clientName}</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Porcentaje de comisión (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={commissionModal.rate}
+                  onChange={(e) => setCommissionModal(prev => ({ ...prev, rate: parseFloat(e.target.value) || 0 }))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Ej: 10"
+                />
+                <p className="text-xs text-gray-400 mt-1">El porcentaje que cobra LA REAL sobre la venta neta</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Deducción fija (opcional)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100000"
+                  value={commissionModal.deduction}
+                  onChange={(e) => setCommissionModal(prev => ({ ...prev, deduction: parseFloat(e.target.value) || 0 }))}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Ej: 5000000"
+                />
+                <p className="text-xs text-gray-400 mt-1">Monto que se resta de la venta antes de calcular la comisión</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-2">Fórmula:</p>
+                <p className="text-sm font-mono text-gray-700">
+                  Comisión = {commissionModal.rate}% × (Venta Neta{commissionModal.deduction > 0 ? ` - ${formatCOPFull(commissionModal.deduction)}` : ''})
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={() => setCommissionModal(null)}
+                className="flex-1 px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveCommission}
+                disabled={savingCommission}
+                className="flex-1 px-4 py-2.5 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {savingCommission ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Guardar
               </button>
             </div>
           </div>
