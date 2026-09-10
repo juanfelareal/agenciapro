@@ -531,15 +531,20 @@ router.get('/clients/:clientId/financials', async (req, res) => {
     const adSpendMTD = adSpendData?.ad_spend_mtd || 0;
     const roas = adSpendMTD > 0 ? revenueMTD / adSpendMTD : 0;
 
-    // 3. COGS from daily_cogs
-    const cogsData = await db.get(`
-      SELECT
-        COALESCE(SUM(total_cogs), 0) as cogs_mtd,
-        COALESCE(SUM(units_sold), 0) as units_sold
-      FROM daily_cogs
-      WHERE client_id = $1 AND organization_id = $2
-        AND date >= $3 AND date <= $4
-    `, [clientId, req.orgId, startDate, endDate]);
+    // 3. COGS from daily_cogs (defensive - table may not exist yet)
+    let cogsData = { cogs_mtd: 0, units_sold: 0 };
+    try {
+      cogsData = await db.get(`
+        SELECT
+          COALESCE(SUM(total_cogs), 0) as cogs_mtd,
+          COALESCE(SUM(units_sold), 0) as units_sold
+        FROM daily_cogs
+        WHERE client_id = $1 AND organization_id = $2
+          AND date >= $3 AND date <= $4
+      `, [clientId, req.orgId, startDate, endDate]) || { cogs_mtd: 0, units_sold: 0 };
+    } catch (e) {
+      console.log('daily_cogs table may not exist yet:', e.message);
+    }
 
     const cogsMTD = cogsData?.cogs_mtd || 0;
     const cogsMarginPct = revenueMTD > 0 ? ((revenueMTD - cogsMTD) / revenueMTD) * 100 : 0;
@@ -548,26 +553,36 @@ router.get('/clients/:clientId/financials', async (req, res) => {
     const grossProfitMTD = revenueMTD - cogsMTD;
     const grossMarginPct = revenueMTD > 0 ? (grossProfitMTD / revenueMTD) * 100 : 0;
 
-    // 5. Fixed costs (active for this period)
-    const fixedCosts = await db.all(`
-      SELECT id, category, name, amount
-      FROM client_fixed_costs
-      WHERE client_id = $1 AND organization_id = $2
-        AND start_date <= $3
-        AND (end_date IS NULL OR end_date >= $4)
-      ORDER BY category, name
-    `, [clientId, req.orgId, endDate, startDate]);
+    // 5. Fixed costs (active for this period) - defensive
+    let fixedCosts = [];
+    try {
+      fixedCosts = await db.all(`
+        SELECT id, category, name, amount
+        FROM client_fixed_costs
+        WHERE client_id = $1 AND organization_id = $2
+          AND start_date <= $3
+          AND (end_date IS NULL OR end_date >= $4)
+        ORDER BY category, name
+      `, [clientId, req.orgId, endDate, startDate]) || [];
+    } catch (e) {
+      console.log('client_fixed_costs table may not exist yet:', e.message);
+    }
 
     const fixedCostsMonthlyTotal = fixedCosts.reduce((sum, c) => sum + (c.amount || 0), 0);
     const fixedCostsMTDProrated = (fixedCostsMonthlyTotal / daysInMonth) * daysElapsed;
 
-    // 6. Variable costs
-    const variableCosts = await db.all(`
-      SELECT id, category, name, percentage, applies_to
-      FROM client_variable_costs
-      WHERE client_id = $1 AND organization_id = $2 AND is_active = 1
-      ORDER BY category, name
-    `, [clientId, req.orgId]);
+    // 6. Variable costs - defensive
+    let variableCosts = [];
+    try {
+      variableCosts = await db.all(`
+        SELECT id, category, name, percentage, applies_to
+        FROM client_variable_costs
+        WHERE client_id = $1 AND organization_id = $2 AND is_active = 1
+        ORDER BY category, name
+      `, [clientId, req.orgId]) || [];
+    } catch (e) {
+      console.log('client_variable_costs table may not exist yet:', e.message);
+    }
 
     let variableCostsMTD = 0;
     const variableCostsBreakdown = variableCosts.map(vc => {
@@ -614,14 +629,19 @@ router.get('/clients/:clientId/financials', async (req, res) => {
     const daysToBreakeven = dailyAvgRevenue > 0 ? revenueToBreakeven / dailyAvgRevenue : 0;
     const willBeProfitable = projectedNetProfit > 0;
 
-    // 9. Products summary
-    const productsData = await db.get(`
-      SELECT
-        COUNT(*) as total_products,
-        SUM(CASE WHEN cost IS NULL OR cost = 0 THEN 1 ELSE 0 END) as missing_cost_count
-      FROM shopify_products
-      WHERE client_id = $1 AND organization_id = $2
-    `, [clientId, req.orgId]);
+    // 9. Products summary - defensive
+    let productsData = { total_products: 0, missing_cost_count: 0 };
+    try {
+      productsData = await db.get(`
+        SELECT
+          COUNT(*) as total_products,
+          SUM(CASE WHEN cost IS NULL OR cost = 0 THEN 1 ELSE 0 END) as missing_cost_count
+        FROM shopify_products
+        WHERE client_id = $1 AND organization_id = $2
+      `, [clientId, req.orgId]) || { total_products: 0, missing_cost_count: 0 };
+    } catch (e) {
+      console.log('shopify_products table may not exist yet:', e.message);
+    }
 
     res.json({
       period,
