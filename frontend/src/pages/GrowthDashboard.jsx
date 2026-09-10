@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
   Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus,
   Mail, Globe, Megaphone, Palette, Video, User, CheckCircle2, Calendar, ChevronDown, ChevronUp, Layers,
-  CalendarDays, BarChart2, Settings2, DollarSign
+  CalendarDays, BarChart2, Settings2, DollarSign, Search
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
 
@@ -92,6 +93,7 @@ const formatLastSync = (dateStr) => {
 };
 
 export default function GrowthDashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(getCurrentPeriod());
   // Date range state (for flexible filtering)
@@ -640,6 +642,13 @@ export default function GrowthDashboard() {
                               title="Ver últimos 7 días"
                             >
                               <BarChart2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => navigate(`/growth/${client.id}/financials`)}
+                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Dashboard financiero"
+                            >
+                              <Search className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}

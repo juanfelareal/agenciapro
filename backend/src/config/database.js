@@ -849,6 +849,80 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // ============================================
+    // FINANCIAL DASHBOARD TABLES
+    // ============================================
+
+    // Client Fixed Costs (monthly recurring: fee agencia, klaviyo, apps, etc.)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_fixed_costs (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        category TEXT NOT NULL,
+        name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Client Variable Costs (percentage-based: payment processor, shipping, etc.)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_variable_costs (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        category TEXT NOT NULL,
+        name TEXT NOT NULL,
+        percentage REAL NOT NULL,
+        applies_to TEXT DEFAULT 'revenue',
+        is_active INTEGER DEFAULT 1,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Shopify Products with Costs (for COGS calculation)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS shopify_products (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        shopify_product_id TEXT NOT NULL,
+        shopify_variant_id TEXT NOT NULL,
+        sku TEXT,
+        title TEXT NOT NULL,
+        variant_title TEXT,
+        price REAL,
+        cost REAL,
+        cost_source TEXT DEFAULT 'shopify',
+        last_synced_at TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, shopify_variant_id)
+      )
+    `);
+
+    // Daily COGS (Cost of Goods Sold per day)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_cogs (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        date TEXT NOT NULL,
+        total_cogs REAL NOT NULL,
+        units_sold INTEGER DEFAULT 0,
+        orders_count INTEGER DEFAULT 0,
+        calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, date)
+      )
+    `);
+
     // Ad Tag Categories (Audiencia, Concepto, Ángulo, Formato, Hook)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ad_tag_categories (
@@ -1932,6 +2006,14 @@ export const initializeDatabase = async () => {
     // Daily metrics indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_daily_metrics_client ON client_daily_metrics(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_daily_metrics_date ON client_daily_metrics(metric_date)`);
+
+    // Financial dashboard indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_fixed_costs_client ON client_fixed_costs(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_fixed_costs_dates ON client_fixed_costs(start_date, end_date)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_variable_costs_client ON client_variable_costs(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shopify_products_client ON shopify_products(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shopify_products_variant ON shopify_products(shopify_variant_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_daily_cogs_client_date ON daily_cogs(client_id, date)`);
 
     // Cleanup: remove corrupted project templates (pool object saved as name)
     await pool.query(`DELETE FROM project_template_tasks WHERE template_id IN (SELECT id FROM project_templates WHERE name LIKE '{%"_events"%')`);

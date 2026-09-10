@@ -56,6 +56,7 @@ import UGCRegister from './pages/UGCRegister';
 import DocumentTemplates from './pages/DocumentTemplates';
 import Social from './pages/Social';
 import FinancialDashboard from './pages/FinancialDashboard';
+import ClientFinancialDashboard from './pages/ClientFinancialDashboard';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -477,6 +478,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="metricas">
                       <ClientMetrics />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="growth/:clientId/financials"
+                  element={
+                    <ProtectedRoute permission="metricas">
+                      <ClientFinancialDashboard />
                     </ProtectedRoute>
                   }
                 />

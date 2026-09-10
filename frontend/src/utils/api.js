@@ -550,6 +550,21 @@ export const growthAPI = {
   // Commission
   getCommission: (clientId) => api.get(`/growth/clients/${clientId}/commission`),
   updateCommission: (clientId, data) => api.put(`/growth/clients/${clientId}/commission`, data),
+  // Financials Dashboard
+  getFinancials: (clientId, period) => api.get(`/growth/clients/${clientId}/financials`, { params: { period } }),
+  // Fixed Costs
+  getFixedCosts: (clientId) => api.get(`/growth/clients/${clientId}/fixed-costs`),
+  createFixedCost: (clientId, data) => api.post(`/growth/clients/${clientId}/fixed-costs`, data),
+  updateFixedCost: (clientId, costId, data) => api.put(`/growth/clients/${clientId}/fixed-costs/${costId}`, data),
+  deleteFixedCost: (clientId, costId) => api.delete(`/growth/clients/${clientId}/fixed-costs/${costId}`),
+  // Variable Costs
+  getVariableCosts: (clientId) => api.get(`/growth/clients/${clientId}/variable-costs`),
+  createVariableCost: (clientId, data) => api.post(`/growth/clients/${clientId}/variable-costs`, data),
+  updateVariableCost: (clientId, costId, data) => api.put(`/growth/clients/${clientId}/variable-costs/${costId}`, data),
+  deleteVariableCost: (clientId, costId) => api.delete(`/growth/clients/${clientId}/variable-costs/${costId}`),
+  // Products (COGS)
+  getProducts: (clientId) => api.get(`/growth/clients/${clientId}/products`),
+  updateProductCost: (clientId, productId, cost) => api.put(`/growth/clients/${clientId}/products/${productId}/cost`, { cost }),
 };
 
 // Briefs API
