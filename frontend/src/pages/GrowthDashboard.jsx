@@ -76,6 +76,21 @@ const formatCOPFull = (val) => {
   return '$' + Math.round(val).toLocaleString('es-CO');
 };
 
+// Format relative time for last sync
+const formatLastSync = (dateStr) => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMin < 1) return 'ahora';
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  if (diffHr < 24) return `hace ${diffHr}h`;
+  return `hace ${diffDays}d`;
+};
+
 export default function GrowthDashboard() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState(getCurrentPeriod());
@@ -92,6 +107,7 @@ export default function GrowthDashboard() {
   // Expanded daily tracking for clients
   const [expandedClients, setExpandedClients] = useState({});
   const [clientDailyMetrics, setClientDailyMetrics] = useState({});
+  const [clientMonthlyMetrics, setClientMonthlyMetrics] = useState({});
   const [loadingDaily, setLoadingDaily] = useState({});
   // Sorting state
   const [sortField, setSortField] = useState('display_revenue'); // default sort by ventas
@@ -131,17 +147,43 @@ export default function GrowthDashboard() {
     }
   };
 
-  // Load daily metrics for a client (last 7 days)
+  // Load daily metrics for a client (last 7 days) AND monthly data (last 4 months)
   const loadClientDailyMetrics = async (clientId) => {
     if (loadingDaily[clientId]) return;
     setLoadingDaily(prev => ({ ...prev, [clientId]: true }));
     try {
-      const { start, end } = getLast7Days();
-      const res = await clientMetricsAPI.getDailyMetrics(clientId, start, end);
-      setClientDailyMetrics(prev => ({ ...prev, [clientId]: res.data || [] }));
+      const { start: dailyStart, end: dailyEnd } = getLast7Days();
+      // Get first day of 3 months ago
+      const today = new Date(getColombiaDate() + 'T12:00:00');
+      const monthlyStart = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+      const monthlyStartStr = monthlyStart.toISOString().split('T')[0];
+
+      const [dailyRes, monthlyRes] = await Promise.all([
+        clientMetricsAPI.getDailyMetrics(clientId, dailyStart, dailyEnd),
+        clientMetricsAPI.getDailyMetrics(clientId, monthlyStartStr, dailyEnd)
+      ]);
+
+      setClientDailyMetrics(prev => ({ ...prev, [clientId]: dailyRes.data || [] }));
+
+      // Aggregate monthly data
+      const monthlyData = (monthlyRes.data || []).reduce((acc, day) => {
+        const monthKey = day.metric_date.substring(0, 7); // YYYY-MM
+        if (!acc[monthKey]) {
+          acc[monthKey] = { month: monthKey, revenue: 0, orders: 0, spend: 0 };
+        }
+        acc[monthKey].revenue += day.shopify_net_revenue || day.shopify_revenue || 0;
+        acc[monthKey].orders += day.shopify_orders || 0;
+        acc[monthKey].spend += (day.fb_spend || 0) + (day.ga_spend || 0) + (day.tt_spend || 0);
+        return acc;
+      }, {});
+
+      // Convert to array and sort by month descending
+      const monthlyArray = Object.values(monthlyData).sort((a, b) => b.month.localeCompare(a.month));
+      setClientMonthlyMetrics(prev => ({ ...prev, [clientId]: monthlyArray }));
     } catch (error) {
       console.error('Error loading daily metrics:', error);
       setClientDailyMetrics(prev => ({ ...prev, [clientId]: [] }));
+      setClientMonthlyMetrics(prev => ({ ...prev, [clientId]: [] }));
     } finally {
       setLoadingDaily(prev => ({ ...prev, [clientId]: false }));
     }
@@ -380,6 +422,27 @@ export default function GrowthDashboard() {
               {/* Quick presets */}
               <div className="hidden sm:flex items-center gap-1">
                 <button
+                  onClick={() => {
+                    const today = getColombiaDate();
+                    setDateRange({ start: today, end: today });
+                  }}
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                >
+                  Hoy
+                </button>
+                <button
+                  onClick={() => {
+                    const today = getColombiaDate();
+                    const d = new Date(today + 'T12:00:00');
+                    d.setDate(d.getDate() - 1);
+                    const yesterday = d.toISOString().split('T')[0];
+                    setDateRange({ start: yesterday, end: yesterday });
+                  }}
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                >
+                  Ayer
+                </button>
+                <button
                   onClick={() => setDateRange(getLast7Days())}
                   className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
                 >
@@ -412,12 +475,20 @@ export default function GrowthDashboard() {
           )}
         </div>
 
-        <button
-          onClick={() => setShowAddClient(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors text-sm"
-        >
-          <Plus className="w-4 h-4" /> Agregar cliente
-        </button>
+        <div className="flex items-center gap-3">
+          {metricsData.last_sync_at && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Actualizado {formatLastSync(metricsData.last_sync_at)}
+            </span>
+          )}
+          <button
+            onClick={() => setShowAddClient(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" /> Agregar cliente
+          </button>
+        </div>
       </div>
 
       {/* Overview KPIs */}
@@ -639,6 +710,40 @@ export default function GrowthDashboard() {
                                     })}
                                   </tbody>
                                 </table>
+                              )}
+
+                              {/* Monthly breakdown - last 4 months */}
+                              {(clientMonthlyMetrics[client.id] || []).length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                  <div className="px-4 py-2 flex items-center justify-between">
+                                    <span className="text-xs font-medium text-gray-600">Ventas por Mes</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-3">
+                                    {(clientMonthlyMetrics[client.id] || []).map((monthData) => {
+                                      const roas = monthData.spend > 0 ? monthData.revenue / monthData.spend : 0;
+                                      const [y, monthNum] = monthData.month.split('-');
+                                      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                                      const monthLabel = `${monthNames[parseInt(monthNum) - 1]} ${y}`;
+                                      const isCurrentMonth = monthData.month === getCurrentPeriod();
+                                      return (
+                                        <div key={monthData.month} className={`bg-gray-50 rounded-lg p-3 ${isCurrentMonth ? 'ring-1 ring-emerald-200' : ''}`}>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-medium text-gray-500">{monthLabel}</span>
+                                            {isCurrentMonth && <span className="text-[10px] text-emerald-600 font-medium">En curso</span>}
+                                          </div>
+                                          <div className="text-base font-semibold text-gray-900">{formatCOP(monthData.revenue)}</div>
+                                          <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+                                            <span>{monthData.orders} pedidos</span>
+                                            <span>·</span>
+                                            <span className={roas >= 3 ? 'text-green-600' : roas >= 1 ? 'text-yellow-600' : 'text-gray-400'}>
+                                              {roas > 0 ? `${roas.toFixed(1)}× ROAS` : '—'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
                               )}
                             </div>
                           </td>
