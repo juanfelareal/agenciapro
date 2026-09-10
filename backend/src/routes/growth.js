@@ -504,17 +504,17 @@ router.get('/clients/:clientId/financials', async (req, res) => {
       ? `${period}-${String(today.getDate()).padStart(2, '0')}`
       : `${period}-${String(daysInMonth).padStart(2, '0')}`;
 
-    // 1. Revenue from daily_shopify_metrics - defensive
+    // 1. Revenue from client_daily_metrics
     let revenueData = { revenue_mtd: 0, orders_mtd: 0 };
     try {
       revenueData = await db.get(`
         SELECT
           COALESCE(SUM(shopify_net_revenue), 0) as revenue_mtd,
           COALESCE(SUM(shopify_orders), 0) as orders_mtd
-        FROM daily_shopify_metrics
-        WHERE client_id = $1 AND organization_id = $2
-          AND date >= $3 AND date <= $4
-      `, [clientId, req.orgId, startDate, endDate]) || { revenue_mtd: 0, orders_mtd: 0 };
+        FROM client_daily_metrics
+        WHERE client_id = $1
+          AND metric_date >= $2 AND metric_date <= $3
+      `, [clientId, startDate, endDate]) || { revenue_mtd: 0, orders_mtd: 0 };
     } catch (e) {
       console.log('Error fetching revenue data:', e.message);
     }
@@ -524,16 +524,16 @@ router.get('/clients/:clientId/financials', async (req, res) => {
     const dailyAvgRevenue = daysElapsed > 0 ? revenueMTD / daysElapsed : 0;
     const projectedRevenue = dailyAvgRevenue * daysInMonth;
 
-    // 2. Ad spend from daily_marketing_metrics - defensive
+    // 2. Ad spend from client_daily_metrics
     let adSpendData = { ad_spend_mtd: 0 };
     try {
       adSpendData = await db.get(`
         SELECT
           COALESCE(SUM(fb_spend), 0) + COALESCE(SUM(ga_spend), 0) + COALESCE(SUM(tt_spend), 0) as ad_spend_mtd
-        FROM daily_marketing_metrics
-        WHERE client_id = $1 AND organization_id = $2
-          AND date >= $3 AND date <= $4
-      `, [clientId, req.orgId, startDate, endDate]) || { ad_spend_mtd: 0 };
+        FROM client_daily_metrics
+        WHERE client_id = $1
+          AND metric_date >= $2 AND metric_date <= $3
+      `, [clientId, startDate, endDate]) || { ad_spend_mtd: 0 };
     } catch (e) {
       console.log('Error fetching ad spend data:', e.message);
     }
@@ -923,6 +923,19 @@ router.post('/clients/:clientId/products/sync', async (req, res) => {
     });
   } catch (error) {
     console.error('Error syncing products:', error);
+
+    // Check for permission error from Shopify GraphQL
+    if (error.message && (
+      error.message.includes('Access denied') ||
+      error.message.includes('products field') ||
+      error.message.includes('permission')
+    )) {
+      return res.status(403).json({
+        error: 'Tu conexión de Shopify no tiene permisos para leer productos. Ve a la pestaña de Shopify del cliente, desconecta y vuelve a conectar la tienda para obtener los permisos necesarios.',
+        needs_reconnect: true
+      });
+    }
+
     res.status(500).json({ error: error.message });
   }
 });
