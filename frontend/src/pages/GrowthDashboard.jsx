@@ -102,6 +102,7 @@ export default function GrowthDashboard() {
   const [growthClients, setGrowthClients] = useState([]);
   const [allClients, setAllClients] = useState([]);
   const [metricsData, setMetricsData] = useState({ clients: [] });
+  const [currentMonthMetrics, setCurrentMonthMetrics] = useState({ clients: [] }); // Always current month, doesn't change with date filter
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientGrowthData, setClientGrowthData] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
@@ -134,13 +135,18 @@ export default function GrowthDashboard() {
   const loadOverview = async () => {
     try {
       setLoading(true);
-      const [gcRes, metricsRes, clientsRes] = await Promise.all([
+      // Always get current month dates for the fixed "ROAS Mes" column
+      const currentMonth = getCurrentMonthDates();
+
+      const [gcRes, metricsRes, clientsRes, currentMonthRes] = await Promise.all([
         growthAPI.getClients(),
         clientMetricsAPI.getAggregate(dateRange.start, dateRange.end),
         clientsAPI.getAll(),
+        clientMetricsAPI.getAggregate(currentMonth.start, currentMonth.end),
       ]);
       setGrowthClients(gcRes.data || []);
       setMetricsData(metricsRes.data || { clients: [] });
+      setCurrentMonthMetrics(currentMonthRes.data || { clients: [] });
       setAllClients((clientsRes.data || []).filter(c => c.status !== 'inactive'));
     } catch (error) {
       console.error('Error loading growth overview:', error);
@@ -567,6 +573,12 @@ export default function GrowthDashboard() {
                       {sortField === 'roas' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
                     </span>
                   </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <span className="inline-flex flex-col items-end">
+                      <span>ROAS Mes</span>
+                      <span className="text-[10px] font-normal text-gray-400 normal-case">{getPeriodLabel(getCurrentPeriod())}</span>
+                    </span>
+                  </th>
                   <th
                     onClick={() => handleSort('total_orders')}
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
@@ -611,6 +623,17 @@ export default function GrowthDashboard() {
                           <span className={`font-medium ${(m?.roas || 0) >= 3 ? 'text-green-600' : (m?.roas || 0) >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
                             {m?.roas?.toFixed(2) || '—'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {(() => {
+                            const monthMetrics = currentMonthMetrics.clients.find(cm => cm.client_id === client.id);
+                            const roasMes = monthMetrics?.roas || 0;
+                            return (
+                              <span className={`font-medium ${roasMes >= 3 ? 'text-green-600' : roasMes >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                {roasMes > 0 ? roasMes.toFixed(2) : '—'}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-right text-gray-600">{m?.total_orders || 0}</td>
                         <td className="px-6 py-4 text-right text-gray-600">{formatCOPFull(m?.ticket_promedio)}</td>
