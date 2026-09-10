@@ -565,6 +565,8 @@ export const growthAPI = {
   // Products (COGS)
   getProducts: (clientId) => api.get(`/growth/clients/${clientId}/products`),
   updateProductCost: (clientId, productId, cost) => api.put(`/growth/clients/${clientId}/products/${productId}/cost`, { cost }),
+  syncProducts: (clientId) => api.post(`/growth/clients/${clientId}/products/sync`),
+  calculateCOGS: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/cogs/calculate`, { start_date: startDate, end_date: endDate }),
 };
 
 // Briefs API

@@ -644,7 +644,7 @@ export default function GrowthDashboard() {
                               <BarChart2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => navigate(`/growth/${client.id}/financials`)}
+                              onClick={() => navigate(`/app/growth/${client.id}/financials`)}
                               className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                               title="Dashboard financiero"
                             >

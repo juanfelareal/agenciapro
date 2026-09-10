@@ -262,6 +262,12 @@ export default function ClientFinancialDashboard() {
   const [costModal, setCostModal] = useState(null); // { type: 'fixed'|'variable', item?: {...} }
   const [expandedSections, setExpandedSections] = useState({ fixed: true, variable: true, products: false });
 
+  // Products management
+  const [products, setProducts] = useState([]);
+  const [syncing, setSyncing] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [editingCost, setEditingCost] = useState('');
+
   // Load data
   useEffect(() => {
     const load = async () => {
@@ -274,6 +280,14 @@ export default function ClientFinancialDashboard() {
         ]);
         setClient(clientRes.data);
         setFinancials(financialsRes.data);
+
+        // Load products separately (non-blocking)
+        try {
+          const productsRes = await growthAPI.getProducts(clientId);
+          setProducts(productsRes.data.products || []);
+        } catch (e) {
+          console.log('No products loaded:', e.message);
+        }
       } catch (err) {
         console.error('Error loading financial data:', err);
         setError('Error cargando datos financieros');
@@ -323,6 +337,56 @@ export default function ClientFinancialDashboard() {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  // Product handlers
+  const handleSyncProducts = async () => {
+    setSyncing(true);
+    try {
+      const res = await growthAPI.syncProducts(clientId);
+      setProducts(res.data.products || []);
+      // Refresh financials to update product count
+      const financialsRes = await growthAPI.getFinancials(clientId, period);
+      setFinancials(financialsRes.data);
+    } catch (err) {
+      console.error('Error syncing products:', err);
+      alert('Error sincronizando productos: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleUpdateProductCost = async (productId) => {
+    try {
+      await growthAPI.updateProductCost(clientId, productId, parseFloat(editingCost));
+      // Refresh products
+      const productsRes = await growthAPI.getProducts(clientId);
+      setProducts(productsRes.data.products || []);
+      // Refresh financials to update COGS
+      const financialsRes = await growthAPI.getFinancials(clientId, period);
+      setFinancials(financialsRes.data);
+      setEditingProductId(null);
+      setEditingCost('');
+    } catch (err) {
+      console.error('Error updating product cost:', err);
+      alert('Error actualizando costo: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleCalculateCOGS = async () => {
+    try {
+      const [year, month] = period.split('-');
+      const startDate = `${period}-01`;
+      const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+      await growthAPI.calculateCOGS(clientId, startDate, endDate);
+      // Refresh financials
+      const financialsRes = await growthAPI.getFinancials(clientId, period);
+      setFinancials(financialsRes.data);
+      alert('COGS calculado exitosamente');
+    } catch (err) {
+      console.error('Error calculating COGS:', err);
+      alert('Error calculando COGS: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   // Waterfall data for P&L visualization
   const waterfallData = useMemo(() => {
     if (!financials) return [];
@@ -352,7 +416,7 @@ export default function ClientFinancialDashboard() {
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-600">{error}</p>
-          <button onClick={() => navigate('/growth')} className="mt-4 text-emerald-600 hover:underline">
+          <button onClick={() => navigate('/app/metricas')} className="mt-4 text-emerald-600 hover:underline">
             Volver a Growth
           </button>
         </div>
@@ -370,7 +434,7 @@ export default function ClientFinancialDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/growth')}
+                onClick={() => navigate('/app/metricas')}
                 className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-500" />
@@ -640,8 +704,9 @@ export default function ClientFinancialDashboard() {
             <div>
               <h3 className="text-lg font-semibold text-[#17181A]">Costos de Producto (COGS)</h3>
               <p className="text-sm text-gray-500">
-                {f.products.total} productos • {f.products.missing_cost > 0 && (
-                  <span className="text-amber-600">{f.products.missing_cost} sin costo definido</span>
+                {products.length} productos sincronizados
+                {products.filter(p => !p.cost).length > 0 && (
+                  <span className="text-amber-600 ml-2">• {products.filter(p => !p.cost).length} sin costo</span>
                 )}
               </p>
             </div>
@@ -650,17 +715,131 @@ export default function ClientFinancialDashboard() {
 
           {expandedSections.products && (
             <div className="border-t border-gray-100 p-5">
-              {f.products.total === 0 ? (
+              {/* Action buttons */}
+              <div className="flex items-center gap-3 mb-4">
+                <button
+                  onClick={handleSyncProducts}
+                  disabled={syncing}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Sincronizando...' : 'Sync Shopify'}
+                </button>
+                {products.length > 0 && (
+                  <button
+                    onClick={handleCalculateCOGS}
+                    className="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    Recalcular COGS
+                  </button>
+                )}
+              </div>
+
+              {products.length === 0 ? (
                 <div className="text-center py-8">
                   <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 mb-4">Sin productos sincronizados de Shopify</p>
-                  <button className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 flex items-center gap-2 mx-auto">
-                    <RefreshCw className="w-4 h-4" /> Sincronizar productos
-                  </button>
+                  <p className="text-gray-500">Sin productos sincronizados de Shopify</p>
+                  <p className="text-xs text-gray-400 mt-1">Haz clic en "Sync Shopify" para importar productos</p>
                 </div>
               ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <p>Gestión de productos disponible próximamente</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="text-left py-3 px-2 font-medium text-gray-500">Producto</th>
+                        <th className="text-left py-3 px-2 font-medium text-gray-500">SKU</th>
+                        <th className="text-right py-3 px-2 font-medium text-gray-500">Precio</th>
+                        <th className="text-right py-3 px-2 font-medium text-gray-500">Costo</th>
+                        <th className="text-right py-3 px-2 font-medium text-gray-500">Margen</th>
+                        <th className="text-center py-3 px-2 font-medium text-gray-500">Fuente</th>
+                        <th className="text-center py-3 px-2 font-medium text-gray-500">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.slice(0, 50).map((product) => {
+                        const margin = product.price && product.cost
+                          ? ((product.price - product.cost) / product.price * 100)
+                          : null;
+                        const isEditing = editingProductId === product.id;
+
+                        return (
+                          <tr key={product.id} className="border-b border-gray-50 hover:bg-gray-50">
+                            <td className="py-3 px-2">
+                              <div className="font-medium text-[#17181A] truncate max-w-[200px]" title={product.title}>
+                                {product.title}
+                              </div>
+                              {product.variant_title && product.variant_title !== 'Default Title' && (
+                                <div className="text-xs text-gray-400">{product.variant_title}</div>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-gray-500">{product.sku || '-'}</td>
+                            <td className="py-3 px-2 text-right">{formatCOPFull(product.price)}</td>
+                            <td className="py-3 px-2 text-right">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={editingCost}
+                                  onChange={(e) => setEditingCost(e.target.value)}
+                                  className="w-24 px-2 py-1 border border-emerald-300 rounded text-right text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span className={product.cost ? '' : 'text-amber-500'}>
+                                  {product.cost ? formatCOPFull(product.cost) : 'Sin definir'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              {margin !== null ? (
+                                <span className={margin >= 50 ? 'text-emerald-600' : margin >= 30 ? 'text-amber-600' : 'text-red-600'}>
+                                  {margin.toFixed(0)}%
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                product.cost_source === 'manual' ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-500'
+                              }`}>
+                                {product.cost_source === 'manual' ? 'Manual' : 'Shopify'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              {isEditing ? (
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => handleUpdateProductCost(product.id)}
+                                    className="p-1 hover:bg-emerald-50 rounded"
+                                  >
+                                    <Save className="w-4 h-4 text-emerald-600" />
+                                  </button>
+                                  <button
+                                    onClick={() => { setEditingProductId(null); setEditingCost(''); }}
+                                    className="p-1 hover:bg-gray-100 rounded"
+                                  >
+                                    <X className="w-4 h-4 text-gray-400" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => { setEditingProductId(product.id); setEditingCost(product.cost || ''); }}
+                                  className="p-1 hover:bg-gray-100 rounded"
+                                  title="Editar costo"
+                                >
+                                  <Edit2 className="w-4 h-4 text-gray-400" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {products.length > 50 && (
+                    <div className="text-center py-3 text-sm text-gray-500">
+                      Mostrando 50 de {products.length} productos
+                    </div>
+                  )}
                 </div>
               )}
             </div>

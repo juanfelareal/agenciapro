@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
+import ShopifyIntegration from '../integrations/shopify.js';
 
 const router = express.Router();
 
@@ -830,6 +831,197 @@ router.get('/:clientId/palancas-dashboard', async (req, res) => {
     res.json({ areas, summary, has_brief: true });
   } catch (error) {
     console.error('Error getting palancas dashboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Products Sync from Shopify ───
+
+router.post('/clients/:clientId/products/sync', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Get Shopify credentials
+    const shopifyCred = await db.get(
+      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = $1 AND status = $2',
+      [clientId, 'active']
+    );
+
+    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
+      return res.status(400).json({ error: 'Sin conexión Shopify activa' });
+    }
+
+    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
+    const products = await shopify.getProductsWithCosts();
+
+    // Upsert products into shopify_products table
+    let synced = 0;
+    let withoutCost = 0;
+
+    for (const product of products) {
+      await db.run(`
+        INSERT INTO shopify_products (
+          organization_id, client_id, shopify_product_id, shopify_variant_id,
+          sku, title, variant_title, price, cost, cost_source, last_synced_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'shopify', datetime('now'))
+        ON CONFLICT (client_id, shopify_variant_id) DO UPDATE SET
+          shopify_product_id = EXCLUDED.shopify_product_id,
+          sku = EXCLUDED.sku,
+          title = EXCLUDED.title,
+          variant_title = EXCLUDED.variant_title,
+          price = EXCLUDED.price,
+          cost = CASE WHEN shopify_products.cost_source = 'manual' THEN shopify_products.cost ELSE EXCLUDED.cost END,
+          last_synced_at = datetime('now'),
+          updated_at = datetime('now')
+      `, [
+        req.orgId, clientId, product.shopify_product_id, product.shopify_variant_id,
+        product.sku, product.title, product.variant_title, product.price, product.cost
+      ]);
+
+      synced++;
+      if (product.cost === null) withoutCost++;
+    }
+
+    res.json({
+      success: true,
+      synced,
+      without_cost: withoutCost,
+      message: `Sincronizados ${synced} productos. ${withoutCost} sin costo definido.`
+    });
+  } catch (error) {
+    console.error('Error syncing products:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Calculate COGS for a Period ───
+
+router.post('/clients/:clientId/cogs/calculate', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { start_date, end_date } = req.body;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    }
+
+    if (!(await verifyClient(clientId, req.orgId))) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Get Shopify credentials
+    const shopifyCred = await db.get(
+      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = $1 AND status = $2',
+      [clientId, 'active']
+    );
+
+    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
+      return res.status(400).json({ error: 'Sin conexión Shopify activa' });
+    }
+
+    // Get product costs from our database (combines Shopify + manual overrides)
+    const products = await db.all(
+      'SELECT shopify_variant_id, cost FROM shopify_products WHERE client_id = $1 AND cost IS NOT NULL',
+      [clientId]
+    );
+
+    const productCostMap = {};
+    for (const p of products) {
+      productCostMap[p.shopify_variant_id] = p.cost;
+    }
+
+    if (Object.keys(productCostMap).length === 0) {
+      return res.status(400).json({
+        error: 'No hay productos con costos configurados. Sincroniza productos primero.'
+      });
+    }
+
+    // Calculate COGS using Shopify integration
+    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
+    const cogsResult = await shopify.calculateCOGS(start_date, end_date, productCostMap);
+
+    // Save daily COGS to database
+    for (const day of cogsResult.dailyCogs) {
+      await db.run(`
+        INSERT INTO daily_cogs (organization_id, client_id, date, total_cogs, units_sold, orders_count, calculated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, datetime('now'))
+        ON CONFLICT (client_id, date) DO UPDATE SET
+          total_cogs = EXCLUDED.total_cogs,
+          units_sold = EXCLUDED.units_sold,
+          orders_count = EXCLUDED.orders_count,
+          calculated_at = datetime('now')
+      `, [req.orgId, clientId, day.date, day.cogs, day.units, day.orders]);
+    }
+
+    res.json({
+      success: true,
+      period: { start_date, end_date },
+      total_cogs: cogsResult.totalCogs,
+      total_units: cogsResult.totalUnits,
+      days_calculated: cogsResult.dailyCogs.length,
+      products_without_cost: cogsResult.productsWithoutCost
+    });
+  } catch (error) {
+    console.error('Error calculating COGS:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Get Products List ───
+
+router.get('/clients/:clientId/products', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    const products = await db.all(`
+      SELECT id, shopify_product_id, shopify_variant_id, sku, title, variant_title,
+             price, cost, cost_source, last_synced_at
+      FROM shopify_products
+      WHERE client_id = $1 AND organization_id = $2
+      ORDER BY title, variant_title
+    `, [clientId, req.orgId]);
+
+    res.json(products);
+  } catch (error) {
+    console.error('Error getting products:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Update Product Cost (Manual Override) ───
+
+router.put('/clients/:clientId/products/:productId/cost', async (req, res) => {
+  try {
+    const { clientId, productId } = req.params;
+    const { cost } = req.body;
+
+    if (cost === undefined || cost === null) {
+      return res.status(400).json({ error: 'cost es requerido' });
+    }
+
+    if (!(await verifyClient(clientId, req.orgId))) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    const result = await db.run(`
+      UPDATE shopify_products
+      SET cost = $1, cost_source = 'manual', updated_at = datetime('now')
+      WHERE id = $2 AND client_id = $3 AND organization_id = $4
+    `, [parseFloat(cost), productId, clientId, req.orgId]);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating product cost:', error);
     res.status(500).json({ error: error.message });
   }
 });

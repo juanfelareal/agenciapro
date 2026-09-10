@@ -525,6 +525,179 @@ class ShopifyIntegration {
   }
 
   /**
+   * Get all products with variants and costs using GraphQL
+   * @returns {Promise<Array<{shopify_product_id, shopify_variant_id, sku, title, variant_title, price, cost}>>}
+   */
+  async getProductsWithCosts() {
+    const products = [];
+    let hasNextPage = true;
+    let cursor = null;
+
+    while (hasNextPage) {
+      const afterClause = cursor ? `, after: "${cursor}"` : '';
+      const query = `{
+        products(first: 100${afterClause}) {
+          edges {
+            node {
+              id
+              legacyResourceId
+              title
+              variants(first: 100) {
+                edges {
+                  node {
+                    id
+                    legacyResourceId
+                    title
+                    sku
+                    price
+                    inventoryItem {
+                      unitCost {
+                        amount
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            cursor
+          }
+          pageInfo { hasNextPage }
+        }
+      }`;
+
+      const response = await axios.post(
+        `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
+        { query },
+        {
+          headers: {
+            'X-Shopify-Access-Token': this.accessToken,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data?.errors?.length > 0) {
+        console.error('GraphQL errors fetching products:', response.data.errors);
+        throw new Error(response.data.errors[0].message);
+      }
+
+      const edges = response.data?.data?.products?.edges || [];
+      edges.forEach(productEdge => {
+        const product = productEdge.node;
+        const productId = product.legacyResourceId;
+        const productTitle = product.title;
+
+        (product.variants?.edges || []).forEach(variantEdge => {
+          const variant = variantEdge.node;
+          const cost = variant.inventoryItem?.unitCost?.amount;
+
+          products.push({
+            shopify_product_id: productId,
+            shopify_variant_id: variant.legacyResourceId,
+            sku: variant.sku || null,
+            title: productTitle,
+            variant_title: variant.title !== 'Default Title' ? variant.title : null,
+            price: parseFloat(variant.price) || 0,
+            cost: cost ? parseFloat(cost) : null
+          });
+        });
+      });
+
+      hasNextPage = response.data?.data?.products?.pageInfo?.hasNextPage || false;
+      cursor = edges.length > 0 ? edges[edges.length - 1].cursor : null;
+      if (!cursor) hasNextPage = false;
+    }
+
+    return products;
+  }
+
+  /**
+   * Calculate COGS for orders in a date range
+   * Requires a productCostMap: { variantId: cost }
+   * @param {string} startDate
+   * @param {string} endDate
+   * @param {Object} productCostMap - Map of variant ID to unit cost
+   * @returns {Promise<{dailyCogs: Array<{date, cogs, units, orders}>, totalCogs, totalUnits, productsWithoutCost: Array}>}
+   */
+  async calculateCOGS(startDate, endDate, productCostMap) {
+    const orders = await this.getOrders(startDate, endDate);
+    const cogsPerDay = {};
+    const productsWithoutCost = new Set();
+    let totalCogs = 0;
+    let totalUnits = 0;
+
+    orders.forEach(order => {
+      // Same filters as calculateMetricsFromOrders
+      if (order.cancelled_at) return;
+      if (order.financial_status !== 'paid' && order.financial_status !== 'partially_refunded') return;
+
+      const orderDate = order.created_at.split('T')[0];
+
+      if (!cogsPerDay[orderDate]) {
+        cogsPerDay[orderDate] = { cogs: 0, units: 0, orders: 0 };
+      }
+      cogsPerDay[orderDate].orders += 1;
+
+      (order.line_items || []).forEach(item => {
+        const variantId = String(item.variant_id);
+        const quantity = item.quantity || 0;
+        const cost = productCostMap[variantId];
+
+        if (cost !== undefined && cost !== null) {
+          const lineCogs = cost * quantity;
+          cogsPerDay[orderDate].cogs += lineCogs;
+          cogsPerDay[orderDate].units += quantity;
+          totalCogs += lineCogs;
+          totalUnits += quantity;
+        } else {
+          // Track products without cost for warning
+          productsWithoutCost.add(item.title || `Variant ${variantId}`);
+        }
+      });
+
+      // Handle refunds - subtract COGS for refunded items
+      if (order.refunds && order.refunds.length > 0) {
+        order.refunds.forEach(refund => {
+          const refundDate = refund.created_at?.split('T')[0] || orderDate;
+
+          if (!cogsPerDay[refundDate]) {
+            cogsPerDay[refundDate] = { cogs: 0, units: 0, orders: 0 };
+          }
+
+          (refund.refund_line_items || []).forEach(refundItem => {
+            const lineItem = refundItem.line_item;
+            if (!lineItem) return;
+
+            const variantId = String(lineItem.variant_id);
+            const quantity = refundItem.quantity || 0;
+            const cost = productCostMap[variantId];
+
+            if (cost !== undefined && cost !== null) {
+              const lineCogs = cost * quantity;
+              cogsPerDay[refundDate].cogs -= lineCogs;
+              cogsPerDay[refundDate].units -= quantity;
+              totalCogs -= lineCogs;
+              totalUnits -= quantity;
+            }
+          });
+        });
+      }
+    });
+
+    // Build daily array sorted by date
+    const dailyCogs = Object.entries(cogsPerDay)
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      dailyCogs,
+      totalCogs,
+      totalUnits,
+      productsWithoutCost: Array.from(productsWithoutCost)
+    };
+  }
+
+  /**
    * Get daily metrics breakdown for a date range
    * @param {string} startDate
    * @param {string} endDate
