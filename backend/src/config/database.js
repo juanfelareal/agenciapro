@@ -3627,6 +3627,12 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Fix orphaned private tasks: make public any private task without created_by
+    // (these are invisible to everyone and can't be deleted through the UI)
+    await pool.query(`
+      UPDATE tasks SET is_private = 0 WHERE is_private = 1 AND created_by IS NULL
+    `);
+
     // Migration: Fix all foreign key constraints referencing team_members to allow deletion
     // SET NULL for nullable columns
     const fkSetNull = [
