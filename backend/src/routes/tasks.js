@@ -13,6 +13,8 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { status, project_id, assigned_to, client_id } = req.query;
+    const currentTeamMemberId = req.teamMember?.id || null;
+
     let query = `
       SELECT t.*,
              p.name AS project_name,
@@ -49,8 +51,9 @@ router.get('/', async (req, res) => {
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
       WHERE t.organization_id = ?
+        AND (t.is_private = 0 OR t.is_private IS NULL OR t.created_by = ?)
     `;
-    const params = [req.orgId];
+    const params = [req.orgId, currentTeamMemberId];
 
     if (status)      { query += ' AND t.status = ?';      params.push(status); }
     if (project_id)  { query += ' AND t.project_id = ?';  params.push(project_id); }
@@ -85,6 +88,7 @@ router.get('/', async (req, res) => {
 // Get task by ID (scoped to organization directly)
 router.get('/:id', async (req, res) => {
   try {
+    const currentTeamMemberId = req.teamMember?.id || null;
     const task = await db.get(`
       SELECT t.*, p.name as project_name, p.client_id,
              COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) as client_name,
@@ -101,7 +105,8 @@ router.get('/:id', async (req, res) => {
       LEFT JOIN team_members tm ON t.assigned_to = tm.id
       LEFT JOIN team_members cb ON t.created_by = cb.id
       WHERE t.id = ? AND t.organization_id = ?
-    `, [req.params.id, req.orgId]);
+        AND (t.is_private = 0 OR t.is_private IS NULL OR t.created_by = ?)
+    `, [req.params.id, req.orgId, currentTeamMemberId]);
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
@@ -138,7 +143,8 @@ router.post('/', async (req, res) => {
       order_index,
       linked_form_id,
       visible_to_client,
-      requires_client_approval
+      requires_client_approval,
+      is_private
     } = req.body;
 
     if (!title) {
@@ -180,9 +186,9 @@ router.post('/', async (req, res) => {
         title, description, project_id, assigned_to, status, priority, due_date,
         is_recurring, recurrence_pattern, timeline_start, timeline_end,
         progress, color, estimated_hours, delivery_url, created_by, order_index, linked_form_id,
-        visible_to_client, requires_client_approval, client_approval_status, organization_id
+        visible_to_client, requires_client_approval, client_approval_status, is_private, organization_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       title,
       description || null,
@@ -205,6 +211,7 @@ router.post('/', async (req, res) => {
       visible_to_client ? 1 : 0,
       requires_client_approval ? 1 : 0,
       requires_client_approval ? 'pending' : null,
+      is_private ? 1 : 0,
       req.orgId
     ]);
 
@@ -293,7 +300,8 @@ router.put('/:id', async (req, res) => {
       delivery_url,
       linked_form_id,
       visible_to_client,
-      requires_client_approval
+      requires_client_approval,
+      is_private
     } = req.body;
 
     // Get old task data and verify it belongs to this org
@@ -431,6 +439,7 @@ router.put('/:id', async (req, res) => {
         fields.client_approval_notes = null;
       }
     }
+    if (is_private !== undefined) fields.is_private = is_private ? 1 : 0;
 
     const setClauses = Object.keys(fields).map((k) => `${k} = ?`);
     setClauses.push('updated_at = CURRENT_TIMESTAMP');

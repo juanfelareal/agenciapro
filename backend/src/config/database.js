@@ -3617,6 +3617,16 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Add is_private column to tasks for private tasks feature
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='is_private') THEN
+          ALTER TABLE tasks ADD COLUMN is_private INTEGER DEFAULT 0;
+        END IF;
+      END $$;
+    `);
+
     // Migration: Fix all foreign key constraints referencing team_members to allow deletion
     // SET NULL for nullable columns
     const fkSetNull = [

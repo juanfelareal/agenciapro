@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { tasksAPI, projectsAPI, teamAPI, tagsAPI, subtasksAPI, clientsAPI, formsAPI, taskFilesAPI, taskViewsAPI } from '../utils/api';
-import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2, Edit2, Check, Bookmark, Star, MoreHorizontal, Save, Building2, FolderOpen, ChevronRight, Flag, CalendarDays, UserPlus, Eye, Repeat, Tag, Send, CircleDashed } from 'lucide-react';
+import { Plus, X, ListChecks, Copy, Filter, Search, ExternalLink, Link, Users, Maximize2, Minimize2, Loader2, Paperclip, Trash2, Edit2, Check, Bookmark, Star, MoreHorizontal, Save, Building2, FolderOpen, ChevronRight, Flag, CalendarDays, UserPlus, Eye, Repeat, Tag, Send, CircleDashed, Lock } from 'lucide-react';
 import { getEmbed } from '../utils/embedUrl';
 import { useAuth } from '../context/AuthContext';
 import SubtaskList from '../components/SubtaskList';
@@ -110,6 +110,7 @@ const Tasks = () => {
     linked_form_id: '',
     visible_to_client: false,
     requires_client_approval: false,
+    is_private: false,
     is_recurring: false,
     recurrence_pattern: {
       type: 'weekly',
@@ -468,6 +469,7 @@ const Tasks = () => {
       linked_form_id: '',
       visible_to_client: false,
       requires_client_approval: false,
+      is_private: false,
       is_recurring: false,
       recurrence_pattern: {
         type: 'weekly',
@@ -732,6 +734,7 @@ const Tasks = () => {
       linked_form_id: task.linked_form_id || '',
       visible_to_client: task.visible_to_client ? true : false,
       requires_client_approval: !!task.requires_client_approval,
+      is_private: !!task.is_private,
     });
     // Load task tags
     const tags = taskTags[task.id] || [];
@@ -1305,6 +1308,22 @@ const Tasks = () => {
                     </div>
                   </Section>
                 )}
+
+                {/* Sección: Privacidad */}
+                <Section
+                  icon={Lock}
+                  title="Privacidad"
+                  badge={formData.is_private ? 'Privada' : null}
+                  defaultOpen={formData.is_private}
+                >
+                  <ToggleRow
+                    icon={Lock}
+                    label="Tarea privada"
+                    hint="Solo tú podrás ver esta tarea. Los demás miembros del equipo no la verán."
+                    checked={formData.is_private}
+                    onChange={(checked) => setFormData({ ...formData, is_private: checked })}
+                  />
+                </Section>
 
                 {/* Sección: Entrega y cliente */}
                 <Section
