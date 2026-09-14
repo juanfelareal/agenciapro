@@ -205,7 +205,7 @@ router.post('/', async (req, res) => {
       color || null,
       estimated_hours || null,
       delivery_url || null,
-      created_by || null,
+      created_by || req.teamMember?.id || null,
       order_index != null ? order_index : null,
       linked_form_id || null,
       visible_to_client ? 1 : 0,
