@@ -1,9 +1,9 @@
 import db from '../config/database.js';
-import FacebookAdsIntegration from '../integrations/facebookAds.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
 import siigoService from './siigoService.js';
+import { testFacebookConnectionWithFallback } from '../utils/facebookClient.js';
 
 /**
  * Runs through every connected integration in the database and tests it.
@@ -24,10 +24,9 @@ export async function runIntegrationHealthCheck() {
   `).all();
 
   for (const a of fbAccounts) {
-    const token = a.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
     try {
-      const fb = new FacebookAdsIntegration(token, a.ad_account_id);
-      const result = await fb.testConnection();
+      // Personal token first; if Meta invalidated it, the System User token is tried
+      const result = await testFacebookConnectionWithFallback(a);
       if (result?.success) {
         summary.facebook.ok++;
         await db.prepare(

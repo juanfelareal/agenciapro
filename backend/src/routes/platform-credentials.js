@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import db from '../config/database.js';
-import FacebookAdsIntegration from '../integrations/facebookAds.js';
+import { testFacebookConnectionWithFallback } from '../utils/facebookClient.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
@@ -178,9 +178,8 @@ router.post('/facebook/:id/test', async (req, res) => {
       return res.status(404).json({ error: 'Credenciales no encontradas' });
     }
 
-    const tokenForTest = credentials.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
-    const facebook = new FacebookAdsIntegration(tokenForTest, credentials.ad_account_id);
-    const result = await facebook.testConnection();
+    // Personal token first; if Meta invalidated it, the System User token is tried
+    const result = await testFacebookConnectionWithFallback(credentials);
 
     if (result.success) {
       // Update status to active

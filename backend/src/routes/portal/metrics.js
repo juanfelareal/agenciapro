@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
 import FacebookAdsIntegration from '../../integrations/facebookAds.js';
+import { withFacebookFallback } from '../../utils/facebookClient.js';
 import GoogleAdsIntegration from '../../integrations/googleAds.js';
 import TikTokAdsIntegration from '../../integrations/tiktokAds.js';
 import ShopifyIntegration from '../../integrations/shopify.js';
@@ -542,18 +543,16 @@ router.get('/ads', clientAuthMiddleware, requirePortalPermission('can_view_metri
 
     console.log(`[Portal Ads] Found FB credentials, ad_account_id: ${fbCred.ad_account_id}`);
 
-    const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
-    if (!accessToken) {
+    if (!fbCred.access_token && !process.env.FACEBOOK_SYSTEM_USER_TOKEN) {
       console.log(`[Portal Ads] No access token available for client ${clientId}`);
       return res.json({ ads: [], message: 'Sin token de acceso Facebook' });
     }
 
-    const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
-
     let ads;
     try {
       console.log(`[Portal Ads] Calling getAdLevelInsights...`);
-      ads = await fb.getAdLevelInsights(startDate, endDate);
+      // Personal token first; if Meta invalidated it, retry with the System User token
+      ({ result: ads } = await withFacebookFallback(fbCred, (fb) => fb.getAdLevelInsights(startDate, endDate), 'Portal Ads'));
       console.log(`[Portal Ads] Got ${ads?.length || 0} ads`);
     } catch (fbError) {
       console.error(`[Portal Ads] Facebook API error:`, fbError.response?.data || fbError.message);
@@ -705,13 +704,11 @@ router.get('/ads/:adId/preview', clientAuthMiddleware, requirePortalPermission('
       return res.status(404).json({ error: 'Sin conexión Facebook' });
     }
 
-    const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
-    if (!accessToken) {
+    if (!fbCred.access_token && !process.env.FACEBOOK_SYSTEM_USER_TOKEN) {
       return res.status(404).json({ error: 'Sin token de acceso Facebook' });
     }
 
-    const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
-    const html = await fb.getAdPreview(adId, format);
+    const { result: html } = await withFacebookFallback(fbCred, (fb) => fb.getAdPreview(adId, format), 'Portal Preview');
 
     if (!html) {
       return res.status(404).json({ error: 'Vista previa no disponible para este formato' });

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import db from '../config/database.js';
 import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllClientsSmart } from '../services/metricsSyncService.js';
-import FacebookAdsIntegration from '../integrations/facebookAds.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
+import { withFacebookFallback } from '../utils/facebookClient.js';
 import { normalizeRevenueMetric, revenueMetricLabel, pickDisplayRevenue, pickDailyDisplayRevenue, dailyAdSpend } from '../utils/revenueMetric.js';
 
 const router = Router();
@@ -634,27 +634,12 @@ router.get('/:clientId/ads', async (req, res) => {
       return res.json({ ads: [], message: 'Sin conexión Facebook' });
     }
 
-    const systemFbToken = process.env.FACEBOOK_SYSTEM_USER_TOKEN;
-    const accessToken = fbCred.access_token || systemFbToken;
-    if (!accessToken) {
+    if (!fbCred.access_token && !process.env.FACEBOOK_SYSTEM_USER_TOKEN) {
       return res.json({ ads: [], message: 'Sin token de acceso Facebook' });
     }
 
-    // Same strategy as the daily sync: a client's personal token can be invalidated
-    // (code 190 / OAuthException). Retry with the System User token, which can read
-    // any ad account shared to the agency's business.
-    let ads;
-    try {
-      const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
-      ads = await fb.getAdLevelInsights(start_date, end_date);
-    } catch (error) {
-      const fbErr = error.response?.data?.error;
-      const isAuthError = fbErr?.code === 190 || fbErr?.type === 'OAuthException';
-      if (!(isAuthError && systemFbToken && accessToken !== systemFbToken)) throw error;
-      console.log(`  ↪ Ads: token personal inválido para cliente ${clientId}, usé el token de sistema`);
-      const fb = new FacebookAdsIntegration(systemFbToken, fbCred.ad_account_id);
-      ads = await fb.getAdLevelInsights(start_date, end_date);
-    }
+    // Personal token first; if Meta invalidated it (code 190), retry with the System User token
+    const { result: ads } = await withFacebookFallback(fbCred, (fb) => fb.getAdLevelInsights(start_date, end_date), 'Ads');
 
     // Merge persisted tags into ads
     if (ads.length > 0) {
