@@ -5,6 +5,7 @@ import FacebookAdsIntegration from '../integrations/facebookAds.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
+import { normalizeRevenueMetric, revenueMetricLabel, pickDisplayRevenue, pickDailyDisplayRevenue, dailyAdSpend } from '../utils/revenueMetric.js';
 
 const router = Router();
 
@@ -158,7 +159,7 @@ router.get('/:clientId', async (req, res) => {
 
     // Verify client belongs to org and get revenue metric setting
     const client = await db.prepare(`
-      SELECT c.id, COALESCE(ps.portal_revenue_metric, 'total') as portal_revenue_metric
+      SELECT c.id, ps.portal_revenue_metric
       FROM clients c
       LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
       WHERE c.id = ? AND c.organization_id = ?
@@ -166,6 +167,7 @@ router.get('/:clientId', async (req, res) => {
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
+    const revenueMetric = normalizeRevenueMetric(client.portal_revenue_metric);
 
     const metrics = await db.prepare(`
       SELECT
@@ -228,10 +230,8 @@ router.get('/:clientId', async (req, res) => {
     const totalVideoThruplay = parseFloat(metrics.total_video_thruplay_views) || 0;
     const totalSessions = parseFloat(metrics.total_sessions) || 0;
 
-    // Pick revenue based on the client's portal_revenue_metric setting
-    let displayRevenue = allOrdersRevenue || totalRevenue; // default 'total'
-    if (client.portal_revenue_metric === 'confirmed') displayRevenue = totalRevenue;
-    else if (client.portal_revenue_metric === 'net_confirmed') displayRevenue = netRevenue;
+    // Pick revenue based on the client's portal_revenue_metric setting (shared helper)
+    const displayRevenue = pickDisplayRevenue(revenueMetric, { total: totalRevenue, net: netRevenue, allOrders: allOrdersRevenue });
 
     const result = {
       ...metrics,
@@ -244,7 +244,8 @@ router.get('/:clientId', async (req, res) => {
       total_orders: totalOrders,
       total_impressions: totalImpressions,
       total_conversions: totalConversions,
-      portal_revenue_metric: client.portal_revenue_metric,
+      portal_revenue_metric: revenueMetric,
+      revenue_label: revenueMetricLabel(revenueMetric),
       display_revenue: displayRevenue,
       roas: totalAdSpend > 0 ? displayRevenue / totalAdSpend : 0,
       cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
@@ -313,13 +314,20 @@ router.get('/:clientId/daily', async (req, res) => {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
     }
 
-    // Verify client belongs to org
-    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
+    // Verify client belongs to org and get its revenue metric setting
+    const client = await db.prepare(`
+      SELECT c.id, ps.portal_revenue_metric
+      FROM clients c
+      LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
+      WHERE c.id = ? AND c.organization_id = ?
+    `).get(clientId, orgId);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
+    const revenueMetric = normalizeRevenueMetric(client.portal_revenue_metric);
+    const revenueLabel = revenueMetricLabel(revenueMetric);
 
-    const metrics = await db.prepare(`
+    const rows = await db.prepare(`
       SELECT
         metric_date,
         shopify_revenue,
@@ -380,6 +388,21 @@ router.get('/:clientId/daily', async (req, res) => {
       ORDER BY metric_date DESC
     `).all(clientId, start_date, end_date);
 
+    // Enrich each day with the SAME revenue/ROAS definition the summary endpoints use,
+    // so daily breakdowns always match the aggregated rows.
+    const metrics = rows.map(row => {
+      const displayRevenue = pickDailyDisplayRevenue(revenueMetric, row);
+      const adSpend = dailyAdSpend(row);
+      return {
+        ...row,
+        revenue_metric: revenueMetric,
+        revenue_label: revenueLabel,
+        display_revenue: displayRevenue,
+        display_ad_spend: adSpend,
+        display_roas: adSpend > 0 ? displayRevenue / adSpend : 0,
+      };
+    });
+
     res.json(metrics);
   } catch (error) {
     console.error('Error fetching daily metrics:', error);
@@ -408,7 +431,7 @@ router.get('/aggregate/all', async (req, res) => {
         c.nickname,
         c.service_type,
         COALESCE(c.is_hidden_from_metrics, 0) as is_hidden_from_metrics,
-        COALESCE(ps.portal_revenue_metric, 'total') as portal_revenue_metric,
+        ps.portal_revenue_metric,
         SUM(m.shopify_revenue) as total_revenue,
         SUM(m.shopify_net_revenue) as net_revenue,
         SUM(m.shopify_orders) as total_orders,
@@ -452,11 +475,9 @@ router.get('/aggregate/all', async (req, res) => {
       const netRevenue = parseFloat(client.net_revenue) || 0;
       const allOrdersRevenue = parseFloat(client.total_all_orders_revenue) || 0;
 
-      // Pick the display revenue based on the client's portal_revenue_metric setting
-      let displayRevenue = totalRevenue;
-      if (client.portal_revenue_metric === 'confirmed') displayRevenue = totalRevenue;
-      else if (client.portal_revenue_metric === 'net_confirmed') displayRevenue = netRevenue;
-      else displayRevenue = allOrdersRevenue || totalRevenue; // 'total' = all orders
+      // Pick the display revenue based on the client's portal_revenue_metric setting (shared helper)
+      const revenueMetric = normalizeRevenueMetric(client.portal_revenue_metric);
+      const displayRevenue = pickDisplayRevenue(revenueMetric, { total: totalRevenue, net: netRevenue, allOrders: allOrdersRevenue });
 
       return {
         ...client,
@@ -464,7 +485,8 @@ router.get('/aggregate/all', async (req, res) => {
         net_revenue: netRevenue,
         total_all_orders_revenue: allOrdersRevenue,
         display_revenue: displayRevenue,
-        portal_revenue_metric: client.portal_revenue_metric || 'total',
+        portal_revenue_metric: revenueMetric,
+        revenue_label: revenueMetricLabel(revenueMetric),
         total_ad_spend: totalAdSpend,
         total_fb_spend: totalFbSpend,
         total_google_spend: totalGoogleSpend,

@@ -7,6 +7,7 @@ import {
   CalendarDays, BarChart2, Settings2, DollarSign, Search
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
+import { revenueMetricLabel, pickDailyDisplayRevenue, pickDailyDisplayRoas, dailyAdSpend } from '../utils/revenueMetric';
 
 const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 
@@ -148,6 +149,12 @@ export default function GrowthDashboard() {
       setMetricsData(metricsRes.data || { clients: [] });
       setCurrentMonthMetrics(currentMonthRes.data || { clients: [] });
       setAllClients((clientsRes.data || []).filter(c => c.status !== 'inactive'));
+
+      // Refresh the "Últimos 7 días" breakdown of any expanded client so it is read
+      // at the same moment as the summary row (otherwise the two can drift between syncs).
+      Object.keys(expandedClients)
+        .filter(id => expandedClients[id])
+        .forEach(id => loadClientDailyMetrics(Number(id), { force: true }));
     } catch (error) {
       console.error('Error loading growth overview:', error);
     } finally {
@@ -156,8 +163,8 @@ export default function GrowthDashboard() {
   };
 
   // Load daily metrics for a client (last 7 days) AND monthly data (last 4 months)
-  const loadClientDailyMetrics = async (clientId) => {
-    if (loadingDaily[clientId]) return;
+  const loadClientDailyMetrics = async (clientId, { force = false } = {}) => {
+    if (loadingDaily[clientId] && !force) return;
     setLoadingDaily(prev => ({ ...prev, [clientId]: true }));
     try {
       const { start: dailyStart, end: dailyEnd } = getLast7Days();
@@ -173,15 +180,17 @@ export default function GrowthDashboard() {
 
       setClientDailyMetrics(prev => ({ ...prev, [clientId]: dailyRes.data || [] }));
 
-      // Aggregate monthly data
+      // Aggregate monthly data using the SAME revenue definition as the summary row
+      // (display_revenue comes from the backend according to the client's setting)
+      const revenueMetric = metricsData.clients.find(c => c.client_id === clientId)?.portal_revenue_metric;
       const monthlyData = (monthlyRes.data || []).reduce((acc, day) => {
         const monthKey = day.metric_date.substring(0, 7); // YYYY-MM
         if (!acc[monthKey]) {
           acc[monthKey] = { month: monthKey, revenue: 0, orders: 0, spend: 0 };
         }
-        acc[monthKey].revenue += day.shopify_net_revenue || day.shopify_revenue || 0;
+        acc[monthKey].revenue += pickDailyDisplayRevenue(revenueMetric, day);
         acc[monthKey].orders += day.shopify_orders || 0;
-        acc[monthKey].spend += (day.fb_spend || 0) + (day.ga_spend || 0) + (day.tt_spend || 0);
+        acc[monthKey].spend += dailyAdSpend(day);
         return acc;
       }, {});
 
@@ -697,7 +706,7 @@ export default function GrowthDashboard() {
                               <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                                 <span className="text-xs font-medium text-gray-600">Últimos 7 días</span>
                                 <span className="text-[10px] text-gray-400">
-                                  {m?.revenue_type === 'net' ? 'Venta Neta' : 'Venta Total'}
+                                  {m?.revenue_label || revenueMetricLabel(m?.portal_revenue_metric)}
                                 </span>
                               </div>
                               {isLoadingDaily ? (
@@ -722,9 +731,9 @@ export default function GrowthDashboard() {
                                   </thead>
                                   <tbody className="divide-y divide-gray-50">
                                     {dailyData.sort((a, b) => b.metric_date.localeCompare(a.metric_date)).map((day) => {
-                                      const revenue = m?.revenue_type === 'net' ? day.shopify_net_revenue : day.shopify_revenue;
-                                      const spend = (day.fb_spend || 0) + (day.ga_spend || 0) + (day.tt_spend || 0);
-                                      const roas = spend > 0 ? revenue / spend : 0;
+                                      const revenue = pickDailyDisplayRevenue(m?.portal_revenue_metric, day);
+                                      const spend = dailyAdSpend(day);
+                                      const roas = pickDailyDisplayRoas(m?.portal_revenue_metric, day);
                                       return (
                                         <tr key={day.metric_date} className="hover:bg-gray-50">
                                           <td className="px-4 py-2 text-gray-600">{formatShortDate(day.metric_date)}</td>

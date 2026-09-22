@@ -44,6 +44,7 @@ import MetricsTable from '../components/MetricsTable';
 import CollapsibleSection from '../components/CollapsibleSection';
 import DashboardShareModal from '../components/DashboardShareModal';
 import EmailMarketingForm from '../components/EmailMarketingForm';
+import { revenueMetricLabel, pickDailyDisplayRevenue, pickDailyDisplayRoas } from '../utils/revenueMetric';
 
 // Get current date in Colombia timezone (YYYY-MM-DD)
 const getColombiaDate = (offsetDays = 0) => {
@@ -497,13 +498,13 @@ function ClientMetrics() {
   // Daily table columns
   const dailyColumns = [
     { key: 'metric_date', label: 'Fecha', type: 'date' },
-    { key: 'shopify_net_revenue', label: 'Venta Neta', type: 'currency', align: 'right' },
+    { key: 'display_revenue', label: metrics?.revenue_label || revenueMetricLabel(metrics?.portal_revenue_metric), type: 'currency', align: 'right' },
     { key: 'shopify_orders', label: 'Pedidos', type: 'integer', align: 'right' },
     { key: 'shopify_pending_orders', label: 'Pendientes', type: 'integer', align: 'right' },
     { key: 'shopify_aov', label: 'Ticket Promedio', type: 'currency', align: 'right' },
     { key: 'fb_spend', label: 'Inversion', type: 'currency', align: 'right' },
     { key: 'cost_per_order', label: 'Costo/Pedido', type: 'currency', align: 'right' },
-    { key: 'overall_roas', label: 'ROAS', type: 'decimal', align: 'right' },
+    { key: 'display_roas', label: 'ROAS', type: 'decimal', align: 'right' },
     { key: 'ad_spend_percentage', label: '% Inversion', type: 'percent', align: 'right' },
     { key: 'fb_cpm', label: 'CPM', type: 'currency', align: 'right' },
     { key: 'fb_cost_per_purchase', label: 'Costo/Compra', type: 'currency', align: 'right' },
@@ -1194,9 +1195,9 @@ function ClientMetrics() {
           .sort((a, b) => a.metric_date.localeCompare(b.metric_date))
           .map(d => ({
             date: d.metric_date,
-            venta: d.shopify_net_revenue || 0,
+            venta: pickDailyDisplayRevenue(metrics?.portal_revenue_metric, d),
             inversion: (d.fb_spend || 0) + (d.ga_spend || 0) + (d.tt_spend || 0),
-            roas: d.overall_roas || 0,
+            roas: pickDailyDisplayRoas(metrics?.portal_revenue_metric, d),
             costoCompra: d.fb_cost_per_purchase || 0,
             costoPedido: d.cost_per_order || 0,
             pedidos: d.shopify_orders || 0,
