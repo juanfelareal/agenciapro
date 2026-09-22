@@ -38,7 +38,8 @@ const IMPACTS = [
 // ─── Fechas (siempre hora de Colombia) ───
 const TZ = 'America/Bogota';
 const fmtDateTime = (iso) => iso ? new Date(iso).toLocaleString('es-CO', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-const fmtDate = (d) => d ? new Date(String(d).length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('es-CO', { timeZone: TZ, day: 'numeric', month: 'short' }) : '';
+// due_date is a calendar date (YYYY-MM-DD); never shift it by timezone
+const fmtDate = (d) => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }) : '';
 const fmtDayHeader = (iso) => new Date(iso).toLocaleDateString('es-CO', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 const dayKey = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
 const todayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ });

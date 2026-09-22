@@ -24,7 +24,8 @@ const loadActions = async (entryIds, orgId) => {
   if (!entryIds.length) return {};
   const placeholders = entryIds.map(() => '?').join(',');
   const rows = await db.all(`
-    SELECT a.*, tm.name as assignee_name, dtm.name as done_by_name
+    SELECT a.*, to_char(a.due_date, 'YYYY-MM-DD') as due_date,
+           tm.name as assignee_name, dtm.name as done_by_name
     FROM client_logbook_actions a
     LEFT JOIN team_members tm ON a.assignee_id = tm.id
     LEFT JOIN team_members dtm ON a.done_by = dtm.id
