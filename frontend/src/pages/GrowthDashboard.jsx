@@ -7,8 +7,7 @@ import {
   CalendarDays, BarChart2, Settings2, DollarSign, Search
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
-import { revenueMetricLabel, pickDailyDisplayRevenue, pickDailyDisplayRoas, dailyAdSpend } from '../utils/revenueMetric';
-import MonthlyGrowthChart from '../components/growth/MonthlyGrowthChart';
+import ClientTrendPanel from '../components/growth/ClientTrendPanel';
 
 const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 
@@ -50,20 +49,6 @@ const getPeriodDates = (period) => {
   const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
   const end = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
   return { start, end };
-};
-
-// Format short date
-const formatShortDate = (dateStr) => {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-};
-
-// Format weekday
-const formatWeekday = (dateStr) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('es-CO', { weekday: 'short' });
 };
 
 const formatCOP = (val) => {
@@ -111,9 +96,8 @@ export default function GrowthDashboard() {
   const [activeTab, setActiveTab] = useState('financiero');
   // Expanded daily tracking for clients
   const [expandedClients, setExpandedClients] = useState({});
-  const [clientDailyMetrics, setClientDailyMetrics] = useState({});
-  const [clientMonthlyMetrics, setClientMonthlyMetrics] = useState({});
-  const [loadingDaily, setLoadingDaily] = useState({});
+  // Bumped every time the overview reloads so expanded panels re-read at the same moment
+  const [overviewLoadedAt, setOverviewLoadedAt] = useState(0);
   // Sorting state
   const [sortField, setSortField] = useState('display_revenue'); // default sort by ventas
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
@@ -151,11 +135,8 @@ export default function GrowthDashboard() {
       setCurrentMonthMetrics(currentMonthRes.data || { clients: [] });
       setAllClients((clientsRes.data || []).filter(c => c.status !== 'inactive'));
 
-      // Refresh the "Últimos 7 días" breakdown of any expanded client so it is read
-      // at the same moment as the summary row (otherwise the two can drift between syncs).
-      Object.keys(expandedClients)
-        .filter(id => expandedClients[id])
-        .forEach(id => loadClientDailyMetrics(Number(id), { force: true }));
+      // Expanded trend panels reload with the summary so both are read at the same moment
+      setOverviewLoadedAt(Date.now());
     } catch (error) {
       console.error('Error loading growth overview:', error);
     } finally {
@@ -163,57 +144,9 @@ export default function GrowthDashboard() {
     }
   };
 
-  // Load daily metrics for a client (last 7 days) AND monthly data (last 4 months)
-  const loadClientDailyMetrics = async (clientId, { force = false } = {}) => {
-    if (loadingDaily[clientId] && !force) return;
-    setLoadingDaily(prev => ({ ...prev, [clientId]: true }));
-    try {
-      const { start: dailyStart, end: dailyEnd } = getLast7Days();
-      // Get first day of 3 months ago
-      const today = new Date(getColombiaDate() + 'T12:00:00');
-      const monthlyStart = new Date(today.getFullYear(), today.getMonth() - 3, 1);
-      const monthlyStartStr = monthlyStart.toISOString().split('T')[0];
-
-      const [dailyRes, monthlyRes] = await Promise.all([
-        clientMetricsAPI.getDailyMetrics(clientId, dailyStart, dailyEnd),
-        clientMetricsAPI.getDailyMetrics(clientId, monthlyStartStr, dailyEnd)
-      ]);
-
-      setClientDailyMetrics(prev => ({ ...prev, [clientId]: dailyRes.data || [] }));
-
-      // Aggregate monthly data using the SAME revenue definition as the summary row
-      // (display_revenue comes from the backend according to the client's setting)
-      const revenueMetric = metricsData.clients.find(c => c.client_id === clientId)?.portal_revenue_metric;
-      const monthlyData = (monthlyRes.data || []).reduce((acc, day) => {
-        const monthKey = day.metric_date.substring(0, 7); // YYYY-MM
-        if (!acc[monthKey]) {
-          acc[monthKey] = { month: monthKey, revenue: 0, orders: 0, spend: 0 };
-        }
-        acc[monthKey].revenue += pickDailyDisplayRevenue(revenueMetric, day);
-        acc[monthKey].orders += day.shopify_orders || 0;
-        acc[monthKey].spend += dailyAdSpend(day);
-        return acc;
-      }, {});
-
-      // Convert to array and sort chronologically (oldest month on the left, current month on the right)
-      const monthlyArray = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
-      setClientMonthlyMetrics(prev => ({ ...prev, [clientId]: monthlyArray }));
-    } catch (error) {
-      console.error('Error loading daily metrics:', error);
-      setClientDailyMetrics(prev => ({ ...prev, [clientId]: [] }));
-      setClientMonthlyMetrics(prev => ({ ...prev, [clientId]: [] }));
-    } finally {
-      setLoadingDaily(prev => ({ ...prev, [clientId]: false }));
-    }
-  };
-
   // Toggle expanded state for a client
   const toggleClientExpanded = (clientId) => {
-    const isExpanded = expandedClients[clientId];
-    setExpandedClients(prev => ({ ...prev, [clientId]: !isExpanded }));
-    if (!isExpanded && !clientDailyMetrics[clientId]) {
-      loadClientDailyMetrics(clientId);
-    }
+    setExpandedClients(prev => ({ ...prev, [clientId]: !prev[clientId] }));
   };
 
   const loadClientDetail = async (clientId) => {
@@ -615,8 +548,6 @@ export default function GrowthDashboard() {
                 {enrichedClients.map((client) => {
                   const m = client.metrics;
                   const isExpanded = expandedClients[client.id];
-                  const dailyData = clientDailyMetrics[client.id] || [];
-                  const isLoadingDaily = loadingDaily[client.id];
                   return (
                     <React.Fragment key={client.id}>
                       <tr
@@ -699,101 +630,16 @@ export default function GrowthDashboard() {
                           </div>
                         </td>
                       </tr>
-                      {/* Expandable daily metrics row */}
+                      {/* Expandable trend panel: last 7 days + months + growth chart */}
                       {isExpanded && (
                         <tr className="bg-gray-50">
                           <td colSpan={9} className="px-6 py-4">
-                            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                                <span className="text-xs font-medium text-gray-600">Últimos 7 días</span>
-                                <span className="text-[10px] text-gray-400">
-                                  {m?.revenue_label || revenueMetricLabel(m?.portal_revenue_metric)}
-                                </span>
-                              </div>
-                              {isLoadingDaily ? (
-                                <div className="py-8 flex justify-center">
-                                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                                </div>
-                              ) : dailyData.length === 0 ? (
-                                <div className="py-6 text-center text-gray-400 text-sm">
-                                  Sin datos en los últimos 7 días
-                                </div>
-                              ) : (
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="text-xs text-gray-500 border-b border-gray-100">
-                                      <th className="px-4 py-2 text-left font-medium">Fecha</th>
-                                      <th className="px-4 py-2 text-left font-medium">Día</th>
-                                      <th className="px-4 py-2 text-right font-medium">Ventas</th>
-                                      <th className="px-4 py-2 text-right font-medium">Inversión</th>
-                                      <th className="px-4 py-2 text-right font-medium">Pedidos</th>
-                                      <th className="px-4 py-2 text-right font-medium">ROAS</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-50">
-                                    {dailyData.sort((a, b) => b.metric_date.localeCompare(a.metric_date)).map((day) => {
-                                      const revenue = pickDailyDisplayRevenue(m?.portal_revenue_metric, day);
-                                      const spend = dailyAdSpend(day);
-                                      const roas = pickDailyDisplayRoas(m?.portal_revenue_metric, day);
-                                      return (
-                                        <tr key={day.metric_date} className="hover:bg-gray-50">
-                                          <td className="px-4 py-2 text-gray-600">{formatShortDate(day.metric_date)}</td>
-                                          <td className="px-4 py-2 text-gray-400 capitalize">{formatWeekday(day.metric_date)}</td>
-                                          <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCOPFull(revenue)}</td>
-                                          <td className="px-4 py-2 text-right text-gray-600">{formatCOPFull(spend)}</td>
-                                          <td className="px-4 py-2 text-right text-gray-600">{day.shopify_orders || 0}</td>
-                                          <td className="px-4 py-2 text-right">
-                                            <span className={`font-medium ${roas >= 3 ? 'text-green-600' : roas >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                              {roas.toFixed(2)}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              )}
-
-                              {/* Monthly breakdown - last 4 months */}
-                              {(clientMonthlyMetrics[client.id] || []).length > 0 && (
-                                <div className="mt-4 pt-4 border-t border-gray-100">
-                                  <div className="px-4 py-2 flex items-center justify-between">
-                                    <span className="text-xs font-medium text-gray-600">Ventas por Mes</span>
-                                  </div>
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-3">
-                                    {(clientMonthlyMetrics[client.id] || []).map((monthData) => {
-                                      const roas = monthData.spend > 0 ? monthData.revenue / monthData.spend : 0;
-                                      const [y, monthNum] = monthData.month.split('-');
-                                      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-                                      const monthLabel = `${monthNames[parseInt(monthNum) - 1]} ${y}`;
-                                      const isCurrentMonth = monthData.month === getCurrentPeriod();
-                                      return (
-                                        <div key={monthData.month} className={`bg-gray-50 rounded-lg p-3 ${isCurrentMonth ? 'ring-1 ring-emerald-200' : ''}`}>
-                                          <div className="flex items-center justify-between mb-1">
-                                            <span className="text-xs font-medium text-gray-500">{monthLabel}</span>
-                                            {isCurrentMonth && <span className="text-[10px] text-emerald-600 font-medium">En curso</span>}
-                                          </div>
-                                          <div className="text-base font-semibold text-gray-900">{formatCOP(monthData.revenue)}</div>
-                                          <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                                            <span>{monthData.orders} pedidos</span>
-                                            <span>·</span>
-                                            <span className={roas >= 3 ? 'text-green-600' : roas >= 1 ? 'text-yellow-600' : 'text-gray-400'}>
-                                              {roas > 0 ? `${roas.toFixed(1)}× ROAS` : '—'}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-
-                                  {/* Growth chart: sales + ROAS per month */}
-                                  <MonthlyGrowthChart
-                                    months={clientMonthlyMetrics[client.id] || []}
-                                    currentPeriod={getCurrentPeriod()}
-                                  />
-                                </div>
-                              )}
-                            </div>
+                            <ClientTrendPanel
+                              clientId={client.id}
+                              revenueMetric={m?.portal_revenue_metric}
+                              revenueLabel={m?.revenue_label}
+                              refreshKey={overviewLoadedAt}
+                            />
                           </td>
                         </tr>
                       )}

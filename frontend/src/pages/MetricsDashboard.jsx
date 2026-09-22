@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DollarSign,
@@ -13,11 +13,12 @@ import {
   EyeOff,
   Eye,
   Rocket,
-  Clock
+  Clock, BarChart2
 } from 'lucide-react';
 import { clientMetricsAPI, growthAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import GrowthDashboard from './GrowthDashboard';
+import ClientTrendPanel from '../components/growth/ClientTrendPanel';
 
 // Get current date in Colombia timezone (YYYY-MM-DD)
 const getColombiaDate = (offsetDays = 0) => {
@@ -37,6 +38,8 @@ function MetricsDashboard() {
   const [syncing, setSyncing] = useState(false);
   const [data, setData] = useState({ clients: [], totals: {} });
   const [showHidden, setShowHidden] = useState(false);
+  const [expandedClients, setExpandedClients] = useState({});
+  const [dataLoadedAt, setDataLoadedAt] = useState(0);
   const [dateRange, setDateRange] = useState({
     start: getColombiaDate(-7),
     end: getColombiaDate()
@@ -63,6 +66,7 @@ function MetricsDashboard() {
       if (!silent) setLoading(true);
       const res = await clientMetricsAPI.getAggregate(dateRange.start, dateRange.end);
       setData(res.data);
+      setDataLoadedAt(Date.now()); // expanded trend panels reload in sync with the table
     } catch (error) {
       console.error('Error loading metrics:', error);
     } finally {
@@ -295,7 +299,8 @@ function MetricsDashboard() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {visibleClients.map((client) => (
-                      <tr key={client.client_id} className={`hover:bg-gray-50 transition-colors ${client.is_hidden_from_metrics ? 'opacity-50' : ''}`}>
+                      <Fragment key={client.client_id}>
+                      <tr className={`hover:bg-gray-50 transition-colors ${client.is_hidden_from_metrics ? 'opacity-50' : ''}`}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <div>
@@ -333,6 +338,13 @@ function MetricsDashboard() {
                         <td className="px-6 py-4 text-right text-gray-600">{client.avg_ctr?.toFixed(2) || '0.00'}%</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => setExpandedClients(prev => ({ ...prev, [client.client_id]: !prev[client.client_id] }))}
+                              className={`p-2 rounded-lg transition-colors ${expandedClients[client.client_id] ? 'text-[#17181A] bg-gray-100' : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'}`}
+                              title="Ver últimos 7 días y tendencia"
+                            >
+                              <BarChart2 className="w-4 h-4" />
+                            </button>
                             <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors" title="Ver detalle">
                               <ChevronRight className="w-5 h-5" />
                             </button>
@@ -349,6 +361,19 @@ function MetricsDashboard() {
                           </div>
                         </td>
                       </tr>
+                      {expandedClients[client.client_id] && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={7} className="px-6 py-4">
+                            <ClientTrendPanel
+                              clientId={client.client_id}
+                              revenueMetric={client.portal_revenue_metric}
+                              revenueLabel={client.revenue_label}
+                              refreshKey={dataLoadedAt}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     ))}
                   </tbody>
                   <tfoot className="bg-gray-50 font-medium">
