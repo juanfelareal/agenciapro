@@ -40,8 +40,9 @@ const roasColor = (roas, zeroClass = 'text-red-600') =>
  *  - clientId
  *  - revenueMetric / revenueLabel: from the aggregate row (portal_revenue_metric / revenue_label)
  *  - refreshKey: change it to force a reload (e.g. when the parent summary reloads)
+ *  - footer: optional extra section rendered inside the panel, below the growth chart
  */
-export default function ClientTrendPanel({ clientId, revenueMetric, revenueLabel, refreshKey }) {
+export default function ClientTrendPanel({ clientId, revenueMetric, revenueLabel, refreshKey, footer = null }) {
   const [loading, setLoading] = useState(true);
   const [daily, setDaily] = useState([]);
   const [monthly, setMonthly] = useState([]);
@@ -167,6 +168,8 @@ export default function ClientTrendPanel({ clientId, revenueMetric, revenueLabel
           <MonthlyGrowthChart months={monthly} currentPeriod={currentPeriod} />
         </div>
       )}
+
+      {footer}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
 import ClientTrendPanel from '../components/growth/ClientTrendPanel';
+import MetaCampaignsPanel from '../components/growth/MetaCampaignsPanel';
 
 const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 
@@ -639,6 +640,14 @@ export default function GrowthDashboard() {
                               revenueMetric={m?.portal_revenue_metric}
                               revenueLabel={m?.revenue_label}
                               refreshKey={overviewLoadedAt}
+                              footer={(
+                                <MetaCampaignsPanel
+                                  clientId={client.id}
+                                  startDate={dateRange.start}
+                                  endDate={dateRange.end}
+                                  refreshKey={overviewLoadedAt}
+                                />
+                              )}
                             />
                           </td>
                         </tr>

@@ -634,13 +634,27 @@ router.get('/:clientId/ads', async (req, res) => {
       return res.json({ ads: [], message: 'Sin conexión Facebook' });
     }
 
-    const accessToken = fbCred.access_token || process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+    const systemFbToken = process.env.FACEBOOK_SYSTEM_USER_TOKEN;
+    const accessToken = fbCred.access_token || systemFbToken;
     if (!accessToken) {
       return res.json({ ads: [], message: 'Sin token de acceso Facebook' });
     }
 
-    const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
-    const ads = await fb.getAdLevelInsights(start_date, end_date);
+    // Same strategy as the daily sync: a client's personal token can be invalidated
+    // (code 190 / OAuthException). Retry with the System User token, which can read
+    // any ad account shared to the agency's business.
+    let ads;
+    try {
+      const fb = new FacebookAdsIntegration(accessToken, fbCred.ad_account_id);
+      ads = await fb.getAdLevelInsights(start_date, end_date);
+    } catch (error) {
+      const fbErr = error.response?.data?.error;
+      const isAuthError = fbErr?.code === 190 || fbErr?.type === 'OAuthException';
+      if (!(isAuthError && systemFbToken && accessToken !== systemFbToken)) throw error;
+      console.log(`  ↪ Ads: token personal inválido para cliente ${clientId}, usé el token de sistema`);
+      const fb = new FacebookAdsIntegration(systemFbToken, fbCred.ad_account_id);
+      ads = await fb.getAdLevelInsights(start_date, end_date);
+    }
 
     // Merge persisted tags into ads
     if (ads.length > 0) {
@@ -676,7 +690,8 @@ router.get('/:clientId/ads', async (req, res) => {
     res.json({ ads });
   } catch (error) {
     console.error('Error fetching ad-level insights:', error.response?.data || error.message);
-    res.status(500).json({ error: error.message });
+    const fbMessage = error.response?.data?.error?.message;
+    res.status(500).json({ error: fbMessage ? `Meta: ${fbMessage}` : error.message });
   }
 });
 
