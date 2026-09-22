@@ -702,7 +702,7 @@ export default function GrowthDashboard() {
                       {/* Expandable daily metrics row */}
                       {isExpanded && (
                         <tr className="bg-gray-50">
-                          <td colSpan={8} className="px-6 py-4">
+                          <td colSpan={9} className="px-6 py-4">
                             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                               <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                                 <span className="text-xs font-medium text-gray-600">Últimos 7 días</span>
