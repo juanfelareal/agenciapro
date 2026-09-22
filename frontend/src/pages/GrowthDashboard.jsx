@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
 import { revenueMetricLabel, pickDailyDisplayRevenue, pickDailyDisplayRoas, dailyAdSpend } from '../utils/revenueMetric';
+import MonthlyGrowthChart from '../components/growth/MonthlyGrowthChart';
 
 const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 
@@ -784,6 +785,12 @@ export default function GrowthDashboard() {
                                       );
                                     })}
                                   </div>
+
+                                  {/* Growth chart: sales + ROAS per month */}
+                                  <MonthlyGrowthChart
+                                    months={clientMonthlyMetrics[client.id] || []}
+                                    currentPeriod={getCurrentPeriod()}
+                                  />
                                 </div>
                               )}
                             </div>
