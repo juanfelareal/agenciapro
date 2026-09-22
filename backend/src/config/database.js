@@ -1967,6 +1967,46 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_growth_milestones_client ON growth_milestones(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_growth_banderas_client ON growth_banderas(client_id)`);
 
+    // ─── Bitácora por cliente (registro de cambios/sucesos de la marca + acciones) ───
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_logbook_entries (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        entry_type TEXT NOT NULL DEFAULT 'otro',
+        title TEXT NOT NULL,
+        description TEXT,
+        event_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        platforms TEXT DEFAULT '[]',
+        impact TEXT CHECK(impact IN ('alto', 'medio', 'bajo')),
+        link_url TEXT,
+        is_pinned INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_logbook_actions (
+        id SERIAL PRIMARY KEY,
+        entry_id INTEGER NOT NULL REFERENCES client_logbook_entries(id) ON DELETE CASCADE,
+        organization_id INTEGER REFERENCES organizations(id),
+        description TEXT NOT NULL,
+        assignee_id INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        due_date DATE,
+        is_done INTEGER DEFAULT 0,
+        done_at TIMESTAMPTZ,
+        done_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_logbook_entries_client ON client_logbook_entries(client_id, event_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_logbook_entries_org ON client_logbook_entries(organization_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_logbook_actions_entry ON client_logbook_actions(entry_id)`);
+
     // Ad tag indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_values_category ON ad_tag_values(category_id)`);

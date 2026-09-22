@@ -97,6 +97,18 @@ export const clientsAPI = {
   syncToSiigo: (id) => api.post(`/siigo/customers/sync/${id}`),
 };
 
+// Bitácora por cliente (registro de cambios/sucesos + acciones a tomar)
+export const clientLogbookAPI = {
+  summary: () => api.get('/client-logbook/summary/all'),
+  list: (clientId, params) => api.get(`/client-logbook/${clientId}`, { params }),
+  create: (clientId, data) => api.post(`/client-logbook/${clientId}`, data),
+  update: (clientId, entryId, data) => api.put(`/client-logbook/${clientId}/${entryId}`, data),
+  delete: (clientId, entryId) => api.delete(`/client-logbook/${clientId}/${entryId}`),
+  addAction: (clientId, entryId, data) => api.post(`/client-logbook/${clientId}/${entryId}/actions`, data),
+  updateAction: (clientId, entryId, actionId, data) => api.put(`/client-logbook/${clientId}/${entryId}/actions/${actionId}`, data),
+  deleteAction: (clientId, entryId, actionId) => api.delete(`/client-logbook/${clientId}/${entryId}/actions/${actionId}`),
+};
+
 export const clientReportsAPI = {
   list: (clientId) => api.get(`/client-reports/${clientId}`),
   upload: (clientId, formData) =>

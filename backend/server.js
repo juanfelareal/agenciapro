@@ -82,6 +82,7 @@ import formShareRoutes from './src/routes/form-share.js';
 // Collections / Cartera
 import collectionsRoutes from './src/routes/collections.js';
 import clientCallsRoutes from './src/routes/client-calls.js';
+import clientLogbookRoutes from './src/routes/client-logbook.js';
 // Ad Creative Tagging
 import adTagRoutes from './src/routes/ad-tags.js';
 // Chat
@@ -281,6 +282,7 @@ app.use('/api/invoice-pdf', invoicePdfRoutes);
 // Collections / Cartera
 app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
 app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
+app.use('/api/client-logbook', teamAuthMiddleware, clientLogbookRoutes);
 // Client Documents
 import clientDocumentsRoutes from './src/routes/client-documents.js';
 app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);

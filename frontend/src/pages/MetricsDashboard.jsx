@@ -13,12 +13,13 @@ import {
   EyeOff,
   Eye,
   Rocket,
-  Clock, BarChart2
+  Clock, BarChart2, BookOpen
 } from 'lucide-react';
-import { clientMetricsAPI, growthAPI } from '../utils/api';
+import { clientMetricsAPI, growthAPI, clientLogbookAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import GrowthDashboard from './GrowthDashboard';
 import ClientTrendPanel from '../components/growth/ClientTrendPanel';
+import ClientLogbookModal from '../components/logbook/ClientLogbookModal';
 
 // Get current date in Colombia timezone (YYYY-MM-DD)
 const getColombiaDate = (offsetDays = 0) => {
@@ -40,6 +41,8 @@ function MetricsDashboard() {
   const [showHidden, setShowHidden] = useState(false);
   const [expandedClients, setExpandedClients] = useState({});
   const [dataLoadedAt, setDataLoadedAt] = useState(0);
+  const [logbookSummary, setLogbookSummary] = useState({});
+  const [logbookClient, setLogbookClient] = useState(null); // { id, name }
   const [dateRange, setDateRange] = useState({
     start: getColombiaDate(-7),
     end: getColombiaDate()
@@ -67,6 +70,7 @@ function MetricsDashboard() {
       const res = await clientMetricsAPI.getAggregate(dateRange.start, dateRange.end);
       setData(res.data);
       setDataLoadedAt(Date.now()); // expanded trend panels reload in sync with the table
+      clientLogbookAPI.summary().then(r => setLogbookSummary(r.data || {})).catch(() => {});
     } catch (error) {
       console.error('Error loading metrics:', error);
     } finally {
@@ -345,6 +349,18 @@ function MetricsDashboard() {
                             >
                               <BarChart2 className="w-4 h-4" />
                             </button>
+                            <button
+                              onClick={() => setLogbookClient({ id: client.client_id, name: client.nickname || client.company || client.client_name })}
+                              className="relative p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Bitácora de la marca"
+                            >
+                              <BookOpen className="w-4 h-4" />
+                              {logbookSummary[client.client_id]?.pending_actions > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                                  {logbookSummary[client.client_id].pending_actions}
+                                </span>
+                              )}
+                            </button>
                             <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors" title="Ver detalle">
                               <ChevronRight className="w-5 h-5" />
                             </button>
@@ -394,6 +410,21 @@ function MetricsDashboard() {
         </>
       ) : (
         <GrowthDashboard />
+      )}
+
+      {logbookClient && (
+        <ClientLogbookModal
+          clientId={logbookClient.id}
+          clientName={logbookClient.name}
+          onClose={() => setLogbookClient(null)}
+          onChanged={(entries) => setLogbookSummary(prev => ({
+            ...prev,
+            [logbookClient.id]: {
+              entries: entries.length,
+              pending_actions: entries.reduce((n, e) => n + e.actions.filter(a => !a.is_done).length, 0),
+            },
+          }))}
+        />
       )}
     </div>
   );

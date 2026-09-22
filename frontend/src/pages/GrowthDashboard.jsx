@@ -4,11 +4,12 @@ import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
   Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus,
   Mail, Globe, Megaphone, Palette, Video, User, CheckCircle2, Calendar, ChevronDown, ChevronUp, Layers,
-  CalendarDays, BarChart2, Settings2, DollarSign, Search
+  CalendarDays, BarChart2, Settings2, DollarSign, Search, BookOpen
 } from 'lucide-react';
-import { growthAPI, clientMetricsAPI, clientsAPI } from '../utils/api';
+import { growthAPI, clientMetricsAPI, clientsAPI, clientLogbookAPI } from '../utils/api';
 import ClientTrendPanel from '../components/growth/ClientTrendPanel';
 import MetaCampaignsPanel from '../components/growth/MetaCampaignsPanel';
+import ClientLogbookModal from '../components/logbook/ClientLogbookModal';
 
 const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
 
@@ -99,6 +100,8 @@ export default function GrowthDashboard() {
   const [expandedClients, setExpandedClients] = useState({});
   // Bumped every time the overview reloads so expanded panels re-read at the same moment
   const [overviewLoadedAt, setOverviewLoadedAt] = useState(0);
+  const [logbookSummary, setLogbookSummary] = useState({});
+  const [logbookClient, setLogbookClient] = useState(null); // { id, name }
   // Sorting state
   const [sortField, setSortField] = useState('display_revenue'); // default sort by ventas
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
@@ -138,6 +141,7 @@ export default function GrowthDashboard() {
 
       // Expanded trend panels reload with the summary so both are read at the same moment
       setOverviewLoadedAt(Date.now());
+      clientLogbookAPI.summary().then(r => setLogbookSummary(r.data || {})).catch(() => {});
     } catch (error) {
       console.error('Error loading growth overview:', error);
     } finally {
@@ -609,6 +613,18 @@ export default function GrowthDashboard() {
                               <BarChart2 className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => setLogbookClient({ id: client.id, name: client.nickname || client.name })}
+                              className="relative p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Bitácora de la marca"
+                            >
+                              <BookOpen className="w-4 h-4" />
+                              {logbookSummary[client.id]?.pending_actions > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                                  {logbookSummary[client.id].pending_actions}
+                                </span>
+                              )}
+                            </button>
+                            <button
                               onClick={() => navigate(`/app/growth/${client.id}/financials`)}
                               className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                               title="Dashboard financiero"
@@ -820,6 +836,21 @@ export default function GrowthDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {logbookClient && (
+        <ClientLogbookModal
+          clientId={logbookClient.id}
+          clientName={logbookClient.name}
+          onClose={() => setLogbookClient(null)}
+          onChanged={(entries) => setLogbookSummary(prev => ({
+            ...prev,
+            [logbookClient.id]: {
+              entries: entries.length,
+              pending_actions: entries.reduce((n, e) => n + e.actions.filter(a => !a.is_done).length, 0),
+            },
+          }))}
+        />
       )}
     </div>
   );
