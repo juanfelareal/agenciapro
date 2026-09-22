@@ -194,8 +194,8 @@ export default function GrowthDashboard() {
         return acc;
       }, {});
 
-      // Convert to array and sort by month descending
-      const monthlyArray = Object.values(monthlyData).sort((a, b) => b.month.localeCompare(a.month));
+      // Convert to array and sort chronologically (oldest month on the left, current month on the right)
+      const monthlyArray = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
       setClientMonthlyMetrics(prev => ({ ...prev, [clientId]: monthlyArray }));
     } catch (error) {
       console.error('Error loading daily metrics:', error);
