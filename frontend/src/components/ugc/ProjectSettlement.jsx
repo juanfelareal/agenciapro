@@ -80,7 +80,10 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
   const settled = data.settlement.status === 'settled';
   // When settled, show the frozen snapshot
   const t = settled && data.settlement.snapshot?.totals ? data.settlement.snapshot.totals : data.totals;
-  const creators = settled && data.settlement.snapshot?.creators ? data.settlement.snapshot.creators : data.creators;
+  const allCreators = settled && data.settlement.snapshot?.creators ? data.settlement.snapshot.creators : data.creators;
+  // Only paid creators are part of the settlement; the rest are just counted
+  const creators = allCreators.filter(c => !c.excluded);
+  const notPaidCount = allCreators.filter(c => c.excluded && c.status !== 'rejected').length;
   const p = data.project;
 
   // Live preview of the form while editing (draft only)
@@ -174,19 +177,17 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {creators.length === 0 && (
-              <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-400">Sin creadores asignados</td></tr>
+              <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-400">Aún no hay creadores en estado "Pagado" en este proyecto</td></tr>
             )}
             {creators.map(c => (
-              <tr key={c.id} className={c.excluded ? 'opacity-50' : ''}>
+              <tr key={c.id}>
                 <td className="px-3 py-2 font-medium text-gray-900">{c.full_name}</td>
-                <td className="px-3 py-2 text-gray-500 text-xs">{CREATOR_STATUS[c.status] || c.status}{c.excluded ? (c.status === 'rejected' ? ' · no cuenta' : ' · sin pagar, no cuenta') : ''}</td>
+                <td className="px-3 py-2 text-gray-500 text-xs">{CREATOR_STATUS[c.status] || c.status}</td>
                 <td className="px-3 py-2 text-right text-gray-700">{c.video_count}</td>
                 <td className="px-3 py-2 text-right text-gray-700">{c.agreed_rate > 0 ? cop(c.agreed_rate) : <span className="text-amber-600 text-xs">Sin tarifa</span>}</td>
                 <td className="px-3 py-2 text-right font-medium text-gray-900">{cop(c.subtotal)}</td>
                 <td className="px-3 py-2 text-center">
-                  {c.excluded ? '—' : c.is_paid
-                    ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Pagado</span>
-                    : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Pendiente</span>}
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Pagado</span>
                 </td>
               </tr>
             ))}
@@ -198,12 +199,17 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
                 <td className="px-3 py-2 text-right">{preview.videos_assigned}</td>
                 <td className="px-3 py-2" />
                 <td className="px-3 py-2 text-right text-gray-900">{cop(preview.creator_cost)}</td>
-                <td className="px-3 py-2 text-center text-[10px] text-gray-500">Solo creadores pagados</td>
+                <td className="px-3 py-2 text-center text-[10px] text-gray-500">{creators.length} pagados</td>
               </tr>
             </tfoot>
           )}
         </table>
       </div>
+      {notPaidCount > 0 && !settled && (
+        <p className="text-[11px] text-gray-400 mb-4">
+          {notPaidCount} {notPaidCount === 1 ? 'creador del proyecto no aparece porque aún no está' : 'creadores del proyecto no aparecen porque aún no están'} en estado "Pagado".
+        </p>
+      )}
       {p.video_count > 0 && preview.videos_assigned !== p.video_count && !settled && (
         <p className="text-xs text-amber-600 mb-4">
           Ojo: la marca compró {p.video_count} videos y solo {preview.videos_assigned} corresponden a creadores ya pagados. Marca como "Pagado" a cada creador cuando le pagues para que entre en la liquidación.
