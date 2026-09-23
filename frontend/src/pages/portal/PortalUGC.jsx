@@ -454,7 +454,7 @@ export default function PortalUGC() {
                         {assignment.end_date && (
                           <span className="text-xs text-gray-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(assignment.end_date + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                            {new Date(String(assignment.end_date).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
                           </span>
                         )}
                       </div>

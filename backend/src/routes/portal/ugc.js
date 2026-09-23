@@ -97,7 +97,8 @@ router.get('/assignments', clientAuthMiddleware, async (req, res) => {
 
     // Get direct assignments
     let directQuery = `
-      SELECT a.id, a.title, a.description, a.deliverables, a.start_date, a.end_date,
+      SELECT a.id, a.title, a.description, a.deliverables,
+             to_char(a.start_date, 'YYYY-MM-DD') as start_date, to_char(a.end_date, 'YYYY-MM-DD') as end_date,
              a.status, a.delivery_url, a.delivered_at, a.created_at,
              c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo,
              'assignment' as source_type, NULL as project_title, NULL as project_creator_id,
@@ -105,6 +106,13 @@ router.get('/assignments', clientAuthMiddleware, async (req, res) => {
       FROM ugc_assignments a
       LEFT JOIN ugc_creators c ON a.creator_id = c.id
       WHERE a.client_id = ? AND a.status NOT IN ('cancelled', 'proposed')
+        -- Skip assignments that are just a mirror of a project creator (created by sync-assignments);
+        -- otherwise the same creator shows twice: once as project row, once as assignment.
+        AND NOT EXISTS (
+          SELECT 1 FROM ugc_project_creators pc
+          JOIN ugc_projects p ON pc.project_id = p.id
+          WHERE p.id = a.project_id AND pc.creator_id = a.creator_id AND p.client_id = a.client_id
+        )
     `;
     const directParams = [req.client.id];
 
@@ -115,7 +123,8 @@ router.get('/assignments', clientAuthMiddleware, async (req, res) => {
 
     // Get project creator assignments - include shipping data and angles
     let projectQuery = `
-      SELECT pc.id, p.title as title, p.description, pc.deliverables, p.start_date, p.deadline as end_date,
+      SELECT pc.id, p.title as title, p.description, pc.deliverables,
+             to_char(p.start_date, 'YYYY-MM-DD') as start_date, to_char(p.deadline, 'YYYY-MM-DD') as end_date,
              pc.status, pc.delivery_url, pc.delivered_at, pc.created_at,
              c.id as creator_id, c.full_name as creator_name, c.profile_photo_url as creator_photo,
              'project' as source_type, p.title as project_title, pc.id as project_creator_id,
