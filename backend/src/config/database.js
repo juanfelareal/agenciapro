@@ -2865,6 +2865,26 @@ export const initializeDatabase = async () => {
       )
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_list_members_creator ON ugc_creator_list_members(creator_id)`);
+
+    // UGC Project Settlements (liquidación privada: ingreso vs costo de creadores → utilidad)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_project_settlements (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER NOT NULL UNIQUE REFERENCES ugc_projects(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_total REAL,
+        product_cost REAL,
+        extra_items JSONB DEFAULT '[]',
+        notes TEXT,
+        status TEXT CHECK(status IN ('draft', 'settled')) DEFAULT 'draft',
+        snapshot JSONB,
+        settled_at TIMESTAMP,
+        settled_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_settlements_org ON ugc_project_settlements(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_org ON ugc_creators(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_stage ON ugc_creators(stage_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_phone ON ugc_creators(phone)`);

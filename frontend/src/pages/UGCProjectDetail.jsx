@@ -10,6 +10,7 @@ import {
   MessageCircle, CheckCircle2, Banknote, XCircle, GripVertical, Download
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
+import ProjectSettlement from '../components/ugc/ProjectSettlement';
 import {
   DndContext,
   closestCenter,
@@ -1387,6 +1388,9 @@ export default function UGCProjectDetail() {
           </DndContext>
         )}
       </div>
+
+      {/* Liquidación (privada, solo equipo) */}
+      <ProjectSettlement projectId={id} refreshKey={creators} />
 
       {/* Add Creators Modal */}
       {showAddModal && (

@@ -1376,6 +1376,200 @@ router.get('/projects', async (req, res) => {
 });
 
 // GET /api/ugc/projects/:id - Get project details with creators
+// ========================================
+// PROJECT SETTLEMENT (liquidación) — 100% interno, nunca expuesto al portal
+// ========================================
+
+const num = (v) => parseFloat(v) || 0;
+const parseItems = (v) => {
+  if (Array.isArray(v)) return v;
+  if (!v) return [];
+  try { return JSON.parse(v); } catch { return []; }
+};
+
+/**
+ * Compute the settlement of a project:
+ *   revenue  = lo cobrado al cliente (override o video_count × price_per_video, o budget)
+ *   costs    = Σ creadores (agreed_rate × video_count) + producto + otros costos
+ *   profit   = revenue − costs
+ */
+async function computeSettlement(projectId, orgId) {
+  const project = await db.get(
+    `SELECT p.*, c.company as client_name, c.nickname as client_nickname
+     FROM ugc_projects p JOIN clients c ON p.client_id = c.id
+     WHERE p.id = ? AND p.organization_id = ?`,
+    [projectId, orgId]
+  );
+  if (!project) return null;
+
+  const rows = await db.all(
+    `SELECT pc.id, pc.creator_id, pc.status, pc.video_count, pc.agreed_rate, pc.paid_at, cr.full_name
+     FROM ugc_project_creators pc JOIN ugc_creators cr ON pc.creator_id = cr.id
+     WHERE pc.project_id = ?
+     ORDER BY COALESCE(pc.display_order, 0) ASC, pc.created_at ASC`,
+    [projectId]
+  );
+  const settlementRow = await db.get(
+    `SELECT s.*, tm.name as settled_by_name FROM ugc_project_settlements s LEFT JOIN team_members tm ON s.settled_by = tm.id
+     WHERE s.project_id = ? AND s.organization_id = ?`,
+    [projectId, orgId]
+  );
+  const settlement = settlementRow ? { ...settlementRow, extra_items: parseItems(settlementRow.extra_items), snapshot: settlementRow.snapshot || null } : null;
+
+  // Creators that count as cost: everyone except rejected
+  const creators = rows.map(r => {
+    const excluded = r.status === 'rejected';
+    const videos = Math.max(0, parseInt(r.video_count) || 0);
+    const rate = num(r.agreed_rate);
+    return {
+      id: r.id, creator_id: r.creator_id, full_name: r.full_name, status: r.status,
+      video_count: videos, agreed_rate: rate,
+      subtotal: excluded ? 0 : videos * rate,
+      excluded,
+      is_paid: r.status === 'paid' || !!r.paid_at,
+    };
+  });
+  const activeCreators = creators.filter(c => !c.excluded);
+  const creatorCost = activeCreators.reduce((s, c) => s + c.subtotal, 0);
+  const paidToCreators = activeCreators.filter(c => c.is_paid).reduce((s, c) => s + c.subtotal, 0);
+
+  const revenueAuto = (num(project.video_count) > 0 && num(project.price_per_video) > 0)
+    ? num(project.video_count) * num(project.price_per_video)
+    : num(project.budget);
+  const revenue = settlement?.client_total !== null && settlement?.client_total !== undefined ? num(settlement.client_total) : revenueAuto;
+
+  const productCostAuto = num(project.product_value) * activeCreators.length;
+  const productCost = settlement?.product_cost !== null && settlement?.product_cost !== undefined ? num(settlement.product_cost) : productCostAuto;
+
+  const extraItems = (settlement?.extra_items || []).map(i => ({ label: String(i.label || ''), amount: num(i.amount) }));
+  const extraTotal = extraItems.reduce((s, i) => s + i.amount, 0);
+
+  const totalCost = creatorCost + productCost + extraTotal;
+  const profit = revenue - totalCost;
+  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+  const videosSold = num(project.video_count);
+  const videosAssigned = activeCreators.reduce((s, c) => s + c.video_count, 0);
+
+  return {
+    project: {
+      id: project.id, title: project.title, status: project.status, currency: project.currency || 'COP',
+      client_name: project.client_nickname || project.client_name,
+      video_count: videosSold, price_per_video: num(project.price_per_video), budget: num(project.budget),
+      creator_cost_per_video: num(project.creator_cost_per_video), product_value: num(project.product_value),
+    },
+    settlement: settlement ? {
+      id: settlement.id, status: settlement.status, client_total: settlement.client_total, product_cost: settlement.product_cost,
+      extra_items: extraItems, notes: settlement.notes, settled_at: settlement.settled_at, settled_by: settlement.settled_by, settled_by_name: settlement.settled_by_name || null, snapshot: settlement.snapshot,
+    } : { status: 'draft', client_total: null, product_cost: null, extra_items: [], notes: null, settled_at: null, settled_by: null, snapshot: null },
+    creators,
+    totals: {
+      revenue, revenue_auto: revenueAuto,
+      creator_cost: creatorCost, paid_to_creators: paidToCreators, pending_to_creators: creatorCost - paidToCreators,
+      product_cost: productCost, product_cost_auto: productCostAuto,
+      extra_total: extraTotal, total_cost: totalCost,
+      profit, margin,
+      videos_sold: videosSold, videos_assigned: videosAssigned,
+      active_creators: activeCreators.length,
+    },
+  };
+}
+
+// GET /api/ugc/projects/settlements/summary - profit per project (for the projects list)
+router.get('/projects/settlements/summary', async (req, res) => {
+  try {
+    const projects = await db.all('SELECT id FROM ugc_projects WHERE organization_id = ?', [req.orgId]);
+    const summary = {};
+    for (const p of projects) {
+      const s = await computeSettlement(p.id, req.orgId);
+      if (!s) continue;
+      const t = s.settlement.status === 'settled' && s.settlement.snapshot?.totals ? s.settlement.snapshot.totals : s.totals;
+      summary[p.id] = { status: s.settlement.status, revenue: t.revenue, total_cost: t.total_cost, profit: t.profit, margin: t.margin, settled_at: s.settlement.settled_at };
+    }
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/ugc/projects/:id/settlement
+router.get('/projects/:id/settlement', async (req, res) => {
+  try {
+    const s = await computeSettlement(req.params.id, req.orgId);
+    if (!s) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    res.json(s);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/ugc/projects/:id/settlement - save overrides (only while draft)
+router.put('/projects/:id/settlement', async (req, res) => {
+  try {
+    const project = await db.get('SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    const existing = await db.get('SELECT * FROM ugc_project_settlements WHERE project_id = ?', [req.params.id]);
+    if (existing?.status === 'settled') return res.status(409).json({ error: 'El proyecto ya está liquidado. Reábrelo para editar.' });
+
+    const b = req.body || {};
+    const clientTotal = b.client_total === '' || b.client_total === null || b.client_total === undefined ? null : num(b.client_total);
+    const productCost = b.product_cost === '' || b.product_cost === null || b.product_cost === undefined ? null : num(b.product_cost);
+    const items = JSON.stringify((Array.isArray(b.extra_items) ? b.extra_items : []).filter(i => i && (i.label || i.amount)).map(i => ({ label: String(i.label || '').trim(), amount: num(i.amount) })));
+    const notes = b.notes || null;
+
+    if (existing) {
+      await db.run(
+        'UPDATE ugc_project_settlements SET client_total = ?, product_cost = ?, extra_items = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [clientTotal, productCost, items, notes, existing.id]
+      );
+    } else {
+      await db.run(
+        'INSERT INTO ugc_project_settlements (project_id, organization_id, client_total, product_cost, extra_items, notes) VALUES (?, ?, ?, ?, ?, ?)',
+        [req.params.id, req.orgId, clientTotal, productCost, items, notes]
+      );
+    }
+    res.json(await computeSettlement(req.params.id, req.orgId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/projects/:id/settlement/settle - freeze the numbers
+router.post('/projects/:id/settlement/settle', async (req, res) => {
+  try {
+    const s = await computeSettlement(req.params.id, req.orgId);
+    if (!s) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    if (s.settlement.status === 'settled') return res.status(409).json({ error: 'El proyecto ya está liquidado' });
+    const snapshot = JSON.stringify({ totals: s.totals, creators: s.creators, project: s.project, settled_at: new Date().toISOString() });
+    const existing = await db.get('SELECT id FROM ugc_project_settlements WHERE project_id = ?', [req.params.id]);
+    if (existing) {
+      await db.run(
+        `UPDATE ugc_project_settlements SET status = 'settled', snapshot = ?, settled_at = CURRENT_TIMESTAMP, settled_by = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [snapshot, req.teamMember?.id || null, existing.id]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO ugc_project_settlements (project_id, organization_id, status, snapshot, settled_at, settled_by) VALUES (?, ?, 'settled', ?, CURRENT_TIMESTAMP, ?)`,
+        [req.params.id, req.orgId, snapshot, req.teamMember?.id || null]
+      );
+    }
+    res.json(await computeSettlement(req.params.id, req.orgId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/projects/:id/settlement/reopen
+router.post('/projects/:id/settlement/reopen', async (req, res) => {
+  try {
+    const existing = await db.get('SELECT id FROM ugc_project_settlements WHERE project_id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!existing) return res.status(404).json({ error: 'Liquidación no encontrada' });
+    await db.run(`UPDATE ugc_project_settlements SET status = 'draft', snapshot = NULL, settled_at = NULL, settled_by = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [existing.id]);
+    res.json(await computeSettlement(req.params.id, req.orgId));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/projects/:id', async (req, res) => {
   try {
     const project = await db.get(

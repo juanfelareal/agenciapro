@@ -56,14 +56,17 @@ export default function UGCProjects() {
     }
   }, [statusDropdownId]);
 
+  const [settlements, setSettlements] = useState({});
   const loadData = async () => {
     try {
-      const [projectsRes, clientsRes, packagesRes] = await Promise.all([
+      const [projectsRes, clientsRes, packagesRes, settlementsRes] = await Promise.all([
         ugcAPI.getProjects(),
         clientsAPI.getAll('active'),
-        ugcAPI.getPackages()
+        ugcAPI.getPackages(),
+        ugcAPI.getSettlementsSummary().catch(() => ({ data: {} }))
       ]);
       setProjects(projectsRes.data);
+      setSettlements(settlementsRes.data || {});
       setClients(clientsRes.data);
       setPackages(packagesRes.data);
     } catch (error) {
@@ -319,6 +322,11 @@ export default function UGCProjects() {
                       <p className="text-sm text-gray-500 truncate">
                         {project.client_nickname || project.client_name}
                       </p>
+                      {settlements[project.id]?.status === 'settled' && (
+                        <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${settlements[project.id].profit >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`} title="Liquidado · utilidad interna">
+                          Utilidad ${Math.round(settlements[project.id].profit).toLocaleString('es-CO')} · {settlements[project.id].margin.toFixed(0)}%
+                        </span>
+                      )}
                     </div>
                     <div className="relative">
                       <button
@@ -449,6 +457,11 @@ export default function UGCProjects() {
                           <p className="text-sm text-gray-500">
                             {project.client_nickname || project.client_name}
                           </p>
+                          {settlements[project.id]?.status === 'settled' && (
+                            <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${settlements[project.id].profit >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`} title="Liquidado · utilidad interna">
+                              Utilidad ${Math.round(settlements[project.id].profit).toLocaleString('es-CO')} · {settlements[project.id].margin.toFixed(0)}%
+                            </span>
+                          )}
                         </div>
                       </td>
 

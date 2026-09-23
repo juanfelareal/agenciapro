@@ -931,6 +931,12 @@ export const ugcAPI = {
   updateProjectCreator: (projectId, creatorId, data) => api.put(`/ugc/projects/${projectId}/creators/${creatorId}`, data),
   removeProjectCreator: (projectId, creatorId) => api.delete(`/ugc/projects/${projectId}/creators/${creatorId}`),
   reorderProjectCreators: (projectId, creatorIds) => api.put(`/ugc/projects/${projectId}/creators/reorder`, { creator_ids: creatorIds }),
+  // Liquidación de proyecto (100% interna)
+  getSettlementsSummary: () => api.get('/ugc/projects/settlements/summary'),
+  getProjectSettlement: (projectId) => api.get(`/ugc/projects/${projectId}/settlement`),
+  saveProjectSettlement: (projectId, data) => api.put(`/ugc/projects/${projectId}/settlement`, data),
+  settleProject: (projectId) => api.post(`/ugc/projects/${projectId}/settlement/settle`),
+  reopenProjectSettlement: (projectId) => api.post(`/ugc/projects/${projectId}/settlement/reopen`),
   // Google Drive
   getDriveStatus: () => api.get('/ugc/drive/status'),
   createDriveFolder: (projectId, creatorId) => api.post(`/ugc/projects/${projectId}/creators/${creatorId}/drive-folder`),
