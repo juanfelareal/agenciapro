@@ -375,7 +375,7 @@ router.post('/lists/:id/creators', async (req, res) => {
     const creator = await db.get('SELECT id FROM ugc_creators WHERE id = ? AND organization_id = ?', [creator_id, req.orgId]);
     if (!list || !creator) return res.status(404).json({ error: 'Lista o creador no encontrado' });
     await db.run(
-      'INSERT INTO ugc_creator_list_members (list_id, creator_id, added_by) VALUES (?, ?, ?) ON CONFLICT DO NOTHING',
+      'INSERT INTO ugc_creator_list_members (list_id, creator_id, added_by) VALUES (?, ?, ?) ON CONFLICT DO NOTHING RETURNING list_id',
       [req.params.id, creator_id, req.teamMember?.id || null]
     );
     const ids = await db.all('SELECT list_id FROM ugc_creator_list_members WHERE creator_id = ? ORDER BY list_id', [creator_id]);
@@ -409,7 +409,7 @@ router.put('/creators/:id/lists', async (req, res) => {
       : [];
     await db.run('DELETE FROM ugc_creator_list_members WHERE creator_id = ?', [req.params.id]);
     for (const listId of valid) {
-      await db.run('INSERT INTO ugc_creator_list_members (list_id, creator_id, added_by) VALUES (?, ?, ?) ON CONFLICT DO NOTHING', [listId, req.params.id, req.teamMember?.id || null]);
+      await db.run('INSERT INTO ugc_creator_list_members (list_id, creator_id, added_by) VALUES (?, ?, ?) ON CONFLICT DO NOTHING RETURNING list_id', [listId, req.params.id, req.teamMember?.id || null]);
     }
     res.json({ creator_id: Number(req.params.id), list_ids: valid.sort((a, b) => a - b) });
   } catch (error) {
