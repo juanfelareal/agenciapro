@@ -405,6 +405,19 @@ export default function UGC() {
     // If we are filtering by this list and removed the creator, reload
     if (!checked && filterListId === listId) setCreators(prev => prev.filter(c => c.id !== pickerCreator.id));
   };
+  const handleDeleteList = async (list) => {
+    if (!list) return;
+    if (!confirm(`¿Eliminar la lista "${list.name}"?\n\nSolo se borra la lista. Los ${list.member_count || 0} creadores que están en ella siguen existiendo.`)) return;
+    try {
+      await ugcAPI.deleteList(list.id);
+      setLists(prev => prev.filter(l => l.id !== list.id));
+      setCreators(prev => prev.map(c => ({ ...c, list_ids: (c.list_ids || []).filter(id => id !== list.id) })));
+      if (filterListId === list.id) setFilterListId(null);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || 'No se pudo eliminar la lista');
+    }
+  };
   const handleCreateListQuick = async (name) => {
     try {
       const res = await ugcAPI.createList({ name, color: ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#14B8A6', '#3B82F6', '#8B5CF6', '#EC4899'][lists.length % 8] });
@@ -847,7 +860,7 @@ export default function UGC() {
       </div>
 
       {/* Custom lists quick filter */}
-      <ListBar lists={lists} activeListId={filterListId} onSelect={setFilterListId} onManage={() => setShowListsModal(true)} />
+      <ListBar lists={lists} activeListId={filterListId} onSelect={setFilterListId} onManage={() => setShowListsModal(true)} onDelete={handleDeleteList} />
 
       {/* Kanban Board */}
       {viewMode === 'kanban' && (

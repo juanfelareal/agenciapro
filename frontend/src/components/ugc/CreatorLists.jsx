@@ -147,7 +147,7 @@ export function CreatorListPicker({ anchorRect, lists, listIds, onToggle, onCrea
 }
 
 /** Horizontal bar of lists used as quick filter. */
-export function ListBar({ lists, activeListId, onSelect, onManage }) {
+export function ListBar({ lists, activeListId, onSelect, onManage, onDelete }) {
   if (!lists?.length) {
     return (
       <div className="flex items-center gap-2 mb-4 text-xs text-gray-400">
@@ -184,6 +184,15 @@ export function ListBar({ lists, activeListId, onSelect, onManage }) {
       <button onClick={onManage} className="shrink-0 p-1.5 text-gray-400 hover:text-[#17181A] rounded-full hover:bg-gray-100" title="Administrar listas">
         <Pencil className="w-3.5 h-3.5" />
       </button>
+      {activeListId && onDelete && (
+        <button
+          onClick={() => onDelete(lists.find(l => l.id === activeListId))}
+          className="shrink-0 p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50"
+          title="Eliminar esta lista (los creadores no se borran)"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
