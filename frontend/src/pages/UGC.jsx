@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DndContext, closestCorners, PointerSensor, useSensor, useSensors,
   DragOverlay, useDroppable
@@ -258,30 +258,34 @@ function StageColumn({ stage, creators, onCreatorClick, onToggleFavorite, lists,
 // ========================================
 export default function UGC() {
   const navigate = useNavigate();
+  // Filters, view mode and pagination live in the URL so "atrás" from a creator
+  // brings you back to exactly the same view (same filters, same page).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sp = (k) => searchParams.get(k) || '';
   const [stages, setStages] = useState([]);
   const [creators, setCreators] = useState([]);
   const [industries, setIndustries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(sp('q'));
   const [activeCreator, setActiveCreator] = useState(null);
   const [showNewCreator, setShowNewCreator] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [registrationLinks, setRegistrationLinks] = useState([]);
-  const [viewMode, setViewMode] = useState('list'); // 'kanban' or 'list'
+  const [viewMode, setViewMode] = useState(sp('view') === 'kanban' ? 'kanban' : 'list'); // 'kanban' or 'list'
   const [syncingInstagram, setSyncingInstagram] = useState(false);
   const [hoveredCreator, setHoveredCreator] = useState(null);
 
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(Math.max(1, parseInt(sp('page')) || 1));
+  const [itemsPerPage, setItemsPerPage] = useState(parseInt(sp('per')) || 20);
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
-  const [filterDepartment, setFilterDepartment] = useState('');
-  const [filterCity, setFilterCity] = useState('');
-  const [filterIndustry, setFilterIndustry] = useState('');
-  const [filterFavorites, setFilterFavorites] = useState(false);
-  const [filterListId, setFilterListId] = useState(null);
+  const [filterDepartment, setFilterDepartment] = useState(sp('dep'));
+  const [filterCity, setFilterCity] = useState(sp('city'));
+  const [filterIndustry, setFilterIndustry] = useState(sp('ind'));
+  const [filterFavorites, setFilterFavorites] = useState(sp('fav') === '1');
+  const [filterListId, setFilterListId] = useState(parseInt(sp('list')) || null);
   const [lists, setLists] = useState([]);
   const [listPicker, setListPicker] = useState(null); // { creatorId, rect }
   const [showListsModal, setShowListsModal] = useState(false);
@@ -344,6 +348,23 @@ export default function UGC() {
       setLoading(false);
     }
   };
+
+  // Keep the URL in sync with filters / view / pagination (replace: no history spam)
+  useEffect(() => {
+    const next = {};
+    if (search) next.q = search;
+    if (filterDepartment) next.dep = filterDepartment;
+    if (filterCity) next.city = filterCity;
+    if (filterIndustry) next.ind = filterIndustry;
+    if (filterFavorites) next.fav = '1';
+    if (filterListId) next.list = String(filterListId);
+    if (viewMode !== 'list') next.view = viewMode;
+    if (currentPage > 1) next.page = String(currentPage);
+    if (itemsPerPage !== 20) next.per = String(itemsPerPage);
+    const current = Object.fromEntries(searchParams.entries());
+    const same = Object.keys(next).length === Object.keys(current).length && Object.keys(next).every(k => current[k] === next[k]);
+    if (!same) setSearchParams(next, { replace: true });
+  }, [search, filterDepartment, filterCity, filterIndustry, filterFavorites, filterListId, viewMode, currentPage, itemsPerPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reload creators when filters change
   useEffect(() => {

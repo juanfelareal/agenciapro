@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Instagram, Video, Link2, MapPin, Phone, Mail, CreditCard,
   Loader2, Plus, X, Edit3, DollarSign, Package, Calendar, CheckCircle,
@@ -28,6 +28,10 @@ const PAYMENT_STATUS = {
 export default function UGCCreatorDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Go back to wherever the user came from (project, filtered list, ...);
+  // fall back to the creators list when the page was opened directly.
+  const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/app/ugc'));
   const [creator, setCreator] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -216,7 +220,7 @@ export default function UGCCreatorDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Creador no encontrado</p>
-        <button onClick={() => navigate('/app/ugc')} className="mt-4 text-sm text-blue-600 hover:underline">
+        <button onClick={goBack} className="mt-4 text-sm text-blue-600 hover:underline">
           Volver al CRM
         </button>
       </div>
@@ -236,8 +240,9 @@ export default function UGCCreatorDetail() {
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
-          onClick={() => navigate('/app/ugc')}
+          onClick={goBack}
           className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+          title="Volver"
         >
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
