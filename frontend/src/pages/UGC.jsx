@@ -15,6 +15,7 @@ import {
 import { Link } from 'react-router-dom';
 import { ugcAPI } from '../utils/api';
 import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
+import { ListChips, ListTagButton, CreatorListPicker, ListBar, ManageListsModal } from '../components/ugc/CreatorLists';
 
 // ========================================
 // UTILITY: Extract Instagram username from URL or handle
@@ -53,7 +54,7 @@ function extractInstagramUsername(input) {
 // ========================================
 // CREATOR CARD (Draggable)
 // ========================================
-function CreatorCard({ creator, onClick, onToggleFavorite }) {
+function CreatorCard({ creator, onClick, onToggleFavorite, lists = [], onOpenLists }) {
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging
   } = useSortable({ id: `creator-${creator.id}`, data: { creator } });
@@ -96,6 +97,14 @@ function CreatorCard({ creator, onClick, onToggleFavorite }) {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {/* Lists (tag) Button */}
+          {onOpenLists && (
+            <ListTagButton
+              listIds={creator.list_ids}
+              onOpen={(rect) => onOpenLists(creator, rect)}
+              className={creator.list_ids?.length ? '' : 'opacity-0 group-hover:opacity-100'}
+            />
+          )}
           {/* Favorite Button */}
           <button
             onClick={(e) => {
@@ -167,6 +176,13 @@ function CreatorCard({ creator, onClick, onToggleFavorite }) {
           )}
         </div>
       )}
+
+      {/* Custom lists */}
+      {creator.list_ids?.length > 0 && (
+        <div className="mt-1.5">
+          <ListChips lists={lists} listIds={creator.list_ids} max={2} />
+        </div>
+      )}
     </div>
   );
 }
@@ -203,7 +219,7 @@ function CreatorCardOverlay({ creator }) {
 // ========================================
 // STAGE COLUMN (Droppable)
 // ========================================
-function StageColumn({ stage, creators, onCreatorClick, onToggleFavorite }) {
+function StageColumn({ stage, creators, onCreatorClick, onToggleFavorite, lists, onOpenLists }) {
   const { setNodeRef, isOver } = useDroppable({ id: `stage-${stage.id}` });
 
   return (
@@ -230,7 +246,7 @@ function StageColumn({ stage, creators, onCreatorClick, onToggleFavorite }) {
       {/* Cards */}
       <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2 min-h-[100px]">
         {creators.map((creator) => (
-          <CreatorCard key={creator.id} creator={creator} onClick={onCreatorClick} onToggleFavorite={onToggleFavorite} />
+          <CreatorCard key={creator.id} creator={creator} onClick={onCreatorClick} onToggleFavorite={onToggleFavorite} lists={lists} onOpenLists={onOpenLists} />
         ))}
       </div>
     </div>
@@ -265,6 +281,10 @@ export default function UGC() {
   const [filterCity, setFilterCity] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
   const [filterFavorites, setFilterFavorites] = useState(false);
+  const [filterListId, setFilterListId] = useState(null);
+  const [lists, setLists] = useState([]);
+  const [listPicker, setListPicker] = useState(null); // { creatorId, rect }
+  const [showListsModal, setShowListsModal] = useState(false);
   const filterRef = useRef(null);
   const [newCreator, setNewCreator] = useState({
     full_name: '', email: '', phone: '', cedula: '',
@@ -299,18 +319,21 @@ export default function UGC() {
 
   const loadData = async () => {
     try {
-      const [stagesRes, creatorsRes, industriesRes, linksRes] = await Promise.all([
+      const [stagesRes, creatorsRes, industriesRes, linksRes, listsRes] = await Promise.all([
         ugcAPI.getStages(),
         ugcAPI.getCreators({
           search: search || undefined,
           department: filterDepartment || undefined,
           city: filterCity || undefined,
           industry: filterIndustry || undefined,
-          favorites_only: filterFavorites ? 'true' : undefined
+          favorites_only: filterFavorites ? 'true' : undefined,
+          list_id: filterListId || undefined
         }),
         ugcAPI.getIndustries(),
         ugcAPI.getRegistrationLinks(),
+        ugcAPI.getLists().catch(() => ({ data: [] })),
       ]);
+      setLists(listsRes.data || []);
       setStages(stagesRes.data);
       setCreators(creatorsRes.data);
       setIndustries(industriesRes.data);
@@ -332,14 +355,15 @@ export default function UGC() {
           department: filterDepartment || undefined,
           city: filterCity || undefined,
           industry: filterIndustry || undefined,
-          favorites_only: filterFavorites ? 'true' : undefined
+          favorites_only: filterFavorites ? 'true' : undefined,
+          list_id: filterListId || undefined
         })
           .then(res => setCreators(res.data))
           .catch(() => {});
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [search, filterDepartment, filterCity, filterIndustry, filterFavorites]);
+  }, [search, filterDepartment, filterCity, filterIndustry, filterFavorites, filterListId]);
 
   // Reset city when department changes
   const handleFilterDepartmentChange = (dept) => {
@@ -347,7 +371,7 @@ export default function UGC() {
     setFilterCity('');
   };
 
-  const activeFilterCount = [filterDepartment, filterCity, filterIndustry, filterFavorites].filter(Boolean).length;
+  const activeFilterCount = [filterDepartment, filterCity, filterIndustry, filterFavorites, filterListId].filter(Boolean).length;
   const filterCities = filterDepartment ? getCitiesByDepartment(filterDepartment) : [];
 
   // Pagination calculations
@@ -361,6 +385,32 @@ export default function UGC() {
     setFilterCity('');
     setFilterIndustry('');
     setFilterFavorites(false);
+    setFilterListId(null);
+  };
+
+  // ── Custom lists ──
+  const refreshLists = async () => {
+    try { const res = await ugcAPI.getLists(); setLists(res.data || []); } catch { /* ignore */ }
+  };
+  const openListPicker = (creator, rect) => setListPicker({ creatorId: creator.id, rect });
+  const pickerCreator = listPicker ? creators.find(c => c.id === listPicker.creatorId) : null;
+  const handleToggleList = async (listId, checked) => {
+    if (!pickerCreator) return;
+    const res = checked
+      ? await ugcAPI.addCreatorToList(listId, pickerCreator.id)
+      : await ugcAPI.removeCreatorFromList(listId, pickerCreator.id);
+    const ids = res.data.list_ids;
+    setCreators(prev => prev.map(c => c.id === pickerCreator.id ? { ...c, list_ids: ids } : c));
+    setLists(prev => prev.map(l => l.id === listId ? { ...l, member_count: (l.member_count || 0) + (checked ? 1 : -1) } : l));
+    // If we are filtering by this list and removed the creator, reload
+    if (!checked && filterListId === listId) setCreators(prev => prev.filter(c => c.id !== pickerCreator.id));
+  };
+  const handleCreateListQuick = async (name) => {
+    try {
+      const res = await ugcAPI.createList({ name, color: ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#14B8A6', '#3B82F6', '#8B5CF6', '#EC4899'][lists.length % 8] });
+      setLists(prev => [...prev, res.data]);
+      return res.data;
+    } catch (err) { console.error(err); return null; }
   };
 
   // Toggle favorite status for a creator
@@ -674,6 +724,23 @@ export default function UGC() {
                     </select>
                   </div>
 
+                  {/* List Filter */}
+                  {lists.length > 0 && (
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 mb-1 block">Lista</label>
+                      <select
+                        value={filterListId || ''}
+                        onChange={(e) => setFilterListId(e.target.value ? Number(e.target.value) : null)}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                      >
+                        <option value="">Todas las listas</option>
+                        {lists.map((l) => (
+                          <option key={l.id} value={l.id}>{l.emoji ? l.emoji + ' ' : ''}{l.name} ({l.member_count})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* Favorites Filter */}
                   <div className="pt-2 border-t border-gray-100">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -779,6 +846,9 @@ export default function UGC() {
         </Link>
       </div>
 
+      {/* Custom lists quick filter */}
+      <ListBar lists={lists} activeListId={filterListId} onSelect={setFilterListId} onManage={() => setShowListsModal(true)} />
+
       {/* Kanban Board */}
       {viewMode === 'kanban' && (
         <DndContext
@@ -796,6 +866,8 @@ export default function UGC() {
                   creators={creatorsByStage[stage.id] || []}
                   onCreatorClick={handleCreatorClick}
                   onToggleFavorite={handleToggleFavorite}
+                  lists={lists}
+                  onOpenLists={openListPicker}
                 />
               ))}
             </div>
@@ -813,7 +885,7 @@ export default function UGC() {
           <table className="w-full">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
-                <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 py-3 w-12">
+                <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 py-3 w-20">
                   <Heart className="w-4 h-4 mx-auto text-gray-400" />
                 </th>
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Creador</th>
@@ -850,6 +922,7 @@ export default function UGC() {
                       >
                         <Heart className="w-4 h-4" fill={creator.is_favorite ? 'currentColor' : 'none'} />
                       </button>
+                      <ListTagButton listIds={creator.list_ids} onOpen={(rect) => openListPicker(creator, rect)} className="p-1.5" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -868,6 +941,9 @@ export default function UGC() {
                           <p className="text-sm font-medium text-[#17181A]">{creator.full_name}</p>
                           {creator.email && (
                             <p className="text-xs text-gray-400">{creator.email}</p>
+                          )}
+                          {creator.list_ids?.length > 0 && (
+                            <div className="mt-1"><ListChips lists={lists} listIds={creator.list_ids} max={3} /></div>
                           )}
                         </div>
                       </div>
@@ -1414,6 +1490,33 @@ export default function UGC() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* List picker popover */}
+      {listPicker && pickerCreator && (
+        <CreatorListPicker
+          anchorRect={listPicker.rect}
+          lists={lists}
+          listIds={pickerCreator.list_ids || []}
+          onToggle={handleToggleList}
+          onCreate={handleCreateListQuick}
+          onClose={() => setListPicker(null)}
+          onManage={() => setShowListsModal(true)}
+        />
+      )}
+
+      {/* Manage lists modal */}
+      {showListsModal && (
+        <ManageListsModal
+          lists={lists}
+          onClose={() => { setShowListsModal(false); refreshLists(); }}
+          onChanged={(next) => {
+            setLists(next);
+            const ids = new Set(next.map(l => l.id));
+            setCreators(prev => prev.map(c => ({ ...c, list_ids: (c.list_ids || []).filter(id => ids.has(id)) })));
+            if (filterListId && !ids.has(filterListId)) setFilterListId(null);
+          }}
+        />
       )}
     </div>
   );

@@ -2802,6 +2802,23 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // UGC Creator Lists (listas personalizadas: "Favoritos mujeres", "Fitness", etc.)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_creator_lists (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        emoji TEXT,
+        color TEXT DEFAULT '#6B7280',
+        description TEXT,
+        position INTEGER DEFAULT 0,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_lists_org ON ugc_creator_lists(organization_id)`);
+
     // UGC Creators (Main table)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_creators (
@@ -2837,6 +2854,17 @@ export const initializeDatabase = async () => {
     await pool.query(`
       ALTER TABLE ugc_creators ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE
     `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_creator_list_members (
+        list_id INTEGER NOT NULL REFERENCES ugc_creator_lists(id) ON DELETE CASCADE,
+        creator_id INTEGER NOT NULL REFERENCES ugc_creators(id) ON DELETE CASCADE,
+        added_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (list_id, creator_id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_list_members_creator ON ugc_creator_list_members(creator_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_org ON ugc_creators(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_stage ON ugc_creators(stage_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_phone ON ugc_creators(phone)`);

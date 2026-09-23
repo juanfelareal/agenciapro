@@ -296,16 +296,139 @@ router.delete('/industries/:id', async (req, res) => {
 });
 
 // ========================================
+// CREATOR LISTS (listas personalizadas de creadores)
+// ========================================
+
+const listWithCount = (extraWhere = '') => `
+  SELECT l.*, (SELECT COUNT(*) FROM ugc_creator_list_members m WHERE m.list_id = l.id)::int as member_count
+  FROM ugc_creator_lists l
+  WHERE l.organization_id = ? ${extraWhere}
+`;
+
+// GET /api/ugc/lists - All lists of the org with member counts
+router.get('/lists', async (req, res) => {
+  try {
+    const lists = await db.all(listWithCount() + ' ORDER BY l.position ASC, l.name ASC', [req.orgId]);
+    res.json(lists);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/lists - Create list
+router.post('/lists', async (req, res) => {
+  try {
+    const { name, emoji, color, description } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'El nombre es requerido' });
+    const pos = await db.get('SELECT COALESCE(MAX(position), 0) + 1 as next FROM ugc_creator_lists WHERE organization_id = ?', [req.orgId]);
+    const result = await db.run(
+      'INSERT INTO ugc_creator_lists (organization_id, name, emoji, color, description, position, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [req.orgId, name.trim(), emoji || null, color || '#6B7280', description || null, pos?.next || 1, req.teamMember?.id || null]
+    );
+    const list = await db.get(listWithCount('AND l.id = ?'), [req.orgId, result.lastInsertRowid]);
+    res.status(201).json(list);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/ugc/lists/:id - Rename / recolor
+router.put('/lists/:id', async (req, res) => {
+  try {
+    const existing = await db.get('SELECT * FROM ugc_creator_lists WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!existing) return res.status(404).json({ error: 'Lista no encontrada' });
+    const b = req.body;
+    await db.run(
+      'UPDATE ugc_creator_lists SET name = ?, emoji = ?, color = ?, description = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [
+        b.name !== undefined ? String(b.name).trim() : existing.name,
+        b.emoji !== undefined ? (b.emoji || null) : existing.emoji,
+        b.color !== undefined ? (b.color || '#6B7280') : existing.color,
+        b.description !== undefined ? (b.description || null) : existing.description,
+        b.position !== undefined ? b.position : existing.position,
+        req.params.id,
+      ]
+    );
+    const list = await db.get(listWithCount('AND l.id = ?'), [req.orgId, req.params.id]);
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/ugc/lists/:id - Delete list (members cascade)
+router.delete('/lists/:id', async (req, res) => {
+  try {
+    const result = await db.run('DELETE FROM ugc_creator_lists WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!result.changes) return res.status(404).json({ error: 'Lista no encontrada' });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/ugc/lists/:id/creators - Add a creator to a list
+router.post('/lists/:id/creators', async (req, res) => {
+  try {
+    const { creator_id } = req.body;
+    const list = await db.get('SELECT id FROM ugc_creator_lists WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    const creator = await db.get('SELECT id FROM ugc_creators WHERE id = ? AND organization_id = ?', [creator_id, req.orgId]);
+    if (!list || !creator) return res.status(404).json({ error: 'Lista o creador no encontrado' });
+    await db.run(
+      'INSERT INTO ugc_creator_list_members (list_id, creator_id, added_by) VALUES (?, ?, ?) ON CONFLICT DO NOTHING',
+      [req.params.id, creator_id, req.teamMember?.id || null]
+    );
+    const ids = await db.all('SELECT list_id FROM ugc_creator_list_members WHERE creator_id = ? ORDER BY list_id', [creator_id]);
+    res.json({ creator_id: Number(creator_id), list_ids: ids.map(r => r.list_id) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/ugc/lists/:id/creators/:creatorId - Remove a creator from a list
+router.delete('/lists/:id/creators/:creatorId', async (req, res) => {
+  try {
+    const list = await db.get('SELECT id FROM ugc_creator_lists WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!list) return res.status(404).json({ error: 'Lista no encontrada' });
+    await db.run('DELETE FROM ugc_creator_list_members WHERE list_id = ? AND creator_id = ?', [req.params.id, req.params.creatorId]);
+    const ids = await db.all('SELECT list_id FROM ugc_creator_list_members WHERE creator_id = ? ORDER BY list_id', [req.params.creatorId]);
+    res.json({ creator_id: Number(req.params.creatorId), list_ids: ids.map(r => r.list_id) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/ugc/creators/:id/lists - Replace the full set of lists of a creator
+router.put('/creators/:id/lists', async (req, res) => {
+  try {
+    const creator = await db.get('SELECT id FROM ugc_creators WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!creator) return res.status(404).json({ error: 'Creator not found' });
+    const wanted = Array.isArray(req.body.list_ids) ? req.body.list_ids.map(Number).filter(Boolean) : [];
+    const valid = wanted.length
+      ? (await db.all(`SELECT id FROM ugc_creator_lists WHERE organization_id = ? AND id IN (${wanted.map(() => '?').join(',')})`, [req.orgId, ...wanted])).map(r => r.id)
+      : [];
+    await db.run('DELETE FROM ugc_creator_list_members WHERE creator_id = ?', [req.params.id]);
+    for (const listId of valid) {
+      await db.run('INSERT INTO ugc_creator_list_members (list_id, creator_id, added_by) VALUES (?, ?, ?) ON CONFLICT DO NOTHING', [listId, req.params.id, req.teamMember?.id || null]);
+    }
+    res.json({ creator_id: Number(req.params.id), list_ids: valid.sort((a, b) => a - b) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
 // CREATORS
 // ========================================
 
 // GET /api/ugc/creators - List creators
 router.get('/creators', async (req, res) => {
   try {
-    const { stage_id, industry, city, department, search, favorites_only } = req.query;
+    const { stage_id, industry, city, department, search, favorites_only, list_id } = req.query;
 
     let query = `
-      SELECT c.*, s.name as stage_name, s.color as stage_color
+      SELECT c.*, s.name as stage_name, s.color as stage_color,
+             (SELECT COALESCE(ARRAY_AGG(m.list_id ORDER BY m.list_id), '{}') FROM ugc_creator_list_members m WHERE m.creator_id = c.id) as list_ids
       FROM ugc_creators c
       LEFT JOIN ugc_creator_stages s ON c.stage_id = s.id
       WHERE c.organization_id = ?
@@ -315,6 +438,12 @@ router.get('/creators', async (req, res) => {
     // Filter favorites only
     if (favorites_only === 'true') {
       query += ' AND c.is_favorite = TRUE';
+    }
+
+    // Filter by custom list
+    if (list_id) {
+      query += ' AND EXISTS (SELECT 1 FROM ugc_creator_list_members lm WHERE lm.creator_id = c.id AND lm.list_id = ?)';
+      params.push(list_id);
     }
 
     if (stage_id) {
@@ -355,7 +484,8 @@ router.get('/creators', async (req, res) => {
 router.get('/creators/:id', async (req, res) => {
   try {
     const creator = await db.get(
-      `SELECT c.*, s.name as stage_name, s.color as stage_color
+      `SELECT c.*, s.name as stage_name, s.color as stage_color,
+              (SELECT COALESCE(ARRAY_AGG(m.list_id ORDER BY m.list_id), '{}') FROM ugc_creator_list_members m WHERE m.creator_id = c.id) as list_ids
        FROM ugc_creators c
        LEFT JOIN ugc_creator_stages s ON c.stage_id = s.id
        WHERE c.id = ? AND c.organization_id = ?`,

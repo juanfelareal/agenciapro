@@ -885,6 +885,14 @@ export const ugcAPI = {
   deleteCreator: (id) => api.delete(`/ugc/creators/${id}`),
   moveCreatorStage: (id, stageId) => api.patch(`/ugc/creators/${id}/stage`, { stage_id: stageId }),
   toggleCreatorFavorite: (id) => api.patch(`/ugc/creators/${id}/favorite`),
+  setCreatorLists: (id, listIds) => api.put(`/ugc/creators/${id}/lists`, { list_ids: listIds }),
+  // Custom creator lists ("Favoritos mujeres", "Fitness", ...)
+  getLists: () => api.get('/ugc/lists'),
+  createList: (data) => api.post('/ugc/lists', data),
+  updateList: (id, data) => api.put(`/ugc/lists/${id}`, data),
+  deleteList: (id) => api.delete(`/ugc/lists/${id}`),
+  addCreatorToList: (listId, creatorId) => api.post(`/ugc/lists/${listId}/creators`, { creator_id: creatorId }),
+  removeCreatorFromList: (listId, creatorId) => api.delete(`/ugc/lists/${listId}/creators/${creatorId}`),
   // Assignments
   getAssignments: (filters) => api.get('/ugc/assignments', { params: filters }),
   getAssignment: (id) => api.get(`/ugc/assignments/${id}`),

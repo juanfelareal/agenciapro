@@ -8,6 +8,7 @@ import {
   Trash2, Send, MessageSquare
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
+import { ListChips, ListTagButton, CreatorListPicker } from '../components/ugc/CreatorLists';
 
 const ASSIGNMENT_STATUS = {
   proposed: { label: 'Propuesto', color: 'bg-gray-100 text-gray-700' },
@@ -35,6 +36,8 @@ export default function UGCCreatorDetail() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
+  const [lists, setLists] = useState([]);
+  const [listPicker, setListPicker] = useState(null); // rect
 
   // Internal notes
   const [notes, setNotes] = useState([]);
@@ -65,7 +68,7 @@ export default function UGCCreatorDetail() {
 
   const loadData = async () => {
     try {
-      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes, projectsRes, notesRes] = await Promise.all([
+      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes, projectsRes, notesRes, listsRes] = await Promise.all([
         ugcAPI.getCreator(id),
         ugcAPI.getAssignments({ creator_id: id }),
         ugcAPI.getPayments({ creator_id: id }),
@@ -73,6 +76,7 @@ export default function UGCCreatorDetail() {
         ugcAPI.getUgcClients().catch(() => ({ data: [] })),
         ugcAPI.getProjects().catch(() => ({ data: [] })),
         ugcAPI.getCreatorNotes(id).catch(() => ({ data: [] })),
+        ugcAPI.getLists().catch(() => ({ data: [] })),
       ]);
       setCreator(creatorRes.data);
       setAssignments(assignmentsRes.data);
@@ -81,6 +85,7 @@ export default function UGCCreatorDetail() {
       setClients(clientsRes.data || []);
       setProjects(projectsRes.data || []);
       setNotes(notesRes.data || []);
+      setLists(listsRes.data || []);
     } catch (error) {
       console.error('Error loading creator:', error);
     } finally {
@@ -405,6 +410,36 @@ export default function UGCCreatorDetail() {
             >
               <FileText className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Custom lists */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-[#17181A]">Listas</h3>
+              <ListTagButton listIds={creator.list_ids} onOpen={(rect) => setListPicker(rect)} className="p-1.5 hover:bg-gray-100" />
+            </div>
+            {creator.list_ids?.length > 0 ? (
+              <ListChips lists={lists} listIds={creator.list_ids} max={20} size="sm" />
+            ) : (
+              <p className="text-xs text-gray-400">No está en ninguna lista. Usa el marcador para agregarlo a una.</p>
+            )}
+            {listPicker && (
+              <CreatorListPicker
+                anchorRect={listPicker}
+                lists={lists}
+                listIds={creator.list_ids || []}
+                onToggle={async (listId, checked) => {
+                  const res = checked ? await ugcAPI.addCreatorToList(listId, creator.id) : await ugcAPI.removeCreatorFromList(listId, creator.id);
+                  setCreator(prev => ({ ...prev, list_ids: res.data.list_ids }));
+                  setLists(prev => prev.map(l => l.id === listId ? { ...l, member_count: (l.member_count || 0) + (checked ? 1 : -1) } : l));
+                }}
+                onCreate={async (name) => {
+                  try { const res = await ugcAPI.createList({ name, color: '#3B82F6' }); setLists(prev => [...prev, res.data]); return res.data; }
+                  catch (err) { console.error(err); return null; }
+                }}
+                onClose={() => setListPicker(null)}
+              />
+            )}
           </div>
 
           {/* Industries & Bio */}
