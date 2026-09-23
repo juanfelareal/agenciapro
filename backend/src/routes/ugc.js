@@ -1416,11 +1416,10 @@ async function computeSettlement(projectId, orgId) {
   );
   const settlement = settlementRow ? { ...settlementRow, extra_items: parseItems(settlementRow.extra_items), snapshot: settlementRow.snapshot || null } : null;
 
-  // Creators that count as cost: only those confirmed onwards. Presented / approved by
-  // brand / negotiating are still proposals, rejected never counts.
-  const NOT_COUNTED = new Set(['presented', 'brand_approved', 'negotiating', 'rejected']);
+  // Creators that count as cost: only those already PAID. A settlement is the final
+  // picture of the project, so anyone not yet paid is listed but does not add cost.
   const creators = rows.map(r => {
-    const excluded = NOT_COUNTED.has(r.status);
+    const excluded = r.status !== 'paid';
     const videos = Math.max(0, parseInt(r.video_count) || 0);
     const rate = num(r.agreed_rate);
     return {

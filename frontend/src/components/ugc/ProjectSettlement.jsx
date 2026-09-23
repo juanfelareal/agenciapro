@@ -105,7 +105,7 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
             <Calculator className="w-5 h-5" /> Liquidación del proyecto
           </h2>
           <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-            <Lock className="w-3 h-3" /> Solo visible para el equipo. El cliente nunca ve esta sección ni lo que se paga a cada creador.
+            <Lock className="w-3 h-3" /> Solo visible para el equipo. El cliente nunca ve esta sección ni lo que se paga a cada creador. Cuentan únicamente los creadores en estado "Pagado".
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
         <div className="bg-gray-50 rounded-xl p-3">
           <p className="text-[11px] uppercase tracking-wider text-gray-400">Costo creadores</p>
           <p className="text-lg font-semibold text-gray-900">{cop(preview.creator_cost)}</p>
-          <p className="text-[11px] text-gray-400">{preview.active_creators} confirmados · {preview.videos_assigned} videos</p>
+          <p className="text-[11px] text-gray-400">{preview.active_creators} pagados · {preview.videos_assigned} videos</p>
         </div>
         <div className="bg-gray-50 rounded-xl p-3">
           <p className="text-[11px] uppercase tracking-wider text-gray-400">Otros costos</p>
@@ -179,7 +179,7 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
             {creators.map(c => (
               <tr key={c.id} className={c.excluded ? 'opacity-50' : ''}>
                 <td className="px-3 py-2 font-medium text-gray-900">{c.full_name}</td>
-                <td className="px-3 py-2 text-gray-500 text-xs">{CREATOR_STATUS[c.status] || c.status}{c.excluded ? (c.status === 'rejected' ? ' · no cuenta' : ' · aún no confirmado, no cuenta') : ''}</td>
+                <td className="px-3 py-2 text-gray-500 text-xs">{CREATOR_STATUS[c.status] || c.status}{c.excluded ? (c.status === 'rejected' ? ' · no cuenta' : ' · sin pagar, no cuenta') : ''}</td>
                 <td className="px-3 py-2 text-right text-gray-700">{c.video_count}</td>
                 <td className="px-3 py-2 text-right text-gray-700">{c.agreed_rate > 0 ? cop(c.agreed_rate) : <span className="text-amber-600 text-xs">Sin tarifa</span>}</td>
                 <td className="px-3 py-2 text-right font-medium text-gray-900">{cop(c.subtotal)}</td>
@@ -198,7 +198,7 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
                 <td className="px-3 py-2 text-right">{preview.videos_assigned}</td>
                 <td className="px-3 py-2" />
                 <td className="px-3 py-2 text-right text-gray-900">{cop(preview.creator_cost)}</td>
-                <td className="px-3 py-2 text-center text-[10px] text-gray-500">Pagado {cop(preview.paid_to_creators)} · Pendiente {cop(preview.pending_to_creators)}</td>
+                <td className="px-3 py-2 text-center text-[10px] text-gray-500">Solo creadores pagados</td>
               </tr>
             </tfoot>
           )}
@@ -206,7 +206,7 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
       </div>
       {p.video_count > 0 && preview.videos_assigned !== p.video_count && !settled && (
         <p className="text-xs text-amber-600 mb-4">
-          Ojo: la marca compró {p.video_count} videos y hay {preview.videos_assigned} asignados a creadores.
+          Ojo: la marca compró {p.video_count} videos y solo {preview.videos_assigned} corresponden a creadores ya pagados. Marca como "Pagado" a cada creador cuando le pagues para que entre en la liquidación.
         </p>
       )}
 
