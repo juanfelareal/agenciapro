@@ -1416,9 +1416,11 @@ async function computeSettlement(projectId, orgId) {
   );
   const settlement = settlementRow ? { ...settlementRow, extra_items: parseItems(settlementRow.extra_items), snapshot: settlementRow.snapshot || null } : null;
 
-  // Creators that count as cost: everyone except rejected
+  // Creators that count as cost: only those confirmed onwards. Presented / approved by
+  // brand / negotiating are still proposals, rejected never counts.
+  const NOT_COUNTED = new Set(['presented', 'brand_approved', 'negotiating', 'rejected']);
   const creators = rows.map(r => {
-    const excluded = r.status === 'rejected';
+    const excluded = NOT_COUNTED.has(r.status);
     const videos = Math.max(0, parseInt(r.video_count) || 0);
     const rate = num(r.agreed_rate);
     return {
