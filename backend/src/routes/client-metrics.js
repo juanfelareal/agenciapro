@@ -58,6 +58,12 @@ router.get('/email-dashboard', async (req, res) => {
         m.master_segment_size,
         m.monthly_subscriptions,
         m.monthly_unsubscribes,
+        m.coupon_orders,
+        m.coupon_avg_ticket,
+        m.coupon_discount_total,
+        m.coupon_revenue,
+        m.new_customers,
+        m.returning_customers,
         m.updated_at
       FROM clients c
       LEFT JOIN client_monthly_email_metrics m
@@ -79,6 +85,11 @@ router.get('/email-dashboard', async (req, res) => {
       total_clicks: acc.total_clicks + (c.campaigns_clicks || 0) + (c.flows_clicks || 0),
       total_conversions: acc.total_conversions + (c.campaigns_conversions || 0) + (c.flows_conversions || 0),
       total_subscribers: acc.total_subscribers + (c.master_segment_size || 0),
+      total_coupon_orders: acc.total_coupon_orders + (c.coupon_orders || 0),
+      total_coupon_revenue: acc.total_coupon_revenue + (c.coupon_revenue || 0),
+      total_coupon_discount: acc.total_coupon_discount + (c.coupon_discount_total || 0),
+      total_new_customers: acc.total_new_customers + (c.new_customers || 0),
+      total_returning_customers: acc.total_returning_customers + (c.returning_customers || 0),
       clients_with_data: acc.clients_with_data + (c.campaigns_deliveries || c.flows_deliveries ? 1 : 0),
     }), {
       total_revenue: 0,
@@ -89,6 +100,11 @@ router.get('/email-dashboard', async (req, res) => {
       total_clicks: 0,
       total_conversions: 0,
       total_subscribers: 0,
+      total_coupon_orders: 0,
+      total_coupon_revenue: 0,
+      total_coupon_discount: 0,
+      total_new_customers: 0,
+      total_returning_customers: 0,
       clients_with_data: 0,
     });
 
@@ -999,7 +1015,10 @@ router.post('/:clientId/email-monthly', async (req, res) => {
       flows_opens, flows_clicks, flows_conversions, flows_bounces,
       // List Growth
       master_segment_size, monthly_subscriptions, monthly_unsubscribes,
-      popup_subscriptions, popup_views
+      popup_subscriptions, popup_views,
+      // Cupón del pop-up + tipo de cliente
+      coupon_orders, coupon_avg_ticket, coupon_discount_total, coupon_revenue,
+      new_customers, returning_customers
     } = req.body;
 
     if (!year || !month) {
@@ -1021,8 +1040,10 @@ router.post('/:clientId/email-monthly', async (req, res) => {
         flows_revenue, flows_avg_ticket, flows_deliveries,
         flows_opens, flows_clicks, flows_conversions, flows_bounces,
         master_segment_size, monthly_subscriptions, monthly_unsubscribes,
-        popup_subscriptions, popup_views
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        popup_subscriptions, popup_views,
+        coupon_orders, coupon_avg_ticket, coupon_discount_total, coupon_revenue,
+        new_customers, returning_customers
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(client_id, year, month) DO UPDATE SET
         campaigns_revenue = excluded.campaigns_revenue,
         campaigns_avg_ticket = excluded.campaigns_avg_ticket,
@@ -1043,6 +1064,12 @@ router.post('/:clientId/email-monthly', async (req, res) => {
         monthly_unsubscribes = excluded.monthly_unsubscribes,
         popup_subscriptions = excluded.popup_subscriptions,
         popup_views = excluded.popup_views,
+        coupon_orders = excluded.coupon_orders,
+        coupon_avg_ticket = excluded.coupon_avg_ticket,
+        coupon_discount_total = excluded.coupon_discount_total,
+        coupon_revenue = excluded.coupon_revenue,
+        new_customers = excluded.new_customers,
+        returning_customers = excluded.returning_customers,
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `).get(
@@ -1052,7 +1079,9 @@ router.post('/:clientId/email-monthly', async (req, res) => {
       flows_revenue || 0, flows_avg_ticket || 0, flows_deliveries || 0,
       flows_opens || 0, flows_clicks || 0, flows_conversions || 0, flows_bounces || 0,
       master_segment_size || 0, monthly_subscriptions || 0, monthly_unsubscribes || 0,
-      popup_subscriptions || 0, popup_views || 0
+      popup_subscriptions || 0, popup_views || 0,
+      coupon_orders || 0, coupon_avg_ticket || 0, coupon_discount_total || 0, coupon_revenue || 0,
+      new_customers || 0, returning_customers || 0
     );
 
     res.json(result);

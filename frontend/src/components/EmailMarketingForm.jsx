@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Mail, BarChart3, Users, Loader2, Save, ChevronDown, ChevronRight } from 'lucide-react';
+import { Mail, BarChart3, Users, Loader2, Save, ChevronDown, ChevronRight, Ticket } from 'lucide-react';
 import { clientMetricsAPI } from '../utils/api';
 
 // Month names in Spanish
@@ -119,6 +119,14 @@ export default function EmailMarketingForm({ clientId }) {
     monthly_unsubscribes: 0,
     popup_subscriptions: 0,
     popup_views: 0,
+    // Cupón del pop-up
+    coupon_orders: 0,
+    coupon_avg_ticket: 0,
+    coupon_discount_total: 0,
+    coupon_revenue: 0,
+    // Clientes
+    new_customers: 0,
+    returning_customers: 0,
   });
 
   // Calculated metrics
@@ -138,6 +146,12 @@ export default function EmailMarketingForm({ clientId }) {
       // List Growth
       unsubscribe_rate: calc(data.monthly_unsubscribes, data.master_segment_size),
       popup_conv_rate: calc(data.popup_subscriptions, data.popup_views),
+      // Cupón
+      coupon_avg_ticket_auto: data.coupon_orders > 0 ? data.coupon_revenue / data.coupon_orders : null,
+      coupon_discount_rate: calc(data.coupon_discount_total, data.coupon_revenue),
+      coupon_share_of_email: calc(data.coupon_revenue, (data.campaigns_revenue || 0) + (data.flows_revenue || 0)),
+      // Clientes
+      new_customer_share: calc(data.new_customers, data.new_customers + data.returning_customers),
     };
   }, [data]);
 
@@ -172,6 +186,12 @@ export default function EmailMarketingForm({ clientId }) {
           monthly_unsubscribes: response.data.monthly_unsubscribes || 0,
           popup_subscriptions: response.data.popup_subscriptions || 0,
           popup_views: response.data.popup_views || 0,
+          coupon_orders: response.data.coupon_orders || 0,
+          coupon_avg_ticket: response.data.coupon_avg_ticket || 0,
+          coupon_discount_total: response.data.coupon_discount_total || 0,
+          coupon_revenue: response.data.coupon_revenue || 0,
+          new_customers: response.data.new_customers || 0,
+          returning_customers: response.data.returning_customers || 0,
         });
       } else {
         // Reset to empty state for new month
@@ -182,6 +202,8 @@ export default function EmailMarketingForm({ clientId }) {
           flows_opens: 0, flows_clicks: 0, flows_conversions: 0, flows_bounces: 0,
           master_segment_size: 0, monthly_subscriptions: 0, monthly_unsubscribes: 0,
           popup_subscriptions: 0, popup_views: 0,
+          coupon_orders: 0, coupon_avg_ticket: 0, coupon_discount_total: 0, coupon_revenue: 0,
+          new_customers: 0, returning_customers: 0,
         });
       }
     } catch (error) {
@@ -448,6 +470,74 @@ export default function EmailMarketingForm({ clientId }) {
               <div className="grid grid-cols-2 gap-3">
                 <CalculatedMetric label="Unsubscribe Rate" value={calculated.unsubscribe_rate} />
                 <CalculatedMetric label="Popup Conv. Rate" value={calculated.popup_conv_rate} />
+              </div>
+            </div>
+          </Section>
+
+          {/* Cupón del pop-up + tipo de cliente */}
+          <Section
+            id="coupon"
+            title="Cupón del Pop-up & Clientes"
+            icon={Ticket}
+            iconBg="bg-amber-100"
+            iconColor="text-amber-600"
+          >
+            <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Cupón del pop-up</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <MetricInput
+                label="Pedidos con el cupón"
+                value={data.coupon_orders}
+                onChange={updateField('coupon_orders')}
+              />
+              <MetricInput
+                label="Venta total con el cupón"
+                value={data.coupon_revenue}
+                onChange={updateField('coupon_revenue')}
+                prefix="$"
+              />
+              <MetricInput
+                label="Descuento total del cupón"
+                value={data.coupon_discount_total}
+                onChange={updateField('coupon_discount_total')}
+                prefix="$"
+              />
+              <MetricInput
+                label="Ticket promedio"
+                value={data.coupon_avg_ticket}
+                onChange={updateField('coupon_avg_ticket')}
+                prefix="$"
+              />
+            </div>
+            {calculated.coupon_avg_ticket_auto !== null && !data.coupon_avg_ticket && (
+              <button
+                type="button"
+                onClick={() => updateField('coupon_avg_ticket')(Math.round(calculated.coupon_avg_ticket_auto))}
+                className="text-xs text-amber-700 hover:underline mb-4"
+              >
+                Usar ticket calculado: ${Math.round(calculated.coupon_avg_ticket_auto).toLocaleString('es-CO')} (venta ÷ pedidos)
+              </button>
+            )}
+
+            <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Clientes del mes</div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <MetricInput
+                label="Clientes nuevos"
+                value={data.new_customers}
+                onChange={updateField('new_customers')}
+              />
+              <MetricInput
+                label="Clientes recurrentes"
+                value={data.returning_customers}
+                onChange={updateField('returning_customers')}
+              />
+            </div>
+
+            <div className="border-t border-gray-100 pt-4">
+              <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Calculadas</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <CalculatedMetric label="% Descuento sobre venta cupón" value={calculated.coupon_discount_rate} />
+                <CalculatedMetric label="Cupón / venta email" value={calculated.coupon_share_of_email} />
+                <CalculatedMetric label="% Clientes nuevos" value={calculated.new_customer_share} />
               </div>
             </div>
           </Section>

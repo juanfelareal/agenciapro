@@ -1696,6 +1696,22 @@ export const initializeDatabase = async () => {
         UNIQUE(client_id, year, month)
       )
     `);
+
+    // Cupón del pop-up + clientes nuevos vs recurrentes (reportes de email marketing)
+    for (const [col, type] of [
+      ['coupon_orders', 'INTEGER DEFAULT 0'],
+      ['coupon_avg_ticket', 'REAL DEFAULT 0'],
+      ['coupon_discount_total', 'REAL DEFAULT 0'],
+      ['coupon_revenue', 'REAL DEFAULT 0'],
+      ['new_customers', 'INTEGER DEFAULT 0'],
+      ['returning_customers', 'INTEGER DEFAULT 0'],
+    ]) {
+      try {
+        await pool.query(`ALTER TABLE client_monthly_email_metrics ADD COLUMN IF NOT EXISTS ${col} ${type}`);
+      } catch (e) {
+        console.warn(`client_monthly_email_metrics.${col}:`, e.message);
+      }
+    }
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_email_monthly_client ON client_monthly_email_metrics(client_id, year DESC, month DESC)`);
 
     // Reports the agency uploads for a client (monthly close, biweekly partial, etc.)

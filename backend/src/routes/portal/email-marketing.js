@@ -70,12 +70,18 @@ router.get('/', clientAuthMiddleware, async (req, res) => {
       master_segment_size: m.master_segment_size || acc.master_segment_size, // Use most recent
       monthly_subscriptions: acc.monthly_subscriptions + (m.monthly_subscriptions || 0),
       monthly_unsubscribes: acc.monthly_unsubscribes + (m.monthly_unsubscribes || 0),
+      coupon_orders: acc.coupon_orders + (m.coupon_orders || 0),
+      coupon_revenue: acc.coupon_revenue + (m.coupon_revenue || 0),
+      coupon_discount_total: acc.coupon_discount_total + (m.coupon_discount_total || 0),
+      new_customers: acc.new_customers + (m.new_customers || 0),
+      returning_customers: acc.returning_customers + (m.returning_customers || 0),
     }), {
       campaigns_revenue: 0, campaigns_deliveries: 0, campaigns_opens: 0,
       campaigns_clicks: 0, campaigns_conversions: 0,
       flows_revenue: 0, flows_deliveries: 0, flows_opens: 0,
       flows_clicks: 0, flows_conversions: 0,
       master_segment_size: 0, monthly_subscriptions: 0, monthly_unsubscribes: 0,
+      coupon_orders: 0, coupon_revenue: 0, coupon_discount_total: 0, new_customers: 0, returning_customers: 0,
     });
 
     res.json({ months, totals });

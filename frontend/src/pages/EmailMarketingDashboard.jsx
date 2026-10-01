@@ -101,6 +101,23 @@ function ClientRow({ client, onClick }) {
       </td>
       <td className="py-3 px-3 text-right">{hasData ? fmtInt(client.master_segment_size || 0) : '—'}</td>
       <td className="py-3 px-3 text-right">
+        {hasData && (client.coupon_orders || 0) > 0 ? (
+          <>
+            <span className="font-medium text-[#17181A]">{fmtCurrency(client.coupon_revenue)}</span>
+            <p className="text-[10px] text-gray-400 mt-0.5">{fmtInt(client.coupon_orders)} pedidos · desc. {fmtCurrency(client.coupon_discount_total)}</p>
+          </>
+        ) : '—'}
+      </td>
+      <td className="py-3 px-3 text-right">
+        {hasData && ((client.new_customers || 0) + (client.returning_customers || 0)) > 0 ? (
+          <>
+            <span className="text-emerald-600 font-medium">{fmtInt(client.new_customers)}</span>
+            <span className="text-gray-400"> / </span>
+            <span className="text-gray-700">{fmtInt(client.returning_customers)}</span>
+          </>
+        ) : '—'}
+      </td>
+      <td className="py-3 px-3 text-right">
         <button
           onClick={(e) => { e.stopPropagation(); onClick(); }}
           className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
@@ -327,6 +344,8 @@ export default function EmailMarketingDashboard() {
                   <th className="text-right py-3 px-3 font-medium">CTR</th>
                   <th className="text-right py-3 px-3 font-medium">Conv Rate</th>
                   <th className="text-right py-3 px-3 font-medium">Suscriptores</th>
+                  <th className="text-right py-3 px-3 font-medium" title="Venta con el cupón del pop-up">Cupón</th>
+                  <th className="text-right py-3 px-3 font-medium" title="Clientes nuevos / recurrentes">Nuevos / Rec.</th>
                   <th className="text-right py-3 px-3 font-medium w-24">Acción</th>
                 </tr>
               </thead>
@@ -342,7 +361,7 @@ export default function EmailMarketingDashboard() {
                 {/* Separator if both groups have items */}
                 {clientsWithData.length > 0 && clientsWithoutData.length > 0 && (
                   <tr>
-                    <td colSpan={8} className="py-2 px-4 bg-gray-50">
+                    <td colSpan={10} className="py-2 px-4 bg-gray-50">
                       <p className="text-xs text-gray-400 font-medium">Sin datos registrados este mes</p>
                     </td>
                   </tr>

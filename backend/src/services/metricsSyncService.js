@@ -541,6 +541,25 @@ export async function syncClientForDate(clientId, date) {
     ...derivedMetrics
   };
 
+  // Shopify (scope read_orders) only returns orders from the last 60 days. For older
+  // dates it answers "0 orders" even if that day did have sales. Never let that
+  // overwrite sales we already stored — keep the existing Shopify numbers instead.
+  if (hasShopify && shopifyOk && (shopifyMetrics.allOrderCount || 0) === 0) {
+    const cutoff = getColombiaDate(-59);
+    if (date < cutoff) {
+      const prev = await db.prepare(`
+        SELECT shopify_revenue, shopify_orders, shopify_aov, shopify_refunds, shopify_net_revenue,
+               shopify_total_tax, shopify_total_discounts, shopify_sessions, shopify_conversion_rate,
+               shopify_pending_orders, shopify_customers, shopify_all_orders_revenue, shopify_all_orders_count
+        FROM client_daily_metrics WHERE client_id = ? AND metric_date = ?
+      `).get(clientId, date);
+      if (prev && ((prev.shopify_orders || 0) > 0 || (prev.shopify_revenue || 0) > 0 || (prev.shopify_all_orders_count || 0) > 0)) {
+        Object.assign(metricsToSave, prev);
+        console.log(`  Shopify ${date}: fuera de la ventana de 60 días, conservo las ventas ya guardadas`);
+      }
+    }
+  }
+
   await upsertDailyMetrics(clientId, date, metricsToSave);
 
   // Update credential status only after successful save

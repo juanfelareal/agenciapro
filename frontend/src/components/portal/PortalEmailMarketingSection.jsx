@@ -152,6 +152,35 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
             )}
           </div>
 
+          {/* Cupón del pop-up + clientes nuevos vs recurrentes */}
+          {(totals.coupon_orders > 0 || totals.new_customers > 0 || totals.returning_customers > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {totals.coupon_orders > 0 && (
+                <div className="bg-amber-50 rounded-xl p-4">
+                  <p className="text-sm font-medium text-amber-800 mb-2">Cupón del pop-up</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div><p className="text-xs text-amber-700/70">Pedidos</p><p className="font-semibold text-amber-900">{fmtInt(totals.coupon_orders)}</p></div>
+                    <div><p className="text-xs text-amber-700/70">Venta con cupón</p><p className="font-semibold text-amber-900">{fmtCurrency(totals.coupon_revenue)}</p></div>
+                    <div><p className="text-xs text-amber-700/70">Ticket promedio</p><p className="font-semibold text-amber-900">{fmtCurrency(totals.coupon_orders > 0 ? totals.coupon_revenue / totals.coupon_orders : 0)}</p></div>
+                    <div><p className="text-xs text-amber-700/70">Descuento otorgado</p><p className="font-semibold text-amber-900">{fmtCurrency(totals.coupon_discount_total)}</p></div>
+                  </div>
+                </div>
+              )}
+              {(totals.new_customers > 0 || totals.returning_customers > 0) && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Clientes</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div><p className="text-xs text-gray-500">Nuevos</p><p className="font-semibold text-gray-900">{fmtInt(totals.new_customers)}</p></div>
+                    <div><p className="text-xs text-gray-500">Recurrentes</p><p className="font-semibold text-gray-900">{fmtInt(totals.returning_customers)}</p></div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {fmtPct(rate(totals.new_customers, totals.new_customers + totals.returning_customers))} de los clientes fueron nuevos
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Monthly breakdown table */}
           {months.length > 1 && (
             <div className="overflow-x-auto">
