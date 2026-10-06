@@ -578,7 +578,7 @@ function App() {
                 {/* Agents routes hidden until API auth is resolved */}
                 {/* <Route path="agents" element={<Agents />} /> */}
                 {/* <Route path="agents/:slug" element={<Agents />} /> */}
-                <Route path="mejoras" element={<OrbitFeedback />} />
+                <Route path="mejoras" element={<ProtectedRoute><OrbitFeedback /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>
