@@ -2,12 +2,14 @@ import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 
 // Unified email sender: uses Resend (HTTP) if configured, falls back to SMTP
-export const sendEmail = async ({ from, to, subject, html }) => {
+export const sendEmail = async ({ from, to, cc, subject, html }) => {
+  const ccList = cc ? (Array.isArray(cc) ? cc : [cc]).filter(Boolean) : [];
   if (process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
       from: from || process.env.EMAIL_FROM || 'noreply@larealmarketing.com',
       to: Array.isArray(to) ? to : [to],
+      ...(ccList.length ? { cc: ccList } : {}),
       subject,
       html,
     });
@@ -17,7 +19,7 @@ export const sendEmail = async ({ from, to, subject, html }) => {
 
   // Fallback: SMTP via nodemailer
   const transporter = getEmailTransporter();
-  return await transporter.sendMail({ from, to, subject, html });
+  return await transporter.sendMail({ from, to, ...(ccList.length ? { cc: ccList } : {}), subject, html });
 };
 
 export const getEmailTransporter = () => {

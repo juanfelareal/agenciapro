@@ -183,7 +183,8 @@ export async function processScheduledReminders() {
 
         await sendEmail({
           from: `Estefania Hernandez <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-          to: reminder.email_to,
+          to: String(reminder.email_to || '').split(',').map((e) => e.trim()).filter((e) => e.includes('@')),
+          cc: (process.env.COLLECTIONS_CC || 'juanfe@larealmarketing.com').split(',').map((e) => e.trim()).filter((e) => e && !String(reminder.email_to || '').includes(e)),
           subject: emailSubject,
           html: result.html,
         });

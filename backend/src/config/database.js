@@ -2174,6 +2174,10 @@ export const initializeDatabase = async () => {
     await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS siigo_total REAL`);
     await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS siigo_balance REAL`);
     await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS siigo_balance_synced_at TIMESTAMP`);
+    // Correo de contacto del cliente según Siigo (destino de los cobros)
+    await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS siigo_email TEXT`);
+    await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS siigo_contact_name TEXT`);
+    await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS siigo_email_synced_at TIMESTAMP`);
 
     // Add shopify_customers column if not exists
     await pool.query(`

@@ -280,6 +280,35 @@ export async function refreshOpenInvoiceBalances(orgId, { dryRun = false, onProg
   return results;
 }
 
+/**
+ * Trae de Siigo el correo de contacto de cada cliente (contacts[].email) y lo guarda en clients.siigo_email.
+ * `onlyOpen`: solo clientes con facturas pendientes (para el cron); sin él, todos los clientes con NIT.
+ */
+export async function syncClientContactsFromSiigo(orgId, { onlyOpen = false } = {}) {
+  const results = { checked: 0, updated: 0, errors: [] };
+  const clients = await db.prepare(`
+    SELECT DISTINCT c.id, c.nit, c.email, c.siigo_email FROM clients c
+    ${onlyOpen ? "JOIN invoices i ON i.client_id = c.id AND i.status IN ('approved','invoiced')" : ''}
+    WHERE c.organization_id = ? AND c.nit IS NOT NULL AND c.nit != ''
+  `).all(orgId);
+  for (const c of clients) {
+    try {
+      const cust = await siigoService.getCustomerByIdentification(orgId, String(c.nit).trim());
+      results.checked++;
+      if (!cust) continue;
+      const emails = [...new Set((cust.contacts || []).map((k) => (k.email || '').trim().toLowerCase()).filter((e) => e.includes('@')))].slice(0, 3);
+      const contact = cust.contacts?.[0] ? `${cust.contacts[0].first_name || ''} ${cust.contacts[0].last_name || ''}`.trim() : null;
+      const joined = emails.join(',') || null;
+      await db.prepare(`UPDATE clients SET siigo_email = ?, siigo_contact_name = ?, siigo_email_synced_at = CURRENT_TIMESTAMP WHERE id = ?`).run(joined, contact, c.id);
+      if (joined && joined !== c.siigo_email) results.updated++;
+    } catch (err) {
+      results.errors.push({ clientId: c.id, error: err.message });
+    }
+    await sleep(700);
+  }
+  return results;
+}
+
 // ── Job en segundo plano por organización (para el botón de Cartera) ──
 const syncJobs = new Map(); // orgId → { status, startedAt, finishedAt, progress, result, error, dryRun }
 
@@ -296,7 +325,9 @@ export function startSyncJob(orgId, { days = 30, dryRun = false } = {}) {
     try {
       const imported = dryRun ? { imported: 0, skipped: 0, errors: [] } : await syncInvoicesForOrg(orgId, days);
       const balances = await refreshOpenInvoiceBalances(orgId, { dryRun, onProgress: (p) => { job.progress = p; } });
+      const contacts = dryRun ? { checked: 0, updated: 0, errors: [] } : await syncClientContactsFromSiigo(orgId);
       job.result = {
+        contacts_updated: contacts.updated,
         imported: imported.imported, already_existed: imported.skipped,
         checked: balances.checked, marked_paid: balances.markedPaid, still_open: balances.stillOpen,
         imported_open: balances.importedOpen, not_in_siigo: balances.notInSiigo,
@@ -362,6 +393,9 @@ export async function syncSiigoForAllOrgs() {
           console.error(`[SiigoAutoSync] Error refrescando saldos org ${orgId}:`, err.message);
         }
 
+        // Correos de contacto de Siigo para los clientes con saldo
+        try { await syncClientContactsFromSiigo(orgId, { onlyOpen: true }); } catch (err) { console.error(`[SiigoAutoSync] contactos org ${orgId}:`, err.message); }
+
         // Sync expenses
         const expResults = await syncExpensesForOrg(orgId);
         summary.expenses.imported += expResults.imported;
@@ -387,4 +421,4 @@ export async function syncSiigoForAllOrgs() {
   return { startedAt, finishedAt, durationMs, summary };
 }
 
-export default { syncSiigoForAllOrgs, syncOrgNow, refreshOpenInvoiceBalances, syncInvoicesForOrg, importSiigoInvoice, startSyncJob, getSyncJob };
+export default { syncSiigoForAllOrgs, syncOrgNow, refreshOpenInvoiceBalances, syncInvoicesForOrg, importSiigoInvoice, syncClientContactsFromSiigo, startSyncJob, getSyncJob };

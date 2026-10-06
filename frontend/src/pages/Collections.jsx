@@ -240,7 +240,7 @@ const Collections = () => {
 
   const openReminderForInvoice = (inv) => {
     openReminderModal(
-      { client_id: inv.client_id, client_email: inv.client_email || clientDetail?.client?.email || '', client_name: inv.client_name || clientDetail?.client?.company || clientDetail?.client?.name, total_owed: inv.pending_amount ?? inv.amount },
+      { client_id: inv.client_id, client_email: inv.client_email || clientDetail?.client?.email || '', siigo_email: inv.siigo_email || clientDetail?.client?.siigo_email || '', orbit_email: inv.orbit_email || clientDetail?.client?.orbit_email || '', client_name: inv.client_name || clientDetail?.client?.company || clientDetail?.client?.name, total_owed: inv.pending_amount ?? inv.amount },
       [inv.id],
       inv.invoice_number,
     );
@@ -466,6 +466,14 @@ const Collections = () => {
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
                   placeholder="email@cliente.com"
                 />
+                {selectedClient?.siigo_email && reminderData.email_to === selectedClient.siigo_email ? (
+                  <p className="mt-1 text-[11px] text-gray-500">Correo de contacto tomado de Siigo{selectedClient.siigo_contact_name ? ` (${selectedClient.siigo_contact_name})` : ''}.{selectedClient.orbit_email && selectedClient.orbit_email !== selectedClient.siigo_email && (<> <button type="button" className="underline" onClick={() => setReminderData({ ...reminderData, email_to: selectedClient.orbit_email })}>Usar el de Orbit ({selectedClient.orbit_email})</button></>)}</p>
+                ) : selectedClient?.siigo_email && reminderData.email_to !== selectedClient.siigo_email ? (
+                  <p className="mt-1 text-[11px] text-gray-500"><button type="button" className="underline" onClick={() => setReminderData({ ...reminderData, email_to: selectedClient.siigo_email })}>Usar el correo de Siigo ({selectedClient.siigo_email})</button></p>
+                ) : !selectedClient?.siigo_email ? (
+                  <p className="mt-1 text-[11px] text-amber-600">Este cliente no tiene correo de contacto en Siigo; se usa el de Orbit.</p>
+                ) : null}
+                <p className="mt-1 text-[11px] text-gray-400">Todos los cobros salen con copia a juanfe@larealmarketing.com. Varios destinatarios: sepáralos con coma.</p>
               </div>
 
               <div>
@@ -722,7 +730,7 @@ const Collections = () => {
   if (view === 'detail' && clientDetail) {
     const { client, invoices: clientInvoices, reminders } = clientDetail;
     const totalOwed = clientInvoices.reduce((sum, inv) => sum + Number(inv.pending_amount ?? inv.amount), 0);
-    const clientForActions = { client_id: client.id, client_email: client.email, client_name: client.company || client.name, total_owed: totalOwed };
+    const clientForActions = { client_id: client.id, client_email: client.email, siigo_email: client.siigo_email, orbit_email: client.orbit_email, client_name: client.company || client.name, total_owed: totalOwed };
 
     return (
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
@@ -844,7 +852,7 @@ const Collections = () => {
                         <td className="px-3 py-3">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => openReminderForInvoice({ ...inv, client_id: client.id, client_email: client.email, client_name: client.company || client.name })}
+                              onClick={() => openReminderForInvoice({ ...inv, client_id: client.id, client_email: client.email, siigo_email: client.siigo_email, orbit_email: client.orbit_email, client_name: client.company || client.name })}
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#17181A] text-[#D7F653] text-xs font-medium hover:bg-[#2D2D4E] transition-colors"
                               title="Cobrar solo esta factura"
                             >

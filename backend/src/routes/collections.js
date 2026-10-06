@@ -6,6 +6,10 @@ import { startSyncJob, getSyncJob } from '../services/siigoAutoSync.js';
 
 const router = express.Router();
 
+// Copia obligatoria en todos los correos de cobro (configurable con COLLECTIONS_CC, separado por comas)
+export const COLLECTIONS_CC = (process.env.COLLECTIONS_CC || 'juanfe@larealmarketing.com').split(',').map((e) => e.trim()).filter(Boolean);
+export const toList = (v) => String(v || '').split(',').map((e) => e.trim()).filter((e) => e.includes('@'));
+
 // ========================================
 // COLLECTIONS / CARTERA MODULE
 // ========================================
@@ -283,7 +287,7 @@ router.get('/summary', async (req, res) => {
       SELECT
         c.id as client_id,
         ${CLIENT_NAME_SQL} as client_name,
-        c.email as client_email,
+        COALESCE(NULLIF(c.siigo_email, ''), c.email) as client_email, c.email as orbit_email, c.siigo_email,
         c.phone as client_phone,
         COUNT(i.id)::int as invoice_count,
         SUM(COALESCE(i.siigo_balance, i.amount)) as total_owed,
@@ -300,7 +304,7 @@ router.get('/summary', async (req, res) => {
       JOIN clients c ON i.client_id = c.id
       WHERE i.status IN ('approved', 'invoiced')
         AND i.organization_id = ?
-      GROUP BY c.id, c.company, c.name, c.email, c.phone
+      GROUP BY c.id, c.company, c.name, c.email, c.siigo_email, c.phone
       ORDER BY total_owed DESC
     `, [req.orgId, req.orgId]);
 
@@ -396,7 +400,7 @@ router.get('/invoices', async (req, res) => {
       SELECT
         i.id, i.invoice_number, i.client_id,
         ${CLIENT_NAME_SQL} as client_name,
-        c.email as client_email,
+        COALESCE(NULLIF(c.siigo_email, ''), c.email) as client_email, c.email as orbit_email, c.siigo_email,
         i.issue_date, NULLIF(i.due_date, '') as due_date, i.amount, COALESCE(i.siigo_balance, i.amount) as pending_amount, i.siigo_total, i.siigo_balance, i.status, i.paid_date, i.siigo_id,
         i.promise_date::text as promise_date,
         COALESCE(i.collection_status, 'pending') as collection_status,
@@ -602,12 +606,12 @@ router.post('/send-bulk', async (req, res) => {
     const placeholders = uniqueIds.map(() => '?').join(',');
 
     const debtors = await db.all(`
-      SELECT c.id as client_id, ${CLIENT_NAME_SQL} as client_name, c.email,
+      SELECT c.id as client_id, ${CLIENT_NAME_SQL} as client_name, COALESCE(NULLIF(c.siigo_email, ''), c.email) as email,
         COUNT(i.id)::int as invoice_count, SUM(COALESCE(i.siigo_balance, i.amount)) as total_owed
       FROM clients c
       JOIN invoices i ON i.client_id = c.id AND i.status IN ('approved', 'invoiced') AND i.organization_id = ?
       WHERE c.organization_id = ? AND c.id IN (${placeholders})
-      GROUP BY c.id, c.company, c.name, c.email
+      GROUP BY c.id, c.company, c.name, c.email, c.siigo_email
     `, [req.orgId, req.orgId, ...uniqueIds]);
 
     const byId = new Map(debtors.map((d) => [Number(d.client_id), d]));
@@ -634,7 +638,8 @@ router.post('/send-bulk', async (req, res) => {
           const emailSubject = `Estado de Cuenta - ${built.clientDisplayName} | ${built.orgName}`;
           await sendEmail({
             from: `Estefania Hernandez <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-            to: d.email.trim(),
+            to: toList(d.email),
+            cc: COLLECTIONS_CC.filter((e) => !toList(d.email).includes(e)),
             subject: emailSubject,
             html: built.html,
           });
@@ -690,7 +695,7 @@ router.get('/client/:clientId', async (req, res) => {
     `, [clientId, req.orgId]);
 
     const client = await db.get(`
-      SELECT id, name, company, email, phone, nit
+      SELECT id, name, company, COALESCE(NULLIF(siigo_email, ''), email) as email, email as orbit_email, siigo_email, siigo_contact_name, phone, nit
       FROM clients
       WHERE id = ? AND organization_id = ?
     `, [clientId, req.orgId]);
@@ -753,7 +758,8 @@ router.post('/send-reminder', async (req, res) => {
 
     await sendEmail({
       from: `Estefania Hernandez <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-      to: email_to,
+      to: toList(email_to),
+      cc: COLLECTIONS_CC.filter((e) => !toList(email_to).includes(e)),
       subject: emailSubject,
       html: result.html,
     });
