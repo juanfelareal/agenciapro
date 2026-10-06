@@ -648,19 +648,28 @@ router.post('/sync-invoices-from-siigo', async (req, res) => {
         const balance = siigoInv.balance || 0;
         const status = balance <= 0 ? 'paid' : 'invoiced';
 
-        // Insert invoice
+        // Número de factura = prefijo + consecutivo de Siigo (ej. FV-1-1234). invoice_number es NOT NULL/UNIQUE,
+        // por eso el import fallaba silenciosamente antes. Fecha de vencimiento desde el primer pago de Siigo.
+        const prefix = siigoInv.prefix || siigoInv.name || siigoInv.document?.id || 'FV';
+        let invoiceNumber = siigoInv.number ? `${prefix}-${siigoInv.number}` : `SIIGO-${String(siigoInv.id).slice(0, 8)}`;
+        const clash = await db.prepare('SELECT id FROM invoices WHERE invoice_number = ? AND organization_id = ?').get(invoiceNumber, orgId);
+        if (clash) invoiceNumber = `${invoiceNumber}-${String(siigoInv.id).slice(0, 6)}`;
+        const dueDate = siigoInv.payments?.[0]?.due_date?.split('T')[0] || null;
+
         await db.prepare(`
           INSERT INTO invoices (
-            client_id, amount, issue_date, status, siigo_id, siigo_status,
+            invoice_number, client_id, amount, issue_date, due_date, status, siigo_id, siigo_status,
             invoice_type, notes, organization_id, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, 'sent', 'con_iva', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'sent', 'con_iva', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `).run(
+          invoiceNumber,
           clientId,
           amount,
           siigoInv.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+          dueDate,
           status,
           siigoInv.id,
-          `Importado de Siigo: ${siigoInv.name || siigoInv.prefix || ''}-${siigoInv.number || ''}`,
+          `Importado de Siigo: ${invoiceNumber}`,
           orgId
         );
 
