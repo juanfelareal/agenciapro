@@ -69,14 +69,23 @@ const Collections = () => {
     setSyncing(true);
     setSyncMsg(null);
     try {
-      const res = await collectionsAPI.syncSiigo({ days: 30 });
-      setSyncMsg({ type: 'success', text: res.data.message });
+      await collectionsAPI.syncSiigo({ days: 30 });
+      // Corre en segundo plano: consultamos el avance cada 3 s
+      let st = { status: 'running' };
+      while (st.status === 'running') {
+        await new Promise((r) => setTimeout(r, 3000));
+        st = (await collectionsAPI.syncSiigoStatus()).data;
+        if (st.status === 'running' && st.progress?.total) {
+          setSyncMsg({ type: 'info', text: `Revisando saldos en Siigo… ${st.progress.done}/${st.progress.total} facturas (${st.progress.markedPaid} ya pagadas)` });
+        }
+      }
+      setSyncMsg({ type: st.status === 'done' ? 'success' : 'error', text: st.message });
       await loadSummary();
     } catch (error) {
       setSyncMsg({ type: 'error', text: error.response?.data?.error || 'No se pudo sincronizar con Siigo' });
     } finally {
       setSyncing(false);
-      setTimeout(() => setSyncMsg(null), 8000);
+      setTimeout(() => setSyncMsg(null), 12000);
     }
   };
 
@@ -793,7 +802,7 @@ const Collections = () => {
         </div>
       </div>
       {syncMsg && (
-        <div className={`mb-6 px-4 py-3 rounded-xl text-sm ${syncMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`mb-6 px-4 py-3 rounded-xl text-sm ${syncMsg.type === 'success' ? 'bg-green-50 text-green-700' : syncMsg.type === 'info' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>
           {syncMsg.text}
         </div>
       )}

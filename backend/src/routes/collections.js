@@ -2,7 +2,7 @@ import express from 'express';
 import db from '../config/database.js';
 import { sendEmail } from '../utils/emailHelper.js';
 import { generatePdfToken } from './invoice-pdf.js';
-import { syncOrgNow } from '../services/siigoAutoSync.js';
+import { startSyncJob, getSyncJob } from '../services/siigoAutoSync.js';
 
 const router = express.Router();
 
@@ -291,24 +291,26 @@ router.post('/sync-siigo', async (req, res) => {
     if (!settings) return res.status(400).json({ error: 'Siigo no está configurado para esta organización' });
     const dryRun = req.query.dry_run === '1' || req.body?.dry_run === true;
     const days = Math.min(parseInt(req.body?.days) || 30, 180);
-    const result = await syncOrgNow(req.orgId, { days, dryRun });
-    res.json({
-      dry_run: dryRun,
-      imported: result.imported.imported,
-      already_existed: result.imported.skipped,
-      checked: result.balances.checked,
-      marked_paid: result.balances.markedPaid,
-      still_open: result.balances.stillOpen,
-      paid_invoices: result.balances.paidInvoices,
-      errors: [...result.imported.errors, ...result.balances.errors],
-      message: dryRun
-        ? `Simulación: ${result.balances.markedPaid} facturas se marcarían como pagadas (${result.balances.stillOpen} siguen abiertas en Siigo)`
-        : `Siigo sincronizado: ${result.imported.imported} facturas nuevas, ${result.balances.markedPaid} marcadas como pagadas, ${result.balances.stillOpen} siguen pendientes`,
-    });
+    // Corre en segundo plano (Siigo limita ~100 consultas/min y la cartera puede tener cientos de facturas)
+    const job = startSyncJob(req.orgId, { days, dryRun });
+    res.json({ status: job.status, started_at: job.startedAt, progress: job.progress, message: 'Sincronización con Siigo en curso' });
   } catch (error) {
     console.error('Error sincronizando Siigo desde Cartera:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Estado del job de sincronización con Siigo
+router.get('/sync-siigo/status', async (req, res) => {
+  const job = getSyncJob(req.orgId);
+  if (!job) return res.json({ status: 'idle' });
+  const r = job.result;
+  const message = job.status === 'done'
+    ? (job.dryRun
+      ? `Simulación: ${r.marked_paid} facturas se marcarían como pagadas (${r.still_open} siguen abiertas en Siigo)`
+      : `Siigo sincronizado: ${r.imported} facturas nuevas, ${r.marked_paid} marcadas como pagadas, ${r.still_open} siguen pendientes`)
+    : job.status === 'failed' ? `Falló la sincronización: ${job.error}` : 'Sincronización con Siigo en curso';
+  res.json({ status: job.status, dry_run: job.dryRun, started_at: job.startedAt, finished_at: job.finishedAt, progress: job.progress, result: r, error: job.error, message });
 });
 
 // Get collection detail for a specific client

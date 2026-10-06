@@ -231,6 +231,7 @@ export const collectionsAPI = {
   cancelScheduled: (id) => api.delete(`/collections/scheduled/${id}`),
   processScheduled: () => api.post('/collections/process-scheduled'),
   syncSiigo: (opts) => api.post('/collections/sync-siigo', opts || {}),
+  syncSiigoStatus: () => api.get('/collections/sync-siigo/status'),
 };
 
 // Expenses API

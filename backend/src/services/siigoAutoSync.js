@@ -223,19 +223,37 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * la marca como pagada cuando el saldo ya es 0. Sin esto, la cartera solo bajaba a mano.
  * `dryRun` solo cuenta, no escribe.
  */
-export async function refreshOpenInvoiceBalances(orgId, { dryRun = false, concurrency = 4 } = {}) {
-  const results = { checked: 0, markedPaid: 0, stillOpen: 0, errors: [], paidInvoices: [] };
+async function getInvoiceWithRetry(orgId, siigoId, attempts = 4) {
+  for (let a = 1; a <= attempts; a++) {
+    try {
+      return await siigoService.getInvoice(orgId, siigoId);
+    } catch (err) {
+      const m = /Rate limit.*?(\d+)\s*seconds?/i.exec(err.message || '');
+      if (m && a < attempts) {
+        const wait = (parseInt(m[1], 10) + 2) * 1000;
+        console.log(`[SiigoAutoSync] Rate limit de Siigo, esperando ${wait / 1000}s…`);
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+export async function refreshOpenInvoiceBalances(orgId, { dryRun = false, concurrency = 2, onProgress = null } = {}) {
+  const results = { checked: 0, markedPaid: 0, stillOpen: 0, errors: [], paidInvoices: [], total: 0 };
   const open = await db.prepare(`
     SELECT id, siigo_id, invoice_number, amount, client_id FROM invoices
     WHERE organization_id = ? AND siigo_id IS NOT NULL AND status IN ('approved', 'invoiced')
   `).all(orgId);
 
+  results.total = open.length;
   const today = new Date().toISOString().split('T')[0];
   for (let i = 0; i < open.length; i += concurrency) {
     const batch = open.slice(i, i + concurrency);
     await Promise.all(batch.map(async (inv) => {
       try {
-        const detail = await siigoService.getInvoice(orgId, inv.siigo_id);
+        const detail = await getInvoiceWithRetry(orgId, inv.siigo_id);
         results.checked++;
         const balance = Number(detail?.balance ?? 0);
         if (balance <= 0) {
@@ -258,9 +276,42 @@ export async function refreshOpenInvoiceBalances(orgId, { dryRun = false, concur
         results.errors.push({ invoiceId: inv.id, siigoId: inv.siigo_id, error: err.message });
       }
     }));
-    if (i + concurrency < open.length) await sleep(250); // respeta el rate limit de Siigo
+    if (onProgress) onProgress({ done: Math.min(i + concurrency, open.length), total: open.length, markedPaid: results.markedPaid });
+    if (i + concurrency < open.length) await sleep(700); // ~100 req/min es el límite de Siigo
   }
   return results;
+}
+
+// ── Job en segundo plano por organización (para el botón de Cartera) ──
+const syncJobs = new Map(); // orgId → { status, startedAt, finishedAt, progress, result, error, dryRun }
+
+export function getSyncJob(orgId) {
+  return syncJobs.get(orgId) || null;
+}
+
+export function startSyncJob(orgId, { days = 30, dryRun = false } = {}) {
+  const current = syncJobs.get(orgId);
+  if (current?.status === 'running') return current;
+  const job = { status: 'running', startedAt: new Date().toISOString(), finishedAt: null, progress: { done: 0, total: 0, markedPaid: 0 }, result: null, error: null, dryRun };
+  syncJobs.set(orgId, job);
+  (async () => {
+    try {
+      const imported = dryRun ? { imported: 0, skipped: 0, errors: [] } : await syncInvoicesForOrg(orgId, days);
+      const balances = await refreshOpenInvoiceBalances(orgId, { dryRun, onProgress: (p) => { job.progress = p; } });
+      job.result = {
+        imported: imported.imported, already_existed: imported.skipped,
+        checked: balances.checked, marked_paid: balances.markedPaid, still_open: balances.stillOpen,
+        paid_invoices: balances.paidInvoices, errors: [...imported.errors, ...balances.errors],
+      };
+      job.status = 'done';
+    } catch (err) {
+      job.status = 'failed';
+      job.error = err.message;
+    } finally {
+      job.finishedAt = new Date().toISOString();
+    }
+  })();
+  return job;
 }
 
 /**
@@ -337,4 +388,4 @@ export async function syncSiigoForAllOrgs() {
   return { startedAt, finishedAt, durationMs, summary };
 }
 
-export default { syncSiigoForAllOrgs, syncOrgNow, refreshOpenInvoiceBalances, syncInvoicesForOrg };
+export default { syncSiigoForAllOrgs, syncOrgNow, refreshOpenInvoiceBalances, syncInvoicesForOrg, startSyncJob, getSyncJob };
