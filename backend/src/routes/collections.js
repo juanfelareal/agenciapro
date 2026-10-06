@@ -42,7 +42,7 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
 
   if (invoices.length === 0) throw new Error('No hay facturas pendientes para este cliente');
 
-  const totalOwed = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+  const totalOwed = invoices.reduce((sum, inv) => sum + Number(inv.siigo_balance ?? inv.amount), 0);
 
   const org = await db.get(`SELECT name, logo_url FROM organizations WHERE id = ?`, [orgId]);
   const orgName = org?.name || 'La Agencia';
@@ -64,7 +64,7 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
         <td style="padding: 14px 16px; font-size: 14px;">${invoiceCell}</td>
         <td style="padding: 14px 16px; font-size: 14px; color: #374151;">${inv.issue_date}</td>
         <td style="padding: 14px 16px; font-size: 14px; color: ${daysAgo > 30 ? '#DC2626' : daysAgo > 15 ? '#F59E0B' : '#374151'}; font-weight: ${daysAgo > 15 ? '600' : '400'};">${daysText}</td>
-        <td style="padding: 14px 16px; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">$${Number(inv.amount).toLocaleString('es-CO')}</td>
+        <td style="padding: 14px 16px; font-size: 14px; font-weight: 600; color: #111827; text-align: right;">$${Number(inv.siigo_balance ?? inv.amount).toLocaleString('es-CO')}</td>
         <td style="padding: 14px 16px; text-align: center;">
           <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; color: white; background-color: ${statusColor};">${statusText}</span>
         </td>
@@ -230,39 +230,96 @@ async function buildReminderEmail({ client_id, custom_message, closing_message, 
   return { html, messageBody, clientDisplayName, orgName, totalOwed, invoiceCount: invoices.length };
 }
 
+// ---------- Helpers de antigüedad / fechas ----------
+const AGING_BUCKETS = ['0-30', '31-60', '61-90', '90+'];
+const COLLECTION_STATUSES = ['pending', 'contacted', 'promised', 'disputed'];
+const CLIENT_NAME_SQL = `CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END`;
+// issue_date/due_date son TEXT 'YYYY-MM-DD'; promise_date es DATE (se devuelve siempre como ::text para evitar desfases de zona horaria)
+const DAYS_OUTSTANDING_SQL = `(CURRENT_DATE - NULLIF(i.issue_date, '')::date)`;
+const TARGET_DATE_SQL = `COALESCE(i.promise_date::text, NULLIF(i.due_date, ''))`;
+
+function agingBucket(days) {
+  if (days === null || days === undefined || Number.isNaN(Number(days))) return null;
+  const d = Number(days);
+  if (d <= 30) return '0-30';
+  if (d <= 60) return '31-60';
+  if (d <= 90) return '61-90';
+  return '90+';
+}
+
+const isDateStr = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+function pdfUrlFor(inv, orgId) {
+  if (!inv.siigo_id) return null;
+  const backendUrl = process.env.BACKEND_URL || 'https://agenciapro-production.up.railway.app';
+  return `${backendUrl}/api/invoice-pdf/${generatePdfToken(inv.id, orgId)}`;
+}
+
+// Totales de lo pendiente por bucket de antigüedad (días desde emisión)
+async function getAgingTotals(orgId) {
+  const rows = await db.all(`
+    SELECT
+      CASE WHEN d <= 30 THEN '0-30' WHEN d <= 60 THEN '31-60' WHEN d <= 90 THEN '61-90' ELSE '90+' END as bucket,
+      COUNT(*)::int as count,
+      COALESCE(SUM(amount), 0) as amount
+    FROM (
+      SELECT COALESCE(i.siigo_balance, i.amount) AS amount, ${DAYS_OUTSTANDING_SQL} as d
+      FROM invoices i
+      WHERE i.status IN ('approved', 'invoiced') AND i.organization_id = ?
+    ) t
+    GROUP BY 1
+  `, [orgId]);
+  const aging = {};
+  for (const b of AGING_BUCKETS) aging[b] = { count: 0, amount: 0 };
+  for (const r of rows) aging[r.bucket] = { count: Number(r.count), amount: Number(r.amount) };
+  return aging;
+}
+
 // Get collections summary (dashboard data)
 router.get('/summary', async (req, res) => {
   try {
+    // Nota: el último recordatorio va en subconsulta para no multiplicar COUNT/SUM por cada correo enviado
     const overdue = await db.all(`
       SELECT
         c.id as client_id,
-        CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name,
+        ${CLIENT_NAME_SQL} as client_name,
         c.email as client_email,
         c.phone as client_phone,
-        COUNT(i.id) as invoice_count,
-        SUM(i.amount) as total_owed,
+        COUNT(i.id)::int as invoice_count,
+        SUM(COALESCE(i.siigo_balance, i.amount)) as total_owed,
         MIN(i.issue_date) as oldest_invoice_date,
-        MIN(i.due_date) as oldest_due_date,
-        MAX(cr.sent_at) as last_reminder_sent
+        MIN(NULLIF(i.due_date, '')) as oldest_due_date,
+        MAX(${DAYS_OUTSTANDING_SQL})::int as oldest_days,
+        COALESCE(
+          MIN(i.promise_date) FILTER (WHERE i.promise_date >= CURRENT_DATE),
+          MAX(i.promise_date)
+        )::text as promise_date,
+        mode() WITHIN GROUP (ORDER BY COALESCE(i.collection_status, 'pending')) as collection_status,
+        (SELECT MAX(cr.sent_at) FROM collection_reminders cr WHERE cr.client_id = c.id AND cr.organization_id = ?) as last_reminder_sent
       FROM invoices i
       JOIN clients c ON i.client_id = c.id
-      LEFT JOIN collection_reminders cr ON cr.client_id = c.id AND cr.organization_id = i.organization_id
       WHERE i.status IN ('approved', 'invoiced')
         AND i.organization_id = ?
       GROUP BY c.id, c.company, c.name, c.email, c.phone
       ORDER BY total_owed DESC
-    `, [req.orgId]);
+    `, [req.orgId, req.orgId]);
+
+    for (const row of overdue) row.aging_bucket = agingBucket(row.oldest_days);
 
     const stats = await db.get(`
       SELECT
-        COUNT(*) as total_invoices,
-        COALESCE(SUM(amount), 0) as total_amount,
-        COUNT(CASE WHEN due_date IS NOT NULL AND due_date < CURRENT_DATE::text THEN 1 END) as overdue_count,
-        COALESCE(SUM(CASE WHEN due_date IS NOT NULL AND due_date < CURRENT_DATE::text THEN amount ELSE 0 END), 0) as overdue_amount
-      FROM invoices
-      WHERE status IN ('approved', 'invoiced')
-        AND organization_id = ?
+        COUNT(*)::int as total_invoices,
+        COALESCE(SUM(COALESCE(i.siigo_balance, i.amount)), 0) as total_amount,
+        COUNT(CASE WHEN NULLIF(i.due_date, '') IS NOT NULL AND i.due_date < CURRENT_DATE::text THEN 1 END)::int as overdue_count,
+        COALESCE(SUM(CASE WHEN NULLIF(i.due_date, '') IS NOT NULL AND i.due_date < CURRENT_DATE::text THEN COALESCE(i.siigo_balance, i.amount) ELSE 0 END), 0) as overdue_amount,
+        COALESCE(SUM(CASE WHEN LEFT(${TARGET_DATE_SQL}, 7) = to_char(CURRENT_DATE, 'YYYY-MM') THEN COALESCE(i.siigo_balance, i.amount) ELSE 0 END), 0) as expected_this_month,
+        COUNT(CASE WHEN LEFT(${TARGET_DATE_SQL}, 7) = to_char(CURRENT_DATE, 'YYYY-MM') THEN 1 END)::int as expected_this_month_count
+      FROM invoices i
+      WHERE i.status IN ('approved', 'invoiced')
+        AND i.organization_id = ?
     `, [req.orgId]);
+
+    stats.aging = await getAgingTotals(req.orgId);
 
     const recentlyPaid = await db.all(`
       SELECT
@@ -308,9 +365,297 @@ router.get('/sync-siigo/status', async (req, res) => {
   const message = job.status === 'done'
     ? (job.dryRun
       ? `Simulación: ${r.marked_paid} facturas se marcarían como pagadas (${r.still_open} siguen abiertas en Siigo)`
-      : `Siigo sincronizado: ${r.imported} facturas nuevas, ${r.marked_paid} marcadas como pagadas, ${r.still_open} siguen pendientes`)
+      : `Siigo sincronizado: ${r.imported + (r.imported_open || 0)} facturas nuevas, ${r.marked_paid} marcadas como pagadas, ${r.still_open} siguen pendientes${r.not_in_siigo?.length ? `, ${r.not_in_siigo.length} abiertas en Orbit que no aparecen en Siigo` : ''}`)
     : job.status === 'failed' ? `Falló la sincronización: ${job.error}` : 'Sincronización con Siigo en curso';
   res.json({ status: job.status, dry_run: job.dryRun, started_at: job.startedAt, finished_at: job.finishedAt, progress: job.progress, result: r, error: job.error, message });
+});
+
+// Lista de facturas de cartera (vista "Por factura")
+// ?status=open|paid|all (default open) &client_id= &from=YYYY-MM-DD &to=YYYY-MM-DD &search=
+router.get('/invoices', async (req, res) => {
+  try {
+    const { status = 'open', client_id, from, to, search } = req.query;
+
+    let where = 'WHERE i.organization_id = ?';
+    const params = [req.orgId];
+
+    if (status === 'paid') where += ` AND i.status = 'paid'`;
+    else if (status === 'all') where += ` AND i.status IN ('approved', 'invoiced', 'paid')`;
+    else where += ` AND i.status IN ('approved', 'invoiced')`;
+
+    if (client_id) { where += ' AND i.client_id = ?'; params.push(client_id); }
+    if (isDateStr(from)) { where += ' AND i.issue_date >= ?'; params.push(from); }
+    if (isDateStr(to)) { where += ' AND i.issue_date <= ?'; params.push(to); }
+    if (search && search.trim()) {
+      where += ' AND (i.invoice_number ILIKE ? OR c.name ILIKE ? OR c.company ILIKE ?)';
+      const like = `%${search.trim()}%`;
+      params.push(like, like, like);
+    }
+
+    const rows = await db.all(`
+      SELECT
+        i.id, i.invoice_number, i.client_id,
+        ${CLIENT_NAME_SQL} as client_name,
+        c.email as client_email,
+        i.issue_date, NULLIF(i.due_date, '') as due_date, i.amount, COALESCE(i.siigo_balance, i.amount) as pending_amount, i.siigo_total, i.siigo_balance, i.status, i.paid_date, i.siigo_id,
+        i.promise_date::text as promise_date,
+        COALESCE(i.collection_status, 'pending') as collection_status,
+        ${DAYS_OUTSTANDING_SQL}::int as days_outstanding,
+        p.name as project_name,
+        (SELECT MAX(cr.sent_at) FROM collection_reminders cr WHERE cr.client_id = i.client_id AND cr.organization_id = i.organization_id) as last_reminder_at
+      FROM invoices i
+      JOIN clients c ON i.client_id = c.id
+      LEFT JOIN projects p ON i.project_id = p.id
+      ${where}
+      ORDER BY i.issue_date ASC, i.id ASC
+    `, params);
+
+    const invoices = rows.map((r) => ({
+      ...r,
+      amount: Number(r.amount), pending_amount: Number(r.pending_amount ?? r.amount), siigo_total: r.siigo_total == null ? null : Number(r.siigo_total), siigo_balance: r.siigo_balance == null ? null : Number(r.siigo_balance),
+      aging_bucket: agingBucket(r.days_outstanding),
+      pdf_url: pdfUrlFor(r, req.orgId),
+    }));
+
+    res.json(invoices);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cartera por mes de emisión (últimos 12 meses) + antigüedad + proyección de caja
+router.get('/by-month', async (req, res) => {
+  try {
+    const monthRows = await db.all(`
+      SELECT
+        to_char(NULLIF(i.issue_date, '')::date, 'YYYY-MM') as month,
+        COUNT(*)::int as invoice_count,
+        COALESCE(SUM(i.amount), 0) as invoiced,
+        COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount ELSE 0 END), 0) as collected,
+        COALESCE(SUM(CASE WHEN i.status IN ('approved', 'invoiced') THEN COALESCE(i.siigo_balance, i.amount) ELSE 0 END), 0) as pending,
+        COUNT(CASE WHEN i.status IN ('approved', 'invoiced') THEN 1 END)::int as pending_count
+      FROM invoices i
+      WHERE i.organization_id = ?
+        AND i.status IN ('approved', 'invoiced', 'paid')
+        AND NULLIF(i.issue_date, '')::date >= (date_trunc('month', CURRENT_DATE) - INTERVAL '11 months')::date
+      GROUP BY 1
+      ORDER BY 1
+    `, [req.orgId]);
+
+    const byMonth = new Map(monthRows.map((r) => [r.month, r]));
+    const { today } = await db.get(`SELECT CURRENT_DATE::text as today`);
+    const [ty, tm] = today.split('-').map(Number);
+    const months = [];
+    for (let k = 11; k >= 0; k--) {
+      const d = new Date(Date.UTC(ty, tm - 1 - k, 1));
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+      const r = byMonth.get(key);
+      const invoiced = Number(r?.invoiced || 0);
+      const collected = Number(r?.collected || 0);
+      months.push({
+        month: key,
+        invoice_count: Number(r?.invoice_count || 0),
+        pending_count: Number(r?.pending_count || 0),
+        invoiced,
+        collected,
+        pending: Number(r?.pending || 0),
+        pct_collected: invoiced > 0 ? Math.round((collected / invoiced) * 1000) / 10 : 0,
+      });
+    }
+
+    const aging = await getAgingTotals(req.orgId);
+
+    // Proyección: pendiente agrupado por semana según promesa de pago, si no vencimiento, si no "sin fecha"
+    const openRows = await db.all(`
+      SELECT i.id, COALESCE(i.siigo_balance, i.amount), ${TARGET_DATE_SQL} as target_date, (i.promise_date IS NOT NULL) as has_promise
+      FROM invoices i
+      WHERE i.status IN ('approved', 'invoiced') AND i.organization_id = ?
+    `, [req.orgId]);
+
+    const mondayOf = (dateStr) => {
+      const d = new Date(dateStr + 'T00:00:00Z');
+      const dow = (d.getUTCDay() + 6) % 7; // lunes = 0
+      d.setUTCDate(d.getUTCDate() - dow);
+      return d;
+    };
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const currentWeekStart = mondayOf(today);
+
+    const groups = new Map();
+    const push = (key, base, row) => {
+      if (!groups.has(key)) groups.set(key, { ...base, amount: 0, count: 0, with_promise: 0 });
+      const g = groups.get(key);
+      g.amount += Number(row.amount);
+      g.count += 1;
+      if (row.has_promise) g.with_promise += 1;
+    };
+
+    for (const row of openRows) {
+      if (!row.target_date || !isDateStr(row.target_date)) {
+        push('no_date', { kind: 'no_date', week_start: null, week_end: null }, row);
+        continue;
+      }
+      const ws = mondayOf(row.target_date);
+      if (ws < currentWeekStart) {
+        push('overdue', { kind: 'overdue', week_start: null, week_end: iso(new Date(currentWeekStart.getTime() - 86400000)) }, row);
+        continue;
+      }
+      const we = new Date(ws.getTime() + 6 * 86400000);
+      push(iso(ws), { kind: 'week', week_start: iso(ws), week_end: iso(we) }, row);
+    }
+
+    const forecast = [...groups.values()].sort((a, b) => {
+      const rank = { overdue: 0, week: 1, no_date: 2 };
+      if (rank[a.kind] !== rank[b.kind]) return rank[a.kind] - rank[b.kind];
+      return (a.week_start || '').localeCompare(b.week_start || '');
+    });
+
+    const noDate = groups.get('no_date');
+    res.json({
+      today,
+      months,
+      aging,
+      forecast,
+      no_date_count: noDate ? noDate.count : 0,
+      no_date_amount: noDate ? noDate.amount : 0,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Actualizar gestión de cobro de una factura (promesa de pago, estado de cobro, vencimiento)
+router.put('/invoices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await db.get('SELECT id, collection_status FROM invoices WHERE id = ? AND organization_id = ?', [id, req.orgId]);
+    if (!existing) return res.status(404).json({ error: 'Factura no encontrada' });
+
+    const body = req.body || {};
+    const sets = [];
+    const params = [];
+
+    if ('promise_date' in body) {
+      if (body.promise_date !== null && body.promise_date !== '' && !isDateStr(body.promise_date)) {
+        return res.status(400).json({ error: 'promise_date debe ser YYYY-MM-DD o null' });
+      }
+      sets.push('promise_date = ?');
+      params.push(body.promise_date || null);
+    }
+    if ('due_date' in body) {
+      if (body.due_date !== null && body.due_date !== '' && !isDateStr(body.due_date)) {
+        return res.status(400).json({ error: 'due_date debe ser YYYY-MM-DD o null' });
+      }
+      sets.push('due_date = ?');
+      params.push(body.due_date || null);
+    }
+    if ('collection_status' in body) {
+      if (!COLLECTION_STATUSES.includes(body.collection_status)) {
+        return res.status(400).json({ error: `collection_status debe ser uno de: ${COLLECTION_STATUSES.join(', ')}` });
+      }
+      sets.push('collection_status = ?');
+      params.push(body.collection_status);
+    } else if (body.promise_date && (existing.collection_status || 'pending') === 'pending') {
+      // Si registran una promesa de pago sobre una factura sin gestión, pasa a "promised"
+      sets.push('collection_status = ?');
+      params.push('promised');
+    }
+
+    if (sets.length === 0) return res.status(400).json({ error: 'Nada que actualizar (promise_date, collection_status, due_date)' });
+
+    params.push(id, req.orgId);
+    await db.run(`UPDATE invoices SET ${sets.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?`, params);
+
+    const updated = await db.get(`
+      SELECT i.id, i.invoice_number, i.client_id, i.issue_date, NULLIF(i.due_date, '') as due_date, i.amount, COALESCE(i.siigo_balance, i.amount) as pending_amount, i.siigo_total, i.siigo_balance, i.status,
+        i.promise_date::text as promise_date, COALESCE(i.collection_status, 'pending') as collection_status,
+        ${DAYS_OUTSTANDING_SQL}::int as days_outstanding
+      FROM invoices i WHERE i.id = ? AND i.organization_id = ?
+    `, [id, req.orgId]);
+    updated.aging_bucket = agingBucket(updated.days_outstanding);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cobro masivo: envía (o programa) el estado de cuenta estándar a varios clientes con saldo pendiente
+// body: { client_ids: [..], scheduled_for?: ISO }
+router.post('/send-bulk', async (req, res) => {
+  try {
+    const { client_ids, scheduled_for } = req.body || {};
+    if (!Array.isArray(client_ids) || client_ids.length === 0) {
+      return res.status(400).json({ error: 'client_ids debe ser una lista con al menos un cliente' });
+    }
+
+    let scheduledDate = null;
+    if (scheduled_for) {
+      scheduledDate = new Date(scheduled_for);
+      if (Number.isNaN(scheduledDate.getTime())) return res.status(400).json({ error: 'scheduled_for no es una fecha válida' });
+      if (scheduledDate <= new Date()) return res.status(400).json({ error: 'La fecha programada debe ser en el futuro' });
+    } else if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
+      return res.status(500).json({ error: 'Configuración de email no encontrada. Configura RESEND_API_KEY o EMAIL_USER/EMAIL_PASS.' });
+    }
+
+    // Máximo 1 envío por cliente por llamada
+    const uniqueIds = [...new Set(client_ids.map((x) => Number(x)).filter((x) => Number.isInteger(x) && x > 0))];
+    const placeholders = uniqueIds.map(() => '?').join(',');
+
+    const debtors = await db.all(`
+      SELECT c.id as client_id, ${CLIENT_NAME_SQL} as client_name, c.email,
+        COUNT(i.id)::int as invoice_count, SUM(COALESCE(i.siigo_balance, i.amount)) as total_owed
+      FROM clients c
+      JOIN invoices i ON i.client_id = c.id AND i.status IN ('approved', 'invoiced') AND i.organization_id = ?
+      WHERE c.organization_id = ? AND c.id IN (${placeholders})
+      GROUP BY c.id, c.company, c.name, c.email
+    `, [req.orgId, req.orgId, ...uniqueIds]);
+
+    const byId = new Map(debtors.map((d) => [Number(d.client_id), d]));
+    const skipped = [];
+    const results = [];
+    let sent = 0;
+    let scheduled = 0;
+
+    for (const cid of uniqueIds) {
+      const d = byId.get(cid);
+      if (!d) { skipped.push({ client_id: cid, reason: 'Sin facturas pendientes o cliente no encontrado' }); continue; }
+      if (!d.email || !d.email.trim()) { skipped.push({ client_id: cid, client_name: d.client_name, reason: 'El cliente no tiene email' }); continue; }
+
+      try {
+        if (scheduledDate) {
+          const r = await db.run(`
+            INSERT INTO scheduled_reminders (client_id, email_to, subject, custom_message, closing_message, invoice_ids, scheduled_for, created_by, organization_id)
+            VALUES (?, ?, NULL, NULL, NULL, NULL, ?, ?, ?)
+          `, [cid, d.email.trim(), scheduledDate.toISOString(), req.teamMember?.id || null, req.orgId]);
+          scheduled += 1;
+          results.push({ client_id: cid, client_name: d.client_name, email: d.email, status: 'scheduled', scheduled_id: r.lastInsertRowid, total_owed: Number(d.total_owed), invoice_count: d.invoice_count });
+        } else {
+          const built = await buildReminderEmail({ client_id: cid, orgId: req.orgId });
+          const emailSubject = `Estado de Cuenta - ${built.clientDisplayName} | ${built.orgName}`;
+          await sendEmail({
+            from: `Estefania Hernandez <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+            to: d.email.trim(),
+            subject: emailSubject,
+            html: built.html,
+          });
+          await db.run(`
+            INSERT INTO collection_reminders (client_id, sent_to, subject, message, total_amount, invoice_count, sent_by, organization_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `, [cid, d.email.trim(), emailSubject, built.messageBody, built.totalOwed, built.invoiceCount, req.teamMember?.id || null, req.orgId]);
+          sent += 1;
+          results.push({ client_id: cid, client_name: d.client_name, email: d.email, status: 'sent', total_owed: built.totalOwed, invoice_count: built.invoiceCount });
+        }
+      } catch (err) {
+        console.error(`Cobro masivo: error con cliente ${cid}:`, err.message);
+        skipped.push({ client_id: cid, client_name: d.client_name, reason: err.message || 'Error enviando' });
+      }
+    }
+
+    res.json({ sent, scheduled, skipped, results, scheduled_for: scheduledDate ? scheduledDate.toISOString() : null });
+  } catch (error) {
+    console.error('Error en cobro masivo:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Get collection detail for a specific client
@@ -318,8 +663,10 @@ router.get('/client/:clientId', async (req, res) => {
   try {
     const { clientId } = req.params;
 
-    const invoices = await db.all(`
-      SELECT i.*, p.name as project_name
+    const rows = await db.all(`
+      SELECT i.*, p.name as project_name,
+        i.promise_date::text as promise_date_text,
+        ${DAYS_OUTSTANDING_SQL}::int as days_outstanding
       FROM invoices i
       LEFT JOIN projects p ON i.project_id = p.id
       WHERE i.client_id = ?
@@ -327,6 +674,14 @@ router.get('/client/:clientId', async (req, res) => {
         AND i.organization_id = ?
       ORDER BY i.issue_date ASC
     `, [clientId, req.orgId]);
+
+    const invoices = rows.map(({ promise_date_text, ...r }) => ({
+      ...r,
+      promise_date: promise_date_text,
+      collection_status: r.collection_status || 'pending',
+      aging_bucket: agingBucket(r.days_outstanding),
+      pdf_url: pdfUrlFor(r, req.orgId),
+    }));
 
     const reminders = await db.all(`
       SELECT * FROM collection_reminders

@@ -2166,6 +2166,15 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_notes_org ON collection_notes(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_reminders_status ON scheduled_reminders(status, scheduled_for)`);
 
+    // Cartera: fecha de promesa de pago y estado de gestión de cobro por factura
+    // collection_status: pending | contacted | promised | disputed
+    await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS promise_date DATE`);
+    await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS collection_status TEXT DEFAULT 'pending'`);
+    // Saldo real según Siigo (con IVA y pagos parciales): la cartera muestra esto cuando existe
+    await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS siigo_total REAL`);
+    await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS siigo_balance REAL`);
+    await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS siigo_balance_synced_at TIMESTAMP`);
+
     // Add shopify_customers column if not exists
     await pool.query(`
       DO $$

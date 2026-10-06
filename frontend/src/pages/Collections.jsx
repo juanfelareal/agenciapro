@@ -1,24 +1,49 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { collectionsAPI } from '../utils/api';
 import {
-  DollarSign, Send, Clock, CheckCircle, AlertTriangle, ChevronRight,
-  ChevronLeft, Mail, StickyNote, X, Calendar, Eye, Filter, RefreshCw
+  Send, Clock, CheckCircle, ChevronLeft, X, Calendar, Eye, RefreshCw, StickyNote, Users, FileText, CalendarDays, Mail,
 } from 'lucide-react';
+import AgingStats from '../components/collections/AgingStats';
+import ClientsView from '../components/collections/ClientsView';
+import InvoicesView from '../components/collections/InvoicesView';
+import MonthlyView from '../components/collections/MonthlyView';
+import BulkSendModal from '../components/collections/BulkSendModal';
+import {
+  BUCKET_STYLES, COLLECTION_STATUSES, EMPTY_INVOICE_FILTERS, formatCurrency, formatDate, formatDateTime, daysLabel, todayStr,
+} from '../components/collections/collectionsUtils';
+
+const TABS = [
+  { id: 'clients', label: 'Por cliente', icon: Users },
+  { id: 'invoices', label: 'Por factura', icon: FileText },
+  { id: 'months', label: 'Por mes', icon: CalendarDays },
+];
 
 const Collections = () => {
   const [summary, setSummary] = useState({ clients: [], stats: {}, recentlyPaid: [] });
+  const [invoices, setInvoices] = useState([]);
+  const [byMonth, setByMonth] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [loadingByMonth, setLoadingByMonth] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientDetail, setClientDetail] = useState(null);
   const [clientNotes, setClientNotes] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // Pestañas y filtros de la vista "Por factura"
+  const [activeTab, setActiveTab] = useState('clients');
+  const [invoiceFilters, setInvoiceFilters] = useState({ ...EMPTY_INVOICE_FILTERS });
+  const [savingInvoiceId, setSavingInvoiceId] = useState(null);
+
   // Send reminder modal
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [reminderStep, setReminderStep] = useState('edit'); // edit | preview
   const [reminderData, setReminderData] = useState({ email_to: '', subject: '', custom_message: '' });
+  const [reminderInvoiceIds, setReminderInvoiceIds] = useState(null); // null = todas las facturas del cliente
+  const [reminderInvoiceLabel, setReminderInvoiceLabel] = useState('');
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewSubject, setPreviewSubject] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -27,13 +52,16 @@ const Collections = () => {
   const [scheduleMode, setScheduleMode] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
 
+  // Bulk send modal
+  const [showBulkModal, setShowBulkModal] = useState(false);
+
   // Note modal
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteData, setNoteData] = useState({ note: '', follow_up_date: '' });
 
   // Mark paid modal
   const [markPaidInvoice, setMarkPaidInvoice] = useState(null);
-  const [paidDate, setPaidDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paidDate, setPaidDate] = useState(todayStr());
 
   // Reminder history
   const [showHistory, setShowHistory] = useState(false);
@@ -47,21 +75,55 @@ const Collections = () => {
   // View mode
   const [view, setView] = useState('overview'); // overview | detail
 
-  useEffect(() => {
-    loadSummary();
+  const showNotice = (type, text) => {
+    setNotice({ type, text });
+    setTimeout(() => setNotice(null), 6000);
+  };
+
+  const loadInvoices = useCallback(async () => {
+    try {
+      setLoadingInvoices(true);
+      const res = await collectionsAPI.getInvoices({ status: 'open' });
+      setInvoices(res.data || []);
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+    } finally {
+      setLoadingInvoices(false);
+    }
   }, []);
 
-  const loadSummary = async () => {
+  const loadByMonth = useCallback(async () => {
     try {
-      setLoading(true);
-      const res = await collectionsAPI.getSummary();
-      setSummary(res.data);
+      setLoadingByMonth(true);
+      const res = await collectionsAPI.getByMonth();
+      setByMonth(res.data);
+    } catch (error) {
+      console.error('Error loading by-month:', error);
+    } finally {
+      setLoadingByMonth(false);
+    }
+  }, []);
+
+  // Recarga resumen + facturas + meses. Se mantiene el nombre loadSummary porque lo usa el flujo de Siigo.
+  const loadSummary = useCallback(async (initial = false) => {
+    try {
+      if (initial) setLoading(true);
+      const [summaryRes] = await Promise.all([
+        collectionsAPI.getSummary(),
+        loadInvoices(),
+        loadByMonth(),
+      ]);
+      setSummary(summaryRes.data);
     } catch (error) {
       console.error('Error loading collections:', error);
     } finally {
-      setLoading(false);
+      if (initial) setLoading(false);
     }
-  };
+  }, [loadInvoices, loadByMonth]);
+
+  useEffect(() => {
+    loadSummary(true);
+  }, [loadSummary]);
 
   // Sincroniza con Siigo (facturas nuevas + marcar pagadas las de saldo 0) y recarga la cartera
   const syncWithSiigo = async () => {
@@ -106,6 +168,31 @@ const Collections = () => {
     }
   };
 
+  // Edición inline de promesa de pago / estado de cobro / vencimiento (optimista)
+  const updateInvoiceField = async (inv, patch) => {
+    const apply = (list) => list.map((i) => (i.id === inv.id ? { ...i, ...patch } : i));
+    setInvoices((prev) => apply(prev));
+    if (clientDetail) setClientDetail((prev) => (prev ? { ...prev, invoices: apply(prev.invoices) } : prev));
+    try {
+      setSavingInvoiceId(inv.id);
+      const res = await collectionsAPI.updateInvoice(inv.id, patch);
+      const saved = res.data || {};
+      const merge = (list) => list.map((i) => (i.id === inv.id ? { ...i, promise_date: saved.promise_date, collection_status: saved.collection_status, due_date: saved.due_date ?? i.due_date } : i));
+      setInvoices((prev) => merge(prev));
+      if (clientDetail) setClientDetail((prev) => (prev ? { ...prev, invoices: merge(prev.invoices) } : prev));
+      // Afecta "Esperado este mes", la proyección y el estado por cliente
+      const summaryRes = await collectionsAPI.getSummary();
+      setSummary(summaryRes.data);
+      loadByMonth();
+    } catch (error) {
+      showNotice('error', error.response?.data?.error || 'No se pudo guardar el cambio');
+      loadInvoices();
+      if (clientDetail) loadClientDetail(clientDetail.client.id);
+    } finally {
+      setSavingInvoiceId(null);
+    }
+  };
+
   const messageTemplates = [
     {
       id: 'cordial',
@@ -130,7 +217,8 @@ const Collections = () => {
     },
   ];
 
-  const openReminderModal = (client) => {
+  // invoiceIds = null → todas las facturas pendientes del cliente; [id] → solo esa factura
+  const openReminderModal = (client, invoiceIds = null, invoiceLabel = '') => {
     setSelectedClient(client);
     const defaultTemplate = messageTemplates[0];
     setReminderData({
@@ -140,12 +228,22 @@ const Collections = () => {
       closing_message: defaultTemplate.closing,
       selectedTemplate: 'cordial',
     });
+    setReminderInvoiceIds(invoiceIds && invoiceIds.length ? invoiceIds : null);
+    setReminderInvoiceLabel(invoiceLabel);
     setReminderStep('edit');
     setPreviewHtml('');
     setReminderResult(null);
     setScheduleMode(false);
     setScheduleDate('');
     setShowReminderModal(true);
+  };
+
+  const openReminderForInvoice = (inv) => {
+    openReminderModal(
+      { client_id: inv.client_id, client_email: inv.client_email || clientDetail?.client?.email || '', client_name: inv.client_name || clientDetail?.client?.company || clientDetail?.client?.name, total_owed: inv.pending_amount ?? inv.amount },
+      [inv.id],
+      inv.invoice_number,
+    );
   };
 
   const loadPreview = async () => {
@@ -155,6 +253,7 @@ const Collections = () => {
         client_id: selectedClient.client_id,
         custom_message: reminderData.custom_message || undefined,
         closing_message: reminderData.closing_message || undefined,
+        invoice_ids: reminderInvoiceIds || undefined,
       });
       setPreviewHtml(res.data.html);
       setPreviewSubject(reminderData.subject || res.data.subject);
@@ -171,12 +270,13 @@ const Collections = () => {
       setSendingReminder(true);
 
       if (scheduleMode && scheduleDate) {
-        const res = await collectionsAPI.scheduleReminder({
+        await collectionsAPI.scheduleReminder({
           client_id: selectedClient.client_id,
           email_to: reminderData.email_to,
           subject: previewSubject || reminderData.subject || undefined,
           custom_message: reminderData.custom_message || undefined,
           closing_message: reminderData.closing_message || undefined,
+          invoice_ids: reminderInvoiceIds || undefined,
           scheduled_for: scheduleDate,
         });
         setReminderResult({ success: true, message: `Correo programado para ${new Date(scheduleDate).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}` });
@@ -187,10 +287,12 @@ const Collections = () => {
           subject: previewSubject || reminderData.subject || undefined,
           custom_message: reminderData.custom_message || undefined,
           closing_message: reminderData.closing_message || undefined,
+          invoice_ids: reminderInvoiceIds || undefined,
         });
         setReminderResult({ success: true, message: res.data.message });
       }
       loadSummary();
+      if (clientDetail) loadClientDetail(clientDetail.client.id);
     } catch (error) {
       setReminderResult({ success: false, message: error.response?.data?.error || 'Error enviando recordatorio' });
     } finally {
@@ -223,12 +325,13 @@ const Collections = () => {
         paid_date: paidDate,
       });
       setMarkPaidInvoice(null);
+      showNotice('success', `Factura ${markPaidInvoice.invoice_number} marcada como pagada`);
       if (clientDetail) {
         loadClientDetail(clientDetail.client.id);
       }
       loadSummary();
     } catch (error) {
-      console.error('Error marking paid:', error);
+      showNotice('error', error.response?.data?.error || 'No se pudo marcar como pagada');
     }
   };
 
@@ -273,37 +376,14 @@ const Collections = () => {
     }
   };
 
-  const getDaysOverdue = (dueDate) => {
-    if (!dueDate) return null;
-    const today = new Date();
-    const due = new Date(dueDate + 'T00:00:00');
-    const diff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
-    return diff;
+  // Navegación entre vistas: tarjeta de bucket → Por factura filtrado; mes → Por factura filtrado por mes
+  const goToInvoicesWithBucket = (bucket) => {
+    setInvoiceFilters({ ...EMPTY_INVOICE_FILTERS, bucket: invoiceFilters.bucket === bucket && activeTab === 'invoices' ? '' : bucket });
+    setActiveTab('invoices');
   };
-
-  const getAgingBadge = (dueDate) => {
-    const days = getDaysOverdue(dueDate);
-    if (days === null) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Sin vencimiento</span>;
-    if (days <= 0) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Al dia</span>;
-    if (days <= 15) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">{days}d vencida</span>;
-    if (days <= 30) return <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">{days}d vencida</span>;
-    return <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">{days}d vencida</span>;
-  };
-
-  const formatCurrency = (amount) => {
-    return `$${Number(amount || 0).toLocaleString('es-CO')}`;
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'));
-    return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const goToInvoicesWithMonth = (month) => {
+    setInvoiceFilters({ ...EMPTY_INVOICE_FILTERS, month });
+    setActiveTab('invoices');
   };
 
   if (loading) {
@@ -318,7 +398,7 @@ const Collections = () => {
   const { clients: debtors, stats, recentlyPaid } = summary;
 
   const renderReminderModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowReminderModal(false)}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowReminderModal(false)}>
       <div className={`bg-white rounded-2xl w-full flex flex-col ${reminderStep === 'preview' ? 'max-w-3xl max-h-[90vh]' : 'max-w-xl max-h-[90vh]'}`} onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
@@ -354,9 +434,27 @@ const Collections = () => {
         {reminderStep === 'edit' && !reminderResult && (
           <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
             <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Cliente</p>
-                <p className="font-medium text-[#17181A]">{selectedClient?.client_name}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Cliente</p>
+                  <p className="font-medium text-[#17181A]">{selectedClient?.client_name}</p>
+                </div>
+                {reminderInvoiceIds ? (
+                  <div className="text-right">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#D7F653]/40 text-[#17181A] border border-[#D7F653]">
+                      <FileText size={12} /> Solo factura {reminderInvoiceLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setReminderInvoiceIds(null); setReminderInvoiceLabel(''); }}
+                      className="block text-xs text-gray-400 hover:text-[#17181A] underline mt-1 ml-auto"
+                    >
+                      Incluir todas las facturas del cliente
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-400 mt-1">Todas las facturas pendientes</span>
+                )}
               </div>
 
               <div>
@@ -384,7 +482,7 @@ const Collections = () => {
               {/* Template selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tono del mensaje</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   {messageTemplates.map((tpl) => (
                     <button
                       key={tpl.id}
@@ -485,7 +583,7 @@ const Collections = () => {
             {/* Schedule toggle + Actions */}
             <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0 space-y-3">
               {/* Schedule option */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => { setScheduleMode(!scheduleMode); if (scheduleMode) setScheduleDate(''); }}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
@@ -533,7 +631,7 @@ const Collections = () => {
   );
 
   const renderNoteModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowNoteModal(false)}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowNoteModal(false)}>
       <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[#17181A]">Agregar Nota de Seguimiento</h3>
@@ -574,13 +672,60 @@ const Collections = () => {
     </div>
   );
 
+  const renderMarkPaidModal = () => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setMarkPaidInvoice(null)}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[#17181A]">Marcar como Pagada</h3>
+          <button onClick={() => setMarkPaidInvoice(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          Factura <strong>{markPaidInvoice.invoice_number}</strong>{markPaidInvoice.client_name ? <> de <strong>{markPaidInvoice.client_name}</strong></> : null} por <strong>{formatCurrency(markPaidInvoice.amount)}</strong>
+        </p>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de pago</label>
+        <input
+          type="date"
+          value={paidDate}
+          onChange={(e) => setPaidDate(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm mb-4"
+        />
+        <div className="flex gap-2 justify-end">
+          <button onClick={() => setMarkPaidInvoice(null)} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100">Cancelar</button>
+          <button onClick={handleMarkPaid} className="px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-medium hover:bg-green-700">Confirmar Pago</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSharedModals = () => (
+    <>
+      {showReminderModal && renderReminderModal()}
+      {showNoteModal && renderNoteModal()}
+      {markPaidInvoice && renderMarkPaidModal()}
+      {showBulkModal && (
+        <BulkSendModal
+          debtors={debtors}
+          onClose={() => setShowBulkModal(false)}
+          onDone={() => loadSummary()}
+        />
+      )}
+    </>
+  );
+
+  const renderNotice = () => notice && (
+    <div className={`mb-6 px-4 py-3 rounded-xl text-sm ${notice.type === 'success' ? 'bg-green-50 text-green-700' : notice.type === 'info' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>
+      {notice.text}
+    </div>
+  );
+
   // ==================== DETAIL VIEW ====================
   if (view === 'detail' && clientDetail) {
-    const { client, invoices, reminders } = clientDetail;
-    const totalOwed = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+    const { client, invoices: clientInvoices, reminders } = clientDetail;
+    const totalOwed = clientInvoices.reduce((sum, inv) => sum + Number(inv.pending_amount ?? inv.amount), 0);
+    const clientForActions = { client_id: client.id, client_email: client.email, client_name: client.company || client.name, total_owed: totalOwed };
 
     return (
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto">
         {/* Back button */}
         <button
           onClick={() => { setView('overview'); setClientDetail(null); }}
@@ -590,20 +735,22 @@ const Collections = () => {
           <span className="text-sm font-medium">Volver a Cartera</span>
         </button>
 
+        {renderNotice()}
+
         {/* Client Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-[#17181A]">{client.company || client.name}</h1>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
               {client.nit && <span>NIT: {client.nit}</span>}
               {client.email && <span>{client.email}</span>}
               {client.phone && <span>{client.phone}</span>}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => {
-                setSelectedClient({ client_id: client.id, client_email: client.email, client_name: client.company || client.name });
+                setSelectedClient(clientForActions);
                 setShowNoteModal(true);
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -612,7 +759,7 @@ const Collections = () => {
               Agregar Nota
             </button>
             <button
-              onClick={() => openReminderModal({ client_id: client.id, client_email: client.email, client_name: client.company || client.name, total_owed: totalOwed })}
+              onClick={() => openReminderModal(clientForActions)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] transition-colors"
             >
               <Send size={16} />
@@ -625,47 +772,100 @@ const Collections = () => {
         <div className="bg-gradient-to-r from-[#17181A] to-[#2D2D4E] rounded-2xl p-6 mb-6">
           <p className="text-white/60 text-sm uppercase tracking-wider">Saldo Pendiente Total</p>
           <p className="text-[#D7F653] text-3xl font-extrabold mt-1">{formatCurrency(totalOwed)}</p>
-          <p className="text-white/50 text-sm mt-1">{invoices.length} factura{invoices.length !== 1 ? 's' : ''}</p>
+          <p className="text-white/50 text-sm mt-1">{clientInvoices.length} factura{clientInvoices.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Invoices */}
         <div className="glass-card overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-lg font-bold text-[#17181A]">Facturas Pendientes</h2>
+            {loadingDetail && <RefreshCw size={16} className="animate-spin text-gray-400" />}
           </div>
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
-                <th className="px-6 py-3 text-left">Factura</th>
-                <th className="px-6 py-3 text-left">Proyecto</th>
-                <th className="px-6 py-3 text-left">Emisión</th>
-                <th className="px-6 py-3 text-left">Vencimiento</th>
-                <th className="px-6 py-3 text-right">Monto</th>
-                <th className="px-6 py-3 text-center">Estado</th>
-                <th className="px-6 py-3 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-[#17181A]">{inv.invoice_number}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{inv.project_name || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{formatDate(inv.issue_date)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{formatDate(inv.due_date)}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-[#17181A] text-right">{formatCurrency(inv.amount)}</td>
-                  <td className="px-6 py-4 text-center">{getAgingBadge(inv.due_date)}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => { setMarkPaidInvoice(inv); setPaidDate(new Date().toISOString().split('T')[0]); }}
-                      className="text-xs font-medium text-green-600 hover:text-green-800 transition-colors"
-                    >
-                      Marcar Pagada
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {clientInvoices.length === 0 ? (
+            <p className="p-10 text-center text-sm text-gray-400">Este cliente ya no tiene facturas pendientes</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px]">
+                <thead>
+                  <tr className="bg-gray-50/70 text-xs text-gray-500 uppercase tracking-wider text-left">
+                    <th className="px-5 py-3">Factura</th>
+                    <th className="px-3 py-3">Proyecto</th>
+                    <th className="px-3 py-3">Emisión</th>
+                    <th className="px-3 py-3">Días</th>
+                    <th className="px-3 py-3">Vence</th>
+                    <th className="px-3 py-3">Promesa</th>
+                    <th className="px-3 py-3">Estado de cobro</th>
+                    <th className="px-3 py-3 text-right">Monto</th>
+                    <th className="px-3 py-3 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {clientInvoices.map((inv) => {
+                    const bStyle = BUCKET_STYLES[inv.aging_bucket] || BUCKET_STYLES['0-30'];
+                    const statusClass = (COLLECTION_STATUSES.find((s) => s.value === inv.collection_status) || COLLECTION_STATUSES[0]).className;
+                    return (
+                      <tr key={inv.id} className={`hover:bg-white/60 transition-colors ${savingInvoiceId === inv.id ? 'opacity-60' : ''}`}>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-[#17181A]">{inv.invoice_number}</span>
+                            {inv.pdf_url && (
+                              <a href={inv.pdf_url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-[#17181A]" title="Ver PDF (Siigo)"><FileText size={14} /></a>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-sm text-gray-600 max-w-[160px] truncate">{inv.project_name || '-'}</td>
+                        <td className="px-3 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(inv.issue_date)}</td>
+                        <td className="px-3 py-3"><span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ${bStyle.badge}`}>{daysLabel(inv.days_outstanding)}</span></td>
+                        <td className="px-3 py-3 text-sm text-gray-600 whitespace-nowrap">{inv.due_date ? formatDate(inv.due_date) : <span className="text-gray-300">-</span>}</td>
+                        <td className="px-3 py-3">
+                          <input
+                            type="date"
+                            value={inv.promise_date || ''}
+                            onChange={(e) => updateInvoiceField(inv, { promise_date: e.target.value || null })}
+                            className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-[130px]"
+                            title="Promesa de pago"
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <select
+                            value={inv.collection_status || 'pending'}
+                            onChange={(e) => updateInvoiceField(inv, { collection_status: e.target.value })}
+                            className={`px-2 py-1 rounded-lg text-xs font-medium border-0 focus:outline-none focus:ring-2 focus:ring-[#D7F653] cursor-pointer ${statusClass}`}
+                          >
+                            {COLLECTION_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-3 py-3 text-sm font-semibold text-[#17181A] text-right whitespace-nowrap">
+                          {formatCurrency(inv.pending_amount ?? inv.amount)}
+                          {inv.siigo_total != null && Number(inv.pending_amount) < Number(inv.siigo_total) && (
+                            <span className="block text-[10px] font-medium text-amber-600">pago parcial · total {formatCurrency(inv.siigo_total)}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => openReminderForInvoice({ ...inv, client_id: client.id, client_email: client.email, client_name: client.company || client.name })}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#17181A] text-[#D7F653] text-xs font-medium hover:bg-[#2D2D4E] transition-colors"
+                              title="Cobrar solo esta factura"
+                            >
+                              <Send size={12} /> Cobrar
+                            </button>
+                            <button
+                              onClick={() => { setMarkPaidInvoice({ ...inv, client_name: client.company || client.name }); setPaidDate(todayStr()); }}
+                              className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+                              title="Marcar pagada"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Two columns: Notes + Reminder History */}
@@ -683,7 +883,7 @@ const Collections = () => {
                   {clientNotes.map((n) => (
                     <div key={n.id} className="bg-gray-50 rounded-xl p-4">
                       <p className="text-sm text-gray-700">{n.note}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                      <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-400">
                         <span>{formatDateTime(n.created_at)}</span>
                         {n.created_by_name && <span>por {n.created_by_name}</span>}
                         {n.follow_up_date && (
@@ -712,12 +912,12 @@ const Collections = () => {
                 <div className="space-y-4">
                   {reminders.map((r) => (
                     <div key={r.id} className="bg-gray-50 rounded-xl p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-[#17181A]">{r.subject}</p>
-                          <p className="text-xs text-gray-500 mt-1">Para: {r.sent_to}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-[#17181A] truncate">{r.subject}</p>
+                          <p className="text-xs text-gray-500 mt-1 truncate">Para: {r.sent_to}</p>
                         </div>
-                        <span className="text-xs text-gray-400">{formatDateTime(r.sent_at)}</span>
+                        <span className="text-xs text-gray-400 whitespace-nowrap">{formatDateTime(r.sent_at)}</span>
                       </div>
                       <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                         <span>{r.invoice_count} factura{r.invoice_count !== 1 ? 's' : ''}</span>
@@ -731,51 +931,23 @@ const Collections = () => {
           </div>
         </div>
 
-        {/* Mark Paid Modal */}
-        {markPaidInvoice && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setMarkPaidInvoice(null)}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-[#17181A]">Marcar como Pagada</h3>
-                <button onClick={() => setMarkPaidInvoice(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">
-                Factura <strong>{markPaidInvoice.invoice_number}</strong> por <strong>{formatCurrency(markPaidInvoice.amount)}</strong>
-              </p>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de pago</label>
-              <input
-                type="date"
-                value={paidDate}
-                onChange={(e) => setPaidDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm mb-4"
-              />
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setMarkPaidInvoice(null)} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100">Cancelar</button>
-                <button onClick={handleMarkPaid} className="px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-medium hover:bg-green-700">Confirmar Pago</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Reminder Modal */}
-        {showReminderModal && renderReminderModal()}
-
-        {/* Note Modal */}
-        {showNoteModal && renderNoteModal()}
+        {renderSharedModals()}
       </div>
     );
   }
 
   // ==================== OVERVIEW ====================
+  const debtorsWithEmail = debtors.filter((d) => d.client_email && d.client_email.trim()).length;
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-[#17181A]">Cartera</h1>
           <p className="text-sm text-gray-500 mt-1">Gestión de cobros y estados de cuenta</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={loadScheduledList}
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -793,11 +965,21 @@ const Collections = () => {
           <button
             onClick={syncWithSiigo}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-white text-sm font-medium hover:bg-black transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
             title="Trae facturas nuevas de Siigo y marca pagadas las que ya tienen saldo 0"
           >
             <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
             {syncing ? 'Sincronizando con Siigo…' : 'Sincronizar Siigo'}
+          </button>
+          <button
+            onClick={() => setShowBulkModal(true)}
+            disabled={debtors.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] transition-colors disabled:opacity-50"
+            title="Enviar el estado de cuenta a todos los clientes con saldo y email"
+          >
+            <Mail size={16} />
+            Cobrar a todos
+            {debtorsWithEmail > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#D7F653] text-[#17181A] text-[11px] font-bold">{debtorsWithEmail}</span>}
           </button>
         </div>
       </div>
@@ -806,142 +988,64 @@ const Collections = () => {
           {syncMsg.text}
         </div>
       )}
+      {renderNotice()}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-              <DollarSign size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Total Pendiente</p>
-              <p className="text-xl font-bold text-[#17181A]">{formatCurrency(stats.total_amount)}</p>
-            </div>
-          </div>
-        </div>
+      {/* Stats + antigüedad */}
+      <AgingStats
+        stats={stats}
+        clientsCount={debtors.length}
+        activeBucket={activeTab === 'invoices' ? invoiceFilters.bucket : null}
+        onBucketClick={goToInvoicesWithBucket}
+      />
 
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center">
-              <Clock size={20} className="text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Facturas Pendientes</p>
-              <p className="text-xl font-bold text-[#17181A]">{stats.total_invoices || 0}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
-              <AlertTriangle size={20} className="text-red-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Vencidas</p>
-              <p className="text-xl font-bold text-red-600">{formatCurrency(stats.overdue_amount)}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-              <CheckCircle size={20} className="text-green-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Clientes por Cobrar</p>
-              <p className="text-xl font-bold text-[#17181A]">{debtors.length}</p>
-            </div>
-          </div>
-        </div>
+      {/* Pestañas */}
+      <div className="flex items-center gap-1 mb-4 bg-white/50 border border-white/80 rounded-xl p-1 w-fit max-w-full overflow-x-auto">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = activeTab === t.id;
+          const count = t.id === 'clients' ? debtors.length : t.id === 'invoices' ? invoices.length : null;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActiveTab(t.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#17181A] text-white shadow-sm' : 'text-gray-600 hover:bg-white/80'}`}
+            >
+              <Icon size={15} className={active ? 'text-[#D7F653]' : ''} />
+              {t.label}
+              {count !== null && <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Client List */}
-      <div className="glass-card overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-[#17181A]">Clientes con Saldo Pendiente</h2>
-        </div>
-
-        {debtors.length === 0 ? (
-          <div className="p-12 text-center">
-            <CheckCircle size={48} className="text-green-400 mx-auto mb-3" />
-            <p className="text-lg font-medium text-gray-600">No hay cartera pendiente</p>
-            <p className="text-sm text-gray-400 mt-1">Todas las facturas están al día</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {/* Column headers */}
-            <div className="px-6 py-2 flex items-center gap-4 bg-gray-50/50 text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <div className="flex-1">Cliente</div>
-              <div className="w-40 text-center">Último cobro</div>
-              <div className="w-36 text-right">Saldo</div>
-              <div className="w-24"></div>
-            </div>
-            {debtors.map((client) => {
-              const daysOverdue = getDaysOverdue(client.oldest_due_date);
-              const isOverdue = daysOverdue !== null && daysOverdue > 0;
-
-              return (
-                <div
-                  key={client.client_id}
-                  className="px-6 py-4 hover:bg-gray-50/50 transition-colors flex items-center gap-4"
-                >
-                  {/* Client info */}
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => loadClientDetail(client.client_id)}>
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-sm font-semibold text-[#17181A] truncate">{client.client_name}</h3>
-                      {isOverdue && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                          {daysOverdue}d vencida
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-400 mt-0.5">{client.invoice_count} factura{client.invoice_count > 1 ? 's' : ''}</p>
-                  </div>
-
-                  {/* Last reminder */}
-                  <div className="w-40 text-center shrink-0">
-                    {client.last_reminder_sent ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <Mail size={12} />
-                        {formatDate(client.last_reminder_sent)}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
-                        Sin cobro
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Amount */}
-                  <div className="text-right w-36 shrink-0">
-                    <p className="text-lg font-bold text-[#17181A]">{formatCurrency(client.total_owed)}</p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openReminderModal(client)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#17181A] text-[#D7F653] text-xs font-medium hover:bg-[#2D2D4E] transition-colors"
-                      title="Enviar estado de cuenta"
-                    >
-                      <Send size={14} />
-                      Cobrar
-                    </button>
-                    <button
-                      onClick={() => loadClientDetail(client.client_id)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-[#17181A] hover:bg-gray-100 transition-colors"
-                      title="Ver detalle"
-                    >
-                      <ChevronRight size={18} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="mb-6">
+        {activeTab === 'clients' && (
+          <ClientsView
+            clients={debtors}
+            onCollect={(client) => openReminderModal(client)}
+            onOpenDetail={loadClientDetail}
+          />
+        )}
+        {activeTab === 'invoices' && (
+          <InvoicesView
+            invoices={invoices}
+            loading={loadingInvoices && invoices.length === 0}
+            filters={invoiceFilters}
+            onFiltersChange={setInvoiceFilters}
+            onCollectInvoice={openReminderForInvoice}
+            onMarkPaid={(inv) => { setMarkPaidInvoice(inv); setPaidDate(todayStr()); }}
+            onUpdateInvoice={updateInvoiceField}
+            savingId={savingInvoiceId}
+          />
+        )}
+        {activeTab === 'months' && (
+          <MonthlyView
+            data={byMonth}
+            loading={loadingByMonth && !byMonth}
+            onSelectMonth={goToInvoicesWithMonth}
+            onGoToInvoices={() => { setInvoiceFilters({ ...EMPTY_INVOICE_FILTERS }); setActiveTab('invoices'); }}
+          />
         )}
       </div>
 
@@ -953,30 +1057,26 @@ const Collections = () => {
           </div>
           <div className="divide-y divide-gray-50">
             {recentlyPaid.map((inv) => (
-              <div key={inv.id} className="px-6 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle size={16} className="text-green-500" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">{inv.client_name}</p>
+              <div key={inv.id} className="px-6 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <CheckCircle size={16} className="text-green-500 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-700 truncate">{inv.client_name}</p>
                     <p className="text-xs text-gray-400">{inv.invoice_number} - {formatDate(inv.paid_date)}</p>
                   </div>
                 </div>
-                <p className="text-sm font-semibold text-green-600">{formatCurrency(inv.amount)}</p>
+                <p className="text-sm font-semibold text-green-600 whitespace-nowrap">{formatCurrency(inv.amount)}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Reminder Modal */}
-      {showReminderModal && renderReminderModal()}
-
-      {/* Note Modal */}
-      {showNoteModal && renderNoteModal()}
+      {renderSharedModals()}
 
       {/* History Modal */}
       {showHistory && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowHistory(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowHistory(false)}>
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-bold text-[#17181A]">Historial de Recordatorios</h3>
@@ -989,13 +1089,13 @@ const Collections = () => {
                 <div className="space-y-3">
                   {reminderHistory.map((r) => (
                     <div key={r.id} className="bg-gray-50 rounded-xl p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-[#17181A]">{r.client_name}</p>
-                          <p className="text-xs text-gray-500 mt-1">{r.subject}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">Para: {r.sent_to}</p>
+                          <p className="text-xs text-gray-500 mt-1 truncate">{r.subject}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">Para: {r.sent_to}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <p className="text-sm font-bold text-[#17181A]">{formatCurrency(r.total_amount)}</p>
                           <p className="text-xs text-gray-400 mt-1">{formatDateTime(r.sent_at)}</p>
                         </div>
@@ -1009,7 +1109,7 @@ const Collections = () => {
         </div>
       )}
       {showScheduled && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowScheduled(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowScheduled(false)}>
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-bold text-[#17181A]">Correos Programados</h3>
@@ -1032,14 +1132,14 @@ const Collections = () => {
                 <div className="space-y-3">
                   {scheduledList.map((s) => (
                     <div key={s.id} className="bg-gray-50 rounded-xl p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-[#17181A]">{s.client_name}</p>
-                          <p className="text-xs text-gray-500 mt-1">Para: {s.email_to}</p>
+                          <p className="text-xs text-gray-500 mt-1 truncate">Para: {s.email_to}</p>
                           <p className="text-xs text-gray-400 mt-0.5">Programado: {formatDateTime(s.scheduled_for)}</p>
                           {s.error_message && <p className="text-xs text-red-500 mt-1">Error: {s.error_message}</p>}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             s.status === 'sent' ? 'bg-green-100 text-green-700' :
                             s.status === 'failed' ? 'bg-red-100 text-red-700' :

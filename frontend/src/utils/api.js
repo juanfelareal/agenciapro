@@ -232,6 +232,11 @@ export const collectionsAPI = {
   processScheduled: () => api.post('/collections/process-scheduled'),
   syncSiigo: (opts) => api.post('/collections/sync-siigo', opts || {}),
   syncSiigoStatus: () => api.get('/collections/sync-siigo/status'),
+  // Vistas por factura / por mes + gestión de cobro
+  getInvoices: (params) => api.get('/collections/invoices', { params }),
+  getByMonth: () => api.get('/collections/by-month'),
+  updateInvoice: (id, data) => api.put(`/collections/invoices/${id}`, data),
+  sendBulk: (data) => api.post('/collections/send-bulk', data),
 };
 
 // Expenses API
