@@ -8,6 +8,8 @@ import {
 const Collections = () => {
   const [summary, setSummary] = useState({ clients: [], stats: {}, recentlyPaid: [] });
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientDetail, setClientDetail] = useState(null);
   const [clientNotes, setClientNotes] = useState([]);
@@ -58,6 +60,23 @@ const Collections = () => {
       console.error('Error loading collections:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Sincroniza con Siigo (facturas nuevas + marcar pagadas las de saldo 0) y recarga la cartera
+  const syncWithSiigo = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await collectionsAPI.syncSiigo({ days: 30 });
+      setSyncMsg({ type: 'success', text: res.data.message });
+      await loadSummary();
+    } catch (error) {
+      setSyncMsg({ type: 'error', text: error.response?.data?.error || 'No se pudo sincronizar con Siigo' });
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMsg(null), 8000);
     }
   };
 
@@ -763,14 +782,21 @@ const Collections = () => {
             Historial
           </button>
           <button
-            onClick={loadSummary}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={syncWithSiigo}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-white text-sm font-medium hover:bg-black transition-colors disabled:opacity-60"
+            title="Trae facturas nuevas de Siigo y marca pagadas las que ya tienen saldo 0"
           >
-            <RefreshCw size={16} />
-            Actualizar
+            <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Sincronizando con Siigo…' : 'Sincronizar Siigo'}
           </button>
         </div>
       </div>
+      {syncMsg && (
+        <div className={`mb-6 px-4 py-3 rounded-xl text-sm ${syncMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          {syncMsg.text}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

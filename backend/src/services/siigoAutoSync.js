@@ -20,14 +20,14 @@ const formatDate = (date) => {
 /**
  * Sync invoices from Siigo for a specific organization
  */
-async function syncInvoicesForOrg(orgId) {
+export async function syncInvoicesForOrg(orgId, days = 7) {
   const results = { imported: 0, skipped: 0, errors: [] };
 
   try {
-    // Sync last 7 days to cover backdated invoices
+    // Sync last N days (default 7) to cover backdated invoices
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7);
+    startDate.setDate(startDate.getDate() - days);
 
     const siigoInvoices = await siigoService.getInvoices(
       orgId,
@@ -216,6 +216,63 @@ async function syncExpensesForOrg(orgId) {
 /**
  * Main function: Sync Siigo for ALL organizations with active Siigo integration
  */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Revisa en Siigo el saldo de cada factura ABIERTA (approved/invoiced) que vino de Siigo y
+ * la marca como pagada cuando el saldo ya es 0. Sin esto, la cartera solo bajaba a mano.
+ * `dryRun` solo cuenta, no escribe.
+ */
+export async function refreshOpenInvoiceBalances(orgId, { dryRun = false, concurrency = 4 } = {}) {
+  const results = { checked: 0, markedPaid: 0, stillOpen: 0, errors: [], paidInvoices: [] };
+  const open = await db.prepare(`
+    SELECT id, siigo_id, invoice_number, amount, client_id FROM invoices
+    WHERE organization_id = ? AND siigo_id IS NOT NULL AND status IN ('approved', 'invoiced')
+  `).all(orgId);
+
+  const today = new Date().toISOString().split('T')[0];
+  for (let i = 0; i < open.length; i += concurrency) {
+    const batch = open.slice(i, i + concurrency);
+    await Promise.all(batch.map(async (inv) => {
+      try {
+        const detail = await siigoService.getInvoice(orgId, inv.siigo_id);
+        results.checked++;
+        const balance = Number(detail?.balance ?? 0);
+        if (balance <= 0) {
+          results.markedPaid++;
+          results.paidInvoices.push({ id: inv.id, invoice_number: inv.invoice_number, amount: inv.amount, client_id: inv.client_id });
+          if (!dryRun) {
+            await db.prepare(`
+              UPDATE invoices SET status = 'paid', paid_date = COALESCE(paid_date, ?), updated_at = CURRENT_TIMESTAMP
+              WHERE id = ? AND organization_id = ?
+            `).run(today, inv.id, orgId);
+            await db.prepare(`
+              INSERT INTO invoice_status_history (invoice_id, from_status, to_status, changed_by)
+              VALUES (?, 'invoiced', 'paid', NULL)
+            `).run(inv.id);
+          }
+        } else {
+          results.stillOpen++;
+        }
+      } catch (err) {
+        results.errors.push({ invoiceId: inv.id, siigoId: inv.siigo_id, error: err.message });
+      }
+    }));
+    if (i + concurrency < open.length) await sleep(250); // respeta el rate limit de Siigo
+  }
+  return results;
+}
+
+/**
+ * Sincronización manual de una organización (botón en Cartera): importa facturas nuevas
+ * de los últimos `days` días y actualiza el estado de pago de las abiertas.
+ */
+export async function syncOrgNow(orgId, { days = 30, dryRun = false } = {}) {
+  const imported = dryRun ? { imported: 0, skipped: 0, errors: [] } : await syncInvoicesForOrg(orgId, days);
+  const balances = await refreshOpenInvoiceBalances(orgId, { dryRun });
+  return { imported, balances };
+}
+
 export async function syncSiigoForAllOrgs() {
   const startedAt = new Date();
   console.log('[SiigoAutoSync] Starting automatic sync...');
@@ -247,6 +304,14 @@ export async function syncSiigoForAllOrgs() {
         summary.invoices.skipped += invResults.skipped;
         summary.invoices.errors += invResults.errors.length;
 
+        // Marcar pagadas las facturas abiertas cuyo saldo en Siigo ya es 0
+        try {
+          const bal = await refreshOpenInvoiceBalances(orgId);
+          if (bal.markedPaid) console.log(`[SiigoAutoSync] Org ${orgId}: ${bal.markedPaid} facturas marcadas como pagadas (saldo 0 en Siigo)`);
+        } catch (err) {
+          console.error(`[SiigoAutoSync] Error refrescando saldos org ${orgId}:`, err.message);
+        }
+
         // Sync expenses
         const expResults = await syncExpensesForOrg(orgId);
         summary.expenses.imported += expResults.imported;
@@ -272,4 +337,4 @@ export async function syncSiigoForAllOrgs() {
   return { startedAt, finishedAt, durationMs, summary };
 }
 
-export default { syncSiigoForAllOrgs };
+export default { syncSiigoForAllOrgs, syncOrgNow, refreshOpenInvoiceBalances, syncInvoicesForOrg };

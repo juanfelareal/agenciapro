@@ -230,6 +230,7 @@ export const collectionsAPI = {
   getScheduled: (filters) => api.get('/collections/scheduled', { params: filters }),
   cancelScheduled: (id) => api.delete(`/collections/scheduled/${id}`),
   processScheduled: () => api.post('/collections/process-scheduled'),
+  syncSiigo: (opts) => api.post('/collections/sync-siigo', opts || {}),
 };
 
 // Expenses API

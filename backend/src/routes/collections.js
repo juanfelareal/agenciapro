@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../config/database.js';
 import { sendEmail } from '../utils/emailHelper.js';
 import { generatePdfToken } from './invoice-pdf.js';
+import { syncOrgNow } from '../services/siigoAutoSync.js';
 
 const router = express.Router();
 
@@ -278,6 +279,34 @@ router.get('/summary', async (req, res) => {
 
     res.json({ clients: overdue, stats, recentlyPaid });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Sincronizar con Siigo desde Cartera: importa facturas nuevas (30 días) y marca pagadas las que ya tienen saldo 0.
+// ?dry_run=1 solo cuenta qué pasaría, sin escribir.
+router.post('/sync-siigo', async (req, res) => {
+  try {
+    const settings = await db.get('SELECT id FROM siigo_settings WHERE organization_id = ? AND is_active = 1', [req.orgId]);
+    if (!settings) return res.status(400).json({ error: 'Siigo no está configurado para esta organización' });
+    const dryRun = req.query.dry_run === '1' || req.body?.dry_run === true;
+    const days = Math.min(parseInt(req.body?.days) || 30, 180);
+    const result = await syncOrgNow(req.orgId, { days, dryRun });
+    res.json({
+      dry_run: dryRun,
+      imported: result.imported.imported,
+      already_existed: result.imported.skipped,
+      checked: result.balances.checked,
+      marked_paid: result.balances.markedPaid,
+      still_open: result.balances.stillOpen,
+      paid_invoices: result.balances.paidInvoices,
+      errors: [...result.imported.errors, ...result.balances.errors],
+      message: dryRun
+        ? `Simulación: ${result.balances.markedPaid} facturas se marcarían como pagadas (${result.balances.stillOpen} siguen abiertas en Siigo)`
+        : `Siigo sincronizado: ${result.imported.imported} facturas nuevas, ${result.balances.markedPaid} marcadas como pagadas, ${result.balances.stillOpen} siguen pendientes`,
+    });
+  } catch (error) {
+    console.error('Error sincronizando Siigo desde Cartera:', error);
     res.status(500).json({ error: error.message });
   }
 });
