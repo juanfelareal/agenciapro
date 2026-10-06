@@ -83,6 +83,8 @@ import formShareRoutes from './src/routes/form-share.js';
 import collectionsRoutes from './src/routes/collections.js';
 import clientCallsRoutes from './src/routes/client-calls.js';
 import clientLogbookRoutes from './src/routes/client-logbook.js';
+// Mejoras de Orbit (sugerencias internas del equipo)
+import orbitFeedbackRoutes from './src/routes/orbit-feedback.js';
 // Ad Creative Tagging
 import adTagRoutes from './src/routes/ad-tags.js';
 // Chat
@@ -283,6 +285,7 @@ app.use('/api/invoice-pdf', invoicePdfRoutes);
 app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
 app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
 app.use('/api/client-logbook', teamAuthMiddleware, clientLogbookRoutes);
+app.use('/api/orbit-feedback', teamAuthMiddleware, orbitFeedbackRoutes);
 // Client Documents
 import clientDocumentsRoutes from './src/routes/client-documents.js';
 app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);

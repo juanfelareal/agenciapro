@@ -34,6 +34,7 @@ import SOPs from './pages/SOPs';
 import Forms from './pages/Forms';
 import ProjectTemplates from './pages/ProjectTemplates';
 import Collections from './pages/Collections';
+import OrbitFeedback from './pages/OrbitFeedback';
 import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
@@ -577,6 +578,7 @@ function App() {
                 {/* Agents routes hidden until API auth is resolved */}
                 {/* <Route path="agents" element={<Agents />} /> */}
                 {/* <Route path="agents/:slug" element={<Agents />} /> */}
+                <Route path="mejoras" element={<OrbitFeedback />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>

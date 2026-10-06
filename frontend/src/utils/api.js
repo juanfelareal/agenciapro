@@ -109,6 +109,31 @@ export const clientLogbookAPI = {
   deleteAction: (clientId, entryId, actionId) => api.delete(`/client-logbook/${clientId}/${entryId}/actions/${actionId}`),
 };
 
+// Mejoras de Orbit (tablero interno de sugerencias/errores/ideas)
+export const orbitFeedbackAPI = {
+  summary: () => api.get('/orbit-feedback/summary'),
+  list: (params) => api.get('/orbit-feedback', { params }),
+  get: (id) => api.get(`/orbit-feedback/${id}`),
+  create: (data) => api.post('/orbit-feedback', data),
+  update: (id, data) => api.put(`/orbit-feedback/${id}`, data),
+  delete: (id) => api.delete(`/orbit-feedback/${id}`),
+  vote: (id) => api.post(`/orbit-feedback/${id}/vote`),
+  comments: (id) => api.get(`/orbit-feedback/${id}/comments`),
+  addComment: (id, data) => api.post(`/orbit-feedback/${id}/comments`, data),
+  deleteComment: (commentId) => api.delete(`/orbit-feedback/comments/${commentId}`),
+  // Sube un pantallazo (png/jpg/webp/gif, máx 8 MB) y devuelve { url }
+  upload: (file, onProgress) => {
+    const fd = new FormData();
+    fd.append('file', file, file.name || 'pantallazo.png');
+    return api.post('/orbit-feedback/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onProgress
+        ? (e) => onProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)
+        : undefined,
+    });
+  },
+};
+
 export const clientReportsAPI = {
   list: (clientId) => api.get(`/client-reports/${clientId}`),
   upload: (clientId, formData) =>

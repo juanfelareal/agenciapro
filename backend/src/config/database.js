@@ -2023,6 +2023,50 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_logbook_entries_org ON client_logbook_entries(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_logbook_actions_entry ON client_logbook_actions(entry_id)`);
 
+    // ─── Mejoras de Orbit (tablero interno de sugerencias/errores/ideas del equipo) ───
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orbit_feedback (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        body TEXT,
+        category TEXT NOT NULL DEFAULT 'mejora' CHECK(category IN ('mejora', 'error', 'idea', 'pregunta')),
+        status TEXT NOT NULL DEFAULT 'nueva' CHECK(status IN ('nueva', 'en_revision', 'en_progreso', 'hecha', 'descartada')),
+        priority TEXT NOT NULL DEFAULT 'media' CHECK(priority IN ('alta', 'media', 'baja')),
+        page TEXT,
+        images JSONB DEFAULT '[]',
+        votes INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        resolved_at TIMESTAMPTZ
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orbit_feedback_comments (
+        id SERIAL PRIMARY KEY,
+        feedback_id INTEGER NOT NULL REFERENCES orbit_feedback(id) ON DELETE CASCADE,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        body TEXT NOT NULL,
+        images JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orbit_feedback_votes (
+        feedback_id INTEGER NOT NULL REFERENCES orbit_feedback(id) ON DELETE CASCADE,
+        team_member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (feedback_id, team_member_id)
+      )
+    `);
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_orbit_feedback_org_status ON orbit_feedback(organization_id, status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_orbit_feedback_comments_feedback ON orbit_feedback_comments(feedback_id)`);
+
     // Ad tag indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_values_category ON ad_tag_values(category_id)`);

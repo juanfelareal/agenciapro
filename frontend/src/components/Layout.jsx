@@ -30,8 +30,10 @@ import {
   FileSignature,
   Share2,
   Mail,
+  Lightbulb,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { orbitFeedbackAPI } from '../utils/api';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
@@ -46,6 +48,15 @@ const Layout = ({ children }) => {
   const [finanzasExpanded, setFinanzasExpanded] = useState(false);
   // Chat oculto del sidebar — sin polling de no-leídos (módulo en pausa)
   const chatUnreadCount = 0;
+  // Mejoras de Orbit: sugerencias en estado "nueva" (badge). Se carga una vez al montar.
+  const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    orbitFeedbackAPI.summary()
+      .then((res) => { if (!cancelled) setNewFeedbackCount(res.data?.nueva || 0); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -302,6 +313,35 @@ const Layout = ({ children }) => {
 
         {/* Bottom Actions */}
         <div className="p-3 space-y-1 border-t border-white/60">
+          {/* Mejoras de Orbit */}
+          <Link
+            to="/app/mejoras"
+            className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+              isActive('/app/mejoras')
+                ? 'bg-[#17181A] text-[#D7F653]'
+                : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+            }`}
+            title={sidebarCollapsed ? 'Mejoras de Orbit' : ''}
+          >
+            <Lightbulb size={20} className="flex-shrink-0" />
+            {!sidebarCollapsed && <span className="truncate flex-1">Mejoras de Orbit</span>}
+            {!sidebarCollapsed && newFeedbackCount > 0 && (
+              <span className={`ml-auto text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
+                isActive('/app/mejoras') ? 'bg-[#D7F653] text-[#17181A]' : 'bg-[#17181A] text-[#D7F653]'
+              }`}>
+                {newFeedbackCount > 99 ? '99+' : newFeedbackCount}
+              </span>
+            )}
+            {sidebarCollapsed && newFeedbackCount > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-[#D7F653] ring-2 ring-white rounded-full" />
+            )}
+            {sidebarCollapsed && (
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                Mejoras de Orbit{newFeedbackCount > 0 ? ` · ${newFeedbackCount} nuevas` : ''}
+              </div>
+            )}
+          </Link>
+
           {/* Settings Link */}
           <Link
             to="/app/settings"
