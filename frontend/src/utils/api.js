@@ -9,6 +9,17 @@ const api = axios.create({
   },
 });
 
+// Adjunta el token en cada petición aunque la página se monte antes de que
+// AuthContext termine de restaurar la sesión (rutas sin ProtectedRoute, recargas).
+api.interceptors.request.use((config) => {
+  const hasHeader = config.headers?.Authorization || api.defaults.headers.common['Authorization'];
+  if (!hasHeader) {
+    const token = localStorage.getItem('authToken');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // ------------------------------------------------------------
 // 401 handling — verify-before-logout
 // ------------------------------------------------------------
