@@ -28,7 +28,6 @@ import {
   Megaphone,
   Video,
   FileSignature,
-  Share2,
   Mail,
   Lightbulb,
 } from 'lucide-react';
@@ -70,7 +69,6 @@ const Layout = ({ children }) => {
     { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm' },
     { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients' },
     { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc' },
-    { name: 'Social', path: '/app/social', icon: Share2, permission: null },
     { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos' },
     { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
     { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },

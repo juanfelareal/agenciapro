@@ -55,7 +55,6 @@ import UGCProjects from './pages/UGCProjects';
 import UGCProjectDetail from './pages/UGCProjectDetail';
 import UGCRegister from './pages/UGCRegister';
 import DocumentTemplates from './pages/DocumentTemplates';
-import Social from './pages/Social';
 import FinancialDashboard from './pages/FinancialDashboard';
 import ClientFinancialDashboard from './pages/ClientFinancialDashboard';
 
@@ -439,14 +438,6 @@ function App() {
                   element={
                     <ProtectedRoute permission="ugc">
                       <UGCCreatorDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="social"
-                  element={
-                    <ProtectedRoute>
-                      <Social />
                     </ProtectedRoute>
                   }
                 />
