@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   DndContext, closestCorners, PointerSensor, useSensor, useSensors,
   DragOverlay, useDroppable
@@ -258,6 +258,16 @@ function StageColumn({ stage, creators, onCreatorClick, onToggleFavorite, lists,
 // ========================================
 export default function UGC() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // One-shot notice passed via navigate(..., { state: { notice } }) (e.g. after deleting a creator)
+  const [notice, setNotice] = useState(location.state?.notice || null);
+  useEffect(() => {
+    if (!location.state?.notice) return;
+    // Clear the state so the notice doesn't reappear on refresh / back
+    navigate(location.pathname + location.search, { replace: true, state: null });
+    const t = setTimeout(() => setNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Filters, view mode and pagination live in the URL so "atrás" from a creator
   // brings you back to exactly the same view (same filters, same page).
   const [searchParams, setSearchParams] = useSearchParams();
@@ -635,6 +645,15 @@ export default function UGC() {
 
   return (
     <div className="h-full flex flex-col">
+      {notice && (
+        <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-[#17181A]">
+          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+          <span className="flex-1">{notice}</span>
+          <button onClick={() => setNotice(null)} className="p-1 hover:bg-gray-100 rounded-lg" aria-label="Cerrar aviso">
+            <X className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>

@@ -546,8 +546,8 @@ router.post('/creators', async (req, res) => {
     const {
       full_name, email, phone, cedula, social_networks,
       address, city, department, postal_code, shipping_notes,
-      industries, bio, portfolio_url, profile_photo_url, stage_id, notes, source,
-      portfolio, rate_per_video, traits, languages, equipment, availability
+      industries, other_industry, bio, portfolio_url, profile_photo_url, stage_id, notes, source,
+      portfolio, rate_per_video, default_rate, traits, languages, equipment, availability
     } = req.body;
 
     if (!full_name || !phone) {
@@ -558,14 +558,14 @@ router.post('/creators', async (req, res) => {
       `INSERT INTO ugc_creators (
         full_name, email, phone, cedula, social_networks,
         address, city, department, postal_code, shipping_notes,
-        industries, bio, portfolio_url, profile_photo_url, stage_id, notes, source, organization_id,
-        portfolio, rate_per_video, traits, languages, equipment, availability
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        industries, other_industry, bio, portfolio_url, profile_photo_url, stage_id, notes, source, organization_id,
+        portfolio, rate_per_video, default_rate, traits, languages, equipment, availability
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         full_name, email, phone, cedula, JSON.stringify(social_networks || {}),
         address, city, department, postal_code, shipping_notes,
-        industries || [], bio, portfolio_url, profile_photo_url, stage_id, notes, source || 'manual', req.orgId,
-        JSON.stringify(portfolio || {}), rate_per_video || null, JSON.stringify(traits || {}),
+        industries || [], other_industry || null, bio, portfolio_url, profile_photo_url, stage_id || null, notes, source || 'manual', req.orgId,
+        JSON.stringify(portfolio || {}), rate_per_video || null, parseRate(default_rate), JSON.stringify(traits || {}),
         languages || [], equipment || [], JSON.stringify(availability || {})
       ]
     );
@@ -577,35 +577,95 @@ router.post('/creators', async (req, res) => {
   }
 });
 
-// PUT /api/ugc/creators/:id - Update creator
+// PUT /api/ugc/creators/:id - Update creator (partial: only fields present in body are updated)
+const CREATOR_TEXT_FIELDS = [
+  'full_name', 'email', 'phone', 'cedula', 'address', 'city', 'department', 'postal_code',
+  'shipping_notes', 'other_industry', 'bio', 'portfolio_url', 'profile_photo_url', 'notes', 'source'
+];
+const CREATOR_JSON_FIELDS = ['social_networks', 'portfolio', 'traits', 'availability'];
+const CREATOR_ARRAY_FIELDS = ['industries', 'languages', 'equipment'];
+
+function parseRate(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 router.put('/creators/:id', async (req, res) => {
   try {
-    const {
-      full_name, email, phone, cedula, social_networks,
-      address, city, department, postal_code, shipping_notes,
-      industries, bio, portfolio_url, profile_photo_url, stage_id, notes,
-      portfolio, rate_per_video, traits, languages, equipment, availability
-    } = req.body;
+    const body = req.body || {};
+    const sets = [];
+    const params = [];
+    const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
 
+    if (has('full_name') && !String(body.full_name || '').trim()) {
+      return res.status(400).json({ error: 'El nombre es obligatorio' });
+    }
+    if (has('phone') && !String(body.phone || '').trim()) {
+      return res.status(400).json({ error: 'El teléfono es obligatorio' });
+    }
+
+    for (const f of CREATOR_TEXT_FIELDS) {
+      if (!has(f)) continue;
+      const v = body[f];
+      sets.push(`${f} = ?`);
+      params.push(v === undefined || v === null ? null : (typeof v === 'string' ? v.trim() || null : String(v)));
+    }
+    for (const f of CREATOR_JSON_FIELDS) {
+      if (!has(f)) continue;
+      const v = body[f];
+      sets.push(`${f} = ?`);
+      params.push(JSON.stringify(v && typeof v === 'object' ? v : {}));
+    }
+    for (const f of CREATOR_ARRAY_FIELDS) {
+      if (!has(f)) continue;
+      const v = body[f];
+      sets.push(`${f} = ?`);
+      params.push(Array.isArray(v) ? v.filter(Boolean).map(String) : []);
+    }
+    if (has('stage_id')) {
+      sets.push('stage_id = ?');
+      params.push(body.stage_id ? parseInt(body.stage_id) || null : null);
+    }
+    if (has('rate_per_video')) {
+      sets.push('rate_per_video = ?');
+      const r = parseRate(body.rate_per_video);
+      params.push(r === null ? null : Math.round(r));
+    }
+    if (has('default_rate')) {
+      sets.push('default_rate = ?');
+      params.push(parseRate(body.default_rate));
+    }
+    if (has('is_favorite')) {
+      sets.push('is_favorite = ?');
+      params.push(!!body.is_favorite);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    const existing = await db.get(
+      'SELECT id FROM ugc_creators WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+    if (!existing) {
+      return res.status(404).json({ error: 'Creador no encontrado' });
+    }
+
+    sets.push('updated_at = CURRENT_TIMESTAMP');
     await db.run(
-      `UPDATE ugc_creators SET
-        full_name = ?, email = ?, phone = ?, cedula = ?, social_networks = ?,
-        address = ?, city = ?, department = ?, postal_code = ?, shipping_notes = ?,
-        industries = ?, bio = ?, portfolio_url = ?, profile_photo_url = ?, stage_id = ?, notes = ?,
-        portfolio = ?, rate_per_video = ?, traits = ?, languages = ?, equipment = ?, availability = ?,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND organization_id = ?`,
-      [
-        full_name, email, phone, cedula, JSON.stringify(social_networks || {}),
-        address, city, department, postal_code, shipping_notes,
-        industries || [], bio, portfolio_url, profile_photo_url, stage_id, notes,
-        JSON.stringify(portfolio || {}), rate_per_video || null, JSON.stringify(traits || {}),
-        languages || [], equipment || [], JSON.stringify(availability || {}),
-        req.params.id, req.orgId
-      ]
+      `UPDATE ugc_creators SET ${sets.join(', ')} WHERE id = ? AND organization_id = ?`,
+      [...params, req.params.id, req.orgId]
     );
 
-    const creator = await db.get('SELECT * FROM ugc_creators WHERE id = ?', [req.params.id]);
+    const creator = await db.get(
+      `SELECT c.*, s.name as stage_name, s.color as stage_color
+       FROM ugc_creators c
+       LEFT JOIN ugc_creator_stages s ON c.stage_id = s.id
+       WHERE c.id = ?`,
+      [req.params.id]
+    );
     res.json(creator);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -665,14 +725,29 @@ router.patch('/creators/:id/favorite', async (req, res) => {
   }
 });
 
-// DELETE /api/ugc/creators/:id - Delete creator
+// DELETE /api/ugc/creators/:id - Delete creator (admin/manager only)
+// Dependent rows are removed by FK ON DELETE CASCADE: ugc_creator_list_members, ugc_assignments,
+// ugc_creator_payments, ugc_creator_notes, ugc_project_creators (and its ugc_signed_contracts).
 router.delete('/creators/:id', async (req, res) => {
   try {
+    const role = req.teamMember?.role;
+    if (!['admin', 'manager'].includes(role)) {
+      return res.status(403).json({ error: 'Solo administradores o managers pueden eliminar creadores' });
+    }
+
+    const creator = await db.get(
+      'SELECT id, full_name FROM ugc_creators WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+    if (!creator) {
+      return res.status(404).json({ error: 'Creador no encontrado' });
+    }
+
     await db.run(
       'DELETE FROM ugc_creators WHERE id = ? AND organization_id = ?',
       [req.params.id, req.orgId]
     );
-    res.json({ message: 'Creator deleted' });
+    res.json({ message: 'Creador eliminado', id: creator.id, full_name: creator.full_name });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1593,7 +1668,8 @@ router.get('/projects/:id', async (req, res) => {
     // Get creators assigned to this project
     const creators = await db.all(
       `SELECT pc.*, cr.full_name, cr.email, cr.phone, cr.city, cr.department,
-              cr.profile_photo_url, cr.social_networks, cr.industries
+              cr.profile_photo_url, cr.social_networks, cr.industries,
+              cr.default_rate, cr.rate_per_video
        FROM ugc_project_creators pc
        JOIN ugc_creators cr ON pc.creator_id = cr.id
        WHERE pc.project_id = ?

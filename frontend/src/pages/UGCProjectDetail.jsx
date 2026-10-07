@@ -580,7 +580,7 @@ export default function UGCProjectDetail() {
     setEditingCreatorDetails(creator);
     setCreatorDetailsForm({
       video_count: creator.video_count || 1,
-      agreed_rate: creator.agreed_rate || project.creator_cost_per_video || '',
+      agreed_rate: creator.agreed_rate || project.creator_cost_per_video || creator.default_rate || creator.rate_per_video || '',
       brief_url: creator.brief_url || '',
     });
   };

@@ -8,7 +8,38 @@ import {
   Trash2, Send, MessageSquare
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import { departments, getCitiesByDepartment } from '../data/colombiaLocations';
 import { ListChips, ListTagButton, CreatorListPicker } from '../components/ugc/CreatorLists';
+
+const SOURCE_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'referido', label: 'Referido' },
+  { value: 'registro_web', label: 'Registro web' },
+  { value: 'evento', label: 'Evento' },
+  { value: 'manual', label: 'Manual' },
+  { value: 'otro', label: 'Otro' },
+];
+
+const INPUT_CLASS = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] disabled:bg-gray-50 disabled:text-gray-400';
+
+// Normalize an Instagram/TikTok handle or URL to a bare username (no @, no URL)
+function normalizeHandle(input, domain) {
+  if (!input) return '';
+  let value = String(input).trim();
+  if (value.includes(domain)) {
+    const match = value.match(new RegExp(domain.replace('.', '\\.') + '/@?([^/?#]+)'));
+    if (match) value = match[1];
+  }
+  return value.replace(/^@/, '').trim();
+}
+
+const EMPTY_EDIT_FORM = {
+  full_name: '', email: '', phone: '', cedula: '',
+  social_networks: { instagram: '', tiktok: '', other: '' },
+  address: '', city: '', department: '', postal_code: '', shipping_notes: '',
+  industries: [], bio: '', portfolio_url: '', source: '', default_rate: '', stage_id: ''
+};
 
 const ASSIGNMENT_STATUS = {
   proposed: { label: 'Propuesto', color: 'bg-gray-100 text-gray-700' },
@@ -32,6 +63,8 @@ export default function UGCCreatorDetail() {
   // Go back to wherever the user came from (project, filtered list, ...);
   // fall back to the creators list when the page was opened directly.
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/app/ugc'));
+  const { user } = useAuth();
+  const canDelete = ['admin', 'manager'].includes(user?.role);
   const [creator, setCreator] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -54,6 +87,18 @@ export default function UGCCreatorDetail() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Edit profile
+  const [industriesCatalog, setIndustriesCatalog] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
+  const [editError, setEditError] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Delete creator
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
   // Assignment form
   const [assignmentForm, setAssignmentForm] = useState({
     client_id: '', project_id: '', title: '', description: '', deliverables: '',
@@ -72,7 +117,7 @@ export default function UGCCreatorDetail() {
 
   const loadData = async () => {
     try {
-      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes, projectsRes, notesRes, listsRes] = await Promise.all([
+      const [creatorRes, assignmentsRes, paymentsRes, stagesRes, clientsRes, projectsRes, notesRes, listsRes, industriesRes] = await Promise.all([
         ugcAPI.getCreator(id),
         ugcAPI.getAssignments({ creator_id: id }),
         ugcAPI.getPayments({ creator_id: id }),
@@ -81,6 +126,7 @@ export default function UGCCreatorDetail() {
         ugcAPI.getProjects().catch(() => ({ data: [] })),
         ugcAPI.getCreatorNotes(id).catch(() => ({ data: [] })),
         ugcAPI.getLists().catch(() => ({ data: [] })),
+        ugcAPI.getIndustries().catch(() => ({ data: [] })),
       ]);
       setCreator(creatorRes.data);
       setAssignments(assignmentsRes.data);
@@ -90,6 +136,7 @@ export default function UGCCreatorDetail() {
       setProjects(projectsRes.data || []);
       setNotes(notesRes.data || []);
       setLists(listsRes.data || []);
+      setIndustriesCatalog(industriesRes.data || []);
     } catch (error) {
       console.error('Error loading creator:', error);
     } finally {
@@ -198,6 +245,98 @@ export default function UGCCreatorDetail() {
     }
   };
 
+  // ---- Edit profile
+  const openEditModal = () => {
+    if (!creator) return;
+    const sn = creator.social_networks || {};
+    setEditForm({
+      full_name: creator.full_name || '',
+      email: creator.email || '',
+      phone: creator.phone || '',
+      cedula: creator.cedula || '',
+      social_networks: { instagram: sn.instagram || '', tiktok: sn.tiktok || '', other: sn.other || '' },
+      address: creator.address || '',
+      city: creator.city || '',
+      department: creator.department || '',
+      postal_code: creator.postal_code || '',
+      shipping_notes: creator.shipping_notes || '',
+      industries: Array.isArray(creator.industries) ? [...creator.industries] : [],
+      bio: creator.bio || '',
+      portfolio_url: creator.portfolio_url || '',
+      source: creator.source || '',
+      default_rate: creator.default_rate ?? creator.rate_per_video ?? '',
+      stage_id: creator.stage_id || '',
+    });
+    setEditError(null);
+    setShowEditModal(true);
+  };
+
+  const setEditField = (field, value) => setEditForm(prev => ({ ...prev, [field]: value }));
+
+  const toggleEditIndustry = (slug) => {
+    setEditForm(prev => ({
+      ...prev,
+      industries: prev.industries.includes(slug)
+        ? prev.industries.filter(i => i !== slug)
+        : [...prev.industries, slug]
+    }));
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!editForm.full_name.trim()) { setEditError('El nombre es obligatorio'); return; }
+    if (!editForm.phone.trim()) { setEditError('El teléfono es obligatorio'); return; }
+
+    setSavingProfile(true);
+    setEditError(null);
+    try {
+      const payload = {
+        full_name: editForm.full_name.trim(),
+        email: editForm.email.trim() || null,
+        phone: editForm.phone.trim(),
+        cedula: editForm.cedula.trim() || null,
+        social_networks: {
+          instagram: normalizeHandle(editForm.social_networks.instagram, 'instagram.com'),
+          tiktok: normalizeHandle(editForm.social_networks.tiktok, 'tiktok.com'),
+          other: (editForm.social_networks.other || '').trim(),
+        },
+        address: editForm.address.trim() || null,
+        city: editForm.city.trim() || null,
+        department: editForm.department.trim() || null,
+        postal_code: editForm.postal_code.trim() || null,
+        shipping_notes: editForm.shipping_notes.trim() || null,
+        industries: editForm.industries,
+        bio: editForm.bio.trim() || null,
+        portfolio_url: editForm.portfolio_url.trim() || null,
+        source: editForm.source || null,
+        default_rate: editForm.default_rate === '' ? null : parseFloat(editForm.default_rate),
+        stage_id: editForm.stage_id ? parseInt(editForm.stage_id) : null,
+      };
+      await ugcAPI.updateCreator(id, payload);
+      setShowEditModal(false);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating creator:', error);
+      setEditError(error.response?.data?.error || error.message || 'No se pudo guardar el perfil');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // ---- Delete creator
+  const handleDeleteCreator = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await ugcAPI.deleteCreator(id);
+      navigate('/app/ugc', { state: { notice: `Se eliminó a ${creator.full_name} y todos sus vínculos.` } });
+    } catch (error) {
+      console.error('Error deleting creator:', error);
+      setDeleteError(error.response?.data?.error || error.message || 'No se pudo eliminar el creador');
+      setDeleting(false);
+    }
+  };
+
   const formatCurrency = (value) => {
     if (!value) return '$0';
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
@@ -238,7 +377,7 @@ export default function UGCCreatorDetail() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6">
         <button
           onClick={goBack}
           className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
@@ -246,31 +385,50 @@ export default function UGCCreatorDetail() {
         >
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-[180px]">
           <h1 className="text-2xl font-semibold text-[#17181A]">{creator.full_name}</h1>
           <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-2">
             {creator.city && <><MapPin className="w-3.5 h-3.5" /> {creator.city}, {creator.department}</>}
           </p>
         </div>
 
-        {/* Stage Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Estado:</span>
-          <select
-            value={creator.stage_id || ''}
-            onChange={(e) => handleStageChange(parseInt(e.target.value))}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
-            style={{ borderLeftColor: currentStage?.color, borderLeftWidth: '3px' }}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Stage Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Estado:</span>
+            <select
+              value={creator.stage_id || ''}
+              onChange={(e) => handleStageChange(parseInt(e.target.value))}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+              style={{ borderLeftColor: currentStage?.color, borderLeftWidth: '3px' }}
+            >
+              {stages.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={openEditModal}
+            className="flex items-center gap-2 px-3.5 py-2 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors"
           >
-            {stages.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+            <Edit3 className="w-4 h-4" /> Editar perfil
+          </button>
+
+          {canDelete && (
+            <button
+              onClick={() => { setDeleteError(null); setShowDeleteModal(true); }}
+              className="flex items-center gap-2 px-3.5 py-2 border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
+              title="Eliminar creador"
+            >
+              <Trash2 className="w-4 h-4" /> Eliminar
+            </button>
+          )}
         </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <p className="text-xs text-gray-500 mb-1">Asignaciones</p>
           <p className="text-2xl font-bold text-[#17181A]">{assignments.length}</p>
@@ -314,7 +472,7 @@ export default function UGCCreatorDetail() {
 
       {/* Tab Content */}
       {activeTab === 'info' && (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Contact Info */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">
             <h3 className="font-semibold text-[#17181A] mb-4">Contacto</h3>
@@ -543,10 +701,18 @@ export default function UGCCreatorDetail() {
             </h3>
 
             {/* Tarifa */}
-            {creator.rate_per_video && (
+            {(creator.default_rate || creator.rate_per_video) ? (
               <div className="bg-green-50 rounded-lg p-3 mb-4">
-                <p className="text-xs text-green-600 mb-0.5">Tarifa por video</p>
-                <p className="text-lg font-bold text-green-700">{formatCurrency(creator.rate_per_video)}</p>
+                <p className="text-xs text-green-600 mb-0.5">Tarifa base por video</p>
+                <p className="text-lg font-bold text-green-700">{formatCurrency(creator.default_rate || creator.rate_per_video)}</p>
+                {creator.rate_per_video && creator.default_rate && Number(creator.rate_per_video) !== Number(creator.default_rate) && (
+                  <p className="text-[11px] text-green-600/70 mt-0.5">Declarada en registro: {formatCurrency(creator.rate_per_video)}</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <p className="text-xs text-gray-400 mb-0.5">Tarifa base por video</p>
+                <p className="text-sm text-gray-500">Sin definir · <button type="button" onClick={openEditModal} className="underline hover:text-[#17181A]">agregar</button></p>
               </div>
             )}
 
@@ -645,7 +811,7 @@ export default function UGCCreatorDetail() {
           )}
 
           {/* Notas Internas - full width */}
-          <div className="col-span-2 bg-amber-50/50 rounded-xl border border-amber-200 p-5">
+          <div className="md:col-span-2 bg-amber-50/50 rounded-xl border border-amber-200 p-5">
             <h3 className="font-semibold text-[#17181A] mb-4 flex items-center gap-2">
               <StickyNote className="w-4 h-4 text-amber-500" />
               Notas Internas
@@ -1082,6 +1248,266 @@ export default function UGCCreatorDetail() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (() => {
+        const editCities = editForm.department ? getCitiesByDepartment(editForm.department) : [];
+        const departmentInCatalog = !editForm.department || departments.includes(editForm.department);
+        const cityInCatalog = !editForm.city || editCities.includes(editForm.city);
+        const extraIndustries = editForm.industries.filter(i => !industriesCatalog.some(c => c.slug === i));
+        return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !savingProfile && setShowEditModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+              <div>
+                <h2 className="text-lg font-semibold text-[#17181A]">Editar perfil</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Actualiza los datos que el creador haya cambiado.</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="p-1 hover:bg-gray-100 rounded-lg" disabled={savingProfile}>
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="p-6 space-y-5">
+              {/* Datos básicos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Nombre completo *</label>
+                  <input type="text" value={editForm.full_name} onChange={(e) => setEditField('full_name', e.target.value)} className={INPUT_CLASS} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">WhatsApp / Teléfono *</label>
+                  <input type="tel" value={editForm.phone} onChange={(e) => setEditField('phone', e.target.value)} placeholder="+57 300 123 4567" className={INPUT_CLASS} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
+                  <input type="email" value={editForm.email} onChange={(e) => setEditField('email', e.target.value)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Cédula</label>
+                  <input type="text" value={editForm.cedula} onChange={(e) => setEditField('cedula', e.target.value)} className={INPUT_CLASS} />
+                </div>
+              </div>
+
+              {/* Redes */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Redes sociales</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="relative">
+                    <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-500" />
+                    <input type="text" value={editForm.social_networks.instagram}
+                      onChange={(e) => setEditField('social_networks', { ...editForm.social_networks, instagram: e.target.value })}
+                      placeholder="@usuario o URL" className={`${INPUT_CLASS} pl-10`} />
+                  </div>
+                  <div className="relative">
+                    <Video className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-800" />
+                    <input type="text" value={editForm.social_networks.tiktok}
+                      onChange={(e) => setEditField('social_networks', { ...editForm.social_networks, tiktok: e.target.value })}
+                      placeholder="@usuario o URL" className={`${INPUT_CLASS} pl-10`} />
+                  </div>
+                  <div className="relative">
+                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={editForm.social_networks.other}
+                      onChange={(e) => setEditField('social_networks', { ...editForm.social_networks, other: e.target.value })}
+                      placeholder="Otro link" className={`${INPUT_CLASS} pl-10`} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Dirección de envío */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Dirección de envío</label>
+                <div className="space-y-3">
+                  <input type="text" value={editForm.address} onChange={(e) => setEditField('address', e.target.value)} placeholder="Calle 123 # 45-67, Apto 801" className={INPUT_CLASS} />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <select
+                      value={editForm.department}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, department: e.target.value, city: '' }))}
+                      className={INPUT_CLASS}
+                    >
+                      <option value="">Departamento...</option>
+                      {!departmentInCatalog && <option value={editForm.department}>{editForm.department}</option>}
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={editForm.city}
+                      onChange={(e) => setEditField('city', e.target.value)}
+                      disabled={!editForm.department}
+                      className={INPUT_CLASS}
+                    >
+                      <option value="">{editForm.department ? 'Ciudad...' : 'Elige departamento'}</option>
+                      {!cityInCatalog && <option value={editForm.city}>{editForm.city}</option>}
+                      {editCities.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                    <input type="text" value={editForm.postal_code} onChange={(e) => setEditField('postal_code', e.target.value)} placeholder="Código postal" className={INPUT_CLASS} />
+                  </div>
+                  <input type="text" value={editForm.shipping_notes} onChange={(e) => setEditField('shipping_notes', e.target.value)} placeholder="Notas de envío (conjunto, torre, horario, referencias...)" className={INPUT_CLASS} />
+                </div>
+              </div>
+
+              {/* Industrias */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Industrias de interés</label>
+                <div className="flex flex-wrap gap-2">
+                  {industriesCatalog.map((industry) => (
+                    <button
+                      key={industry.id}
+                      type="button"
+                      onClick={() => toggleEditIndustry(industry.slug)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        editForm.industries.includes(industry.slug)
+                          ? 'bg-[#17181A] text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {industry.icon} {industry.name}
+                    </button>
+                  ))}
+                  {extraIndustries.map((slug) => (
+                    <button
+                      key={slug}
+                      type="button"
+                      onClick={() => toggleEditIndustry(slug)}
+                      title="Valor fuera del catálogo actual. Click para quitarlo."
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#17181A] text-white"
+                    >
+                      {slug}
+                    </button>
+                  ))}
+                  {industriesCatalog.length === 0 && extraIndustries.length === 0 && (
+                    <span className="text-xs text-gray-400">No hay industrias en el catálogo.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Bio y portafolio */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Bio</label>
+                <textarea value={editForm.bio} onChange={(e) => setEditField('bio', e.target.value)} rows={3} placeholder="Experiencia, estilo de contenido, etc." className={`${INPUT_CLASS} resize-none`} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Portafolio (URL)</label>
+                <input type="url" value={editForm.portfolio_url} onChange={(e) => setEditField('portfolio_url', e.target.value)} placeholder="https://..." className={INPUT_CLASS} />
+              </div>
+
+              {/* Comercial */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Tarifa base (COP)</label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="number" min="0" step="1000" value={editForm.default_rate}
+                      onChange={(e) => setEditField('default_rate', e.target.value)}
+                      placeholder="Por video" className={`${INPUT_CLASS} pl-9`} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Fuente</label>
+                  <select value={editForm.source} onChange={(e) => setEditField('source', e.target.value)} className={INPUT_CLASS}>
+                    <option value="">Sin fuente</option>
+                    {editForm.source && !SOURCE_OPTIONS.some(o => o.value === editForm.source) && (
+                      <option value={editForm.source}>{editForm.source}</option>
+                    )}
+                    {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Etapa</label>
+                  <select value={editForm.stage_id} onChange={(e) => setEditField('stage_id', e.target.value)} className={INPUT_CLASS}>
+                    <option value="">Sin etapa</option>
+                    {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {editError && (
+                <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  disabled={savingProfile}
+                  className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* Delete Creator Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !deleting && setShowDeleteModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-[#17181A]">Eliminar a {creator.full_name}</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Esta acción no se puede deshacer. Se borrará el perfil completo del creador y, con él:
+                  </p>
+                  <ul className="mt-3 space-y-1.5 text-sm text-gray-600">
+                    <li className="flex items-start gap-2"><span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" /> Su participación en proyectos UGC (incluidos contratos firmados y el historial de estados)</li>
+                    <li className="flex items-start gap-2"><span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" /> Sus asignaciones y los registros de pagos ({assignments.length} asignaciones, {payments.length} pagos)</li>
+                    <li className="flex items-start gap-2"><span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" /> Sus notas internas ({notes.length}) y su pertenencia a listas</li>
+                  </ul>
+                  <p className="text-xs text-gray-400 mt-3">
+                    Si solo quieres sacarlo de circulación, considera moverlo a una etapa tipo "Descartado" en vez de eliminarlo.
+                  </p>
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mt-4">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleting}
+                  className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCreator}
+                  disabled={deleting}
+                  className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" /> Sí, eliminar</>}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

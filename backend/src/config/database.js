@@ -2927,6 +2927,19 @@ export const initializeDatabase = async () => {
     await pool.query(`
       ALTER TABLE ugc_creators ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN DEFAULT FALSE
     `);
+    // Migration: Add default_rate (tarifa base por video, COP) editable por el equipo.
+    // Se inicializa una sola vez con rate_per_video (tarifa autodeclarada en el registro) si existe.
+    await pool.query(`
+      ALTER TABLE ugc_creators ADD COLUMN IF NOT EXISTS default_rate REAL
+    `);
+    try {
+      await pool.query(`
+        UPDATE ugc_creators SET default_rate = rate_per_video
+        WHERE default_rate IS NULL AND rate_per_video IS NOT NULL
+      `);
+    } catch (defaultRateError) {
+      console.log('  ⏭️  default_rate backfill skipped:', defaultRateError.message);
+    }
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS ugc_creator_list_members (
