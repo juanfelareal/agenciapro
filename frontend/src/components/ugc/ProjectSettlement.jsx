@@ -8,8 +8,9 @@ const fmtDateTime = (iso) => iso ? new Date(iso).toLocaleString('es-CO', { timeZ
 
 const CREATOR_STATUS = {
   presented: 'Presentado', brand_approved: 'Aprobado por marca', negotiating: 'Negociando', confirmed: 'Confirmado',
-  contract_signed: 'Contrato firmado', rejected: 'Rechazado', producing: 'Produciendo', delivered_approved: 'Entregado',
-  delivered_changes: 'Con cambios', paid: 'Pagado',
+  contract_signed: 'Contrato firmado', product_shipped: 'Producto enviado', rejected: 'Rechazado', producing: 'Produciendo',
+  delivered_pending: 'Entregado · por aprobar', delivered_approved: 'Entregado', delivered_changes: 'Con cambios',
+  invoice_received: 'Cuenta de cobro recibida', paid: 'Pagado',
 };
 
 /**

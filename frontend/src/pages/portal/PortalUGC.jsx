@@ -35,9 +35,12 @@ const ASSIGNMENT_STATUS = {
   negotiating: { label: 'Negociando', color: 'bg-purple-100 text-purple-700' },
   confirmed: { label: 'Confirmado', color: 'bg-blue-100 text-blue-700' },
   contract_signed: { label: 'Contrato firmado', color: 'bg-indigo-100 text-indigo-700' },
+  product_shipped: { label: 'Producto enviado', color: 'bg-sky-100 text-sky-700' },
   producing: { label: 'En producción', color: 'bg-yellow-100 text-yellow-700' },
+  delivered_pending: { label: 'Entregado · por aprobar', color: 'bg-amber-100 text-amber-700' },
   delivered_approved: { label: 'Entregado', color: 'bg-green-100 text-green-700' },
   delivered_changes: { label: 'Con cambios', color: 'bg-orange-100 text-orange-700' },
+  invoice_received: { label: 'Cuenta de cobro recibida', color: 'bg-teal-100 text-teal-700' },
 };
 
 const SHIPPING_STATUS = {

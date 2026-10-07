@@ -3219,7 +3219,7 @@ export const initializeDatabase = async () => {
         // Add new constraint with all new statuses
         await pool.query(`
           ALTER TABLE ugc_project_creators ADD CONSTRAINT ugc_project_creators_status_check
-          CHECK(status IN ('presented', 'brand_approved', 'negotiating', 'confirmed', 'contract_signed', 'rejected', 'producing', 'delivered_approved', 'delivered_changes', 'paid'))
+          CHECK(status IN ('presented', 'brand_approved', 'negotiating', 'confirmed', 'contract_signed', 'product_shipped', 'rejected', 'producing', 'delivered_pending', 'delivered_approved', 'delivered_changes', 'invoice_received', 'paid'))
         `);
 
         // Update default

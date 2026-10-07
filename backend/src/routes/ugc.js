@@ -35,9 +35,12 @@ router.post('/sync-assignments', async (req, res) => {
       'negotiating': 'proposed',
       'confirmed': 'accepted',
       'contract_signed': 'accepted',
+      'product_shipped': 'accepted',
       'producing': 'in_production',
+      'delivered_pending': 'delivered',
       'delivered_approved': 'delivered',
       'delivered_changes': 'delivered',
+      'invoice_received': 'delivered',
       'paid': 'paid',
       'rejected': 'cancelled'
     };
@@ -134,7 +137,7 @@ router.post('/migrate-statuses', async (req, res) => {
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ugc_project_creators_status_check') THEN
           ALTER TABLE ugc_project_creators ADD CONSTRAINT ugc_project_creators_status_check
-          CHECK(status IN ('presented', 'brand_approved', 'negotiating', 'confirmed', 'contract_signed', 'rejected', 'producing', 'delivered_approved', 'delivered_changes', 'paid'));
+          CHECK(status IN ('presented', 'brand_approved', 'negotiating', 'confirmed', 'contract_signed', 'product_shipped', 'rejected', 'producing', 'delivered_pending', 'delivered_approved', 'delivered_changes', 'invoice_received', 'paid'));
         END IF;
       END $$
     `);
@@ -1780,9 +1783,12 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
             'negotiating': 'proposed',
             'confirmed': 'accepted',
             'contract_signed': 'accepted',
+            'product_shipped': 'accepted',
             'producing': 'in_production',
+            'delivered_pending': 'delivered',
             'delivered_approved': 'delivered',
             'delivered_changes': 'delivered',
+            'invoice_received': 'delivered',
             'paid': 'paid',
             'rejected': 'cancelled'
           };
@@ -1847,9 +1853,12 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
           'negotiating': 'proposed',
           'confirmed': 'accepted',
           'contract_signed': 'accepted',
+          'product_shipped': 'accepted',
           'producing': 'in_production',
+          'delivered_pending': 'delivered',
           'delivered_approved': 'delivered',
           'delivered_changes': 'delivered',
+          'invoice_received': 'delivered',
           'paid': 'paid',
           'rejected': 'cancelled'
         };

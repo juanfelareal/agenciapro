@@ -7,7 +7,8 @@ import {
   Phone, Instagram, Mail,
   Trash2, FolderOpen, ChevronDown, FileText, Edit2,
   Send, ThumbsUp, FileSignature, Package, RefreshCw, Video,
-  MessageCircle, CheckCircle2, Banknote, XCircle, GripVertical, Download
+  MessageCircle, CheckCircle2, Banknote, XCircle, GripVertical, Download,
+  Truck, Clock, Receipt
 } from 'lucide-react';
 import { ugcAPI } from '../utils/api';
 import ProjectSettlement from '../components/ugc/ProjectSettlement';
@@ -131,10 +132,13 @@ const CREATOR_STATUSES = [
   { id: 'negotiating', name: 'Contactado y negociando', color: '#F59E0B', icon: MessageCircle },
   { id: 'confirmed', name: 'Confirmado + firmar contrato', color: '#3B82F6', icon: FileSignature },
   { id: 'contract_signed', name: 'Contrato firmado', color: '#8B5CF6', icon: Package },
+  { id: 'product_shipped', name: 'Producto enviado', color: '#0EA5E9', icon: Truck },
   { id: 'rejected', name: 'Rechazó la oferta', color: '#EF4444', icon: XCircle },
   { id: 'producing', name: 'Produciendo', color: '#A855F7', icon: Video },
+  { id: 'delivered_pending', name: 'Entregado · pendiente de aprobación', color: '#EAB308', icon: Clock },
   { id: 'delivered_approved', name: 'Entregado aprobado', color: '#10B981', icon: CheckCircle2 },
   { id: 'delivered_changes', name: 'En cambios', color: '#F97316', icon: RefreshCw },
+  { id: 'invoice_received', name: 'Cuenta de cobro recibida · pendiente de pago', color: '#14B8A6', icon: Receipt },
   { id: 'paid', name: 'Pagado', color: '#059669', icon: Banknote }
 ];
 

@@ -140,9 +140,9 @@ router.get('/assignments', clientAuthMiddleware, async (req, res) => {
     if (status) {
       // Map assignment statuses to project creator statuses
       const statusMap = {
-        'accepted': ['confirmed', 'contract_signed'],
+        'accepted': ['confirmed', 'contract_signed', 'product_shipped'],
         'in_production': ['producing'],
-        'delivered': ['delivered_approved', 'delivered_changes'],
+        'delivered': ['delivered_pending', 'delivered_approved', 'delivered_changes', 'invoice_received'],
         'paid': ['paid']
       };
       const mappedStatuses = statusMap[status] || [status];
