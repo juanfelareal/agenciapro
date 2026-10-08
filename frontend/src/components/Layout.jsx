@@ -169,9 +169,13 @@ const Layout = ({ children }) => {
         key={item.path}
         to={item.path}
         className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-          active
-            ? 'bg-[#17181A] text-[#D7F653]'
-            : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+          item.badge === 'news'
+            ? (active
+              ? 'bg-[#D7F653] text-[#17181A] font-semibold'
+              : 'bg-[#D7F653]/30 text-[#17181A] font-semibold hover:bg-[#D7F653]/60')
+            : (active
+              ? 'bg-[#17181A] text-[#D7F653]'
+              : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60')
         }`}
         title={sidebarCollapsed ? item.name : ''}
       >

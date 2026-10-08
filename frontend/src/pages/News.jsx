@@ -316,7 +316,7 @@ const Avatar = ({ name, size = 'sm' }) => (
 );
 
 // ─── Tarjeta del feed ───
-const NewsCard = ({ item, onOpen, onLightbox }) => {
+const NewsCard = ({ item, onOpen, onLightbox, onAck }) => {
   const thumbs = item.images.slice(0, 4);
   const extra = item.images.length - thumbs.length;
   const unread = !item.is_read;
@@ -369,8 +369,24 @@ const NewsCard = ({ item, onOpen, onLightbox }) => {
             <span className="font-medium text-gray-700">{item.created_by_name || 'Sin autor'}</span>
           </span>
           <span title={formatFull(item.created_at)}>{timeAgo(item.created_at)}</span>
-          <span className="inline-flex items-center gap-1" title="Personas que la han visto">
-            <Eye size={13} /> Visto por {item.read_count}
+          <span className="inline-flex items-center gap-1" title="Personas que confirmaron que están enteradas">
+            <Eye size={13} /> Enterados: {item.read_count}
+          </span>
+          <span className="ml-auto">
+            {unread ? (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onAck(item); }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#17181A] text-[#D7F653] text-xs font-semibold hover:bg-black transition-colors"
+                title="Confirmar que ya leíste esta novedad"
+              >
+                <Check size={13} /> Enterado
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold" title="Ya confirmaste que estás enterado">
+                <CheckCheck size={13} /> Enterado
+              </span>
+            )}
           </span>
         </div>
       </div>
@@ -593,26 +609,25 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
     }
   }, [item.id]);
 
-  // Abrir el detalle marca la novedad como leída (una sola vez por apertura)
-  const markedRef = useRef(false);
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      if (!item.is_read && !markedRef.current) {
-        markedRef.current = true;
-        try {
-          const res = await newsAPI.markRead(item.id);
-          if (!cancelled) {
-            onUpdated({ id: item.id, is_read: true, read_count: res.data.read_count });
-            notifyUnreadChanged();
-          }
-        } catch { /* si falla, se reintenta al reabrir */ }
-      }
-      if (!cancelled) loadReads();
-    };
-    run();
-    return () => { cancelled = true; };
-  }, [item.id, item.is_read, loadReads, onUpdated]);
+  // Abrir el detalle NO marca la novedad como leída: la persona confirma con el botón "Enterado".
+  useEffect(() => { loadReads(); }, [item.id, loadReads]);
+
+  const [acking, setAcking] = useState(false);
+  const acknowledge = async () => {
+    if (item.is_read || acking) return;
+    setAcking(true);
+    setError(null);
+    try {
+      const res = await newsAPI.markRead(item.id);
+      onUpdated({ id: item.id, is_read: true, read_count: res.data.read_count });
+      notifyUnreadChanged();
+      loadReads();
+    } catch (e) {
+      setError(e.response?.data?.error || 'No se pudo confirmar');
+    } finally {
+      setAcking(false);
+    }
+  };
 
   const togglePin = async () => {
     setPinning(true);
@@ -654,6 +669,21 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
             <h2 className="text-lg font-bold text-[#17181A] leading-snug">{item.title}</h2>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {item.is_read ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold mr-1" title="Ya confirmaste que estás enterado">
+                <CheckCheck size={14} /> Enterado
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={acknowledge}
+                disabled={acking}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#17181A] text-[#D7F653] text-xs font-semibold hover:bg-black disabled:opacity-50 mr-1"
+                title="Confirmar que ya leíste esta novedad"
+              >
+                {acking ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Enterado
+              </button>
+            )}
             {canEdit && (
               <button type="button" onClick={togglePin} disabled={pinning} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-50" title={item.is_pinned ? 'Desfijar' : 'Fijar arriba'}>
                 {pinning ? <Loader2 size={16} className="animate-spin" /> : item.is_pinned ? <PinOff size={16} /> : <Pin size={16} />}
@@ -715,13 +745,13 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
           {/* Visto por */}
           <div className="border-t border-gray-100 pt-4">
             <h3 className="text-sm font-bold text-[#17181A] mb-3 flex items-center gap-2">
-              <Eye size={15} /> Visto por
+              <Eye size={15} /> Enterados
               <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{reads.length}</span>
             </h3>
             {loadingReads ? (
               <div className="flex items-center gap-2 text-sm text-gray-500 py-2"><Loader2 size={15} className="animate-spin" /> Cargando…</div>
             ) : reads.length === 0 ? (
-              <p className="text-sm text-gray-400 italic py-1">Nadie la ha visto todavía.</p>
+              <p className="text-sm text-gray-400 italic py-1">Nadie ha confirmado todavía.</p>
             ) : (
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {reads.map((r) => (
@@ -862,6 +892,18 @@ const News = () => {
   const replaceItem = useCallback((updated) => {
     setItems((prev) => prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it)));
   }, []);
+
+  // "Enterado" desde la tarjeta: confirma lectura sin abrir el detalle
+  const ackItem = useCallback(async (item) => {
+    if (item.is_read) return;
+    try {
+      const res = await newsAPI.markRead(item.id);
+      replaceItem({ id: item.id, is_read: true, read_count: res.data.read_count });
+      notifyUnreadChanged();
+    } catch (e) {
+      setNotice({ type: 'error', text: e.response?.data?.error || 'No se pudo confirmar' });
+    }
+  }, [replaceItem]);
 
   const handleSaved = (saved, wasEdit) => {
     setShowForm(false);
@@ -1072,6 +1114,7 @@ const News = () => {
                     item={item}
                     onOpen={(it) => setSelectedId(it.id)}
                     onLightbox={(images, index) => setLightbox({ images, index })}
+                    onAck={ackItem}
                   />
                 ))}
               </div>
