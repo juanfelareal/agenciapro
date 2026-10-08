@@ -19,6 +19,7 @@ import { clientMetricsAPI, growthAPI, clientLogbookAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import GrowthDashboard from './GrowthDashboard';
 import ClientTrendPanel from '../components/growth/ClientTrendPanel';
+import MetaCampaignsPanel from '../components/growth/MetaCampaignsPanel';
 import ClientLogbookModal from '../components/logbook/ClientLogbookModal';
 
 // Get current date in Colombia timezone (YYYY-MM-DD)
@@ -385,6 +386,14 @@ function MetricsDashboard() {
                               revenueMetric={client.portal_revenue_metric}
                               revenueLabel={client.revenue_label}
                               refreshKey={dataLoadedAt}
+                              footer={(
+                                <MetaCampaignsPanel
+                                  clientId={client.client_id}
+                                  startDate={dateRange.start}
+                                  endDate={dateRange.end}
+                                  refreshKey={dataLoadedAt}
+                                />
+                              )}
                             />
                           </td>
                         </tr>
