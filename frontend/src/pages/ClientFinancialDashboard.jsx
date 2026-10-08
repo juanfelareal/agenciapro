@@ -8,6 +8,7 @@ import { Loader2, AlertTriangle, Store, CheckCircle2, X } from 'lucide-react';
 import { growthAPI, clientsAPI } from '../utils/api';
 import FinancialHeader from '../components/growth/financial/FinancialHeader';
 import ProfitHero from '../components/growth/financial/ProfitHero';
+import GoalAndRoas from '../components/growth/financial/GoalAndRoas';
 import StatCard, { StatGroup } from '../components/growth/financial/StatCard';
 import MoneyFlow from '../components/growth/financial/MoneyFlow';
 import DailyPnlChart from '../components/growth/financial/DailyPnlChart';
@@ -199,6 +200,7 @@ export default function ClientFinancialDashboard() {
       ) : (
         <>
           <ProfitHero data={data} prev={prevSameDays} />
+          <GoalAndRoas clientId={clientId} period={period} data={data} goal={data.goal} onGoalSaved={() => load({ silent: true })} />
 
           <StatGroup cols={4}>
             <StatCard

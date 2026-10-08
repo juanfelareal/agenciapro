@@ -468,6 +468,17 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     breakEven.gap_per_day = round(breakEven.revenue_per_day - revenuePerDay);
     breakEven.revenue_month = round(breakEven.revenue_per_day * daysInMonth);
   }
+  // ROAS de equilibrio según el margen real de los productos:
+  //  - roas_min: cada $1 de pauta debe traer 1/margen_contribución para que la pauta no pierda (cubre producto + variables)
+  //  - roas_target: además cubre los costos fijos del mes al ritmo de pauta actual
+  if (contributionRatio && contributionRatio > 0) {
+    breakEven.roas_min = Math.round((1 / contributionRatio) * 100) / 100;
+    breakEven.roas_target = adsPerDay > 0 ? Math.round(((fixedPerDay + adsPerDay) / (contributionRatio * adsPerDay)) * 100) / 100 : null;
+    breakEven.current_roas = adsPerDay > 0 ? Math.round((revenuePerDay / adsPerDay) * 100) / 100 : null;
+    breakEven.revenue_for_roas_min = round(adsPerDay * daysInMonth * breakEven.roas_min); // venta del mes para que la pauta empate
+  } else {
+    breakEven.roas_min = null; breakEven.roas_target = null; breakEven.current_roas = null; breakEven.revenue_for_roas_min = null;
+  }
 
   // Productos con ventas del mes
   const toProduct = (p, orphan = false) => {
@@ -504,10 +515,23 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   else if (daysRevenueNoSales > 0) { cogsStatus = cogsStatus === 'ok' ? 'partial' : cogsStatus; cogsMessage = `${daysRevenueNoSales} día${daysRevenueNoSales > 1 ? 's' : ''} con venta sin detalle de productos (Shopify solo entrega pedidos de los últimos 60 días).`; }
   else if (missingSold.length > 0) { cogsMessage = `${missingSold.length} producto${missingSold.length > 1 ? 's' : ''} vendido${missingSold.length > 1 ? 's' : ''} sin costo: se estiman al ${Math.round(defaultRate * 100)} % del precio.`; }
 
+  // Meta de venta del mes (objetivo "revenue" definido en Growth para este periodo)
+  let goal = null;
+  try {
+    const g = await db.get(
+      "SELECT id, conservador, base, optimista FROM growth_objectives WHERE client_id = ? AND organization_id = ? AND period = ? AND metric = 'revenue'",
+      [clientId, orgId, period]
+    );
+    if (g) goal = { id: g.id, conservador: num(g.conservador), base: num(g.base), optimista: num(g.optimista) };
+  } catch (e) {
+    console.warn('financials: no se pudo leer la meta del mes:', e.message);
+  }
+
   return {
     period, start, end: effEnd || end, today, is_current_month: isCurrentMonth, is_future: isFuture,
     days_in_month: daysInMonth, days_elapsed: daysElapsed,
     revenue_basis: 'net_confirmed',
+    goal,
     totals: t, daily: daily.map(roundDay), cumulative, breakdown, projection, break_even: breakEven,
     fixed_costs: {
       monthly_total: round(fixedMonthly), per_day: round(fixedPerDay), prorated: t.fixed_costs,
