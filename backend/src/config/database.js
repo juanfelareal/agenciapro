@@ -2096,6 +2096,27 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_org_news_org_created ON org_news(organization_id, created_at DESC)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_org_news_client ON org_news(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_org_news_reads_member ON org_news_reads(team_member_id)`);
+    // Historial de cambios de novedades: cada edición de contenido guarda la versión anterior
+    await pool.query(`ALTER TABLE org_news ADD COLUMN IF NOT EXISTS content_updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`);
+    await pool.query(`ALTER TABLE org_news ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0`);
+    await pool.query(`UPDATE org_news SET content_updated_at = created_at WHERE content_updated_at IS NULL`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS org_news_versions (
+        id SERIAL PRIMARY KEY,
+        news_id INTEGER NOT NULL REFERENCES org_news(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL,
+        version INTEGER NOT NULL,
+        title TEXT,
+        body TEXT,
+        client_id INTEGER,
+        category TEXT,
+        images JSONB DEFAULT '[]',
+        changes JSONB DEFAULT '[]',
+        edited_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        edited_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_org_news_versions_news ON org_news_versions(news_id)`);
 
     // Ad tag indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);

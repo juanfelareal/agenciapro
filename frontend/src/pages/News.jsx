@@ -340,6 +340,16 @@ const NewsCard = ({ item, onOpen, onLightbox, onAck }) => {
           {item.is_pinned && (
             <Pill className="bg-[#D7F653]/60 text-[#3f4a10] border-[#c6e63c]" title="Fijada arriba"><Pin size={11} /> Fijada</Pill>
           )}
+          {item.edit_count > 0 && (
+            <Pill className="bg-gray-100 text-gray-600 border-gray-200" title={`Editada ${item.edit_count} ${item.edit_count === 1 ? 'vez' : 'veces'}${item.last_edited_by_name ? ' · última por ' + item.last_edited_by_name : ''}`}>
+              <Pencil size={11} /> Editada{item.edit_count > 1 ? ` ×${item.edit_count}` : ''}
+            </Pill>
+          )}
+          {item.edited_after_read && (
+            <Pill className="bg-amber-100 text-amber-800 border-amber-200" title="Cambió después de que confirmaste; vuelve a revisarla y confirma de nuevo">
+              <AlertTriangle size={11} /> Editada después de que confirmaste
+            </Pill>
+          )}
         </div>
         <h3 className={`text-[#17181A] leading-snug ${unread ? 'font-bold' : 'font-semibold'}`}>{item.title}</h3>
         {item.body && <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-line">{item.body}</p>}
@@ -597,11 +607,14 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const [versions, setVersions] = useState([]);
+  const [openVersion, setOpenVersion] = useState(null);
   const loadReads = useCallback(async () => {
     setLoadingReads(true);
     try {
-      const res = await newsAPI.reads(item.id);
-      setReads(res.data);
+      const [r, v] = await Promise.all([newsAPI.reads(item.id), newsAPI.versions(item.id).catch(() => ({ data: [] }))]);
+      setReads(r.data);
+      setVersions(v.data || []);
     } catch (err) {
       setError(errorMessage(err, 'No se pudo cargar quién la ha visto'));
     } finally {
@@ -761,13 +774,59 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
                       <div className="text-sm font-semibold text-[#17181A] truncate">
                         {r.name || 'Miembro'}{r.team_member_id === currentUserId ? <span className="text-gray-400 font-normal"> (tú)</span> : null}
                       </div>
-                      <div className="text-xs text-gray-500" title={formatFull(r.read_at)}>{formatTime(r.read_at)}</div>
+                      <div className="text-xs text-gray-500" title={formatFull(r.read_at)}>
+                        {formatTime(r.read_at)}
+                        {r.is_current === false && <span className="ml-1 text-amber-600 font-medium">· versión anterior</span>}
+                      </div>
                     </div>
                   </li>
                 ))}
               </ul>
             )}
           </div>
+
+          {/* Historial de cambios */}
+          {versions.length > 0 && (
+            <div className="border-t border-gray-100 pt-4">
+              <h3 className="text-sm font-bold text-[#17181A] mb-3 flex items-center gap-2">
+                <Pencil size={15} /> Historial de cambios
+                <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{versions.length}</span>
+              </h3>
+              <ul className="space-y-2">
+                {versions.map((v) => {
+                  const labels = { title: 'título', body: 'detalle', client_id: 'marca', category: 'categoría', images: 'pantallazos' };
+                  const changed = (v.changes || []).map((c) => labels[c] || c).join(', ');
+                  const open = openVersion === v.id;
+                  return (
+                    <li key={v.id} className="bg-white/70 border border-gray-100 rounded-xl px-3 py-2">
+                      <button type="button" onClick={() => setOpenVersion(open ? null : v.id)} className="w-full flex items-center justify-between gap-3 text-left">
+                        <div className="min-w-0">
+                          <div className="text-sm text-[#17181A]"><span className="font-semibold">{v.edited_by_name || 'Alguien'}</span> cambió {changed || 'el contenido'}</div>
+                          <div className="text-xs text-gray-500" title={formatFull(v.edited_at)}>{formatFull(v.edited_at)} · versión {v.version}</div>
+                        </div>
+                        <ChevronDown size={16} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                      </button>
+                      {open && (
+                        <div className="mt-2 pt-2 border-t border-gray-100 text-sm space-y-1.5">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Cómo estaba antes</div>
+                          <div><span className="text-gray-500">Título:</span> <span className="text-[#17181A]">{v.title}</span></div>
+                          <div><span className="text-gray-500">Marca:</span> <span className="text-[#17181A]">{v.client_name || 'General'}</span> · <span className="text-gray-500">Categoría:</span> <span className="text-[#17181A]">{v.category}</span></div>
+                          {v.body && <div className="text-gray-700 whitespace-pre-line bg-gray-50 rounded-lg p-2">{v.body}</div>}
+                          {v.images?.length > 0 && (
+                            <div className="flex gap-2 flex-wrap">
+                              {v.images.map((url, i) => (
+                                <button key={url + i} type="button" onClick={() => onLightbox(v.images, i)} className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200"><img src={url} alt="" className="w-full h-full object-cover" /></button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

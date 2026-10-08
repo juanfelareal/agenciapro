@@ -82,8 +82,10 @@ const SELECT_NEWS = `
          tm.name AS created_by_name,
          tm.email AS created_by_email,
          COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) AS client_name,
-         (SELECT COUNT(*) FROM org_news_reads r WHERE r.news_id = n.id)::int AS read_count,
-         EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ?) AS is_read
+         (SELECT COUNT(*) FROM org_news_reads r WHERE r.news_id = n.id AND r.read_at >= COALESCE(n.content_updated_at, n.created_at))::int AS read_count,
+         EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ? AND r.read_at >= COALESCE(n.content_updated_at, n.created_at)) AS is_read,
+         EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ? AND r.read_at < COALESCE(n.content_updated_at, n.created_at)) AS edited_after_read,
+         (SELECT tm2.name FROM org_news_versions v LEFT JOIN team_members tm2 ON tm2.id = v.edited_by WHERE v.news_id = n.id ORDER BY v.version DESC LIMIT 1) AS last_edited_by_name
   FROM org_news n
   LEFT JOIN team_members tm ON tm.id = n.created_by
   LEFT JOIN clients c ON c.id = n.client_id
@@ -94,11 +96,13 @@ const serializeNews = (row) => ({
   images: parseJson(row.images),
   is_pinned: !!row.is_pinned,
   is_read: !!row.is_read,
+  edited_after_read: !!row.edited_after_read,
+  edit_count: parseInt(row.edit_count) || 0,
   read_count: parseInt(row.read_count) || 0,
 });
 
 const loadNews = async (id, req) => {
-  const row = await db.get(`${SELECT_NEWS} WHERE n.id = ? AND n.organization_id = ?`, [req.teamMember.id, id, req.orgId]);
+  const row = await db.get(`${SELECT_NEWS} WHERE n.id = ? AND n.organization_id = ?`, [req.teamMember.id, req.teamMember.id, id, req.orgId]);
   return row ? serializeNews(row) : null;
 };
 
@@ -107,7 +111,7 @@ const findOwned = async (id, req) =>
 
 const markRead = (newsId, teamMemberId) =>
   db.run(
-    'INSERT INTO org_news_reads (news_id, team_member_id) VALUES (?, ?) ON CONFLICT DO NOTHING RETURNING news_id',
+    'INSERT INTO org_news_reads (news_id, team_member_id, read_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT (news_id, team_member_id) DO UPDATE SET read_at = CURRENT_TIMESTAMP RETURNING news_id',
     [newsId, teamMemberId]
   );
 
@@ -119,7 +123,7 @@ router.get('/unread-count', async (req, res) => {
       SELECT COUNT(*)::int AS unread
       FROM org_news n
       WHERE n.organization_id = ?
-        AND NOT EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ?)
+        AND NOT EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ? AND r.read_at >= COALESCE(n.content_updated_at, n.created_at))
     `, [req.orgId, req.teamMember.id]);
     res.json({ unread: parseInt(row?.unread) || 0 });
   } catch (error) {
@@ -169,11 +173,11 @@ router.post('/upload', (req, res) => {
 router.post('/read-all', async (req, res) => {
   try {
     const result = await db.run(`
-      INSERT INTO org_news_reads (news_id, team_member_id)
-      SELECT n.id, ? FROM org_news n
+      INSERT INTO org_news_reads (news_id, team_member_id, read_at)
+      SELECT n.id, ?, CURRENT_TIMESTAMP FROM org_news n
       WHERE n.organization_id = ?
-        AND NOT EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ?)
-      ON CONFLICT DO NOTHING
+        AND NOT EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ? AND r.read_at >= COALESCE(n.content_updated_at, n.created_at))
+      ON CONFLICT (news_id, team_member_id) DO UPDATE SET read_at = CURRENT_TIMESTAMP
       RETURNING news_id
     `, [req.teamMember.id, req.orgId, req.teamMember.id]);
     res.json({ success: true, marked: result.changes || 0 });
@@ -187,7 +191,7 @@ router.post('/read-all', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { client_id, category, search, unread, limit, offset } = req.query;
-    const params = [req.teamMember.id, req.orgId];
+    const params = [req.teamMember.id, req.teamMember.id, req.orgId];
     let where = 'n.organization_id = ?';
 
     if (client_id === 'general') {
@@ -198,7 +202,7 @@ router.get('/', async (req, res) => {
     }
     if (category && CATEGORIES.includes(category)) { where += ' AND n.category = ?'; params.push(category); }
     if (toBool(unread)) {
-      where += ' AND NOT EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ?)';
+      where += ' AND NOT EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ? AND r.read_at >= COALESCE(n.content_updated_at, n.created_at))';
       params.push(req.teamMember.id);
     }
     if (search && String(search).trim()) {
@@ -374,11 +378,33 @@ router.put('/:id', async (req, res) => {
       if (clientId === undefined) return res.status(400).json({ error: 'La marca seleccionada no existe' });
     }
 
+    // ¿Cambió el contenido (no solo el pin)? Si sí, guardamos la versión anterior en el historial
+    const prevImages = parseJson(existing.images);
+    const changes = [];
+    if (title !== existing.title) changes.push('title');
+    if ((body || '') !== (existing.body || '')) changes.push('body');
+    if ((clientId ?? null) !== (existing.client_id ?? null)) changes.push('client_id');
+    if (category !== existing.category) changes.push('category');
+    if (JSON.stringify(images) !== JSON.stringify(prevImages)) changes.push('images');
+    const contentChanged = changes.length > 0;
+
+    if (contentChanged) {
+      const nextVersion = (parseInt(existing.edit_count) || 0) + 1;
+      await db.run(`
+        INSERT INTO org_news_versions (news_id, organization_id, version, title, body, client_id, category, images, changes, edited_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+      `, [existing.id, req.orgId, nextVersion, existing.title, existing.body, existing.client_id, existing.category, JSON.stringify(prevImages), JSON.stringify(changes), req.teamMember.id]);
+    }
+
     await db.run(`
       UPDATE org_news
       SET title = ?, body = ?, client_id = ?, category = ?, is_pinned = ?, images = ?, updated_at = CURRENT_TIMESTAMP
+          ${contentChanged ? ', content_updated_at = CURRENT_TIMESTAMP, edit_count = COALESCE(edit_count, 0) + 1' : ''}
       WHERE id = ? AND organization_id = ?
     `, [title, body, clientId, category, isPinned, JSON.stringify(images), existing.id, req.orgId]);
+
+    // Quien edita queda enterado de su propia versión
+    if (contentChanged) await markRead(existing.id, req.teamMember.id);
 
     res.json(await loadNews(existing.id, req));
   } catch (error) {
@@ -417,19 +443,43 @@ router.post('/:id/read', async (req, res) => {
   }
 });
 
+// ─── GET /:id/versions — historial de cambios (versiones anteriores, quién y cuándo) ───
+router.get('/:id/versions', async (req, res) => {
+  try {
+    const existing = await findOwned(req.params.id, req);
+    if (!existing) return res.status(404).json({ error: 'Novedad no encontrada' });
+    const rows = await db.all(`
+      SELECT v.id, v.version, v.title, v.body, v.client_id, v.category, v.images, v.changes, v.edited_at,
+             tm.name AS edited_by_name,
+             COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) AS client_name
+      FROM org_news_versions v
+      LEFT JOIN team_members tm ON tm.id = v.edited_by
+      LEFT JOIN clients c ON c.id = v.client_id
+      WHERE v.news_id = ?
+      ORDER BY v.version DESC
+    `, [existing.id]);
+    res.json(rows.map((r) => ({ ...r, images: parseJson(r.images), changes: parseJson(r.changes) })));
+  } catch (error) {
+    console.error('Error loading news versions:', error);
+    res.status(500).json({ error: 'No se pudo cargar el historial de cambios' });
+  }
+});
+
 // ─── GET /:id/reads — "Visto por" ───
 router.get('/:id/reads', async (req, res) => {
   try {
     const existing = await findOwned(req.params.id, req);
     if (!existing) return res.status(404).json({ error: 'Novedad no encontrada' });
     const rows = await db.all(`
-      SELECT r.team_member_id, tm.name, r.read_at
+      SELECT r.team_member_id, tm.name, r.read_at,
+             (r.read_at >= COALESCE(n.content_updated_at, n.created_at)) AS is_current
       FROM org_news_reads r
+      JOIN org_news n ON n.id = r.news_id
       LEFT JOIN team_members tm ON tm.id = r.team_member_id
       WHERE r.news_id = ?
       ORDER BY r.read_at ASC
     `, [existing.id]);
-    res.json(rows);
+    res.json(rows.map((r) => ({ ...r, is_current: !!r.is_current })));
   } catch (error) {
     console.error('Error loading news reads:', error);
     res.status(500).json({ error: 'No se pudo cargar quién la ha visto' });

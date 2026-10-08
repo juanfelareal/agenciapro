@@ -158,6 +158,7 @@ export const newsAPI = {
   markRead: (id) => api.post(`/news/${id}/read`),
   markAllRead: () => api.post('/news/read-all'),
   reads: (id) => api.get(`/news/${id}/reads`),
+  versions: (id) => api.get(`/news/${id}/versions`),
   // Sube un pantallazo (png/jpg/webp/gif, máx 8 MB) y devuelve { url }
   upload: (file, onProgress) => {
     const fd = new FormData();
