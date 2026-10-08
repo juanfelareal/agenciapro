@@ -129,13 +129,14 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved 
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100 text-[13px] text-gray-600 space-y-1.5">
+              <p className="text-[11px] text-gray-400">Si mantienes la inversión actual ({fmtMoney(be.ads_per_day)}/día, unos {fmtMoney((be.ads_per_day || 0) * (data.days_in_month || 0))} en el mes):</p>
               <p>
-                Para que la pauta empate necesitas vender <strong className="text-[#17181A] tabular-nums">{fmtMoney(be.revenue_for_roas_min)}</strong> en el mes
-                <Info text="Inversión del mes (a tu ritmo actual) × ROAS mínimo." className="ml-1" />
+                Para que la pauta empate (ROAS {fmtX(be.roas_min)}) necesitas vender <strong className="text-[#17181A] tabular-nums">{fmtMoney(be.revenue_for_roas_min)}</strong> en el mes
+                <Info text="Inversión del mes ÷ margen de contribución: con esa venta la pauta recupera lo que cuesta, después de producto y variables. No depende del ROAS actual, sino de cuánto inviertes." className="ml-1" />
               </p>
               <p>
-                Para no perder, contando los fijos, necesitas <strong className="text-[#17181A] tabular-nums">{fmtMoney(be.revenue_month)}</strong> en el mes
-                <Info text="Venta de equilibrio del mes: punto de equilibrio diario × días del mes." className="ml-1" />
+                Para no perder contando los fijos (ROAS {fmtX(be.roas_target)}) necesitas <strong className="text-[#17181A] tabular-nums">{fmtMoney(be.revenue_month)}</strong> en el mes
+                <Info text="(Inversión del mes + costos fijos) ÷ margen de contribución. Si la inversión sube o baja, esta cifra cambia." className="ml-1" />
               </p>
               <p className="text-[11px] text-gray-400">Margen de contribución {fmtPct(be.contribution_ratio, 0)} (lo que queda de cada venta después de producto y variables).</p>
             </div>
