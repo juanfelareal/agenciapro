@@ -635,7 +635,9 @@ export const growthAPI = {
   getCommission: (clientId) => api.get(`/growth/clients/${clientId}/commission`),
   updateCommission: (clientId, data) => api.put(`/growth/clients/${clientId}/commission`, data),
   // Financials Dashboard
-  getFinancials: (clientId, period) => api.get(`/growth/clients/${clientId}/financials`, { params: { period } }),
+  // `light: true` solo lee lo guardado (sin sincronizar con Shopify); se usa para el mes de comparación
+  getFinancials: (clientId, period, { light = false } = {}) => api.get(`/growth/clients/${clientId}/financials`, { params: { period, ...(light ? { light: 1 } : {}) } }),
+  updateFinancialSettings: (clientId, data) => api.put(`/growth/clients/${clientId}/settings`, data),
   // Fixed Costs
   getFixedCosts: (clientId) => api.get(`/growth/clients/${clientId}/fixed-costs`),
   createFixedCost: (clientId, data) => api.post(`/growth/clients/${clientId}/fixed-costs`, data),
@@ -649,6 +651,7 @@ export const growthAPI = {
   // Products (COGS)
   getProducts: (clientId) => api.get(`/growth/clients/${clientId}/products`),
   updateProductCost: (clientId, productId, cost) => api.put(`/growth/clients/${clientId}/products/${productId}/cost`, { cost }),
+  resetProductCost: (clientId, productId) => api.delete(`/growth/clients/${clientId}/products/${productId}/cost`),
   syncProducts: (clientId) => api.post(`/growth/clients/${clientId}/products/sync`),
   calculateCOGS: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/cogs/calculate`, { start_date: startDate, end_date: endDate }),
 };

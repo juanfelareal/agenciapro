@@ -2167,6 +2167,41 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_shopify_products_variant ON shopify_products(shopify_variant_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_daily_cogs_client_date ON daily_cogs(client_id, date)`);
 
+    // Financial dashboard v2: product sales per day (COGS live = units × costo vigente),
+    // settings por cliente y columnas extra en productos / costos variables (idempotente)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_product_daily_sales (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        date TEXT NOT NULL,
+        shopify_variant_id TEXT NOT NULL,
+        shopify_product_id TEXT,
+        title TEXT,
+        variant_title TEXT,
+        sku TEXT,
+        units INTEGER DEFAULT 0,
+        revenue REAL DEFAULT 0,
+        orders INTEGER DEFAULT 0,
+        synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, date, shopify_variant_id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_product_daily_sales_client_date ON client_product_daily_sales(client_id, date)`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_financial_settings (
+        client_id INTEGER PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        default_cogs_rate REAL DEFAULT 0.35,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS shopify_cost REAL`);
+    await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS image_url TEXT`);
+    await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS status TEXT`);
+    await pool.query(`ALTER TABLE client_variable_costs ADD COLUMN IF NOT EXISTS kind TEXT DEFAULT 'percent'`);
+    await pool.query(`ALTER TABLE client_variable_costs ADD COLUMN IF NOT EXISTS amount REAL`);
+
     // Cleanup: remove corrupted project templates (pool object saved as name)
     await pool.query(`DELETE FROM project_template_tasks WHERE template_id IN (SELECT id FROM project_templates WHERE name LIKE '{%"_events"%')`);
     await pool.query(`DELETE FROM project_templates WHERE name LIKE '{%"_events"%'`);

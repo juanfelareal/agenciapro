@@ -3,6 +3,7 @@ import FacebookAdsIntegration from '../integrations/facebookAds.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
+import { recordProductSalesFromOrders } from './clientFinancialsService.js';
 
 /**
  * Metrics Sync Service
@@ -358,7 +359,7 @@ export async function syncClientForDate(clientId, date) {
   const systemTiktokToken = process.env.TIKTOK_SYSTEM_ACCESS_TOKEN;
   const client = await db.prepare(`
     SELECT
-      c.id, c.name,
+      c.id, c.name, c.organization_id,
       fb.access_token as fb_access_token,
       fb.ad_account_id as fb_ad_account_id,
       ga.refresh_token as ga_refresh_token,
@@ -395,11 +396,15 @@ export async function syncClientForDate(clientId, date) {
   const hasGoogle = !!(gaRefreshToken && client.ga_customer_id);
   const hasTiktok = !!(ttAccessToken && client.tt_advertiser_id);
 
-  // Fetch Shopify metrics
+  // Fetch Shopify metrics (y guardamos los pedidos para las ventas por producto / COGS)
+  let shopify = null;
+  let shopifyOrders = null;
   if (hasShopify) {
     try {
-      const shopify = new ShopifyIntegration(client.shopify_store_url, client.shopify_access_token);
-      shopifyMetrics = await shopify.getMetrics(date, date);
+      shopify = new ShopifyIntegration(client.shopify_store_url, client.shopify_access_token);
+      const { metrics, orders } = await shopify.getMetricsAndOrders(date, date);
+      shopifyMetrics = metrics;
+      shopifyOrders = orders;
       shopifyOk = true;
       if (shopifyMetrics.allOrderCount > 0) {
         console.log(`  Shopify ${date}: ${shopifyMetrics.allOrderCount} orders, $${Math.round(shopifyMetrics.allOrdersRevenue)} total, $${Math.round(shopifyMetrics.revenue)} confirmed`);
@@ -561,6 +566,16 @@ export async function syncClientForDate(clientId, date) {
   }
 
   await upsertDailyMetrics(clientId, date, metricsToSave);
+
+  // Ventas por producto del día (base del costo de producto en el dashboard financiero).
+  // Reutiliza los pedidos ya descargados; si falla no afecta el sync de métricas.
+  if (hasShopify && shopifyOk && shopify && Array.isArray(shopifyOrders) && client.organization_id) {
+    try {
+      await recordProductSalesFromOrders(clientId, client.organization_id, date, shopifyOrders, shopify);
+    } catch (error) {
+      console.error(`Error guardando ventas por producto para cliente ${clientId} en ${date}:`, error.message);
+    }
+  }
 
   // Update credential status only after successful save
   if (hasShopify && shopifyOk) {

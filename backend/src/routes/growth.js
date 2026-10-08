@@ -1,6 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
-import ShopifyIntegration from '../integrations/shopify.js';
+import * as financials from '../services/clientFinancialsService.js';
 
 const router = express.Router();
 
@@ -477,7 +477,7 @@ router.post('/clients/:clientId/fixed-costs', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [req.orgId, clientId, category, name, amount, start_date, end_date || null, notes || null]);
 
-    res.json({ id: result.lastID, category, name, amount, start_date, end_date, notes });
+    res.json({ id: result.lastInsertRowid, category, name, amount, start_date, end_date, notes });
   } catch (error) {
     console.error('Error creating fixed cost:', error);
     res.status(500).json({ error: error.message });
@@ -540,19 +540,22 @@ router.get('/clients/:clientId/variable-costs', async (req, res) => {
 router.post('/clients/:clientId/variable-costs', async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { category, name, percentage, applies_to, notes } = req.body;
+    const { category, name, applies_to, notes } = req.body;
+    const kind = req.body.kind === 'per_order' ? 'per_order' : 'percent';
+    const percentage = kind === 'percent' ? parseFloat(req.body.percentage) : 0;
+    const amount = kind === 'per_order' ? parseFloat(req.body.amount) : null;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    if (!category || !name || percentage === undefined) {
-      return res.status(400).json({ error: 'category, name, and percentage are required' });
-    }
+    if (!category || !name) return res.status(400).json({ error: 'category y name son requeridos' });
+    if (kind === 'percent' && !Number.isFinite(percentage)) return res.status(400).json({ error: 'percentage es requerido' });
+    if (kind === 'per_order' && !Number.isFinite(amount)) return res.status(400).json({ error: 'amount (valor por pedido) es requerido' });
 
     const result = await db.run(`
-      INSERT INTO client_variable_costs (organization_id, client_id, category, name, percentage, applies_to, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [req.orgId, clientId, category, name, percentage, applies_to || 'revenue', notes || null]);
+      INSERT INTO client_variable_costs (organization_id, client_id, category, name, percentage, applies_to, kind, amount, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `, [req.orgId, clientId, category, name, percentage, applies_to || 'revenue', kind, amount, notes || null]);
 
-    res.json({ id: result.lastID, category, name, percentage, applies_to: applies_to || 'revenue', notes });
+    res.json({ id: result.lastInsertRowid, category, name, percentage, applies_to: applies_to || 'revenue', kind, amount, notes });
   } catch (error) {
     console.error('Error creating variable cost:', error);
     res.status(500).json({ error: error.message });
@@ -563,13 +566,17 @@ router.post('/clients/:clientId/variable-costs', async (req, res) => {
 router.put('/clients/:clientId/variable-costs/:costId', async (req, res) => {
   try {
     const { clientId, costId } = req.params;
-    const { category, name, percentage, applies_to, is_active, notes } = req.body;
+    const { category, name, applies_to, is_active, notes } = req.body;
+    const kind = req.body.kind === 'per_order' ? 'per_order' : 'percent';
+    const percentage = kind === 'percent' ? (parseFloat(req.body.percentage) || 0) : 0;
+    const amount = kind === 'per_order' ? (parseFloat(req.body.amount) || 0) : null;
+    const active = is_active === undefined || is_active === null ? 1 : (is_active ? 1 : 0);
 
     await db.run(`
       UPDATE client_variable_costs
-      SET category = $1, name = $2, percentage = $3, applies_to = $4, is_active = $5, notes = $6, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7 AND client_id = $8 AND organization_id = $9
-    `, [category, name, percentage, applies_to || 'revenue', is_active ?? 1, notes || null, costId, clientId, req.orgId]);
+      SET category = $1, name = $2, percentage = $3, applies_to = $4, is_active = $5, notes = $6, kind = $7, amount = $8, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $9 AND client_id = $10 AND organization_id = $11
+    `, [category, name, percentage, applies_to || 'revenue', active, notes || null, kind, amount, costId, clientId, req.orgId]);
 
     res.json({ success: true });
   } catch (error) {
@@ -592,288 +599,118 @@ router.delete('/clients/:clientId/variable-costs/:costId', async (req, res) => {
 
 // ─── Products / COGS ───
 
-// Get products with costs for a client
+const productFromRow = (p) => ({
+  ...p,
+  price: p.price === null ? null : Number(p.price),
+  cost: p.cost === null ? null : Number(p.cost),
+  shopify_cost: p.shopify_cost === null || p.shopify_cost === undefined ? null : Number(p.shopify_cost),
+});
+
+// Catálogo sincronizado con sus costos (manual > Shopify)
 router.get('/clients/:clientId/products', async (req, res) => {
   try {
     const { clientId } = req.params;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const products = await db.all(`
-      SELECT * FROM shopify_products
+    const rows = await db.all(`
+      SELECT id, shopify_product_id, shopify_variant_id, sku, title, variant_title, price, cost, shopify_cost,
+             cost_source, image_url, status, last_synced_at
+      FROM shopify_products
       WHERE client_id = $1 AND organization_id = $2
-      ORDER BY title
+      ORDER BY title, variant_title
     `, [clientId, req.orgId]);
+    const products = rows.map(productFromRow);
+    const missingCost = products.filter((p) => p.cost === null).length;
+    const syncedAt = products.reduce((max, p) => (p.last_synced_at && (!max || p.last_synced_at > max) ? p.last_synced_at : max), null);
 
-    // Count products without cost
-    const missingCost = products.filter(p => !p.cost || p.cost === 0).length;
-
-    res.json({ products, missing_cost_count: missingCost });
+    res.json({ products, missing_cost_count: missingCost, products_synced_at: syncedAt });
   } catch (error) {
     console.error('Error getting products:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Update product cost manually
+// Costo manual de un producto (pisa el de Shopify; el COGS se recalcula en vivo)
 router.put('/clients/:clientId/products/:productId/cost', async (req, res) => {
   try {
     const { clientId, productId } = req.params;
-    const { cost } = req.body;
+    const cost = parseFloat(req.body?.cost);
+    if (!Number.isFinite(cost) || cost < 0) return res.status(400).json({ error: 'cost debe ser un número mayor o igual a 0' });
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    await db.run(`
+    const result = await db.run(`
       UPDATE shopify_products
       SET cost = $1, cost_source = 'manual', updated_at = CURRENT_TIMESTAMP
       WHERE id = $2 AND client_id = $3 AND organization_id = $4
     `, [cost, productId, clientId, req.orgId]);
+    if (result.changes === 0) return res.status(404).json({ error: 'Producto no encontrado' });
 
-    res.json({ success: true });
+    res.json({ success: true, cost, cost_source: 'manual' });
   } catch (error) {
     console.error('Error updating product cost:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
+// Volver al costo que está en Shopify (quita el manual)
+router.delete('/clients/:clientId/products/:productId/cost', async (req, res) => {
+  try {
+    const { clientId, productId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+
+    const result = await db.run(`
+      UPDATE shopify_products
+      SET cost = shopify_cost, cost_source = 'shopify', updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1 AND client_id = $2 AND organization_id = $3
+    `, [productId, clientId, req.orgId]);
+    if (result.changes === 0) return res.status(404).json({ error: 'Producto no encontrado' });
+    const row = await db.get('SELECT cost, shopify_cost, cost_source FROM shopify_products WHERE id = $1', [productId]);
+
+    res.json({ success: true, cost: row?.cost === null ? null : Number(row.cost), cost_source: 'shopify' });
+  } catch (error) {
+    console.error('Error resetting product cost:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ajustes financieros del cliente (% de costo estimado para productos sin costo)
+router.put('/clients/:clientId/settings', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+    const rate = parseFloat(req.body?.default_cogs_rate);
+    if (!Number.isFinite(rate) || rate < 0 || rate >= 1) {
+      return res.status(400).json({ error: 'default_cogs_rate debe estar entre 0 y 0.95 (ej. 0.35 = 35 %)' });
+    }
+    res.json(await financials.saveFinancialSettings(clientId, req.orgId, { default_cogs_rate: rate }));
+  } catch (error) {
+    console.error('Error saving financial settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ─── Financial Dashboard (P&L + Break-even) ───
+//
+// GET /clients/:clientId/financials?period=YYYY-MM[&light=1]
+// Si el cliente tiene Shopify: sincroniza productos (si nunca / > 24 h) y trae las ventas por
+// producto que falten del mes para calcular el COGS, sin bloquear más de unos segundos.
+// `light=1` solo lee lo guardado (se usa para el mes de comparación).
 
 router.get('/clients/:clientId/financials', async (req, res) => {
   try {
     const { clientId } = req.params;
-    const period = req.query.period || getCurrentPeriod(); // YYYY-MM
+    const period = /^\d{4}-\d{2}$/.test(req.query.period || '') ? req.query.period : getCurrentPeriod();
+    const light = req.query.light === '1' || req.query.light === 'true';
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    // Parse period
-    const [year, month] = period.split('-').map(Number);
-    const startDate = `${period}-01`;
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const today = new Date();
-    const isCurrentMonth = today.getFullYear() === year && (today.getMonth() + 1) === month;
-    const daysElapsed = isCurrentMonth ? today.getDate() : daysInMonth;
-
-    // Get end date for queries
-    const endDate = isCurrentMonth
-      ? `${period}-${String(today.getDate()).padStart(2, '0')}`
-      : `${period}-${String(daysInMonth).padStart(2, '0')}`;
-
-    // 1. Revenue from client_daily_metrics
-    let revenueData = { revenue_mtd: 0, orders_mtd: 0 };
-    try {
-      revenueData = await db.get(`
-        SELECT
-          COALESCE(SUM(shopify_net_revenue), 0) as revenue_mtd,
-          COALESCE(SUM(shopify_orders), 0) as orders_mtd
-        FROM client_daily_metrics
-        WHERE client_id = $1
-          AND metric_date >= $2 AND metric_date <= $3
-      `, [clientId, startDate, endDate]) || { revenue_mtd: 0, orders_mtd: 0 };
-    } catch (e) {
-      console.log('Error fetching revenue data:', e.message);
-    }
-
-    const revenueMTD = revenueData?.revenue_mtd || 0;
-    const ordersMTD = revenueData?.orders_mtd || 0;
-    const dailyAvgRevenue = daysElapsed > 0 ? revenueMTD / daysElapsed : 0;
-    const projectedRevenue = dailyAvgRevenue * daysInMonth;
-
-    // 2. Ad spend from client_daily_metrics
-    let adSpendData = { ad_spend_mtd: 0 };
-    try {
-      adSpendData = await db.get(`
-        SELECT
-          COALESCE(SUM(fb_spend), 0) + COALESCE(SUM(ga_spend), 0) + COALESCE(SUM(tt_spend), 0) as ad_spend_mtd
-        FROM client_daily_metrics
-        WHERE client_id = $1
-          AND metric_date >= $2 AND metric_date <= $3
-      `, [clientId, startDate, endDate]) || { ad_spend_mtd: 0 };
-    } catch (e) {
-      console.log('Error fetching ad spend data:', e.message);
-    }
-
-    const adSpendMTD = adSpendData?.ad_spend_mtd || 0;
-    const roas = adSpendMTD > 0 ? revenueMTD / adSpendMTD : 0;
-
-    // 3. COGS from daily_cogs (defensive - table may not exist yet)
-    let cogsData = { cogs_mtd: 0, units_sold: 0 };
-    try {
-      cogsData = await db.get(`
-        SELECT
-          COALESCE(SUM(total_cogs), 0) as cogs_mtd,
-          COALESCE(SUM(units_sold), 0) as units_sold
-        FROM daily_cogs
-        WHERE client_id = $1 AND organization_id = $2
-          AND date >= $3 AND date <= $4
-      `, [clientId, req.orgId, startDate, endDate]) || { cogs_mtd: 0, units_sold: 0 };
-    } catch (e) {
-      console.log('daily_cogs table may not exist yet:', e.message);
-    }
-
-    const cogsMTD = cogsData?.cogs_mtd || 0;
-    const cogsMarginPct = revenueMTD > 0 ? ((revenueMTD - cogsMTD) / revenueMTD) * 100 : 0;
-
-    // 4. Gross profit
-    const grossProfitMTD = revenueMTD - cogsMTD;
-    const grossMarginPct = revenueMTD > 0 ? (grossProfitMTD / revenueMTD) * 100 : 0;
-
-    // 5. Fixed costs (active for this period) - defensive
-    let fixedCosts = [];
-    try {
-      fixedCosts = await db.all(`
-        SELECT id, category, name, amount
-        FROM client_fixed_costs
-        WHERE client_id = $1 AND organization_id = $2
-          AND start_date <= $3
-          AND (end_date IS NULL OR end_date >= $4)
-        ORDER BY category, name
-      `, [clientId, req.orgId, endDate, startDate]) || [];
-    } catch (e) {
-      console.log('client_fixed_costs table may not exist yet:', e.message);
-    }
-
-    const fixedCostsMonthlyTotal = fixedCosts.reduce((sum, c) => sum + (c.amount || 0), 0);
-    const fixedCostsMTDProrated = (fixedCostsMonthlyTotal / daysInMonth) * daysElapsed;
-
-    // 6. Variable costs - defensive
-    let variableCosts = [];
-    try {
-      variableCosts = await db.all(`
-        SELECT id, category, name, percentage, applies_to
-        FROM client_variable_costs
-        WHERE client_id = $1 AND organization_id = $2 AND is_active = 1
-        ORDER BY category, name
-      `, [clientId, req.orgId]) || [];
-    } catch (e) {
-      console.log('client_variable_costs table may not exist yet:', e.message);
-    }
-
-    let variableCostsMTD = 0;
-    const variableCostsBreakdown = variableCosts.map(vc => {
-      const baseAmount = vc.applies_to === 'net_revenue' ? (revenueMTD - cogsMTD) : revenueMTD;
-      const amount = (baseAmount * (vc.percentage || 0)) / 100;
-      variableCostsMTD += amount;
-      return {
-        id: vc.id,
-        name: vc.name,
-        category: vc.category,
-        percentage: vc.percentage,
-        amount
-      };
-    });
-
-    // 7. Net profit
-    const netProfitMTD = grossProfitMTD - adSpendMTD - fixedCostsMTDProrated - variableCostsMTD;
-    const netMarginPct = revenueMTD > 0 ? (netProfitMTD / revenueMTD) * 100 : 0;
-    const dailyAvgNetProfit = daysElapsed > 0 ? netProfitMTD / daysElapsed : 0;
-    const projectedNetProfit = dailyAvgNetProfit * daysInMonth;
-
-    // 8. Break-even calculation
-    // Contribution margin = 1 - (COGS% + Variable costs%)
-    const cogsPct = revenueMTD > 0 ? cogsMTD / revenueMTD : 0;
-    const variableCostsPct = variableCosts.reduce((sum, vc) => {
-      if (vc.applies_to === 'net_revenue') {
-        return sum + ((vc.percentage || 0) / 100) * (1 - cogsPct);
-      }
-      return sum + ((vc.percentage || 0) / 100);
-    }, 0);
-
-    const contributionMargin = 1 - cogsPct - variableCostsPct;
-
-    // Fixed costs remaining = total monthly - prorated MTD
-    const fixedCostsRemaining = fixedCostsMonthlyTotal - fixedCostsMTDProrated;
-
-    // Also need to cover ad spend projection for remaining days
-    const dailyAvgAdSpend = daysElapsed > 0 ? adSpendMTD / daysElapsed : 0;
-    const adSpendRemaining = dailyAvgAdSpend * (daysInMonth - daysElapsed);
-    const totalFixedRemaining = fixedCostsRemaining + adSpendRemaining;
-
-    // Revenue needed to break even on remaining fixed costs
-    const revenueToBreakeven = contributionMargin > 0 ? totalFixedRemaining / contributionMargin : 0;
-    const daysToBreakeven = dailyAvgRevenue > 0 ? revenueToBreakeven / dailyAvgRevenue : 0;
-    const willBeProfitable = projectedNetProfit > 0;
-
-    // 9. Products summary - defensive
-    let productsData = { total_products: 0, missing_cost_count: 0 };
-    try {
-      productsData = await db.get(`
-        SELECT
-          COUNT(*) as total_products,
-          SUM(CASE WHEN cost IS NULL OR cost = 0 THEN 1 ELSE 0 END) as missing_cost_count
-        FROM shopify_products
-        WHERE client_id = $1 AND organization_id = $2
-      `, [clientId, req.orgId]) || { total_products: 0, missing_cost_count: 0 };
-    } catch (e) {
-      console.log('shopify_products table may not exist yet:', e.message);
-    }
-
-    res.json({
-      period,
-      days_in_month: daysInMonth,
-      days_elapsed: daysElapsed,
-
-      revenue: {
-        mtd: revenueMTD,
-        daily_avg: dailyAvgRevenue,
-        projected_eom: projectedRevenue,
-        orders_mtd: ordersMTD
-      },
-
-      cogs: {
-        mtd: cogsMTD,
-        margin_pct: cogsMarginPct,
-        units_sold: cogsData?.units_sold || 0
-      },
-
-      gross_profit: {
-        mtd: grossProfitMTD,
-        margin_pct: grossMarginPct
-      },
-
-      ad_spend: {
-        mtd: adSpendMTD,
-        daily_avg: dailyAvgAdSpend,
-        roas
-      },
-
-      fixed_costs: {
-        monthly_total: fixedCostsMonthlyTotal,
-        mtd_prorated: fixedCostsMTDProrated,
-        breakdown: fixedCosts.map(fc => ({
-          id: fc.id,
-          name: fc.name,
-          category: fc.category,
-          amount: fc.amount
-        }))
-      },
-
-      variable_costs: {
-        mtd: variableCostsMTD,
-        breakdown: variableCostsBreakdown
-      },
-
-      net_profit: {
-        mtd: netProfitMTD,
-        margin_pct: netMarginPct,
-        daily_avg: dailyAvgNetProfit,
-        projected_eom: projectedNetProfit
-      },
-
-      breakeven: {
-        fixed_costs_remaining: fixedCostsRemaining,
-        ad_spend_remaining: adSpendRemaining,
-        contribution_margin: contributionMargin,
-        revenue_to_breakeven: revenueToBreakeven,
-        days_to_breakeven: daysToBreakeven,
-        will_be_profitable: willBeProfitable
-      },
-
-      products: {
-        total: productsData?.total_products || 0,
-        missing_cost: productsData?.missing_cost_count || 0
-      }
-    });
+    const data = await financials.computeFinancials({ clientId: Number(clientId), orgId: req.orgId, period, light });
+    res.json(data);
   } catch (error) {
     console.error('Error getting financials:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // ─── Palancas Dashboard (from Structured Briefs) ───
 
@@ -1020,61 +857,21 @@ router.get('/:clientId/palancas-dashboard', async (req, res) => {
 router.post('/clients/:clientId/products/sync', async (req, res) => {
   try {
     const { clientId } = req.params;
-    if (!(await verifyClient(clientId, req.orgId))) {
-      return res.status(404).json({ error: 'Client not found' });
-    }
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    // Get Shopify credentials
-    const shopifyCred = await db.get(
-      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = $1 AND status = $2',
-      [clientId, 'active']
-    );
+    const cred = await financials.getShopifyCredentials(clientId);
+    if (!cred) return res.status(400).json({ error: 'Sin conexión Shopify activa' });
 
-    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
-      return res.status(400).json({ error: 'Sin conexión Shopify activa' });
-    }
-
-    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
-    const products = await shopify.getProductsWithCosts();
-
-    // Upsert products into shopify_products table
-    let synced = 0;
-    let withoutCost = 0;
-
-    for (const product of products) {
-      await db.run(`
-        INSERT INTO shopify_products (
-          organization_id, client_id, shopify_product_id, shopify_variant_id,
-          sku, title, variant_title, price, cost, cost_source, last_synced_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'shopify', datetime('now'))
-        ON CONFLICT (client_id, shopify_variant_id) DO UPDATE SET
-          shopify_product_id = EXCLUDED.shopify_product_id,
-          sku = EXCLUDED.sku,
-          title = EXCLUDED.title,
-          variant_title = EXCLUDED.variant_title,
-          price = EXCLUDED.price,
-          cost = CASE WHEN shopify_products.cost_source = 'manual' THEN shopify_products.cost ELSE EXCLUDED.cost END,
-          last_synced_at = datetime('now'),
-          updated_at = datetime('now')
-      `, [
-        req.orgId, clientId, product.shopify_product_id, product.shopify_variant_id,
-        product.sku, product.title, product.variant_title, product.price, product.cost
-      ]);
-
-      synced++;
-      if (product.cost === null) withoutCost++;
-    }
-
+    const result = await financials.syncProducts(Number(clientId), req.orgId);
     res.json({
       success: true,
-      synced,
-      without_cost: withoutCost,
-      message: `Sincronizados ${synced} productos. ${withoutCost} sin costo definido.`
+      synced: result.synced,
+      without_cost: result.without_cost,
+      products_synced_at: result.synced_at,
+      message: `Sincronizados ${result.synced} productos. ${result.without_cost} sin costo en Shopify.`
     });
   } catch (error) {
     console.error('Error syncing products:', error);
-
-    // Check for permission error from Shopify GraphQL
     if (error.message && (
       error.message.includes('Access denied') ||
       error.message.includes('products field') ||
@@ -1085,138 +882,33 @@ router.post('/clients/:clientId/products/sync', async (req, res) => {
         needs_reconnect: true
       });
     }
-
     res.status(500).json({ error: error.message });
   }
 });
 
-// ─── Calculate COGS for a Period ───
+// ─── Recalcular ventas por producto / COGS de un rango (manual) ───
 
 router.post('/clients/:clientId/cogs/calculate', async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { start_date, end_date } = req.body;
-
-    if (!start_date || !end_date) {
-      return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    const { start_date, end_date } = req.body || {};
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start_date || '') || !/^\d{4}-\d{2}-\d{2}$/.test(end_date || '') || start_date > end_date) {
+      return res.status(400).json({ error: 'start_date y end_date (YYYY-MM-DD) son requeridos' });
     }
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    if (!(await verifyClient(clientId, req.orgId))) {
-      return res.status(404).json({ error: 'Client not found' });
-    }
+    const cred = await financials.getShopifyCredentials(clientId);
+    if (!cred) return res.status(400).json({ error: 'Sin conexión Shopify activa' });
 
-    // Get Shopify credentials
-    const shopifyCred = await db.get(
-      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = $1 AND status = $2',
-      [clientId, 'active']
-    );
-
-    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
-      return res.status(400).json({ error: 'Sin conexión Shopify activa' });
-    }
-
-    // Get product costs from our database (combines Shopify + manual overrides)
-    const products = await db.all(
-      'SELECT shopify_variant_id, cost FROM shopify_products WHERE client_id = $1 AND cost IS NOT NULL',
-      [clientId]
-    );
-
-    const productCostMap = {};
-    for (const p of products) {
-      productCostMap[p.shopify_variant_id] = p.cost;
-    }
-
-    if (Object.keys(productCostMap).length === 0) {
-      return res.status(400).json({
-        error: 'No hay productos con costos configurados. Sincroniza productos primero.'
-      });
-    }
-
-    // Calculate COGS using Shopify integration
-    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
-    const cogsResult = await shopify.calculateCOGS(start_date, end_date, productCostMap);
-
-    // Save daily COGS to database
-    for (const day of cogsResult.dailyCogs) {
-      await db.run(`
-        INSERT INTO daily_cogs (organization_id, client_id, date, total_cogs, units_sold, orders_count, calculated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, datetime('now'))
-        ON CONFLICT (client_id, date) DO UPDATE SET
-          total_cogs = EXCLUDED.total_cogs,
-          units_sold = EXCLUDED.units_sold,
-          orders_count = EXCLUDED.orders_count,
-          calculated_at = datetime('now')
-      `, [req.orgId, clientId, day.date, day.cogs, day.units, day.orders]);
-    }
-
-    res.json({
-      success: true,
-      period: { start_date, end_date },
-      total_cogs: cogsResult.totalCogs,
-      total_units: cogsResult.totalUnits,
-      days_calculated: cogsResult.dailyCogs.length,
-      products_without_cost: cogsResult.productsWithoutCost
-    });
+    const today = financials.todayColombia();
+    const end = end_date > today ? today : end_date;
+    const result = await financials.syncProductSalesRange(Number(clientId), req.orgId, start_date, end);
+    res.json({ success: true, period: { start_date, end_date: end }, days_calculated: result.days, product_rows: result.rows });
   } catch (error) {
     console.error('Error calculating COGS:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// ─── Get Products List ───
-
-router.get('/clients/:clientId/products', async (req, res) => {
-  try {
-    const { clientId } = req.params;
-    if (!(await verifyClient(clientId, req.orgId))) {
-      return res.status(404).json({ error: 'Client not found' });
-    }
-
-    const products = await db.all(`
-      SELECT id, shopify_product_id, shopify_variant_id, sku, title, variant_title,
-             price, cost, cost_source, last_synced_at
-      FROM shopify_products
-      WHERE client_id = $1 AND organization_id = $2
-      ORDER BY title, variant_title
-    `, [clientId, req.orgId]);
-
-    res.json(products);
-  } catch (error) {
-    console.error('Error getting products:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ─── Update Product Cost (Manual Override) ───
-
-router.put('/clients/:clientId/products/:productId/cost', async (req, res) => {
-  try {
-    const { clientId, productId } = req.params;
-    const { cost } = req.body;
-
-    if (cost === undefined || cost === null) {
-      return res.status(400).json({ error: 'cost es requerido' });
-    }
-
-    if (!(await verifyClient(clientId, req.orgId))) {
-      return res.status(404).json({ error: 'Client not found' });
-    }
-
-    const result = await db.run(`
-      UPDATE shopify_products
-      SET cost = $1, cost_source = 'manual', updated_at = datetime('now')
-      WHERE id = $2 AND client_id = $3 AND organization_id = $4
-    `, [parseFloat(cost), productId, clientId, req.orgId]);
-
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Producto no encontrado' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error updating product cost:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 export default router;

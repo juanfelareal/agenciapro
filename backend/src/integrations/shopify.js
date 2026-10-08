@@ -316,6 +316,84 @@ class ShopifyIntegration {
   }
 
   /**
+   * Same as getMetrics but also returns the raw orders, so callers that need
+   * a second pass over them (e.g. product sales / COGS) don't hit the API twice.
+   */
+  async getMetricsAndOrders(startDate, endDate) {
+    const orders = await this.getOrders(startDate, endDate);
+    const metrics = this.calculateMetricsFromOrders(orders);
+    const sessions = await this.getSessions(startDate, endDate);
+    const conversionRate = sessions > 0 ? (metrics.orders / sessions) * 100 : 0;
+    return { metrics: { ...metrics, sessions, conversionRate }, orders };
+  }
+
+  /**
+   * Aggregate paid orders into units / revenue per variant per day.
+   * Same filters as calculateMetricsFromOrders (confirmed = paid | partially_refunded,
+   * never cancelled). Refunded line items are subtracted on the refund date.
+   * Revenue is the product line (price × qty − line discounts), without shipping/tax.
+   * @returns {Array<{date, shopify_variant_id, shopify_product_id, title, variant_title, sku, units, revenue, orders}>}
+   */
+  aggregateProductSales(orders) {
+    const map = {};
+    const row = (date, item) => {
+      const variantId = item.variant_id ? String(item.variant_id) : `custom:${item.title || 'item'}`;
+      const key = `${date}|${variantId}`;
+      if (!map[key]) {
+        map[key] = {
+          date,
+          shopify_variant_id: variantId,
+          shopify_product_id: item.product_id ? String(item.product_id) : null,
+          title: item.title || 'Producto',
+          variant_title: item.variant_title && item.variant_title !== 'Default Title' ? item.variant_title : null,
+          sku: item.sku || null,
+          units: 0,
+          revenue: 0,
+          orders: 0,
+          _orders: new Set(),
+        };
+      }
+      return map[key];
+    };
+
+    (orders || []).forEach(order => {
+      if (order.cancelled_at) return;
+      if (order.financial_status !== 'paid' && order.financial_status !== 'partially_refunded') return;
+      const orderDate = String(order.created_at).split('T')[0];
+
+      (order.line_items || []).forEach(item => {
+        const qty = item.quantity || 0;
+        const r = row(orderDate, item);
+        r.units += qty;
+        r.revenue += (parseFloat(item.price) || 0) * qty - (parseFloat(item.total_discount) || 0);
+        r._orders.add(order.id);
+      });
+
+      (order.refunds || []).forEach(refund => {
+        const refundDate = refund.created_at ? String(refund.created_at).split('T')[0] : orderDate;
+        (refund.refund_line_items || []).forEach(ri => {
+          const li = ri.line_item;
+          if (!li) return;
+          const qty = ri.quantity || 0;
+          const r = row(refundDate, li);
+          r.units -= qty;
+          r.revenue -= parseFloat(ri.subtotal) || (parseFloat(li.price) || 0) * qty;
+        });
+      });
+    });
+
+    return Object.values(map)
+      .map(({ _orders, ...r }) => ({ ...r, orders: _orders.size, revenue: Math.round(r.revenue * 100) / 100 }))
+      .sort((a, b) => a.date.localeCompare(b.date) || b.revenue - a.revenue);
+  }
+
+  /** Product sales per variant per day for a date range (one orders fetch). */
+  async getProductSales(startDate, endDate) {
+    const orders = await this.getOrders(startDate, endDate);
+    return this.aggregateProductSales(orders);
+  }
+
+  /**
    * Get top selling products from orders in a date range
    * @param {string} startDate - Start date in YYYY-MM-DD format
    * @param {string} endDate - End date in YYYY-MM-DD format
@@ -542,6 +620,8 @@ class ShopifyIntegration {
               id
               legacyResourceId
               title
+              status
+              featuredImage { url(transform: { maxWidth: 160, maxHeight: 160 }) }
               variants(first: 100) {
                 edges {
                   node {
@@ -550,6 +630,7 @@ class ShopifyIntegration {
                     title
                     sku
                     price
+                    image { url(transform: { maxWidth: 160, maxHeight: 160 }) }
                     inventoryItem {
                       unitCost {
                         amount
@@ -598,7 +679,9 @@ class ShopifyIntegration {
             title: productTitle,
             variant_title: variant.title !== 'Default Title' ? variant.title : null,
             price: parseFloat(variant.price) || 0,
-            cost: cost ? parseFloat(cost) : null
+            cost: cost ? parseFloat(cost) : null,
+            image_url: variant.image?.url || product.featuredImage?.url || null,
+            status: product.status ? String(product.status).toLowerCase() : null
           });
         });
       });
