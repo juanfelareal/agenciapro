@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { collectionsAPI } from '../utils/api';
 import {
-  Send, Clock, CheckCircle, ChevronLeft, X, Calendar, Eye, RefreshCw, StickyNote, Users, FileText, CalendarDays, Mail,
+  Send, Clock, CheckCircle, ChevronLeft, X, Calendar, Eye, RefreshCw, StickyNote, Users, FileText, CalendarDays, Mail, MessageCircle,
 } from 'lucide-react';
 import AgingStats from '../components/collections/AgingStats';
 import ClientsView from '../components/collections/ClientsView';
@@ -51,6 +51,12 @@ const Collections = () => {
   const [reminderResult, setReminderResult] = useState(null);
   const [scheduleMode, setScheduleMode] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
+  // Canal del recordatorio: correo (default) o WhatsApp vía Kapso
+  const [channel, setChannel] = useState('email');
+  const [waPhone, setWaPhone] = useState('');
+  const [waText, setWaText] = useState('');
+  const [waInfo, setWaInfo] = useState(null); // { configured, template_available, template_name, phone_formatted }
+  const [waLoading, setWaLoading] = useState(false);
 
   // Bulk send modal
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -235,12 +241,16 @@ const Collections = () => {
     setReminderResult(null);
     setScheduleMode(false);
     setScheduleDate('');
+    setChannel('email');
+    setWaPhone(client.client_phone || '');
+    setWaText('');
+    setWaInfo(null);
     setShowReminderModal(true);
   };
 
   const openReminderForInvoice = (inv) => {
     openReminderModal(
-      { client_id: inv.client_id, client_email: inv.client_email || clientDetail?.client?.email || '', siigo_email: inv.siigo_email || clientDetail?.client?.siigo_email || '', orbit_email: inv.orbit_email || clientDetail?.client?.orbit_email || '', client_name: inv.client_name || clientDetail?.client?.company || clientDetail?.client?.name, total_owed: inv.pending_amount ?? inv.amount },
+      { client_id: inv.client_id, client_phone: inv.client_phone || clientDetail?.client?.phone || '', client_email: inv.client_email || clientDetail?.client?.email || '', siigo_email: inv.siigo_email || clientDetail?.client?.siigo_email || '', orbit_email: inv.orbit_email || clientDetail?.client?.orbit_email || '', client_name: inv.client_name || clientDetail?.client?.company || clientDetail?.client?.name, total_owed: inv.pending_amount ?? inv.amount },
       [inv.id],
       inv.invoice_number,
     );
@@ -263,6 +273,58 @@ const Collections = () => {
     } finally {
       setLoadingPreview(false);
     }
+  };
+
+  // Genera el texto del estado de cuenta para WhatsApp (y dice si hay plantilla aprobada)
+  const loadWaPreview = async () => {
+    if (!selectedClient) return;
+    try {
+      setWaLoading(true);
+      const res = await collectionsAPI.previewWhatsApp({
+        client_id: selectedClient.client_id,
+        invoice_ids: reminderInvoiceIds || undefined,
+      });
+      setWaInfo(res.data);
+      setWaText(res.data.text || '');
+      if (!waPhone && res.data.phone) setWaPhone(res.data.phone);
+    } catch (error) {
+      setReminderResult({ success: false, message: error.response?.data?.error || 'Error generando el mensaje de WhatsApp' });
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const switchChannel = (next) => {
+    setChannel(next);
+    if (next === 'whatsapp' && !waInfo) loadWaPreview();
+  };
+
+  const sendWhatsApp = async () => {
+    try {
+      setSendingReminder(true);
+      // El texto editado se envía como cierre; la lista de facturas la arma el backend
+      const res = await collectionsAPI.sendWhatsApp({
+        client_id: selectedClient.client_id,
+        phone: waPhone,
+        invoice_ids: reminderInvoiceIds || undefined,
+        custom_message: waClosingFromText(waText, waInfo?.text),
+        mode: 'auto',
+      });
+      setReminderResult({ success: true, message: res.data.message });
+      loadSummary();
+      if (clientDetail) loadClientDetail(clientDetail.client.id);
+    } catch (error) {
+      setReminderResult({ success: false, message: error.response?.data?.error || 'Error enviando por WhatsApp' });
+    } finally {
+      setSendingReminder(false);
+    }
+  };
+
+  // Si el usuario editó el último párrafo (cierre), lo mandamos como custom_message; si no, undefined
+  const waClosingFromText = (edited, original) => {
+    if (!edited || edited === original) return undefined;
+    const paras = edited.trim().split(/\n\s*\n/);
+    return paras[paras.length - 1]?.trim() || undefined;
   };
 
   const sendReminder = async () => {
@@ -457,6 +519,69 @@ const Collections = () => {
                 )}
               </div>
 
+              {/* Canal: correo o WhatsApp */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Canal</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => switchChannel('email')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${channel === 'email' ? 'bg-[#17181A] text-[#D7F653] border-[#17181A]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <Mail size={15} /> Correo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchChannel('whatsapp')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${channel === 'whatsapp' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <MessageCircle size={15} /> WhatsApp
+                  </button>
+                </div>
+              </div>
+
+              {channel === 'whatsapp' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número de WhatsApp *</label>
+                    <input
+                      type="tel"
+                      value={waPhone}
+                      onChange={(e) => setWaPhone(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
+                      placeholder="57 300 123 4567"
+                    />
+                    <p className="mt-1 text-[11px] text-gray-400">Tomado del teléfono del cliente en Orbit. Si no tiene indicativo se asume Colombia (+57).</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+                    {waLoading ? (
+                      <p className="text-sm text-gray-400 py-3">Generando estado de cuenta…</p>
+                    ) : (
+                      <textarea
+                        value={waText}
+                        onChange={(e) => setWaText(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none font-mono text-[12.5px]"
+                        rows={9}
+                      />
+                    )}
+                    {waInfo && (
+                      waInfo.configured === false ? (
+                        <p className="mt-1 text-[11px] text-red-600">WhatsApp no está configurado en el backend (KAPSO_API_KEY).</p>
+                      ) : waInfo.template_available ? (
+                        <p className="mt-1 text-[11px] text-emerald-700">Se enviará con la plantilla aprobada “{waInfo.template_name}”, así llega aunque el cliente no haya escrito antes. Solo el último párrafo (cierre) es editable en la plantilla.</p>
+                      ) : (
+                        <p className="mt-1 text-[11px] text-amber-600">La plantilla “{waInfo.template_name}” aún no está aprobada en Meta: se enviará como texto libre y solo llega si el cliente escribió en las últimas 24 h.</p>
+                      )
+                    )}
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-500">Sale desde el número de WhatsApp de LA REAL y queda registrado en la bandeja de WhatsApp y en el historial de cobros.</p>
+                  </div>
+                </>
+              )}
+
+              {channel === 'email' && (<>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email destino *</label>
                 <input
@@ -539,6 +664,7 @@ const Collections = () => {
                 <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
                 <p className="text-sm font-medium text-[#17181A] mt-1">Estefania Hernandez - Administración y Cartera</p>
               </div>
+              </>)}
             </div>
 
             <div className="flex gap-2 justify-end mt-6">
@@ -548,14 +674,25 @@ const Collections = () => {
               >
                 Cancelar
               </button>
-              <button
-                onClick={loadPreview}
-                disabled={loadingPreview || !reminderData.email_to}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
-              >
-                <Eye size={16} />
-                {loadingPreview ? 'Cargando...' : 'Ver Preview'}
-              </button>
+              {channel === 'whatsapp' ? (
+                <button
+                  onClick={sendWhatsApp}
+                  disabled={sendingReminder || waLoading || !waPhone || !waText || waInfo?.configured === false}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                >
+                  <MessageCircle size={16} />
+                  {sendingReminder ? 'Enviando...' : 'Enviar por WhatsApp'}
+                </button>
+              ) : (
+                <button
+                  onClick={loadPreview}
+                  disabled={loadingPreview || !reminderData.email_to}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+                >
+                  <Eye size={16} />
+                  {loadingPreview ? 'Cargando...' : 'Ver Preview'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -923,7 +1060,7 @@ const Collections = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-[#17181A] truncate">{r.subject}</p>
-                          <p className="text-xs text-gray-500 mt-1 truncate">Para: {r.sent_to}</p>
+                          <p className="text-xs text-gray-500 mt-1 truncate">{r.channel === 'whatsapp' ? <span className="inline-flex items-center gap-1 text-emerald-700"><MessageCircle size={11} /> WhatsApp</span> : 'Para:'} {r.sent_to}</p>
                         </div>
                         <span className="text-xs text-gray-400 whitespace-nowrap">{formatDateTime(r.sent_at)}</span>
                       </div>
@@ -1101,7 +1238,7 @@ const Collections = () => {
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-[#17181A]">{r.client_name}</p>
                           <p className="text-xs text-gray-500 mt-1 truncate">{r.subject}</p>
-                          <p className="text-xs text-gray-400 mt-0.5 truncate">Para: {r.sent_to}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">{r.channel === 'whatsapp' ? <span className="inline-flex items-center gap-1 text-emerald-700"><MessageCircle size={11} /> WhatsApp</span> : 'Para:'} {r.sent_to}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-bold text-[#17181A]">{formatCurrency(r.total_amount)}</p>

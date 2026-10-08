@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
+  MessageCircle,
   Users,
   FolderKanban,
   CheckSquare,
@@ -32,7 +33,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { orbitFeedbackAPI, newsAPI } from '../utils/api';
+import { orbitFeedbackAPI, newsAPI, whatsappAPI } from '../utils/api';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
@@ -60,6 +61,33 @@ const Layout = ({ children }) => {
   // Novedades: no leídas por el usuario actual (badge rojo). Se refresca al montar,
   // cada 60 s, al volver a la pestaña y cuando la página de Novedades dispara
   // el evento `news:unread-changed` (al abrir una novedad o marcar todo como leído).
+  // WhatsApp: mensajes entrantes sin leer por el equipo (badge verde). Igual que Novedades:
+  // al montar, cada 60 s, al volver a la pestaña y con el evento `whatsapp:unread-changed`.
+  const [waUnreadCount, setWaUnreadCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      whatsappAPI.unreadCount()
+        .then((res) => { if (!cancelled) setWaUnreadCount(res.data?.unread || 0); })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = setInterval(refresh, 60000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
+    const onChanged = (e) => {
+      if (typeof e?.detail?.unread === 'number') setWaUnreadCount(e.detail.unread);
+      else refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('whatsapp:unread-changed', onChanged);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('whatsapp:unread-changed', onChanged);
+    };
+  }, []);
+
   const [newsUnreadCount, setNewsUnreadCount] = useState(0);
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +125,7 @@ const Layout = ({ children }) => {
     { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients' },
     { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm' },
     { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients' },
+    { name: 'WhatsApp', path: '/app/whatsapp', icon: MessageCircle, permission: 'clients', badge: 'whatsapp' },
     { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc' },
     { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos' },
     { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
@@ -201,11 +230,23 @@ const Layout = ({ children }) => {
         {sidebarCollapsed && item.badge === 'news' && newsUnreadCount > 0 && (
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 ring-2 ring-white rounded-full" />
         )}
+        {/* WhatsApp sin leer: badge verde (expandido) o punto verde (colapsado) */}
+        {!sidebarCollapsed && item.badge === 'whatsapp' && waUnreadCount > 0 && (
+          <span
+            className="ml-auto bg-emerald-500 text-white text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center"
+            title={`${waUnreadCount} sin leer`}
+          >
+            {waUnreadCount > 99 ? '99+' : waUnreadCount}
+          </span>
+        )}
+        {sidebarCollapsed && item.badge === 'whatsapp' && waUnreadCount > 0 && (
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 ring-2 ring-white rounded-full" />
+        )}
 
         {/* Tooltip for collapsed state */}
         {sidebarCollapsed && (
           <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-            {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}
+            {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}{item.badge === 'whatsapp' && waUnreadCount > 0 ? ` · ${waUnreadCount} sin leer` : ''}
           </div>
         )}
       </Link>

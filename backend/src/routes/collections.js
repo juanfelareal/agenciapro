@@ -3,6 +3,8 @@ import db from '../config/database.js';
 import { sendEmail } from '../utils/emailHelper.js';
 import { generatePdfToken } from './invoice-pdf.js';
 import { startSyncJob, getSyncJob } from '../services/siigoAutoSync.js';
+import { isKapsoConfigured, getApprovedTemplate, normalizeWaNumber, formatWaNumber } from '../utils/kapsoClient.js';
+import { sendTextAndRecord, sendTemplateAndRecord } from '../services/whatsappService.js';
 
 const router = express.Router();
 
@@ -401,6 +403,7 @@ router.get('/invoices', async (req, res) => {
         i.id, i.invoice_number, i.client_id,
         ${CLIENT_NAME_SQL} as client_name,
         COALESCE(NULLIF(c.siigo_email, ''), c.email) as client_email, c.email as orbit_email, c.siigo_email,
+        c.phone as client_phone,
         i.issue_date, NULLIF(i.due_date, '') as due_date, i.amount, COALESCE(i.siigo_balance, i.amount) as pending_amount, i.siigo_total, i.siigo_balance, i.status, i.paid_date, i.siigo_id,
         i.promise_date::text as promise_date,
         COALESCE(i.collection_status, 'pending') as collection_status,
@@ -774,6 +777,158 @@ router.post('/send-reminder', async (req, res) => {
   } catch (error) {
     console.error('Collection email error:', error);
     res.status(500).json({ error: 'Error enviando recordatorio: ' + error.message });
+  }
+});
+
+// ---------- Cobros por WhatsApp (Kapso) ----------
+const WA_TEMPLATE_NAME = process.env.KAPSO_TEMPLATE_COBRO || 'estado_de_cuenta';
+const WA_TEMPLATE_LANG = process.env.KAPSO_TEMPLATE_COBRO_LANG || 'es';
+const money = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-CO')}`;
+const todayISO = () => new Date().toISOString().split('T')[0];
+
+async function loadClientPendingInvoices({ client_id, invoice_ids, orgId }) {
+  const client = await db.get(`
+    SELECT id, name, company, email, phone, nit FROM clients WHERE id = ? AND organization_id = ?
+  `, [client_id, orgId]);
+  if (!client) throw new Error('Cliente no encontrado');
+
+  let q = `
+    SELECT i.* FROM invoices i
+    WHERE i.client_id = ? AND i.status IN ('approved', 'invoiced') AND i.organization_id = ?
+  `;
+  const params = [client_id, orgId];
+  if (invoice_ids && invoice_ids.length > 0) {
+    q += ` AND i.id IN (${invoice_ids.map(() => '?').join(',')})`;
+    params.push(...invoice_ids);
+  }
+  q += ' ORDER BY i.issue_date ASC';
+  const invoices = await db.all(q, params);
+  if (invoices.length === 0) throw new Error('No hay facturas pendientes para este cliente');
+
+  const org = await db.get(`SELECT name FROM organizations WHERE id = ?`, [orgId]);
+  return { client, invoices, orgName: org?.name || 'La Agencia', clientDisplayName: client.company || client.name };
+}
+
+const invoiceLine = (inv) => {
+  const amount = Number(inv.siigo_balance ?? inv.amount);
+  const due = inv.due_date && inv.due_date < todayISO()
+    ? `vencida hace ${Math.floor((new Date() - new Date(inv.due_date + 'T00:00:00')) / 86400000)} días`
+    : (inv.due_date ? `vence ${inv.due_date}` : 'pendiente');
+  return { number: inv.invoice_number, amount, due };
+};
+
+/** Arma el texto del estado de cuenta para WhatsApp (texto libre) y los parámetros de la plantilla */
+async function buildReminderWhatsApp({ client_id, invoice_ids, custom_message, orgId }) {
+  const { client, invoices, orgName, clientDisplayName } = await loadClientPendingInvoices({ client_id, invoice_ids, orgId });
+  const lines = invoices.map(invoiceLine);
+  const totalOwed = lines.reduce((sum, l) => sum + l.amount, 0);
+  const count = invoices.length;
+  const facturas = `${count} factura${count === 1 ? '' : 's'}`;
+  const closing = (custom_message && String(custom_message).trim())
+    || 'Si ya realizaste el pago, por favor envíanos el comprobante por este medio para actualizar tu estado de cuenta. ¡Gracias!';
+
+  const text = [
+    `Hola, ${clientDisplayName} 👋`,
+    `Te escribe ${orgName} (Administración y Cartera). A la fecha registramos ${facturas} pendiente${count === 1 ? '' : 's'} de pago por un total de *${money(totalOwed)}*:`,
+    '',
+    ...lines.map((l) => `• ${l.number} — ${money(l.amount)} — ${l.due}`),
+    '',
+    closing,
+  ].join('\n');
+
+  // Los parámetros de plantilla no admiten saltos de línea: detalle en una sola línea
+  const detalle = lines.map((l) => `${l.number} (${money(l.amount)}, ${l.due})`).join(' · ');
+  const templateParams = { cliente: clientDisplayName, agencia: orgName, facturas, total: money(totalOwed), detalle };
+
+  return {
+    client, clientDisplayName, orgName, totalOwed, invoiceCount: count, text, templateParams,
+    phone: normalizeWaNumber(client.phone || ''),
+  };
+}
+
+// Preview del mensaje de WhatsApp (texto + si hay plantilla aprobada disponible)
+router.post('/preview-whatsapp', async (req, res) => {
+  try {
+    const { client_id, invoice_ids, custom_message } = req.body;
+    if (!client_id) return res.status(400).json({ error: 'client_id es requerido' });
+    const built = await buildReminderWhatsApp({ client_id, invoice_ids, custom_message, orgId: req.orgId });
+    const template = isKapsoConfigured() ? await getApprovedTemplate(WA_TEMPLATE_NAME, WA_TEMPLATE_LANG) : null;
+    res.json({
+      configured: isKapsoConfigured(),
+      text: built.text,
+      phone: built.phone,
+      phone_formatted: built.phone ? formatWaNumber(built.phone) : '',
+      total: built.totalOwed,
+      invoice_count: built.invoiceCount,
+      template_available: Boolean(template),
+      template_name: WA_TEMPLATE_NAME,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Envía el estado de cuenta por WhatsApp.
+ * mode: 'auto' (plantilla aprobada si existe, si no texto) | 'template' | 'text'
+ * Las plantillas llegan siempre; el texto libre solo si el cliente escribió en las últimas 24 h.
+ */
+router.post('/send-whatsapp', async (req, res) => {
+  try {
+    const { client_id, phone, invoice_ids, custom_message, mode = 'auto' } = req.body;
+    if (!client_id) return res.status(400).json({ error: 'client_id es requerido' });
+    if (!isKapsoConfigured()) return res.status(503).json({ error: 'WhatsApp no está configurado en Orbit (KAPSO_API_KEY / KAPSO_PHONE_NUMBER_ID)' });
+
+    const built = await buildReminderWhatsApp({ client_id, invoice_ids, custom_message, orgId: req.orgId });
+    const to = normalizeWaNumber(phone || built.phone);
+    if (!to || to.length < 8) return res.status(400).json({ error: 'El cliente no tiene un número de WhatsApp válido' });
+
+    const context = { source: 'cartera', invoice_ids: invoice_ids || null, total: built.totalOwed };
+    const template = mode === 'text' ? null : await getApprovedTemplate(WA_TEMPLATE_NAME, WA_TEMPLATE_LANG);
+    if (mode === 'template' && !template) {
+      return res.status(400).json({ error: `La plantilla "${WA_TEMPLATE_NAME}" no está aprobada todavía en Meta` });
+    }
+
+    let result;
+    let channelUsed;
+    if (template) {
+      const bodyParams = (template.components?.find((c) => c.type === 'BODY')?.text || '').match(/{{\s*([a-z0-9_]+)\s*}}/gi) || [];
+      const named = template.parameter_format === 'NAMED' || bodyParams.some((p) => !/^{{\s*\d+\s*}}$/.test(p));
+      const order = ['cliente', 'agencia', 'facturas', 'total', 'detalle'];
+      const used = named
+        ? bodyParams.map((p) => p.replace(/[{}\s]/g, '').toLowerCase()).filter((k) => k in built.templateParams)
+        : order.slice(0, bodyParams.length);
+      const parameters = used.map((k) => (named
+        ? { type: 'text', parameter_name: k, text: built.templateParams[k] }
+        : { type: 'text', text: built.templateParams[k] }));
+      result = await sendTemplateAndRecord({
+        orgId: req.orgId, to, name: template.name, language: template.language || WA_TEMPLATE_LANG,
+        components: parameters.length ? [{ type: 'body', parameters }] : [],
+        renderedText: built.text, clientId: client_id, context: { ...context, template: template.name }, sentBy: req.teamMember?.id || null,
+      });
+      channelUsed = 'template';
+    } else {
+      result = await sendTextAndRecord({ orgId: req.orgId, to, body: built.text, clientId: client_id, context, sentBy: req.teamMember?.id || null });
+      channelUsed = 'text';
+    }
+
+    await db.run(`
+      INSERT INTO collection_reminders (client_id, sent_to, subject, message, total_amount, invoice_count, sent_by, organization_id, channel)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'whatsapp')
+    `, [client_id, `+${to}`, `WhatsApp · Estado de cuenta ${built.clientDisplayName}`, built.text, built.totalOwed, built.invoiceCount, req.teamMember?.id || null, req.orgId]);
+
+    res.json({
+      message: channelUsed === 'template'
+        ? `Estado de cuenta enviado por WhatsApp (plantilla) a ${formatWaNumber(to)}`
+        : `Estado de cuenta enviado por WhatsApp a ${formatWaNumber(to)}. Si el cliente no ha escrito en las últimas 24 h, Meta puede no entregarlo: revisa el estado en la bandeja de WhatsApp.`,
+      channel_used: channelUsed,
+      wamid: result.wamid,
+      totalOwed: built.totalOwed,
+      invoiceCount: built.invoiceCount,
+    });
+  } catch (error) {
+    console.error('Collection WhatsApp error:', error);
+    res.status(error.status && error.status < 500 ? 400 : 500).json({ error: 'Error enviando por WhatsApp: ' + error.message });
   }
 });
 

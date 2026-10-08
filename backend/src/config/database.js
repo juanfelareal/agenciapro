@@ -2297,6 +2297,44 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_collection_notes_org ON collection_notes(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_reminders_status ON scheduled_reminders(status, scheduled_for)`);
 
+    // WhatsApp (Kapso): mensajes entrantes/salientes y deduplicación de webhooks
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_messages (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+        wa_message_id TEXT UNIQUE,
+        conversation_id TEXT,
+        direction TEXT NOT NULL CHECK(direction IN ('inbound', 'outbound')),
+        phone TEXT NOT NULL,
+        contact_name TEXT,
+        message_type TEXT DEFAULT 'text',
+        body TEXT,
+        template_name TEXT,
+        media_url TEXT,
+        status TEXT DEFAULT 'sent',
+        error_message TEXT,
+        context TEXT,
+        sent_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        read_by_team_at TIMESTAMP,
+        payload TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_org_phone ON whatsapp_messages(organization_id, phone, created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_unread ON whatsapp_messages(organization_id, direction, read_by_team_at)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_client ON whatsapp_messages(client_id)`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_webhook_events (
+        idempotency_key TEXT PRIMARY KEY,
+        event TEXT,
+        received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    // Canal por el que se envió cada recordatorio de cartera (email | whatsapp)
+    await pool.query(`ALTER TABLE collection_reminders ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'email'`);
+
     // Cartera: fecha de promesa de pago y estado de gestión de cobro por factura
     // collection_status: pending | contacted | promised | disputed
     await pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS promise_date DATE`);

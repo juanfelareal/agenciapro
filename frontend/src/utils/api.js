@@ -300,6 +300,23 @@ export const collectionsAPI = {
   getByMonth: () => api.get('/collections/by-month'),
   updateInvoice: (id, data) => api.put(`/collections/invoices/${id}`, data),
   sendBulk: (data) => api.post('/collections/send-bulk', data),
+  // Cobros por WhatsApp (Kapso)
+  previewWhatsApp: (data) => api.post('/collections/preview-whatsapp', data),
+  sendWhatsApp: (data) => api.post('/collections/send-whatsapp', data),
+};
+
+// WhatsApp (Kapso) API — bandeja, envío y plantillas
+export const whatsappAPI = {
+  status: () => api.get('/whatsapp/status'),
+  unreadCount: () => api.get('/whatsapp/unread-count'),
+  conversations: (params) => api.get('/whatsapp/conversations', { params }),
+  messages: (phone, params) => api.get(`/whatsapp/conversations/${encodeURIComponent(phone)}/messages`, { params }),
+  markRead: (phone) => api.post(`/whatsapp/conversations/${encodeURIComponent(phone)}/read`),
+  linkClient: (phone, clientId) => api.post(`/whatsapp/conversations/${encodeURIComponent(phone)}/link-client`, { client_id: clientId }),
+  send: (data) => api.post('/whatsapp/send', data),
+  sendTemplate: (data) => api.post('/whatsapp/send-template', data),
+  templates: (refresh) => api.get('/whatsapp/templates', { params: refresh ? { refresh: 1 } : {} }),
+  contacts: (q) => api.get('/whatsapp/contacts', { params: q ? { q } : {} }),
 };
 
 // Expenses API

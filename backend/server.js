@@ -86,6 +86,8 @@ import clientLogbookRoutes from './src/routes/client-logbook.js';
 // Mejoras de Orbit (sugerencias internas del equipo)
 import orbitFeedbackRoutes from './src/routes/orbit-feedback.js';
 import newsRoutes from './src/routes/news.js';
+import whatsappRoutes from './src/routes/whatsapp.js';
+import whatsappWebhookRoutes from './src/routes/whatsapp-webhook.js';
 // Ad Creative Tagging
 import adTagRoutes from './src/routes/ad-tags.js';
 // Chat
@@ -131,6 +133,8 @@ console.log('  - NODE_ENV:', process.env.NODE_ENV || 'not set');
 
 // Middleware
 app.use(cors());
+// Webhook de WhatsApp (Kapso): necesita el cuerpo crudo para verificar la firma HMAC → va ANTES de express.json()
+app.use('/api/whatsapp/webhook', whatsappWebhookRoutes);
 app.use(express.json({ limit: '2mb' }));
 
 // Serve uploaded files
@@ -288,6 +292,8 @@ app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
 app.use('/api/client-logbook', teamAuthMiddleware, clientLogbookRoutes);
 app.use('/api/orbit-feedback', teamAuthMiddleware, orbitFeedbackRoutes);
 app.use('/api/news', teamAuthMiddleware, newsRoutes);
+// WhatsApp (Kapso): bandeja, envío y plantillas
+app.use('/api/whatsapp', teamAuthMiddleware, whatsappRoutes);
 // Client Documents
 import clientDocumentsRoutes from './src/routes/client-documents.js';
 app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);
