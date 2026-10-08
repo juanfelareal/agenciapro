@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
   Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus,
@@ -9,6 +9,7 @@ import {
 import { growthAPI, clientMetricsAPI, clientsAPI, clientLogbookAPI } from '../utils/api';
 import ClientTrendPanel from '../components/growth/ClientTrendPanel';
 import MetaCampaignsPanel from '../components/growth/MetaCampaignsPanel';
+import ConversionTrendPanel from '../components/growth/ConversionTrendPanel';
 import ClientLogbookModal from '../components/logbook/ClientLogbookModal';
 
 const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
@@ -869,7 +870,7 @@ function KpiCard({ label, value, accent }) {
 // ─── Client Detail View ───
 function ClientDetailView({ client, metrics, growthData, period, onBack, onRefresh, activeTab, setActiveTab, formatCOP }) {
   const m = metrics || {};
-  const gd = growthData || { objectives: [], palancas: [], milestones: [], banderas: [] };
+  const gd = growthData || { objectives: [], palancas: [], milestones: [], banderas: [], email: null };
 
   const tabs = [
     { key: 'financiero', label: 'Salud financiera', icon: TrendingUp },
@@ -911,7 +912,7 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'financiero' && <FinancieroTab metrics={m} objectives={gd.objectives} formatCOP={formatCOP} clientId={client.id} period={period} onRefresh={onRefresh} />}
+      {activeTab === 'financiero' && <FinancieroTab metrics={m} objectives={gd.objectives} email={gd.email} formatCOP={formatCOP} clientId={client.id} period={period} onRefresh={onRefresh} />}
       {activeTab === 'palancas' && <PalancasTab clientId={client.id} period={period} />}
       {activeTab === 'roadmap' && <RoadmapTab milestones={gd.milestones} clientId={client.id} period={period} onRefresh={onRefresh} />}
       {activeTab === 'alertas' && <AlertasTab banderas={gd.banderas} clientId={client.id} period={period} onRefresh={onRefresh} />}
@@ -920,8 +921,9 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
 }
 
 // ─── Financiero Tab ───
-function FinancieroTab({ metrics, objectives, formatCOP, clientId, period, onRefresh }) {
+function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period, onRefresh }) {
   const m = metrics || {};
+  const em = email || { revenue_mtd: 0, campaigns_revenue: 0, flows_revenue: 0, conversions: 0, deliveries: 0, has_data: false };
   const kpis = [
     { label: 'Ventas', value: formatCOP(m.display_revenue), color: '' },
     { label: 'Ticket promedio', value: formatCOP(m.ticket_promedio), color: '' },
@@ -936,6 +938,11 @@ function FinancieroTab({ metrics, objectives, formatCOP, clientId, period, onRef
   // Objectives for revenue and roas
   const revenueObj = objectives.find(o => o.metric === 'revenue');
   const roasObj = objectives.find(o => o.metric === 'roas');
+  const emailObj = objectives.find(o => o.metric === 'email_revenue');
+  const emailRevenue = em.revenue_mtd || 0;
+  const emailMeta = emailObj?.base || 0;
+  const emailPct = emailMeta > 0 ? Math.round((emailRevenue / emailMeta) * 100) : 0;
+  const emailFaltante = Math.max(0, emailMeta - emailRevenue);
 
   // Projection calculation
   const [y, mo] = period.split('-').map(Number);
@@ -1036,7 +1043,7 @@ function FinancieroTab({ metrics, objectives, formatCOP, clientId, period, onRef
       </div>
 
       {/* Scenarios */}
-      {(revenueObj || roasObj) && (
+      {(revenueObj || roasObj || emailObj) && (
         <div>
           <SectionHeader label="Progreso hacia escenarios pactados" />
           <div className="grid md:grid-cols-2 gap-3">
@@ -1060,20 +1067,62 @@ function FinancieroTab({ metrics, objectives, formatCOP, clientId, period, onRef
                 format={(v) => `${v.toFixed(1)}×`}
               />
             )}
+            {emailObj && (
+              <ScenarioCard
+                title="Venta por email"
+                actual={emailRevenue}
+                conservador={emailObj.conservador}
+                base={emailObj.base}
+                optimista={emailObj.optimista}
+                format={formatCOP}
+                extra={em.has_data ? (
+                  <div className="grid grid-cols-3 gap-3 pt-3 mt-3 border-t border-gray-100">
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Meta base</p>
+                      <p className={`text-base font-bold ${emailPct >= 100 ? 'text-green-600' : 'text-[#17181A]'}`}>{emailMeta > 0 ? `${emailPct}%` : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Faltante</p>
+                      <p className={`text-base font-bold ${emailFaltante > 0 ? 'text-red-600' : 'text-green-600'}`}>{emailMeta > 0 ? formatCOP(emailFaltante) : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Campañas / Flows</p>
+                      <p className="text-xs font-semibold text-gray-600 mt-1">{formatCOP(em.campaigns_revenue)} / {formatCOP(em.flows_revenue)}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-800">
+                    <Mail className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div>
+                      Sin métricas de email registradas para este mes.{' '}
+                      <Link to={`/app/clients/${clientId}/email-marketing`} className="font-medium underline text-amber-900">Registrar métricas</Link>
+                    </div>
+                  </div>
+                )}
+              />
+            )}
           </div>
         </div>
       )}
 
       {/* Set Objectives */}
       <ObjectivesForm clientId={clientId} period={period} objectives={objectives} onRefresh={onRefresh} />
+
+      {/* Tasa de conversión en el tiempo (web + email) */}
+      <div>
+        <SectionHeader label="Otras áreas · Conversión" />
+        <div className="mt-3">
+          <ConversionTrendPanel clientId={clientId} period={period} months={6} />
+        </div>
+      </div>
     </div>
   );
 }
 
 // ─── Scenario Progress Card ───
-function ScenarioCard({ title, actual, conservador, base, optimista, format }) {
-  const maxVal = Math.max(optimista, actual) * 1.1;
-  const pct = (val) => Math.min(100, (val / maxVal) * 100);
+function ScenarioCard({ title, actual, conservador, base, optimista, format, extra }) {
+  const maxVal = Math.max(optimista || 0, actual || 0) * 1.1;
+  const pct = (val) => (maxVal > 0 ? Math.min(100, ((val || 0) / maxVal) * 100) : 0);
 
   const scenarios = [
     { name: 'Conservador', val: conservador, color: 'bg-gray-400' },
@@ -1101,20 +1150,29 @@ function ScenarioCard({ title, actual, conservador, base, optimista, format }) {
           </div>
         ))}
       </div>
+      {extra}
     </div>
   );
 }
 
 // ─── Objectives Form ───
+const OBJECTIVE_LABELS = {
+  revenue: 'Ventas (COP)',
+  roas: 'ROAS (×)',
+  email_revenue: 'Venta por email (COP)',
+};
+
 function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
   const [editing, setEditing] = useState(false);
 
   const initialForm = useMemo(() => {
     const rev = objectives.find(o => o.metric === 'revenue');
     const roas = objectives.find(o => o.metric === 'roas');
+    const email = objectives.find(o => o.metric === 'email_revenue');
     return {
       revenue: { conservador: rev?.conservador || '', base: rev?.base || '', optimista: rev?.optimista || '' },
       roas: { conservador: roas?.conservador || '', base: roas?.base || '', optimista: roas?.optimista || '' },
+      email_revenue: { conservador: email?.conservador || '', base: email?.base || '', optimista: email?.optimista || '' },
     };
   }, [objectives]);
 
@@ -1129,6 +1187,7 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
       await Promise.all([
         growthAPI.createObjective(clientId, { period, metric: 'revenue', ...form.revenue }),
         growthAPI.createObjective(clientId, { period, metric: 'roas', ...form.roas }),
+        growthAPI.createObjective(clientId, { period, metric: 'email_revenue', ...form.email_revenue }),
       ]);
       setEditing(false);
       onRefresh();
@@ -1152,9 +1211,9 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
       </div>
       {editing ? (
         <div className="space-y-4">
-          {['revenue', 'roas'].map((metric) => (
+          {['revenue', 'roas', 'email_revenue'].map((metric) => (
             <div key={metric}>
-              <p className="text-xs font-medium text-gray-500 mb-2">{metric === 'revenue' ? 'Ventas (COP)' : 'ROAS (×)'}</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">{OBJECTIVE_LABELS[metric]}</p>
               <div className="grid grid-cols-3 gap-2">
                 {['conservador', 'base', 'optimista'].map((level) => (
                   <div key={level}>

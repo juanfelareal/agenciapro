@@ -587,6 +587,8 @@ export const growthAPI = {
   setServiceType: (clientId, serviceType) => api.put(`/growth/clients/${clientId}/service-type`, { service_type: serviceType }),
   getClientData: (clientId, period) => api.get(`/growth/${clientId}`, { params: { period } }),
   getPalancasDashboard: (clientId, period) => api.get(`/growth/${clientId}/palancas-dashboard`, { params: { period } }),
+  // Tasa de conversión en el tiempo (web semanal/mensual + email mensual)
+  getConversion: (clientId, { months = 6, period } = {}) => api.get(`/growth/${clientId}/conversion`, { params: { months, period } }),
   // Objectives
   createObjective: (clientId, data) => api.post(`/growth/${clientId}/objectives`, data),
   updateObjective: (id, data) => api.put(`/growth/objectives/${id}`, data),

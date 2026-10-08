@@ -15,6 +15,39 @@ const verifyClient = async (clientId, orgId) => {
   return !!client;
 };
 
+// Fecha de hoy en hora Colombia (YYYY-MM-DD)
+const getColombiaDate = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+
+const num = (v) => (v === null || v === undefined ? 0 : Number(v) || 0);
+const pct = (numerator, denominator) => (denominator > 0 ? Math.round((numerator / denominator) * 10000) / 100 : null);
+
+// Venta por email del mes (campañas + flows) desde client_monthly_email_metrics
+const getEmailMonth = async (clientId, orgId, period) => {
+  const empty = { revenue_mtd: 0, campaigns_revenue: 0, flows_revenue: 0, conversions: 0, deliveries: 0, has_data: false };
+  try {
+    const [year, month] = period.split('-').map(Number);
+    const row = await db.get(`
+      SELECT campaigns_revenue, flows_revenue, campaigns_conversions, flows_conversions, campaigns_deliveries, flows_deliveries
+      FROM client_monthly_email_metrics
+      WHERE client_id = $1 AND organization_id = $2 AND year = $3 AND month = $4
+    `, [clientId, orgId, year, month]);
+    if (!row) return empty;
+    const campaigns = num(row.campaigns_revenue);
+    const flows = num(row.flows_revenue);
+    return {
+      revenue_mtd: campaigns + flows,
+      campaigns_revenue: campaigns,
+      flows_revenue: flows,
+      conversions: num(row.campaigns_conversions) + num(row.flows_conversions),
+      deliveries: num(row.campaigns_deliveries) + num(row.flows_deliveries),
+      has_data: true,
+    };
+  } catch (e) {
+    console.log('Error fetching email month metrics:', e.message);
+    return empty;
+  }
+};
+
 // ─── Client visibility ───
 
 // Toggle hide client from general metrics
@@ -109,16 +142,133 @@ router.get('/:clientId', async (req, res) => {
     const period = req.query.period || getCurrentPeriod();
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const [objectives, palancas, milestones, banderas] = await Promise.all([
+    const [objectives, palancas, milestones, banderas, email] = await Promise.all([
       db.all('SELECT * FROM growth_objectives WHERE client_id = $1 AND period = $2 AND organization_id = $3', [clientId, period, req.orgId]),
       db.all('SELECT * FROM growth_palancas WHERE client_id = $1 AND period = $2 AND organization_id = $3 ORDER BY rank ASC', [clientId, period, req.orgId]),
       db.all('SELECT * FROM growth_milestones WHERE client_id = $1 AND period = $2 AND organization_id = $3', [clientId, period, req.orgId]),
       db.all('SELECT * FROM growth_banderas WHERE client_id = $1 AND period = $2 AND organization_id = $3 AND is_active = 1', [clientId, period, req.orgId]),
+      getEmailMonth(clientId, req.orgId, period),
     ]);
 
-    res.json({ objectives, palancas, milestones, banderas });
+    res.json({ objectives, palancas, milestones, banderas, email });
   } catch (error) {
     console.error('Error getting growth data:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tasa de conversión en el tiempo: web (semanal lunes–domingo + mensual) y email (mensual)
+// GET /growth/:clientId/conversion?months=6&period=YYYY-MM
+router.get('/:clientId/conversion', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+
+    const months = Math.min(24, Math.max(1, parseInt(req.query.months, 10) || 6));
+    const today = getColombiaDate();
+    const currentPeriod = today.substring(0, 7);
+    const period = /^\d{4}-\d{2}$/.test(req.query.period || '') ? req.query.period : currentPeriod;
+    const [py, pm] = period.split('-').map(Number);
+
+    // Rango: desde el día 1 de (period - months + 1) hasta el fin del period (o hoy si es el mes en curso)
+    const startD = new Date(Date.UTC(py, pm - 1 - (months - 1), 1));
+    const startDate = startD.toISOString().split('T')[0];
+    const lastDay = new Date(py, pm, 0).getDate();
+    const endDate = period === currentPeriod ? today : `${period}-${String(lastDay).padStart(2, '0')}`;
+
+    // Lista completa de meses del rango (para que las series mensuales sean continuas)
+    const monthKeys = [];
+    for (let i = 0; i < months; i++) {
+      const d = new Date(Date.UTC(startD.getUTCFullYear(), startD.getUTCMonth() + i, 1));
+      monthKeys.push(d.toISOString().substring(0, 7));
+    }
+
+    // Semanas lunes–domingo (date_trunc('week') en Postgres es ISO: arranca lunes). metric_date ya es fecha local Colombia.
+    const weekRows = await db.all(`
+      SELECT
+        to_char(date_trunc('week', metric_date::date), 'YYYY-MM-DD') AS week_start,
+        to_char(date_trunc('week', metric_date::date) + interval '6 days', 'YYYY-MM-DD') AS week_end,
+        COUNT(*) AS days,
+        COALESCE(SUM(shopify_sessions), 0) AS sessions,
+        COALESCE(SUM(shopify_orders), 0) AS orders
+      FROM client_daily_metrics
+      WHERE client_id = $1 AND metric_date >= $2 AND metric_date <= $3
+      GROUP BY 1, 2
+      ORDER BY 1 ASC
+    `, [clientId, startDate, endDate]);
+
+    const monthRows = await db.all(`
+      SELECT
+        substr(metric_date, 1, 7) AS month,
+        COALESCE(SUM(shopify_sessions), 0) AS sessions,
+        COALESCE(SUM(shopify_orders), 0) AS orders
+      FROM client_daily_metrics
+      WHERE client_id = $1 AND metric_date >= $2 AND metric_date <= $3
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `, [clientId, startDate, endDate]);
+
+    let emailRows = [];
+    try {
+      emailRows = await db.all(`
+        SELECT year, month, campaigns_conversions, flows_conversions, campaigns_deliveries, flows_deliveries,
+               campaigns_revenue, flows_revenue
+        FROM client_monthly_email_metrics
+        WHERE client_id = $1 AND organization_id = $2
+          AND (year * 100 + month) >= $3 AND (year * 100 + month) <= $4
+        ORDER BY year ASC, month ASC
+      `, [clientId, req.orgId, Number(monthKeys[0].replace('-', '')), Number(period.replace('-', ''))]);
+    } catch (e) {
+      console.log('Error fetching email conversion metrics:', e.message);
+    }
+
+    const weeks = weekRows.map((w) => {
+      const sessions = num(w.sessions);
+      const orders = num(w.orders);
+      return {
+        week_start: w.week_start,
+        week_end: w.week_end,
+        days: num(w.days),
+        sessions,
+        orders,
+        conversion_rate: pct(orders, sessions),
+      };
+    });
+
+    const webByMonth = Object.fromEntries(monthRows.map((r) => [r.month, r]));
+    const emailByMonth = Object.fromEntries(emailRows.map((r) => [`${r.year}-${String(r.month).padStart(2, '0')}`, r]));
+
+    const monthsOut = monthKeys.map((month) => {
+      const w = webByMonth[month];
+      const e = emailByMonth[month];
+      const sessions = num(w?.sessions);
+      const orders = num(w?.orders);
+      const emailDeliveries = e ? num(e.campaigns_deliveries) + num(e.flows_deliveries) : 0;
+      const emailConversions = e ? num(e.campaigns_conversions) + num(e.flows_conversions) : 0;
+      return {
+        month,
+        sessions,
+        orders,
+        conversion_rate: pct(orders, sessions),
+        email_has_data: !!e,
+        email_deliveries: emailDeliveries,
+        email_conversions: emailConversions,
+        email_conversion_rate: e ? pct(emailConversions, emailDeliveries) : null,
+        email_revenue: e ? num(e.campaigns_revenue) + num(e.flows_revenue) : 0,
+      };
+    });
+
+    res.json({
+      period,
+      start_date: startDate,
+      end_date: endDate,
+      weeks,
+      months: monthsOut,
+      has_sessions: weeks.some((w) => w.sessions > 0),
+      has_email: emailRows.length > 0,
+    });
+  } catch (error) {
+    console.error('Error getting conversion data:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -138,7 +288,7 @@ router.post('/:clientId/objectives', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
     `, [clientId, period, metric, conservador || 0, base || 0, optimista || 0, req.orgId]);
 
-    res.json({ id: result.lastID, client_id: clientId, period, metric, conservador, base, optimista });
+    res.json({ id: result.lastInsertRowid, client_id: clientId, period, metric, conservador, base, optimista });
   } catch (error) {
     console.error('Error creating objective:', error);
     res.status(500).json({ error: error.message });
