@@ -22,6 +22,7 @@ import {
   linkConversationToClient,
   matchClientByPhone,
 } from '../services/whatsappService.js';
+import { sendBriefing, buildMorningReport, buildNoonReport, buildTasksReport, buildAlertsReport } from '../services/whatsappBriefings.js';
 
 const router = express.Router();
 
@@ -148,6 +149,31 @@ router.post('/send-template', async (req, res) => {
   } catch (error) {
     console.error('[whatsapp] send-template:', error.message);
     res.status(error.status && error.status < 500 ? 400 : 500).json({ error: error.message, meta_code: error.metaCode || null });
+  }
+});
+
+// Resúmenes programados: vista previa y envío de prueba (solo admin)
+const BRIEFING_BUILDERS = { morning: buildMorningReport, noon: buildNoonReport, tasks: buildTasksReport, alerts: buildAlertsReport };
+router.get('/briefings/preview', async (req, res) => {
+  try {
+    const kind = String(req.query.kind || 'morning');
+    const build = BRIEFING_BUILDERS[kind];
+    if (!build) return res.status(400).json({ error: 'kind inválido (morning | noon | tasks | alerts)' });
+    const text = await build(req.orgId, { name: req.teamMember?.name?.split(' ')[0] || '', ...(req.query.date ? { date: String(req.query.date) } : {}) });
+    res.json({ kind, text: text || '', empty: !text });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+router.post('/briefings/test', async (req, res) => {
+  try {
+    if (req.teamMember?.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
+    const { kind = 'morning', to, force = true, date } = req.body || {};
+    const results = await sendBriefing(kind, { orgId: req.orgId, to: to || null, force: Boolean(force), date: date || null });
+    res.json({ kind, results });
+  } catch (error) {
+    console.error('[whatsapp] briefings/test:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 

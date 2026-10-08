@@ -50,6 +50,7 @@ import googleAdsOAuthRoutes from './src/routes/google-ads-oauth.js';
 import tiktokOAuthRoutes from './src/routes/tiktok-oauth.js';
 import shopifyOAuthRoutes from './src/routes/shopify-oauth.js';
 import { syncAllClientsForDate } from './src/services/metricsSyncService.js';
+import { runScheduled as runWhatsAppBriefing } from './src/services/whatsappBriefings.js';
 // PDF Analysis (RUT extraction with Claude AI)
 import pdfAnalysisRoutes from './src/routes/pdf-analysis.js';
 // SOPs (Standard Operating Procedures)
@@ -380,6 +381,20 @@ cron.schedule('*/5 * * * *', async () => {
 });
 
 console.log('✅ Metrics sync cron job scheduled (every 5 minutes, Colombia time)');
+
+// Resúmenes de Orbit por WhatsApp (Kapso): 06:00 rendimiento de ayer + tareas, 12:00 ventas de hoy, alertas cada hora 10–21
+const briefingJob = (kind) => async () => {
+  try {
+    const r = await runWhatsAppBriefing(kind);
+    if (r) console.log(`📲 WhatsApp briefing ${kind}:`, JSON.stringify(r).slice(0, 300));
+  } catch (error) {
+    console.error(`❌ WhatsApp briefing ${kind}:`, error.message);
+  }
+};
+cron.schedule('0 6 * * *', async () => { await briefingJob('morning')(); await briefingJob('tasks')(); }, { scheduled: true, timezone: 'America/Bogota' });
+cron.schedule('0 12 * * *', briefingJob('noon'), { scheduled: true, timezone: 'America/Bogota' });
+cron.schedule('5 10-21 * * *', briefingJob('alerts'), { scheduled: true, timezone: 'America/Bogota' });
+console.log('✅ WhatsApp briefings scheduled (06:00 morning+tasks, 12:00 noon, alerts hourly 10-21, Colombia time)');
 
 // Setup cron job for weekly AI insights
 // Runs every Monday at 7:00 AM

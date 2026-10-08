@@ -2332,6 +2332,26 @@ export const initializeDatabase = async () => {
         received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Resúmenes programados por WhatsApp: pendientes (sin ventana de 24 h) y control de ejecuciones
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_pending_briefings (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        phone TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        delivered_at TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_briefing_runs (
+        kind TEXT NOT NULL,
+        run_key TEXT NOT NULL,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (kind, run_key)
+      )
+    `);
     // Canal por el que se envió cada recordatorio de cartera (email | whatsapp)
     await pool.query(`ALTER TABLE collection_reminders ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'email'`);
 

@@ -8,6 +8,7 @@
 import express from 'express';
 import { getKapsoConfig, verifyKapsoSignature } from '../utils/kapsoClient.js';
 import { rememberWebhookEvent, handleInboundMessage, handleStatusEvent } from '../services/whatsappService.js';
+import { deliverPendingBriefings } from '../services/whatsappBriefings.js';
 
 const router = express.Router();
 
@@ -19,7 +20,15 @@ const STATUS_EVENTS = new Set([
 ]);
 
 const processEvent = async (eventName, payload) => {
-  if (eventName === 'whatsapp.message.received') return handleInboundMessage(payload);
+  if (eventName === 'whatsapp.message.received') {
+    const result = await handleInboundMessage(payload);
+    // Si había resúmenes pendientes (sin ventana de 24 h), el mensaje del usuario la abre: entregarlos
+    if (result?.phone) {
+      const sent = await deliverPendingBriefings(getKapsoConfig().organizationId, result.phone).catch((e) => { console.error('[briefings]', e.message); return 0; });
+      if (sent) result.pending_delivered = sent;
+    }
+    return result;
+  }
   if (STATUS_EVENTS.has(eventName)) return handleStatusEvent(eventName, payload);
   return { ignored: eventName };
 };
