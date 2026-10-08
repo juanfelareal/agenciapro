@@ -781,7 +781,7 @@ router.post('/send-reminder', async (req, res) => {
 });
 
 // ---------- Cobros por WhatsApp (Kapso) ----------
-const WA_TEMPLATE_NAME = process.env.KAPSO_TEMPLATE_COBRO || 'estado_de_cuenta';
+const WA_TEMPLATE_NAME = process.env.KAPSO_TEMPLATE_COBRO || 'estado_cuenta_cartera';
 const WA_TEMPLATE_LANG = process.env.KAPSO_TEMPLATE_COBRO_LANG || 'es';
 const money = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-CO')}`;
 const todayISO = () => new Date().toISOString().split('T')[0];
