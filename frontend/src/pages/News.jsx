@@ -1037,9 +1037,9 @@ const News = () => {
               role="switch"
               aria-checked={onlyUnread}
               onClick={() => setOnlyUnread((v) => !v)}
-              className={`relative w-9 h-5 rounded-full transition-colors ${onlyUnread ? 'bg-[#17181A]' : 'bg-gray-300'}`}
+              className={`relative inline-block w-10 h-6 shrink-0 rounded-full transition-colors ${onlyUnread ? 'bg-[#17181A]' : 'bg-gray-300'}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${onlyUnread ? 'translate-x-4 bg-[#D7F653]' : 'translate-x-0.5 bg-white'}`} />
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full shadow transition-transform ${onlyUnread ? 'translate-x-4 bg-[#D7F653]' : 'translate-x-0 bg-white'}`} />
             </button>
             Solo no leídas
           </label>

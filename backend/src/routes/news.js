@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import db from '../config/database.js';
+import { sendEmail } from '../utils/emailHelper.js';
 import { uploadBuffer } from '../utils/blobStorage.js';
 
 /**
@@ -229,6 +230,74 @@ router.get('/', async (req, res) => {
 });
 
 // ─── POST / — publicar novedad ───
+
+// ─── Notificación por correo a todo el equipo cuando se publica una novedad ───
+const CATEGORY_LABELS = { novedad: 'Novedad', urgente: 'Urgente', cambio: 'Cambio', logro: 'Logro', recordatorio: 'Recordatorio' };
+const CATEGORY_COLORS = { novedad: '#6B7280', urgente: '#DC2626', cambio: '#2563EB', logro: '#16A34A', recordatorio: '#D97706' };
+const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function notifyTeamAboutNews(orgId, item) {
+  if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)) {
+    console.warn('[Novedades] Sin configuración de email; no se notifica al equipo');
+    return { sent: 0, skipped: 'no-email-config' };
+  }
+  const members = await db.all(
+    `SELECT email, name FROM team_members WHERE organization_id = ? AND status = 'active' AND email IS NOT NULL AND email != ''`,
+    [orgId]
+  );
+  const emails = [...new Set(members.map((m) => String(m.email).trim().toLowerCase()).filter((e) => e.includes('@')))];
+  if (!emails.length) return { sent: 0, skipped: 'no-members' };
+
+  const org = await db.get('SELECT name FROM organizations WHERE id = ?', [orgId]);
+  const orgName = org?.name || 'LA REAL';
+  const frontendUrl = (process.env.FRONTEND_URL || 'https://orbit.larealmarketing.com').split(',')[0].trim().replace(/\/$/, '');
+  const link = `${frontendUrl}/app/novedades`;
+  const brand = item.client_name || 'General';
+  const catLabel = CATEGORY_LABELS[item.category] || 'Novedad';
+  const catColor = CATEGORY_COLORS[item.category] || '#6B7280';
+  const bodyHtml = item.body ? escapeHtml(item.body).replace(/\n/g, '<br>') : '';
+  const imagesHtml = (item.images || []).slice(0, 4).map((u) =>
+    `<a href="${escapeHtml(u)}" style="display:inline-block;margin:6px 6px 0 0;"><img src="${escapeHtml(u)}" alt="" style="max-width:260px;max-height:200px;border-radius:10px;border:1px solid #E5E7EB;" /></a>`
+  ).join('');
+  const when = new Date(item.created_at || Date.now()).toLocaleString('es-CO', { timeZone: 'America/Bogota', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:32px 16px;"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <tr><td style="background:#1A1A2E;padding:24px 32px;">
+    <p style="margin:0;color:#BFFF00;font-size:20px;font-weight:700;">${escapeHtml(orgName)} · Orbit</p>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Nueva novedad para todo el equipo</p>
+  </td></tr>
+  <tr><td style="padding:28px 32px 8px;">
+    <p style="margin:0 0 10px;">
+      <span style="display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;color:#fff;background:${catColor};">${escapeHtml(catLabel)}</span>
+      <span style="display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;color:#111827;background:#E5E7EB;margin-left:6px;">${escapeHtml(brand)}</span>
+    </p>
+    <h1 style="margin:0 0 12px;color:#111827;font-size:22px;line-height:1.3;">${escapeHtml(item.title)}</h1>
+    ${bodyHtml ? `<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">${bodyHtml}</p>` : ''}
+    ${imagesHtml ? `<div style="margin:0 0 16px;">${imagesHtml}</div>` : ''}
+    <p style="margin:0 0 24px;color:#6B7280;font-size:13px;">Publicada por <strong style="color:#111827;">${escapeHtml(item.created_by_name || 'el equipo')}</strong> · ${escapeHtml(when)}</p>
+    <a href="${link}" style="display:inline-block;background:#1A1A2E;color:#BFFF00;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:12px;">Ver en Orbit y marcar “Enterado”</a>
+  </td></tr>
+  <tr><td style="padding:16px 32px 28px;color:#9CA3AF;font-size:12px;line-height:1.5;">Recibes este correo porque haces parte del equipo de ${escapeHtml(orgName)} en Orbit. Las novedades quedan guardadas en la pestaña Novedades.</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const from = `Estefania Hernandez <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`;
+  const subject = `[Novedad${item.category === 'urgente' ? ' URGENTE' : ''}] ${brand} · ${item.title}`;
+  let sent = 0;
+  for (let i = 0; i < emails.length; i += 45) {
+    const chunk = emails.slice(i, i + 45);
+    try {
+      await sendEmail({ from, to: chunk, subject, html });
+      sent += chunk.length;
+    } catch (err) {
+      console.error('[Novedades] Error enviando correo al equipo:', err.message);
+    }
+  }
+  return { sent };
+}
+
 router.post('/', async (req, res) => {
   try {
     const { title, body, client_id, category, is_pinned, images } = req.body || {};
@@ -250,7 +319,12 @@ router.post('/', async (req, res) => {
     // El autor queda como leído automáticamente
     await markRead(result.lastInsertRowid, req.teamMember.id);
 
-    res.status(201).json(await loadNews(result.lastInsertRowid, req));
+    const created = await loadNews(result.lastInsertRowid, req);
+    // Correo a todo el equipo (en segundo plano: no bloquea ni falla la publicación)
+    notifyTeamAboutNews(req.orgId, created)
+      .then((r) => console.log(`[Novedades] Correo enviado a ${r.sent} personas del equipo`))
+      .catch((err) => console.error('[Novedades] No se pudo notificar al equipo:', err.message));
+    res.status(201).json(created);
   } catch (error) {
     console.error('Error creating news:', error);
     res.status(500).json({ error: 'No se pudo publicar la novedad' });
