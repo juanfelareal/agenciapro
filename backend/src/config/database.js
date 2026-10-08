@@ -2099,7 +2099,8 @@ export const initializeDatabase = async () => {
     // Historial de cambios de novedades: cada edición de contenido guarda la versión anterior
     await pool.query(`ALTER TABLE org_news ADD COLUMN IF NOT EXISTS content_updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`);
     await pool.query(`ALTER TABLE org_news ADD COLUMN IF NOT EXISTS edit_count INTEGER DEFAULT 0`);
-    await pool.query(`UPDATE org_news SET content_updated_at = created_at WHERE content_updated_at IS NULL`);
+    // Novedades sin ediciones: su contenido vale desde que se crearon (el DEFAULT de la columna las fechaba al migrar)
+    await pool.query(`UPDATE org_news SET content_updated_at = created_at WHERE COALESCE(edit_count, 0) = 0 AND (content_updated_at IS NULL OR content_updated_at > created_at)`);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS org_news_versions (
         id SERIAL PRIMARY KEY,
