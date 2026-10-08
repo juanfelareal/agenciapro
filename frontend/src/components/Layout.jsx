@@ -32,7 +32,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { orbitFeedbackAPI } from '../utils/api';
+import { orbitFeedbackAPI, newsAPI } from '../utils/api';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
@@ -57,6 +57,34 @@ const Layout = ({ children }) => {
     return () => { cancelled = true; };
   }, []);
 
+  // Novedades: no leídas por el usuario actual (badge rojo). Se refresca al montar,
+  // cada 60 s, al volver a la pestaña y cuando la página de Novedades dispara
+  // el evento `news:unread-changed` (al abrir una novedad o marcar todo como leído).
+  const [newsUnreadCount, setNewsUnreadCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      newsAPI.unreadCount()
+        .then((res) => { if (!cancelled) setNewsUnreadCount(res.data?.unread || 0); })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = setInterval(refresh, 60000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
+    const onChanged = (e) => {
+      if (typeof e?.detail?.unread === 'number') setNewsUnreadCount(e.detail.unread);
+      else refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('news:unread-changed', onChanged);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('news:unread-changed', onChanged);
+    };
+  }, []);
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
@@ -65,6 +93,7 @@ const Layout = ({ children }) => {
   // Items principales (sin submenú)
   const mainNavigation = [
     { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard' },
+    { name: 'Novedades', path: '/app/novedades', icon: Megaphone, permission: null, badge: 'news' },
     { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients' },
     { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm' },
     { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients' },
@@ -156,11 +185,23 @@ const Layout = ({ children }) => {
         {sidebarCollapsed && item.name === 'Chat' && chatUnreadCount > 0 && (
           <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
         )}
+        {/* Novedades sin leer: badge rojo (expandido) o punto rojo (colapsado) */}
+        {!sidebarCollapsed && item.badge === 'news' && newsUnreadCount > 0 && (
+          <span
+            className="ml-auto bg-red-500 text-white text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center"
+            title={`${newsUnreadCount} sin leer`}
+          >
+            {newsUnreadCount > 99 ? '99+' : newsUnreadCount}
+          </span>
+        )}
+        {sidebarCollapsed && item.badge === 'news' && newsUnreadCount > 0 && (
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 ring-2 ring-white rounded-full" />
+        )}
 
         {/* Tooltip for collapsed state */}
         {sidebarCollapsed && (
           <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-            {item.name}
+            {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}
           </div>
         )}
       </Link>

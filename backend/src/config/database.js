@@ -2067,6 +2067,36 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_orbit_feedback_org_status ON orbit_feedback(organization_id, status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_orbit_feedback_comments_feedback ON orbit_feedback_comments(feedback_id)`);
 
+    // ─── Novedades (noticias importantes de las marcas para todo el equipo) ───
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS org_news (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        body TEXT,
+        client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+        category TEXT NOT NULL DEFAULT 'novedad' CHECK(category IN ('novedad', 'urgente', 'cambio', 'logro', 'recordatorio')),
+        is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+        images JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS org_news_reads (
+        news_id INTEGER NOT NULL REFERENCES org_news(id) ON DELETE CASCADE,
+        team_member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        read_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (news_id, team_member_id)
+      )
+    `);
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_org_news_org_created ON org_news(organization_id, created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_org_news_client ON org_news(client_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_org_news_reads_member ON org_news_reads(team_member_id)`);
+
     // Ad tag indexes
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_categories_org ON ad_tag_categories(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ad_tag_values_category ON ad_tag_values(category_id)`);

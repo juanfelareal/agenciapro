@@ -35,6 +35,7 @@ import Forms from './pages/Forms';
 import ProjectTemplates from './pages/ProjectTemplates';
 import Collections from './pages/Collections';
 import OrbitFeedback from './pages/OrbitFeedback';
+import News from './pages/News';
 import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
@@ -570,6 +571,7 @@ function App() {
                 {/* <Route path="agents" element={<Agents />} /> */}
                 {/* <Route path="agents/:slug" element={<Agents />} /> */}
                 <Route path="mejoras" element={<ProtectedRoute><OrbitFeedback /></ProtectedRoute>} />
+                <Route path="novedades" element={<ProtectedRoute><News /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
             </Layout>

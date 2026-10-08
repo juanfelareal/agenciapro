@@ -145,6 +145,32 @@ export const orbitFeedbackAPI = {
   },
 };
 
+// Novedades (noticias importantes de las marcas para todo el equipo)
+export const newsAPI = {
+  unreadCount: () => api.get('/news/unread-count'),
+  clients: () => api.get('/news/clients'),
+  // params: { client_id ('general' | id), category, search, unread: 1, limit, offset }
+  list: (params) => api.get('/news', { params }),
+  get: (id) => api.get(`/news/${id}`),
+  create: (data) => api.post('/news', data),
+  update: (id, data) => api.put(`/news/${id}`, data),
+  delete: (id) => api.delete(`/news/${id}`),
+  markRead: (id) => api.post(`/news/${id}/read`),
+  markAllRead: () => api.post('/news/read-all'),
+  reads: (id) => api.get(`/news/${id}/reads`),
+  // Sube un pantallazo (png/jpg/webp/gif, máx 8 MB) y devuelve { url }
+  upload: (file, onProgress) => {
+    const fd = new FormData();
+    fd.append('file', file, file.name || 'pantallazo.png');
+    return api.post('/news/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onProgress
+        ? (e) => onProgress(e.total ? Math.round((e.loaded * 100) / e.total) : 0)
+        : undefined,
+    });
+  },
+};
+
 export const clientReportsAPI = {
   list: (clientId) => api.get(`/client-reports/${clientId}`),
   upload: (clientId, formData) =>
