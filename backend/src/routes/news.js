@@ -80,7 +80,7 @@ const SELECT_NEWS = `
   SELECT n.*,
          tm.name AS created_by_name,
          tm.email AS created_by_email,
-         COALESCE(NULLIF(c.company, ''), c.name) AS client_name,
+         COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) AS client_name,
          (SELECT COUNT(*) FROM org_news_reads r WHERE r.news_id = n.id)::int AS read_count,
          EXISTS (SELECT 1 FROM org_news_reads r WHERE r.news_id = n.id AND r.team_member_id = ?) AS is_read
   FROM org_news n
@@ -131,10 +131,10 @@ router.get('/unread-count', async (req, res) => {
 router.get('/clients', async (req, res) => {
   try {
     const rows = await db.all(`
-      SELECT id, COALESCE(NULLIF(company, ''), name) AS name
+      SELECT id, COALESCE(NULLIF(nickname, ''), NULLIF(company, ''), name) AS name
       FROM clients
       WHERE organization_id = ? AND (status IS NULL OR status = 'active')
-      ORDER BY LOWER(COALESCE(NULLIF(company, ''), name)) ASC
+      ORDER BY LOWER(COALESCE(NULLIF(nickname, ''), NULLIF(company, ''), name)) ASC
     `, [req.orgId]);
     res.json(rows);
   } catch (error) {
@@ -202,8 +202,8 @@ router.get('/', async (req, res) => {
     }
     if (search && String(search).trim()) {
       const term = `%${String(search).trim()}%`;
-      where += ' AND (n.title ILIKE ? OR n.body ILIKE ? OR c.company ILIKE ? OR c.name ILIKE ?)';
-      params.push(term, term, term, term);
+      where += ' AND (n.title ILIKE ? OR n.body ILIKE ? OR c.nickname ILIKE ? OR c.company ILIKE ? OR c.name ILIKE ?)';
+      params.push(term, term, term, term, term);
     }
 
     const lim = Math.min(Math.max(parseIntOrNull(limit) ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
