@@ -149,7 +149,7 @@ const Dashboard = () => {
                   </button>
                 ))}
                 {period === 'custom' && (
-                  <div className="flex items-center gap-2 ml-1">
+                  <div className="flex flex-wrap items-center gap-2 ml-1">
                     <input
                       type="date"
                       value={customStart}

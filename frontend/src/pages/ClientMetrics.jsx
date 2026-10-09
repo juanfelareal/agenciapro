@@ -45,6 +45,7 @@ import CollapsibleSection from '../components/CollapsibleSection';
 import DashboardShareModal from '../components/DashboardShareModal';
 import EmailMarketingForm from '../components/EmailMarketingForm';
 import { revenueMetricLabel, pickDailyDisplayRevenue, pickDailyDisplayRoas } from '../utils/revenueMetric';
+import useIsMobile from '../hooks/useIsMobile';
 
 // Get current date in Colombia timezone (YYYY-MM-DD)
 const getColombiaDate = (offsetDays = 0) => {
@@ -62,6 +63,7 @@ const GOOGLE_TIKTOK_ENABLED = false;
 function ClientMetrics() {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const [client, setClient] = useState(null);
   const [metrics, setMetrics] = useState(null);
@@ -527,8 +529,8 @@ function ClientMetrics() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             onClick={() => navigate('/app/metricas')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -536,36 +538,39 @@ function ClientMetrics() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{client.nickname || client.company || client.name}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{client.company || client.name}</p>
+            <h1 className="text-xl sm:text-2xl font-semibold text-[#17181A] tracking-tight truncate">{client.nickname || client.company || client.name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5 truncate">{client.company || client.name}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowShareModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            title="Compartir"
           >
             <Share2 className="w-4 h-4" />
-            Compartir
+            <span className="hidden sm:inline">Compartir</span>
           </button>
           <button
             onClick={() => navigate(`/app/clients/${clientId}/plataformas`)}
-            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            title="Configurar"
           >
             <Settings className="w-4 h-4" />
-            Configurar
+            <span className="hidden sm:inline">Configurar</span>
           </button>
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
+            title="Sincronizar"
           >
             {syncing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <RefreshCw className="w-4 h-4" />
             )}
-            Sincronizar
+            <span className="hidden sm:inline">Sincronizar</span>
           </button>
         </div>
       </div>
@@ -609,24 +614,24 @@ function ClientMetrics() {
 
       {/* Date Range */}
       <div className="glass rounded-xl p-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gray-400" />
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Calendar className="w-5 h-5 text-gray-400 hidden sm:block" />
             <input
               type="date"
               value={dateRange.start}
               onChange={(e) => { setActivePreset(null); setDateRange((prev) => ({ ...prev, start: e.target.value })); }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-0 sm:flex-none"
             />
             <span className="text-gray-400">-</span>
             <input
               type="date"
               value={dateRange.end}
               onChange={(e) => { setActivePreset(null); setDateRange((prev) => ({ ...prev, end: e.target.value })); }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-0 sm:flex-none"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {['today', 'yesterday', 'thisWeek', 'lastWeek', 'last7', 'last30', 'thisMonth'].map((preset) => (
               <button
                 key={preset}
@@ -643,7 +648,7 @@ function ClientMetrics() {
               </button>
             ))}
           </div>
-          <div className="ml-auto">
+          <div className="sm:ml-auto">
             <button
               onClick={() => setCompareMode(!compareMode)}
               className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors border ${
@@ -678,7 +683,7 @@ function ClientMetrics() {
       </div>
 
       {/* Revenue Metrics - 3 types — higher is better */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <MetricCard
           title="Venta Total"
           subtitle="Todos los pedidos, antes de devoluciones"
@@ -721,7 +726,7 @@ function ClientMetrics() {
       </div>
 
       {/* Combinadas: Ad spend & efficiency — costs: lower is better; ROAS: higher is better */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <MetricCard
           title="Inversion Publicidad"
           value={metrics?.total_ad_spend}
@@ -776,7 +781,7 @@ function ClientMetrics() {
       </div>
 
       {/* Combinadas: Total Pedidos + Ticket */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <MetricCard
           title="Total Pedidos"
           value={metrics?.total_all_orders_count}
@@ -815,7 +820,7 @@ function ClientMetrics() {
         iconColor="text-blue-600"
         defaultOpen={false}
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <MetricCard
             title="Inversión Meta"
             value={metrics?.total_fb_spend}
@@ -868,7 +873,7 @@ function ClientMetrics() {
         iconColor="text-amber-600"
         defaultOpen={false}
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <MetricCard
             title="Inversión Google"
             value={metrics?.google?.spend}
@@ -956,7 +961,7 @@ function ClientMetrics() {
         iconColor="text-white"
         defaultOpen={false}
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <MetricCard
             title="Inversión TikTok"
             value={metrics?.tiktok?.spend}
@@ -1045,7 +1050,7 @@ function ClientMetrics() {
         iconColor="text-emerald-600"
         defaultOpen={false}
       >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard
             title="Pedidos Confirmados"
             value={metrics?.total_orders}
@@ -1686,7 +1691,7 @@ function ClientMetrics() {
                   <BarChart data={tagAnalysis} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={120} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 72 : 120} />
                     <Tooltip
                       contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                       formatter={(value) => {

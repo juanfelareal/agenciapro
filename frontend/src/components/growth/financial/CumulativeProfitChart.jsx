@@ -17,7 +17,7 @@ const DarkTooltip = ({ active, payload }) => {
   const projected = d.profit === null || d.profit === undefined;
   const v = projected ? d.projected : d.profit;
   return (
-    <div className="bg-[#17181A] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[210px] space-y-1">
+    <div className="bg-[#17181A] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[210px] max-w-[80vw] space-y-1">
       <div className="font-medium capitalize mb-1.5">{dayLong(d.date)}{projected ? ' · proyección' : ''}</div>
       <div className="flex justify-between gap-4"><span className="text-gray-300">Utilidad acumulada</span><span className="tabular-nums font-semibold" style={{ color: v >= 0 ? '#86EFAC' : '#FCA5A5' }}>{fmtMoney(v)}</span></div>
       {!projected && (

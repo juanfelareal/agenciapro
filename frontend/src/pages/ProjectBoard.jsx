@@ -58,8 +58,8 @@ const ProjectBoard = () => {
           <ArrowLeft size={20} />
           Volver a Proyectos
         </button>
-        <div className="flex justify-between items-center">
-          <div>
+        <div className="flex flex-wrap justify-between items-start gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{project.name}</h1>
             <p className="text-sm text-gray-500 mt-0.5">{project.description || 'Gestión de proyecto'}</p>
           </div>
@@ -73,7 +73,7 @@ const ProjectBoard = () => {
       {/* View Tabs */}
       <div className="bg-white rounded-lg shadow mb-6">
         <div className="border-b border-gray-200">
-          <nav className="flex gap-4 px-6">
+          <nav className="flex gap-2 sm:gap-4 px-3 sm:px-6 overflow-x-auto">
             <button
               onClick={() => setActiveView('table')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition ${

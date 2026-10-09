@@ -697,7 +697,7 @@ const Team = () => {
       {/* PIN Modal */}
       {showPinModal && pinMember && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center p-5 border-b border-gray-100">
               <div>
                 <h2 className="text-lg font-semibold text-[#17181A]">Establecer PIN</h2>

@@ -177,8 +177,8 @@ function MetricsDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Métricas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Resumen de todos los clientes</p>
           {data.last_sync_at && (
@@ -194,7 +194,7 @@ function MetricsDashboard() {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 w-full sm:w-auto"
         >
           {syncing ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Sincronizando...</>
@@ -230,11 +230,11 @@ function MetricsDashboard() {
           {/* Date Range */}
           <div className="glass rounded-xl p-4">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-gray-400" />
-                <input type="date" value={dateRange.start} onChange={(e) => setDateRange(p => ({ ...p, start: e.target.value }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <Calendar className="w-5 h-5 text-gray-400 hidden sm:block" />
+                <input type="date" value={dateRange.start} onChange={(e) => setDateRange(p => ({ ...p, start: e.target.value }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-0 sm:flex-none" />
                 <span className="text-gray-400">-</span>
-                <input type="date" value={dateRange.end} onChange={(e) => setDateRange(p => ({ ...p, end: e.target.value }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input type="date" value={dateRange.end} onChange={(e) => setDateRange(p => ({ ...p, end: e.target.value }))} className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-0 sm:flex-none" />
               </div>
               <div className="flex gap-1.5 flex-wrap">
                 {[
@@ -256,7 +256,7 @@ function MetricsDashboard() {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <MetricCard title="Venta Total" value={visibleTotals.display_revenue} icon={DollarSign} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="currency" loading={loading} />
             <MetricCard title="Inversion Publicidad" value={visibleTotals.total_ad_spend} icon={MousePointerClick} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="currency" loading={loading} />
             <MetricCard title="ROAS" value={visibleTotals.roas} icon={TrendingUp} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="decimal" loading={loading} />
@@ -289,7 +289,107 @@ function MetricsDashboard() {
                 <p className="text-sm mt-2">Conecta Facebook Ads y Shopify a tus clientes para ver métricas.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Móvil: tarjetas por marca con las métricas clave */}
+              <div className="md:hidden divide-y divide-gray-100">
+                {visibleClients.map((client) => (
+                  <div key={`m-${client.client_id}`} className={`p-4 ${client.is_hidden_from_metrics ? 'opacity-50' : ''}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{client.nickname || client.company || client.client_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{client.company || client.client_name}</p>
+                      </div>
+                      {client.service_type && (
+                        <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          client.service_type === 'growth' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {client.service_type === 'growth' ? 'Growth' : 'Fee'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2 mt-3 text-sm">
+                      <div>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Venta</p>
+                        <p className="font-semibold text-gray-900 tabular-nums">{formatCurrency(client.display_revenue)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Inversión</p>
+                        <p className="text-gray-700 tabular-nums">{formatCurrency(client.total_ad_spend)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">ROAS</p>
+                        <p className={`font-medium ${client.roas >= 3 ? 'text-green-600' : client.roas >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>{client.roas?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Pedidos</p>
+                        <p className="text-gray-700">{client.total_orders || 0} · CTR {client.avg_ctr?.toFixed(2) || '0.00'}%</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-3 -ml-1">
+                      <button
+                        onClick={() => setExpandedClients(prev => ({ ...prev, [client.client_id]: !prev[client.client_id] }))}
+                        className={`p-2 rounded-lg transition-colors ${expandedClients[client.client_id] ? 'text-[#17181A] bg-gray-100' : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'}`}
+                        title="Ver últimos 7 días y tendencia"
+                      >
+                        <BarChart2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setLogbookClient({ id: client.client_id, name: client.nickname || client.company || client.client_name })}
+                        className="relative p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Bitácora de la marca"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        {logbookSummary[client.client_id]?.pending_actions > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                            {logbookSummary[client.client_id].pending_actions}
+                          </span>
+                        )}
+                      </button>
+                      <button onClick={() => navigate(`/app/clients/${client.client_id}/plataformas`)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Configurar plataformas">
+                        <Settings className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleHidden(client.client_id, client.is_hidden_from_metrics)}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        title={client.is_hidden_from_metrics ? 'Mostrar en tabla' : 'Ocultar de tabla'}
+                      >
+                        {client.is_hidden_from_metrics ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                      </button>
+                      <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="ml-auto flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#17181A] bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                        Detalle <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {expandedClients[client.client_id] && (
+                      <div className="mt-3 rounded-xl bg-gray-50 p-3 overflow-x-auto">
+                        <ClientTrendPanel
+                          clientId={client.client_id}
+                          revenueMetric={client.portal_revenue_metric}
+                          revenueLabel={client.revenue_label}
+                          refreshKey={dataLoadedAt}
+                          footer={(
+                            <MetaCampaignsPanel
+                              clientId={client.client_id}
+                              startDate={dateRange.start}
+                              endDate={dateRange.end}
+                              refreshKey={dataLoadedAt}
+                            />
+                          )}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div className="p-4 bg-gray-50 text-sm">
+                  <p className="font-medium text-gray-900">Total</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1 text-gray-700 tabular-nums">
+                    <span>Venta {formatCurrency(visibleTotals.display_revenue)}</span>
+                    <span>Inversión {formatCurrency(visibleTotals.total_ad_spend)}</span>
+                    <span>ROAS {visibleTotals.roas?.toFixed(2) || '0.00'}</span>
+                    <span>{visibleTotals.total_orders || 0} pedidos</span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
@@ -414,6 +514,7 @@ function MetricsDashboard() {
                   </tfoot>
                 </table>
               </div>
+              </>
             )}
           </div>
         </>

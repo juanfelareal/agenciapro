@@ -422,7 +422,7 @@ const ProjectDetail = () => {
           </div>
           <h1 className="text-2xl font-bold text-[#163B3B] mb-1">{project.name}</h1>
           {project.client_name && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <p className="text-gray-500">Cliente: {project.client_name}</p>
               <button
                 onClick={async () => {
@@ -519,7 +519,7 @@ const ProjectDetail = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <span className="text-gray-400">Tareas:</span>
             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{metrics.byStatus.todo} por hacer</span>
             <span className="px-2 py-0.5 bg-[#163B3B]/10 text-[#163B3B] rounded-full text-xs">{metrics.byStatus.in_progress} en progreso</span>
@@ -532,7 +532,7 @@ const ProjectDetail = () => {
       {/* Tasks section */}
       <div className="glass-card p-6">
         {/* View tabs and actions */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
             <button
               onClick={() => setViewMode('kanban')}
@@ -541,7 +541,7 @@ const ProjectDetail = () => {
               }`}
             >
               <LayoutGrid size={16} />
-              Kanban
+              <span className="hidden sm:inline">Kanban</span>
             </button>
             <button
               onClick={() => setViewMode('table')}
@@ -550,7 +550,7 @@ const ProjectDetail = () => {
               }`}
             >
               <Table size={16} />
-              Tabla
+              <span className="hidden sm:inline">Tabla</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -559,19 +559,19 @@ const ProjectDetail = () => {
               }`}
             >
               <List size={16} />
-              Lista
+              <span className="hidden sm:inline">Lista</span>
             </button>
           </div>
 
           {viewMode !== 'table' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setShowTemplateModal(true)}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
                 title="Cargar tareas desde una plantilla"
               >
                 <Copy size={16} />
-                Aplicar plantilla
+                <span className="hidden sm:inline">Aplicar plantilla</span>
               </button>
               <button
                 onClick={() => handleAddTask()}
@@ -674,7 +674,7 @@ const ProjectDetail = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fecha inicio</label>
                   <input
@@ -762,7 +762,7 @@ const ProjectDetail = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                   <select
@@ -840,7 +840,7 @@ const ProjectDetail = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de entrega</label>
                   <input

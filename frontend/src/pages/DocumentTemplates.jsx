@@ -260,7 +260,7 @@ export default function DocumentTemplates() {
 
       {/* Signatures Tab */}
       {activeTab === 'signatures' && (
-        <div className="bg-white border border-ink-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-ink-200 rounded-xl overflow-x-auto">
           <table className="w-full">
             <thead className="bg-ink-50">
               <tr>
@@ -404,7 +404,7 @@ export default function DocumentTemplates() {
       {/* Assign Modal */}
       {showAssignModal && selectedTemplate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="p-6 border-b border-ink-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-ink-900">Asignar documento</h2>
               <button onClick={() => setShowAssignModal(false)} className="text-ink-400 hover:text-ink-600">

@@ -138,7 +138,7 @@ function TabbedNoteView({ content, onTabChange }) {
   return (
     <div>
       {/* Main tabs (H1) */}
-      <div className="flex gap-1 overflow-x-auto pb-1 mb-4 border-b border-slate-200 scrollbar-thin">
+      <div className="flex gap-1 overflow-x-auto pb-1 mb-4 border-b border-slate-200 scrollbar-thin -mx-4 px-4 md:mx-0 md:px-0">
         {tabs.map((tab, idx) => (
           <button
             key={idx}

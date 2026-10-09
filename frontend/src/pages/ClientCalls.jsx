@@ -244,7 +244,7 @@ export default function ClientCalls() {
                   type="datetime-local"
                   value={form.call_date}
                   onChange={(e) => setForm({ ...form, call_date: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] min-w-0 max-w-full"
                 />
               </div>
 

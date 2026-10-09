@@ -225,7 +225,7 @@ function StageColumn({ stage, creators, onCreatorClick, onToggleFavorite, lists,
   return (
     <div
       ref={setNodeRef}
-      className={`flex-shrink-0 w-[260px] flex flex-col max-h-full rounded-2xl transition-colors ${
+      className={`flex-shrink-0 w-[82vw] sm:w-[260px] snap-start flex flex-col max-h-full rounded-2xl transition-colors ${
         isOver ? 'bg-[#D7F653]/10' : 'bg-gray-50/80'
       }`}
     >
@@ -684,15 +684,15 @@ export default function UGC() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar creadores..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 glass-solid rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-[200px]"
+              className="pl-9 pr-4 py-2 glass-solid rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-full sm:w-[200px]"
             />
           </div>
 
@@ -717,7 +717,7 @@ export default function UGC() {
             </button>
 
             {showFilters && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl border border-gray-200 shadow-xl p-4 z-50">
+              <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-72 bg-white rounded-xl border border-gray-200 shadow-xl p-4 z-50">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-semibold text-[#17181A]">Filtros</h4>
                   {activeFilterCount > 0 && (
@@ -910,8 +910,8 @@ export default function UGC() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex-1 overflow-x-auto pb-4">
-            <div className="flex gap-3 min-h-[500px]" style={{ minWidth: `${stages.length * 276}px` }}>
+          <div className="flex-1 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none">
+            <div className="flex gap-3 min-h-[500px] w-max md:w-auto" style={{ minWidth: `${stages.length * 276}px` }}>
               {stages.map((stage) => (
                 <StageColumn
                   key={stage.id}
@@ -935,7 +935,70 @@ export default function UGC() {
       {/* List View */}
       {viewMode === 'list' && (
         <div className="flex-1 overflow-auto bg-white rounded-2xl border border-gray-100">
-          <table className="w-full">
+          {/* Móvil: lista de tarjetas (la tabla se muestra desde md) */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {paginatedCreators.map((creator) => {
+              const stage = stages.find(s => s.id === creator.stage_id);
+              const socialNetworks = creator.social_networks || {};
+              return (
+                <div key={creator.id} onClick={() => handleCreatorClick(creator)} className="p-3 flex items-start gap-3 active:bg-gray-50 cursor-pointer">
+                  {creator.profile_photo_url ? (
+                    <img src={creator.profile_photo_url} alt={creator.full_name} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                      {creator.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium text-[#17181A] truncate">{creator.full_name}</p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleToggleFavorite(creator.id); }}
+                        className={`p-1 -mr-1 rounded-full flex-shrink-0 ${creator.is_favorite ? 'text-red-500' : 'text-gray-300'}`}
+                        aria-label={creator.is_favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                      >
+                        <Heart className="w-4 h-4" fill={creator.is_favorite ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 truncate">
+                      {creator.city ? `${creator.city}${creator.department ? `, ${creator.department}` : ''}` : (creator.email || '—')}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      {stage && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${stage.color}20`, color: stage.color }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stage.color }} />
+                          {stage.name}
+                        </span>
+                      )}
+                      {creator.industries?.slice(0, 2).map((ind, i) => (
+                        <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{ind}</span>
+                      ))}
+                      {creator.list_ids?.length > 0 && <ListChips lists={lists} listIds={creator.list_ids} max={2} />}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      {socialNetworks.instagram && (
+                        <a href={`https://instagram.com/${extractInstagramUsername(socialNetworks.instagram)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-xs text-pink-500 bg-pink-50 px-2 py-1 rounded-lg">
+                          <Instagram className="w-3.5 h-3.5" /> IG
+                        </a>
+                      )}
+                      {socialNetworks.tiktok && (
+                        <a href={`https://tiktok.com/@${socialNetworks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-xs text-gray-800 bg-gray-100 px-2 py-1 rounded-lg">
+                          <Video className="w-3.5 h-3.5" /> TikTok
+                        </a>
+                      )}
+                      {creator.phone && (
+                        <a href={`https://wa.me/${creator.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                          <Phone className="w-3 h-3" /> WhatsApp
+                        </a>
+                      )}
+                      <ListTagButton listIds={creator.list_ids} onOpen={(rect) => openListPicker(creator, rect)} className="p-1.5 ml-auto" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <table className="w-full hidden md:table">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
                 <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 py-3 w-20">
@@ -1034,7 +1097,7 @@ export default function UGC() {
                               <div
                                 className="fixed z-[100] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
                                 style={{
-                                  width: '320px',
+                                  width: 'min(320px, calc(100vw - 2rem))',
                                   top: '50%',
                                   left: '50%',
                                   transform: 'translate(-50%, -50%)'
@@ -1247,7 +1310,7 @@ export default function UGC() {
 
             <form onSubmit={handleCreateCreator} className="p-6 space-y-5">
               {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Nombre completo *</label>
                   <input
@@ -1272,7 +1335,7 @@ export default function UGC() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
                   <input
@@ -1296,7 +1359,7 @@ export default function UGC() {
               {/* Social Networks */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">Redes Sociales</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="relative">
                     <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pink-500" />
                     <input
@@ -1363,7 +1426,7 @@ export default function UGC() {
               {/* Location */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">Ubicación</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <input
                     type="text"
                     value={newCreator.city}
@@ -1429,7 +1492,7 @@ export default function UGC() {
       {/* Registration Links Modal */}
       {showLinkModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowLinkModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div>
                 <h2 className="text-lg font-semibold text-[#17181A]">Links de Registro</h2>

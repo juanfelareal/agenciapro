@@ -31,6 +31,8 @@ import {
   FileSignature,
   Mail,
   Lightbulb,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { orbitFeedbackAPI, newsAPI, whatsappAPI } from '../utils/api';
@@ -38,6 +40,7 @@ import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
 import OrbitLogo from './OrbitLogo';
+import useIsMobile from '../hooks/useIsMobile';
 
 
 const Layout = ({ children }) => {
@@ -45,6 +48,10 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const { user, currentOrg, hasPermission, logout } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Móvil: el sidebar es un drawer (cerrado por defecto) y nunca se muestra colapsado
+  const isMobile = useIsMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const collapsedUI = sidebarCollapsed && !isMobile;
   const [finanzasExpanded, setFinanzasExpanded] = useState(false);
   // Chat oculto del sidebar — sin polling de no-leídos (módulo en pausa)
   const chatUnreadCount = 0;
@@ -206,20 +213,20 @@ const Layout = ({ children }) => {
               ? 'bg-[#17181A] text-[#D7F653]'
               : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60')
         }`}
-        title={sidebarCollapsed ? item.name : ''}
+        title={collapsedUI ? item.name : ''}
       >
         <Icon size={20} className="flex-shrink-0" />
-        {!sidebarCollapsed && <span className="truncate flex-1">{item.name}</span>}
-        {!sidebarCollapsed && item.name === 'Chat' && chatUnreadCount > 0 && (
+        {!collapsedUI && <span className="truncate flex-1">{item.name}</span>}
+        {!collapsedUI && item.name === 'Chat' && chatUnreadCount > 0 && (
           <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
             {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
           </span>
         )}
-        {sidebarCollapsed && item.name === 'Chat' && chatUnreadCount > 0 && (
+        {collapsedUI && item.name === 'Chat' && chatUnreadCount > 0 && (
           <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
         )}
         {/* Novedades sin leer: badge rojo (expandido) o punto rojo (colapsado) */}
-        {!sidebarCollapsed && item.badge === 'news' && newsUnreadCount > 0 && (
+        {!collapsedUI && item.badge === 'news' && newsUnreadCount > 0 && (
           <span
             className="ml-auto bg-red-500 text-white text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center"
             title={`${newsUnreadCount} sin leer`}
@@ -227,11 +234,11 @@ const Layout = ({ children }) => {
             {newsUnreadCount > 99 ? '99+' : newsUnreadCount}
           </span>
         )}
-        {sidebarCollapsed && item.badge === 'news' && newsUnreadCount > 0 && (
+        {collapsedUI && item.badge === 'news' && newsUnreadCount > 0 && (
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 ring-2 ring-white rounded-full" />
         )}
         {/* WhatsApp sin leer: badge verde (expandido) o punto verde (colapsado) */}
-        {!sidebarCollapsed && item.badge === 'whatsapp' && waUnreadCount > 0 && (
+        {!collapsedUI && item.badge === 'whatsapp' && waUnreadCount > 0 && (
           <span
             className="ml-auto bg-emerald-500 text-white text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center"
             title={`${waUnreadCount} sin leer`}
@@ -239,12 +246,12 @@ const Layout = ({ children }) => {
             {waUnreadCount > 99 ? '99+' : waUnreadCount}
           </span>
         )}
-        {sidebarCollapsed && item.badge === 'whatsapp' && waUnreadCount > 0 && (
+        {collapsedUI && item.badge === 'whatsapp' && waUnreadCount > 0 && (
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 ring-2 ring-white rounded-full" />
         )}
 
         {/* Tooltip for collapsed state */}
-        {sidebarCollapsed && (
+        {collapsedUI && (
           <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
             {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}{item.badge === 'whatsapp' && waUnreadCount > 0 ? ` · ${waUnreadCount} sin leer` : ''}
           </div>
@@ -254,35 +261,49 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="flex h-screen app-mist">
+    <div className="flex h-screen h-[100dvh] app-mist">
       {/* Sidebar — panel de vidrio flotante */}
+      {/* Backdrop del drawer en móvil */}
+      {mobileOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+      )}
       <div
-        className={`fixed left-4 top-4 bottom-4 flex flex-col z-40 transition-all duration-300 ease-in-out glass rounded-3xl overflow-hidden ${
-          sidebarCollapsed ? 'w-[72px]' : 'w-[220px]'
+        className={`mobile-drawer fixed flex flex-col z-50 md:z-40 transition-all duration-300 ease-in-out glass overflow-hidden
+          left-0 top-0 bottom-0 w-[272px] rounded-none md:left-4 md:top-4 md:bottom-4 md:rounded-3xl
+          ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:translate-x-0 ${
+          collapsedUI ? 'md:w-[72px]' : 'md:w-[220px]'
         }`}
       >
         {/* Logo Section */}
         <div className="h-16 flex items-center px-3 border-b border-white/60">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden mr-2 p-2 -ml-1 rounded-lg text-gray-500 hover:bg-white/60"
+            aria-label="Cerrar menú"
+          >
+            <X size={20} />
+          </button>
           {currentOrg?.logo_url ? (
             <img
               src={currentOrg.logo_url}
               alt={currentOrg.name || 'Logo'}
-              className={sidebarCollapsed ? 'w-10 h-10 object-contain rounded-lg' : 'h-10 max-w-full object-contain object-left'}
+              className={collapsedUI ? 'w-10 h-10 object-contain rounded-lg' : 'h-10 max-w-full object-contain object-left'}
             />
           ) : (
-            <OrbitLogo size={sidebarCollapsed ? 32 : 36} showText={!sidebarCollapsed} />
+            <OrbitLogo size={collapsedUI ? 32 : 36} showText={!collapsedUI} />
           )}
         </div>
 
         {/* Organization Switcher */}
-        {!sidebarCollapsed && currentOrg && (
+        {!collapsedUI && currentOrg && (
           <div className="px-3 py-2 border-b border-white/60">
             <OrgSwitcher />
           </div>
         )}
 
         {/* User Info */}
-        {!sidebarCollapsed && user && (
+        {!collapsedUI && user && (
           <div className="p-3 border-b border-white/60">
             <div className="flex items-center gap-3">
               {user.avatar_url ? (
@@ -303,7 +324,7 @@ const Layout = ({ children }) => {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 overflow-y-auto scrollbar-thin">
+        <nav className="flex-1 p-3 overflow-y-auto scrollbar-thin" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
           <div className="space-y-1">
             {/* Main navigation items */}
             {filteredMain.map(renderNavItem)}
@@ -318,10 +339,10 @@ const Layout = ({ children }) => {
                       ? 'bg-[#17181A] text-[#D7F653]'
                       : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
                   }`}
-                  title={sidebarCollapsed ? 'Finanzas' : ''}
+                  title={collapsedUI ? 'Finanzas' : ''}
                 >
                   <Wallet size={20} className="flex-shrink-0" />
-                  {!sidebarCollapsed && (
+                  {!collapsedUI && (
                     <>
                       <span className="truncate flex-1 text-left">Finanzas</span>
                       <ChevronDown
@@ -334,7 +355,7 @@ const Layout = ({ children }) => {
                   )}
 
                   {/* Tooltip for collapsed state */}
-                  {sidebarCollapsed && (
+                  {collapsedUI && (
                     <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                       Finanzas
                     </div>
@@ -342,7 +363,7 @@ const Layout = ({ children }) => {
                 </button>
 
                 {/* Submenú */}
-                {(finanzasExpanded || sidebarCollapsed) && !sidebarCollapsed && (
+                {(finanzasExpanded || collapsedUI) && !collapsedUI && (
                   <div className="mt-1 ml-3 pl-3 border-l border-white/70 space-y-1">
                     {filteredFinanzas.map((item) => {
                       const Icon = item.icon;
@@ -366,7 +387,7 @@ const Layout = ({ children }) => {
                 )}
 
                 {/* Popup menú para estado colapsado */}
-                {sidebarCollapsed && (
+                {collapsedUI && (
                   <div className="absolute left-full ml-2 top-0 glass-solid rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2 min-w-[160px]">
                     <div className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase">Finanzas</div>
                     {filteredFinanzas.map((item) => {
@@ -396,7 +417,7 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 space-y-1 border-t border-white/60">
+        <div className="p-3 space-y-1 border-t border-white/60" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
           {/* Mejoras de Orbit */}
           <Link
             to="/app/mejoras"
@@ -405,21 +426,21 @@ const Layout = ({ children }) => {
                 ? 'bg-[#17181A] text-[#D7F653]'
                 : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
             }`}
-            title={sidebarCollapsed ? 'Mejoras de Orbit' : ''}
+            title={collapsedUI ? 'Mejoras de Orbit' : ''}
           >
             <Lightbulb size={20} className="flex-shrink-0" />
-            {!sidebarCollapsed && <span className="truncate flex-1">Mejoras de Orbit</span>}
-            {!sidebarCollapsed && newFeedbackCount > 0 && (
+            {!collapsedUI && <span className="truncate flex-1">Mejoras de Orbit</span>}
+            {!collapsedUI && newFeedbackCount > 0 && (
               <span className={`ml-auto text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
                 isActive('/app/mejoras') ? 'bg-[#D7F653] text-[#17181A]' : 'bg-[#17181A] text-[#D7F653]'
               }`}>
                 {newFeedbackCount > 99 ? '99+' : newFeedbackCount}
               </span>
             )}
-            {sidebarCollapsed && newFeedbackCount > 0 && (
+            {collapsedUI && newFeedbackCount > 0 && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-[#D7F653] ring-2 ring-white rounded-full" />
             )}
-            {sidebarCollapsed && (
+            {collapsedUI && (
               <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mejoras de Orbit{newFeedbackCount > 0 ? ` · ${newFeedbackCount} nuevas` : ''}
               </div>
@@ -434,11 +455,11 @@ const Layout = ({ children }) => {
                 ? 'bg-[#17181A] text-[#D7F653]'
                 : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
             }`}
-            title={sidebarCollapsed ? 'Mi Cuenta' : ''}
+            title={collapsedUI ? 'Mi Cuenta' : ''}
           >
             <Settings size={20} className="flex-shrink-0" />
-            {!sidebarCollapsed && <span>Mi Cuenta</span>}
-            {sidebarCollapsed && (
+            {!collapsedUI && <span>Mi Cuenta</span>}
+            {collapsedUI && (
               <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mi Cuenta
               </div>
@@ -449,18 +470,18 @@ const Layout = ({ children }) => {
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all duration-150"
-            title={sidebarCollapsed ? 'Cerrar Sesión' : ''}
+            title={collapsedUI ? 'Cerrar Sesión' : ''}
           >
             <LogOut size={20} />
-            {!sidebarCollapsed && <span>Cerrar Sesión</span>}
+            {!collapsedUI && <span>Cerrar Sesión</span>}
           </button>
 
           {/* Collapse Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#17181A] hover:bg-gray-100 transition-all duration-150"
+            className="hidden md:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#17181A] hover:bg-gray-100 transition-all duration-150"
           >
-            {sidebarCollapsed ? (
+            {collapsedUI ? (
               <ChevronRight size={20} />
             ) : (
               <>
@@ -474,15 +495,34 @@ const Layout = ({ children }) => {
 
       {/* Main content */}
       <div
-        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'ml-[104px]' : 'ml-[252px]'
+        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out min-w-0 ml-0 ${
+          collapsedUI ? 'md:ml-[104px]' : 'md:ml-[252px]'
         }`}
       >
         {/* Top Header Bar - Clean white.
             Altura h-16 para que coincida con el header del sidebar (también h-16);
             así las dos border-b se alinean en la misma línea horizontal. */}
-        <header className="sticky top-0 z-30 h-16 px-6 flex items-center justify-end bg-transparent" style={{ background: 'linear-gradient(180deg, rgba(243,244,239,0.85) 0%, rgba(243,244,239,0.55) 70%, transparent 100%)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 h-14 md:h-16 px-3 md:px-6 flex items-center justify-between md:justify-end bg-transparent" style={{ background: 'linear-gradient(180deg, rgba(243,244,239,0.92) 0%, rgba(243,244,239,0.7) 70%, transparent 100%)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+          {/* Móvil: botón de menú + logo */}
+          <div className="flex items-center gap-2 md:hidden min-w-0">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="relative p-2 rounded-xl text-[#17181A] hover:bg-white/70 active:bg-white"
+              aria-label="Abrir menú"
+            >
+              <Menu size={22} />
+              {(newsUnreadCount > 0 || waUnreadCount > 0) && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#F3F4EF]" />
+              )}
+            </button>
+            {currentOrg?.logo_url ? (
+              <img src={currentOrg.logo_url} alt={currentOrg.name || 'Logo'} className="h-8 max-w-[120px] object-contain" />
+            ) : (
+              <OrbitLogo size={28} showText />
+            )}
+          </div>
+          <div className="flex items-center gap-2 md:gap-4">
             <GlobalSearch />
             <NotificationBell />
 

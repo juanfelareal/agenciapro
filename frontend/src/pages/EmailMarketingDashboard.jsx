@@ -221,7 +221,7 @@ export default function EmailMarketingDashboard() {
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="px-3 py-1.5 font-medium text-[#17181A] min-w-[140px] text-center">
+          <span className="px-3 py-1.5 font-medium text-[#17181A] min-w-[110px] sm:min-w-[140px] text-center">
             {MONTHS[month - 1]} {year}
           </span>
           <button

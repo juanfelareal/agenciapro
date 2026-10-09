@@ -104,7 +104,7 @@ function MetricCard({
       </div>
 
       <div className="mb-3">
-        <span className={`text-4xl font-black tracking-tight tabular-nums ${valueColor}`}>
+        <span className={`text-3xl sm:text-4xl font-black tracking-tight tabular-nums break-words min-w-0 ${valueColor}`}>
           {prefix}{formatValue(value)}{suffix}
         </span>
       </div>

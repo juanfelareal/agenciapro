@@ -285,7 +285,7 @@ const InlineText = ({ value, onSave, placeholder = 'Agregar...', disabled = fals
         onChange={e => setLocalVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); } if (e.key === 'Escape') setEditing(false); }}
-        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-full min-w-[180px] focus:outline-none focus:ring-1 focus:ring-[#17181A] resize-none"
+        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-full min-w-0 sm:min-w-[180px] focus:outline-none focus:ring-1 focus:ring-[#17181A] resize-none"
         rows={2}
         placeholder={placeholder}
       />

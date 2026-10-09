@@ -207,7 +207,7 @@ const OverviewSection = ({ data, loading }) => {
           span={6}
         >
           {invoicesSummary ? (
-            <div className="grid grid-cols-3 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               <div className="bg-gray-50 rounded-xl p-4 text-center">
                 <div className="text-2xl font-bold text-[#17181A]">{invoicesSummary.total}</div>
                 <div className="text-xs text-gray-500 mt-1">Total Facturas</div>

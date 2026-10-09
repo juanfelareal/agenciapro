@@ -737,16 +737,16 @@ const Projects = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Proyectos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de proyectos y presupuestos</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <select
             value={clientFilter}
             onChange={(e) => setClientFilter(e.target.value)}
-            className="border border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] bg-white"
+            className="border border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] bg-white w-full sm:w-auto min-w-0"
           >
             <option value="">Todos los clientes</option>
             <option value="none">Sin cliente</option>
@@ -809,7 +809,54 @@ const Projects = () => {
         </div>
       )}
 
-      <div className="glass-card overflow-x-auto">
+      {/* Móvil: lista de tarjetas (la tabla se oculta) */}
+      <div className="md:hidden space-y-3">
+        {projects.filter(p => {
+          if (!clientFilter) return true;
+          if (clientFilter === 'none') return !p.client_id;
+          return p.client_id === Number(clientFilter);
+        }).map((project) => {
+          const projectTasks = tasksByProject[project.id] || [];
+          const total = projectTasks.length;
+          const done = projectTasks.filter((t) => t.status === 'done').length;
+          const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+          return (
+            <div key={project.id} className={`glass-card p-4 ${selectedIds.has(project.id) ? 'ring-2 ring-[#D7F653]' : ''}`}>
+              <div className="flex items-start gap-3">
+                <button onClick={() => toggleSelectOne(project.id)} className="mt-0.5 text-gray-400 hover:text-[#17181A] flex-shrink-0">
+                  {selectedIds.has(project.id) ? <CheckSquare size={18} className="text-[#17181A]" /> : <Square size={18} />}
+                </button>
+                <div className="min-w-0 flex-1" onClick={() => navigate(`/app/projects/${project.id}`)}>
+                  <p className="font-semibold text-[#17181A] break-words">{project.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">{project.client_name || 'Sin cliente'}</p>
+                </div>
+                {project.stage_name && (
+                  <span
+                    className="px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0"
+                    style={{ backgroundColor: `${project.stage_color || '#6366F1'}1A`, color: project.stage_color || '#6366F1' }}
+                  >
+                    {project.stage_name}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#10B981] transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="text-xs font-medium text-gray-600 tabular-nums">{pct}%</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100 text-xs"><ListTodo size={12} className="text-gray-500" /> {total}</span>
+              </div>
+              <div className="flex justify-end gap-1 mt-2">
+                <button onClick={() => navigate(`/app/projects/${project.id}`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Tablero"><FolderKanban size={18} /></button>
+                <button onClick={() => handleEdit(project)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Editar"><Edit size={18} /></button>
+                <button onClick={() => handleDelete(project)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50" title="Eliminar"><Trash2 size={18} /></button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="glass-card overflow-x-auto hidden md:block">
         <table className="w-full min-w-[900px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -965,7 +1012,7 @@ const Projects = () => {
                       {projectTasks.length === 0 ? (
                         <p className="text-sm text-gray-400 mb-3">Sin tareas en este proyecto.</p>
                       ) : (
-                        <table className="w-full text-sm mb-3">
+                        <div className="overflow-x-auto"><table className="w-full text-sm mb-3">
                           <thead>
                             <tr className="text-xs text-gray-400 uppercase tracking-wider">
                               <th className="text-left py-2 font-medium">Tarea</th>
@@ -1005,7 +1052,7 @@ const Projects = () => {
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </table></div>
                       )}
                       <button
                         onClick={() => openQuickTask(project)}
@@ -1040,8 +1087,8 @@ const Projects = () => {
         const taskCount = (tasksByProject[deletingProject.id] || []).length;
         const otherProjects = projects.filter(p => p.id !== deletingProject.id);
         return (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90dvh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-[#17181A]">Eliminar proyecto</h2>
                 <button onClick={closeDeleteModal} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1128,7 +1175,7 @@ const Projects = () => {
 
       {quickTaskProject && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={closeQuickTask}
         >
           <div
@@ -1181,7 +1228,7 @@ const Projects = () => {
                 );
               })()}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de entrega</label>
                   <input
@@ -1206,7 +1253,7 @@ const Projects = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                   <select
@@ -1599,7 +1646,7 @@ const Projects = () => {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[#17181A]">
@@ -1610,7 +1657,7 @@ const Projects = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium mb-1">Nombre *</label>
                   <input
@@ -1932,7 +1979,7 @@ const Projects = () => {
       {/* Approval prompt — shown when marking a task as Completada from quick modal */}
       {doneApprovalPrompt && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full p-6">
+          <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full p-6 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-[#17181A] mb-2">
               ¿Necesita aprobación del cliente?
             </h3>

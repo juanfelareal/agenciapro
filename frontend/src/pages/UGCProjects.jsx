@@ -424,7 +424,7 @@ export default function UGCProjects() {
           </div>
         ) : (
           /* List View */
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
@@ -678,7 +678,7 @@ export default function UGCProjects() {
               {/* Package Details */}
               {newProject.package_id && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Cantidad de videos
@@ -707,7 +707,7 @@ export default function UGCProjects() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Pago por video al creador
@@ -742,7 +742,7 @@ export default function UGCProjects() {
                         <DollarSign className="w-4 h-4" />
                         Resumen del proyecto
                       </h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div>
                           <p className="text-gray-500">Total del cliente</p>
                           <p className="font-semibold text-gray-900">${totalBudget.toLocaleString('es-CO')}</p>

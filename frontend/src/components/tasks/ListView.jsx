@@ -603,7 +603,53 @@ export default function ListView({
           </button>
         </div>
       )}
-      <div className="overflow-x-auto">
+      {/* Móvil: tarjetas compactas (la tabla completa se muestra desde md) */}
+      <div className="md:hidden divide-y divide-gray-100 bg-white/60 rounded-2xl border border-white/60">
+        {sortedTasks.length === 0 && (
+          <p className="p-6 text-sm text-gray-400 text-center">No hay tareas</p>
+        )}
+        {sortedTasks.map((task) => {
+          const due = task.due_date ? String(task.due_date).slice(0, 10) : null;
+          const overdue = due && task.status !== 'done' && due < new Date().toISOString().slice(0, 10);
+          const who = task.assignees?.length > 0 ? task.assignees.map((a) => a.name?.split(' ')[0]).join(', ') : (task.assigned_to_name?.split(' ')[0] || null);
+          return (
+            <div
+              key={`m-${task.id}`}
+              onClick={() => onTaskClick && onTaskClick(task)}
+              className="p-3 flex items-start gap-3 active:bg-gray-50 cursor-pointer"
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); onStatusChange && onStatusChange(task.id, task.status === 'done' ? 'todo' : 'done'); }}
+                className={`mt-0.5 flex-shrink-0 ${task.status === 'done' ? 'text-[#17181A]' : 'text-gray-300'}`}
+                aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
+              >
+                {task.status === 'done' ? <CheckSquare size={18} /> : <Square size={18} />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-medium text-[#17181A] ${task.status === 'done' ? 'line-through text-gray-400' : ''}`}>{task.title}</p>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${statusColors[task.status] || 'bg-gray-100 text-gray-600'}`}>{statusLabels[task.status] || task.status}</span>
+                  {task.priority && task.priority !== 'medium' && (
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${priorityColors[task.priority] || ''}`}>{priorityLabels[task.priority]}</span>
+                  )}
+                  {due && (
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${overdue ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                      {new Date(`${due}T12:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                  {taskSubtaskProgress[task.id]?.total > 0 && (
+                    <span className="text-[11px] text-gray-500 inline-flex items-center gap-0.5"><ListChecks size={11} /> {taskSubtaskProgress[task.id].completed}/{taskSubtaskProgress[task.id].total}</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 truncate">
+                  {[task.client_name, who].filter(Boolean).join(' · ') || 'Sin asignar'}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="overflow-x-auto hidden md:block">
         <table style={{ tableLayout: 'fixed', width: totalWidth, minWidth: '100%' }}>
           <colgroup>
             <col style={{ width: columnWidths.checkbox }} />

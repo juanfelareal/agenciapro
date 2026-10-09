@@ -217,7 +217,7 @@ const GlobalSearch = () => {
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        paddingTop: '100px',
+        paddingTop: typeof window !== 'undefined' && window.innerWidth < 768 ? '16px' : '100px',
         paddingLeft: '16px',
         paddingRight: '16px',
         zIndex: 99999,

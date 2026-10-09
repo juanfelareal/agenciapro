@@ -627,12 +627,12 @@ const Clients = () => {
           </button>
         </div>
       )}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Clientes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de la base de datos de clientes</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* View Toggle */}
           <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
             <button
@@ -762,7 +762,62 @@ const Clients = () => {
         </button>
       </div>
 
-      <div className="glass-card overflow-x-auto">
+      {/* Móvil: lista de tarjetas (la tabla de 1.400px se oculta) */}
+      <div className="md:hidden space-y-3">
+        {filteredClients.length === 0 && (
+          <div className="glass-card p-6 text-center text-sm text-gray-400">No hay clientes</div>
+        )}
+        {filteredClients.map((client) => (
+          <div key={client.id} className={`glass-card p-4 ${selectedIds.has(client.id) ? 'ring-2 ring-[#D7F653]' : ''}`}>
+            <div className="flex items-start gap-3">
+              <button onClick={() => toggleSelectOne(client.id)} className="mt-0.5 text-gray-400 hover:text-[#17181A] flex-shrink-0">
+                {selectedIds.has(client.id) ? <CheckSquare size={18} className="text-[#17181A]" /> : <Square size={18} />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-[#17181A] truncate">{client.nickname || client.company || client.name}</p>
+                {(client.company || client.name) && (client.nickname) && (
+                  <p className="text-xs text-gray-500 truncate">{client.company || client.name}</p>
+                )}
+                <p className="text-xs text-gray-500 truncate mt-0.5">{client.name || '-'}{client.email ? ` · ${client.email}` : ''}</p>
+              </div>
+              <button
+                onClick={() => handleToggleStatus(client)}
+                className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${
+                  client.status === 'active' ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {client.status === 'active' ? 'Activo' : 'Inactivo'}
+              </button>
+            </div>
+            <div className="flex items-center justify-between mt-3 gap-2">
+              <span className="text-sm font-bold text-[#10B981]">${client.contract_value?.toLocaleString('es-CO') || 0}</span>
+              {client.siigo_id ? (
+                <span className="text-[11px] text-emerald-600 flex items-center gap-1"><CheckCircle size={12} /> Siigo</span>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-1 mt-3 -mx-1">
+              <button onClick={() => handleOpenDashboard(client)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Dashboard"><Eye size={18} /></button>
+              <button onClick={() => navigate(`/app/clients/${client.id}/reportes`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Reportes"><BarChart3 size={18} /></button>
+              <button onClick={() => navigate(`/app/clients/${client.id}/documentos`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Documentos"><FolderOpen size={18} /></button>
+              <button onClick={() => navigate(`/app/clients/${client.id}/calls`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Llamadas"><Phone size={18} /></button>
+              <button onClick={() => navigate(`/app/clients/${client.id}/email-marketing`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Email Marketing"><Mail size={18} /></button>
+              <button onClick={() => handleFacturar(client)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Facturar"><FileText size={18} /></button>
+              <button onClick={() => handleQuickCopyPortalLink(client)} className={`p-2 rounded-lg hover:bg-gray-100 ${copiedPortalId === client.id ? 'text-green-600' : 'text-gray-500'}`} title="Copiar link del portal">
+                {copiedPortalId === client.id ? <Check size={18} /> : <Link2 size={18} />}
+              </button>
+              <button onClick={() => navigate(`/app/clients/${client.id}/plataformas`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Plataformas"><Settings size={18} /></button>
+              <button onClick={() => handleSyncToSiigo(client)} disabled={syncingSiigoId === client.id} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Sincronizar a Siigo">
+                {syncingSiigoId === client.id ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              </button>
+              <span className="flex-1" />
+              <button onClick={() => handleEdit(client)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Editar"><Edit size={18} /></button>
+              <button onClick={() => handleDelete(client.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50" title="Eliminar"><Trash2 size={18} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="glass-card overflow-x-auto hidden md:block">
         <table ref={tableRef} className="min-w-[1300px]" style={{ tableLayout: 'fixed', width: Object.values(columnWidths).reduce((a, b) => a + b, 0) }}>
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -974,7 +1029,7 @@ const Clients = () => {
 
       {/* Commercial Dates Section */}
       <div className="glass-card overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
               <CalendarDays className="w-5 h-5 text-amber-600" />
@@ -1036,8 +1091,8 @@ const Clients = () => {
 
       {/* Commercial Date Modal */}
       {showDateModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-[#17181A]">{editingDate ? 'Editar Fecha Comercial' : 'Nueva Fecha Comercial'}</h2>
               <button onClick={() => setShowDateModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
@@ -1131,8 +1186,8 @@ const Clients = () => {
 
       {/* Template Selector Modal */}
       {showTemplateSelector && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-xl font-semibold text-[#17181A]">Tipo de Dashboard</h2>
@@ -1143,7 +1198,7 @@ const Clients = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               {dashboardTemplates.map((template) => {
                 const settings = typeof template.settings === 'string' ? JSON.parse(template.settings) : template.settings;
                 const enabledCount = Object.values(settings).filter(Boolean).length;
@@ -1199,7 +1254,7 @@ const Clients = () => {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[#17181A]">
@@ -1210,7 +1265,7 @@ const Clients = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Logo del cliente — aparece en su portal (header y login) */}
                 {editingClient && (
                   <div className="col-span-2 flex items-center gap-4 p-3 border border-gray-100 rounded-xl bg-white/60">
@@ -1450,7 +1505,7 @@ const Clients = () => {
                   </div>
 
                   {formData.is_recurring && (
-                    <div className="grid grid-cols-2 gap-4 bg-[#17181A]/5 p-4 rounded-xl">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#17181A]/5 p-4 rounded-xl">
                       <div>
                         <label className="block text-sm font-medium mb-1">Día de Facturación *</label>
                         <select

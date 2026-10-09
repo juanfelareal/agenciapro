@@ -109,6 +109,7 @@ const Notes = () => {
 
   // Folder modal
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [mobileFoldersOpen, setMobileFoldersOpen] = useState(false); // móvil: panel de carpetas plegable
   const [editingFolder, setEditingFolder] = useState(null);
   const [folderForm, setFolderForm] = useState({ name: '', icon: '📁', color: '#6366F1', parent_id: null });
 
@@ -651,6 +652,7 @@ const Notes = () => {
     return folderList.map(folder => (
       <div key={folder.id}>
         <div
+          data-folder-item
           className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group ${
             selectedFolder === folder.id
               ? 'bg-gray-100 text-[#17181A]'
@@ -714,8 +716,8 @@ const Notes = () => {
     return (
       <div className="min-h-screen" style={{ backgroundColor: formData.color }}>
         {/* Top bar */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-3 border-b border-slate-200/50 bg-white/80 backdrop-blur-sm">
-          <div className="flex items-center gap-4">
+        <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 px-4 md:px-6 py-3 border-b border-slate-200/50 bg-white/80 backdrop-blur-sm">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <button
               onClick={handleBackToList}
               className="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
@@ -788,7 +790,7 @@ const Notes = () => {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 ml-auto">
             {isEditing ? (
               <>
                 <button
@@ -1370,9 +1372,26 @@ const Notes = () => {
 
   // Notes list view with folder sidebar
   return (
-    <div className="flex bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ minHeight: '600px', height: 'calc(100vh - 180px)' }}>
+    <div className="flex flex-col md:flex-row bg-white rounded-2xl border border-slate-200 md:overflow-hidden md:min-h-[600px] md:h-[calc(100dvh-180px)]">
+      {/* Móvil: barra para desplegar carpetas */}
+      <button
+        type="button"
+        onClick={() => setMobileFoldersOpen((v) => !v)}
+        className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50 text-sm font-medium text-slate-700 rounded-t-2xl"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <Folder size={16} className="text-slate-500 flex-shrink-0" />
+          <span className="truncate">
+            {showPrivateOnly ? 'Mis notas privadas' : selectedFolder === null ? 'Todas las notas' : selectedFolder === 'root' ? 'Sin carpeta' : flatFolders.find(f => f.id === selectedFolder)?.name || 'Carpetas'}
+          </span>
+        </span>
+        <ChevronDown size={16} className={`flex-shrink-0 transition-transform ${mobileFoldersOpen ? 'rotate-180' : ''}`} />
+      </button>
       {/* Folder Sidebar */}
-      <div className="w-64 flex-shrink-0 bg-slate-50 border-r border-slate-200 flex flex-col">
+      <div
+        className={`${mobileFoldersOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 md:flex-shrink-0 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 flex-col max-h-[55vh] md:max-h-none`}
+        onClick={(e) => { if (window.innerWidth < 768 && e.target.closest('[data-folder-item]')) setMobileFoldersOpen(false); }}
+      >
         <div className="p-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-slate-800">Carpetas</h2>
@@ -1393,6 +1412,7 @@ const Notes = () => {
         <div className="flex-1 overflow-y-auto p-2">
           {/* All Notes */}
           <div
+            data-folder-item
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
               selectedFolder === null && !showPrivateOnly
                 ? 'bg-gray-100 text-[#17181A]'
@@ -1407,6 +1427,7 @@ const Notes = () => {
 
           {/* Unfiled Notes */}
           <div
+            data-folder-item
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
               selectedFolder === 'root' && !showPrivateOnly
                 ? 'bg-gray-100 text-[#17181A]'
@@ -1463,9 +1484,9 @@ const Notes = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col md:overflow-hidden min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 md:p-6 border-b border-slate-200">
           <div>
             <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight flex items-center gap-2">
               {showPrivateOnly && <Lock size={20} className="text-amber-600" />}
@@ -1479,16 +1500,16 @@ const Notes = () => {
             </h1>
             <p className="text-sm text-slate-500">{notes.length} notas</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
             {/* Search */}
-            <div className="relative">
+            <div className="relative w-full md:w-auto">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar..."
-                className="pl-9 pr-4 py-2 w-64 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="pl-9 pr-4 py-2 w-full md:w-64 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300"
               />
             </div>
 
@@ -1533,7 +1554,7 @@ const Notes = () => {
         </div>
 
         {/* Notes Grid */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 md:overflow-auto p-4 md:p-6">
           {loading ? (
             <div className="text-center py-12 text-slate-500">Cargando notas...</div>
           ) : notes.length === 0 ? (
@@ -1626,7 +1647,7 @@ const Notes = () => {
       {/* Folder Modal */}
       {showFolderModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-semibold">
                 {editingFolder ? 'Editar Carpeta' : 'Nueva Carpeta'}
@@ -1716,7 +1737,7 @@ const Notes = () => {
       {/* Category Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-semibold">Gestionar Categorías</h2>
               <button

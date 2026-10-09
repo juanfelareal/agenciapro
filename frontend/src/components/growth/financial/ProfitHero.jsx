@@ -54,7 +54,7 @@ export default function ProfitHero({ data, prev }) {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-100">
             <div>
               <div className="text-[11px] text-gray-400">Ventas netas</div>
               <div className="text-sm sm:text-base font-semibold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(t.revenue)}</div>

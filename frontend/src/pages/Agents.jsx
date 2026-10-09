@@ -202,8 +202,8 @@ const Agents = () => {
   // Agent selection grid
   if (!slug) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="mb-8">
+      <div className="p-0 md:p-6 max-w-4xl mx-auto">
+        <div className="mb-6 md:mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Agentes IA</h1>
           <p className="text-sm text-gray-500 mt-1">
             Asistentes inteligentes especializados para tu negocio
@@ -251,9 +251,9 @@ const Agents = () => {
 
   // Agent chat interface
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] -mx-6 -my-8">
+    <div className="flex flex-col h-[calc(100dvh-3.5rem)] -mx-4 -my-5 md:-mx-6 md:-my-8">
       {/* Header */}
-      <div className="px-6 py-3 bg-white border-b flex items-center gap-3">
+      <div className="px-3 md:px-6 py-3 bg-white border-b flex items-center gap-3">
         <button
           onClick={() => navigate('/app/agents')}
           className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
@@ -327,7 +327,7 @@ const Agents = () => {
             </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto px-6 py-6 space-y-6">
+          <div className="max-w-3xl mx-auto px-3 md:px-6 py-6 space-y-6">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'assistant' && (
@@ -367,7 +367,7 @@ const Agents = () => {
       </div>
 
       {/* Input Area */}
-      <div className="px-6 py-3 bg-white border-t">
+      <div className="px-3 md:px-6 py-3 bg-white border-t">
         <div className="max-w-3xl mx-auto flex items-end gap-2">
           <textarea
             ref={inputRef}

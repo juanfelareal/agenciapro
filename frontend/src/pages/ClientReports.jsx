@@ -139,7 +139,7 @@ export default function ClientReports() {
           <p>Aún no has subido reportes para este cliente.</p>
         </div>
       ) : (
-        <div className="glass-card overflow-hidden">
+        <div className="glass-card overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -201,7 +201,7 @@ export default function ClientReports() {
 
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
               <h2 className="text-xl font-semibold text-[#17181A]">Subir reporte</h2>
               <button onClick={() => setShowUploadModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
@@ -231,7 +231,7 @@ export default function ClientReports() {
                   className="w-full border rounded-lg px-3 py-2 text-sm"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-sm font-medium mb-1">Desde</label>
                   <input

@@ -61,6 +61,7 @@ const SOPs = () => {
 
   // Category modal
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false); // móvil: panel de filtros plegable
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', color: '#6366F1' });
   const [editingCategory, setEditingCategory] = useState(null);
 
@@ -269,9 +270,21 @@ const SOPs = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+    <div className="flex flex-col md:flex-row md:h-[calc(100dvh-64px)] -mx-4 -my-5 md:-mx-6 md:-my-8 md:mx-0 md:my-0">
+      {/* Móvil: barra para desplegar filtros */}
+      <button
+        type="button"
+        onClick={() => setMobileFiltersOpen((v) => !v)}
+        className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white text-sm font-medium text-slate-700"
+      >
+        <span className="flex items-center gap-2"><BookOpen size={16} /> SOPs · filtros</span>
+        <span className="text-xs text-slate-500">{mobileFiltersOpen ? 'Ocultar' : 'Mostrar'}</span>
+      </button>
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
+      <div
+        className={`${mobileFiltersOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex-col`}
+        onClick={(e) => { if (window.innerWidth < 768 && e.target.closest('button')) setMobileFiltersOpen(false); }}
+      >
         <div className="p-4 border-b border-slate-200">
           <h2 className="font-semibold text-slate-800 flex items-center gap-2">
             <BookOpen size={20} />
@@ -355,11 +368,11 @@ const SOPs = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col md:overflow-hidden min-w-0">
         {/* Header */}
         <div className="p-4 border-b border-slate-200 bg-white">
-          <div className="flex items-center justify-between">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="relative flex-1 min-w-[160px] max-w-md">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -371,16 +384,16 @@ const SOPs = () => {
             </div>
             <button
               onClick={() => handleOpenModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] transition-colors ml-4"
+              className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] transition-colors md:ml-4"
             >
               <Plus size={20} />
-              Nuevo SOP
+              <span className="hidden sm:inline">Nuevo SOP</span><span className="sm:hidden">Nuevo</span>
             </button>
           </div>
         </div>
 
         {/* SOPs list */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 md:overflow-y-auto p-4">
           {loading ? (
             <div className="text-center py-12 text-slate-500">Cargando SOPs...</div>
           ) : sops.length === 0 ? (
@@ -500,7 +513,7 @@ const SOPs = () => {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90dvh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-xl font-semibold">
@@ -716,7 +729,7 @@ const SOPs = () => {
       {/* View Modal */}
       {showViewModal && viewingSOP && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90dvh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <div>
@@ -836,7 +849,7 @@ const SOPs = () => {
       {/* Category Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-semibold">Gestionar Categorías</h2>
               <button

@@ -130,7 +130,7 @@ export default function CalendarView({
   return (
     <div className="flex flex-col h-full">
       {/* Calendar Navigation */}
-      <div className="bg-white rounded-lg border border-gray-200 mb-4 p-4 flex items-center justify-between">
+      <div className="bg-white rounded-lg border border-gray-200 mb-4 p-3 md:p-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrev}
@@ -151,11 +151,11 @@ export default function CalendarView({
             Hoy
           </button>
         </div>
-        <h2 className="text-xl font-semibold text-gray-800 capitalize">
+        <h2 className="text-base sm:text-xl font-semibold text-gray-800 capitalize">
           {format(currentDate, view === 'month' ? 'MMMM yyyy' : "'Semana del' d 'de' MMMM", { locale: es })}
         </h2>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <span className="hidden sm:inline text-sm text-gray-500">
             {tasks.filter((t) => t.due_date).length} tareas programadas
           </span>
           {/* View toggle */}
@@ -187,9 +187,9 @@ export default function CalendarView({
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-auto flex flex-col">
         {/* Week day headers */}
-        <div className="grid grid-cols-7 border-b">
+        <div className="hidden md:grid grid-cols-7 border-b">
           {weekDays.map((day) => (
             <div
               key={day}
@@ -201,7 +201,7 @@ export default function CalendarView({
         </div>
 
         {/* Calendar days */}
-        <div className={`grid grid-cols-7 flex-1 ${view === 'week' ? '' : 'auto-rows-fr'}`}>
+        <div className={`hidden md:grid grid-cols-7 flex-1 ${view === 'week' ? '' : 'auto-rows-fr'}`}>
           {calendarDays.map((day, index) => {
             const dayTasks = getTasksForDate(day);
             const isCurrentMonth = isSameMonth(day, currentDate);
@@ -280,6 +280,54 @@ export default function CalendarView({
               </div>
             );
           })}
+        </div>
+
+        {/* Móvil: agenda día por día (el grid de 7 columnas no cabe en un celular) */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {(() => {
+            const days = calendarDays.filter((d) => view === 'week' || isSameMonth(d, currentDate));
+            const shown = days.filter((d) => view === 'week' || isToday(d) || getTasksForDate(d).length > 0);
+            if (shown.length === 0) {
+              return <p className="p-6 text-sm text-gray-400 text-center">Sin tareas programadas en este período.</p>;
+            }
+            return shown.map((day) => {
+              const dayTasks = getTasksForDate(day);
+              const isCurrentDay = isToday(day);
+              return (
+                <div key={day.toISOString()} className={`p-3 ${isCurrentDay ? 'bg-gray-50' : ''}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[#17181A] text-[#D7F653]' : 'bg-gray-100 text-gray-700'}`}>
+                      {format(day, 'd')}
+                    </span>
+                    <span className="text-sm font-medium text-gray-700 capitalize">{format(day, 'EEEE', { locale: es })}</span>
+                    <span className="text-xs text-gray-400 ml-auto">{dayTasks.length} tarea{dayTasks.length === 1 ? '' : 's'}</span>
+                  </div>
+                  {dayTasks.length === 0 ? (
+                    <p className="text-xs text-gray-400 pl-10">Sin tareas</p>
+                  ) : (
+                    <div className="space-y-1.5 pl-10">
+                      {dayTasks.map((task) => (
+                        <button
+                          key={task.id}
+                          type="button"
+                          onClick={() => onTaskClick(task)}
+                          className={`w-full text-left text-sm p-2 rounded-lg border-l-2 ${statusColors[task.status]} bg-white border border-gray-100 shadow-sm`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${priorityDots[task.priority]}`} />
+                            <span className="truncate font-medium">{task.title}</span>
+                          </div>
+                          {task.project_id && (
+                            <div className="text-xs text-gray-500 truncate mt-0.5 pl-4">{getProjectName(task.project_id)}</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
 

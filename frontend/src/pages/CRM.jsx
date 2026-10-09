@@ -121,7 +121,7 @@ function StageColumn({ stage, deals, onDealClick }) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex-shrink-0 w-[260px] flex flex-col max-h-full rounded-2xl transition-colors ${
+      className={`flex-shrink-0 w-[82vw] sm:w-[260px] snap-start flex flex-col max-h-full rounded-2xl transition-colors ${
         isOver ? 'bg-[#D7F653]/10' : 'bg-gray-50/80'
       }`}
     >
@@ -300,7 +300,7 @@ export default function CRM() {
   });
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full min-h-0 flex flex-col">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>
@@ -309,15 +309,15 @@ export default function CRM() {
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Pipeline de ventas</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar deals..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 glass-solid rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-[200px]"
+              className="pl-9 pr-4 py-2 glass-solid rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-full sm:w-[200px]"
             />
           </div>
           <button
@@ -336,8 +336,8 @@ export default function CRM() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex-1 overflow-x-auto pb-4">
-          <div className="flex gap-3 min-h-[500px]" style={{ minWidth: `${stages.length * 276}px` }}>
+        <div className="flex-1 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none">
+          <div className="flex gap-3 min-h-[500px] w-max md:w-auto" style={{ minWidth: `${stages.length * 276}px` }}>
             {stages.map((stage) => (
               <StageColumn
                 key={stage.id}
@@ -378,7 +378,7 @@ export default function CRM() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Nombre contacto</label>
                   <input
@@ -399,7 +399,7 @@ export default function CRM() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
                   <input
@@ -420,7 +420,7 @@ export default function CRM() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Valor estimado (COP)</label>
                   <input

@@ -180,12 +180,12 @@ const Expenses = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Gastos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Registro de gastos y egresos</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {siigoConnected && (
             <button
               onClick={handleSyncFromSiigo}
@@ -223,7 +223,34 @@ const Expenses = () => {
         </p>
       </div>
 
-      <div className="glass-card overflow-hidden">
+      {/* Móvil: lista de tarjetas */}
+      <div className="md:hidden space-y-3">
+        {expenses.length === 0 && (
+          <div className="glass-card p-6 text-center text-sm text-gray-400">No hay gastos registrados</div>
+        )}
+        {expenses.map((expense) => (
+          <div key={expense.id} className="glass-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-[#17181A] break-words">{expense.description}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {expense.expense_date}{expense.project_name ? ` · ${expense.project_name}` : ''}{expense.payment_method ? ` · ${expense.payment_method}` : ''}
+                </p>
+                {expense.category && (
+                  <span className="inline-block mt-2 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg text-xs">{expense.category}</span>
+                )}
+              </div>
+              <p className="font-bold text-[#F97316] whitespace-nowrap">${expense.amount?.toLocaleString('es-CO')}</p>
+            </div>
+            <div className="flex justify-end gap-1 mt-2">
+              <button onClick={() => handleEdit(expense)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Editar"><Edit size={18} /></button>
+              <button onClick={() => handleDelete(expense.id)} className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50" title="Eliminar"><Trash2 size={18} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="glass-card overflow-x-auto hidden md:block">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -288,8 +315,8 @@ const Expenses = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[#17181A]">
                 {editingExpense ? 'Editar Gasto' : 'Nuevo Gasto'}
@@ -299,7 +326,7 @@ const Expenses = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium mb-1">Descripción *</label>
                   <input

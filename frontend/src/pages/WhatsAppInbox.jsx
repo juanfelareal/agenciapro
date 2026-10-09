@@ -163,7 +163,7 @@ const WhatsAppInbox = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex flex-col">
+    <div className="h-[calc(100dvh-6.5rem)] md:h-[calc(100dvh-8rem)] flex flex-col">
       <Header status={status} onRefresh={() => { loadStatus(); loadConversations(); if (activePhone) loadThread(activePhone); }} onNew={() => setShowNew(true)} />
 
       {error && (

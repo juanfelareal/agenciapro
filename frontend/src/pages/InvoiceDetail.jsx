@@ -183,7 +183,7 @@ const InvoiceDetail = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/app/invoices')}
@@ -192,7 +192,7 @@ const InvoiceDetail = () => {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-semibold text-[#17181A]">
                 Factura {invoice.invoice_number}
               </h1>
@@ -205,7 +205,7 @@ const InvoiceDetail = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={handleDuplicate} className="btn-secondary flex items-center gap-2" title="Duplicar">
             <Copy size={16} />
             Duplicar

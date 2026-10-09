@@ -544,7 +544,7 @@ const PostDetail = ({ post, onClose, onUpdate }) => {
 
           {/* Metrics */}
           {post.status === 'published' && (
-            <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
               <div className="text-center">
                 <p className="text-2xl font-bold text-gray-900">{post.likes?.toLocaleString() || 0}</p>
                 <p className="text-sm text-gray-500">Likes</p>

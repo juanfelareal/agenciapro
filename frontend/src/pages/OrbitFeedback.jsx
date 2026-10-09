@@ -954,8 +954,8 @@ const OrbitFeedback = () => {
             );
           })}
         </div>
-        <div className="flex items-center gap-2 md:ml-auto">
-          <div className="relative flex-1 md:w-64">
+        <div className="flex flex-wrap items-center gap-2 md:ml-auto">
+          <div className="relative flex-1 min-w-[160px] md:w-64">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={search}

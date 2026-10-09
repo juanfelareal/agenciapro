@@ -58,7 +58,7 @@ export function CostModal({ type, item, onSave, onClose }) {
   const categories = isFixed ? FIXED_CATEGORIES : VARIABLE_CATEGORIES;
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-6 max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-base font-semibold text-[#17181A]">{item ? 'Editar' : 'Agregar'} costo {isFixed ? 'fijo' : 'variable'}</h3>
           <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-4 h-4 text-gray-500" /></button>
@@ -176,7 +176,7 @@ export default function CostsPanel({ data, onAdd, onEdit, onDelete }) {
           </div>
           <button type="button" onClick={() => onAdd('fixed')} className="btn-primary !py-2 !px-3 text-xs shrink-0"><Plus className="w-3.5 h-3.5" /> Agregar</button>
         </div>
-        <div className="grid grid-cols-3 gap-3 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
           <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Al mes</div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(fixed.monthly_total)}</div></div>
           <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Por día</div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(fixed.per_day)}</div></div>
           <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium inline-flex items-center gap-1">Este mes <Info text={`Por día × los ${data?.days_elapsed || 0} días transcurridos. Es lo que se resta en el P&L.`} /></div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(fixed.prorated)}</div></div>

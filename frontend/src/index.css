@@ -469,7 +469,7 @@ body {
 
   /* Page Layout */
   .page-container {
-    @apply max-w-7xl mx-auto px-6 py-8;
+    @apply max-w-7xl mx-auto px-4 py-5 md:px-6 md:py-8;
   }
 
   .page-header {
@@ -583,7 +583,7 @@ body {
 
   /* New Stat Components */
   .stat-value {
-    @apply text-4xl font-black tracking-tight tabular-nums;
+    @apply text-3xl sm:text-4xl font-black tracking-tight tabular-nums break-words;
     color: var(--dark);
   }
 
@@ -692,4 +692,57 @@ body {
 
 .animate-wiggle {
   animation: wiggle 0.3s ease-in-out infinite;
+}
+
+/* ===== Móvil: red de seguridad contra desbordes horizontales =====
+   Las tablas anchas se vuelven cajas con scroll propio (no estiran la página),
+   y los contenedores flex no empujan el ancho del documento. */
+@media (max-width: 767px) {
+  /* Drawer del menú: fondo casi sólido para que se lea sobre cualquier página */
+  .mobile-drawer.glass {
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  main table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  main table > thead,
+  main table > tbody,
+  main table > tfoot {
+    min-width: max-content;
+  }
+  main .page-container,
+  main .page-container > * {
+    min-width: 0;
+  }
+  /* Modales: el panel nunca mide más que la pantalla y siempre puede hacer scroll.
+     Los overlays sin padding propio reciben 16px para que el panel no toque los bordes
+     (los bottom sheets usan p-0 a propósito y se respetan). */
+  .fixed.inset-0.flex:not(.p-0):not([class*="p-4"]):not([class*="p-6"]) {
+    padding: 16px;
+  }
+  .fixed.inset-0 > :is(.bg-white, .glass-solid, .glass, .rounded-2xl, .rounded-xl, .rounded-lg) {
+    max-height: 92dvh;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Zoom automático de iOS al enfocar inputs: se evita con fuente >= 16px */
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+  /* Inputs de fecha en iOS: que no se salgan del contenedor */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"] {
+    min-width: 0;
+    max-width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }

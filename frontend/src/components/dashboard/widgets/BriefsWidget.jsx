@@ -89,10 +89,10 @@ const BriefsWidget = ({ widget }) => {
 
       {/* Interactive HTML Preview Modal */}
       {previewBrief && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] ${fullscreen ? "p-0" : "p-4"}`}>
           <div
             className={`bg-white shadow-xl flex flex-col ${
-              fullscreen ? 'w-full h-full' : 'rounded-2xl w-full max-w-5xl h-[85vh]'
+              fullscreen ? 'w-full h-full' : 'rounded-2xl w-full max-w-5xl h-[85vh] max-h-[90dvh]'
             }`}
           >
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">

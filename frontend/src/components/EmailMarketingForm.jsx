@@ -243,7 +243,7 @@ export default function EmailMarketingForm({ clientId }) {
   return (
     <div className="glass rounded-xl p-6 mb-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center">
             <Mail className="w-4 h-4 text-pink-600" />
@@ -251,7 +251,7 @@ export default function EmailMarketingForm({ clientId }) {
           <h2 className="text-lg font-semibold text-[#17181A]">Email Marketing</h2>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {/* Month selector */}
           <select
             value={month}
@@ -316,7 +316,7 @@ export default function EmailMarketingForm({ clientId }) {
             iconBg="bg-purple-100"
             iconColor="text-purple-600"
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <MetricInput
                 label="Revenue"
                 value={data.campaigns_revenue}
@@ -340,7 +340,7 @@ export default function EmailMarketingForm({ clientId }) {
                 onChange={updateField('campaigns_opens')}
               />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               <MetricInput
                 label="Clicks"
                 value={data.campaigns_clicks}
@@ -359,7 +359,7 @@ export default function EmailMarketingForm({ clientId }) {
             </div>
             <div className="border-t border-gray-100 pt-4">
               <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Calculadas</div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <CalculatedMetric label="Open Rate" value={calculated.campaigns_open_rate} />
                 <CalculatedMetric label="CTR" value={calculated.campaigns_ctr} />
                 <CalculatedMetric label="Conv. Rate" value={calculated.campaigns_conv_rate} />
@@ -376,7 +376,7 @@ export default function EmailMarketingForm({ clientId }) {
             iconBg="bg-teal-100"
             iconColor="text-teal-600"
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <MetricInput
                 label="Revenue"
                 value={data.flows_revenue}
@@ -400,7 +400,7 @@ export default function EmailMarketingForm({ clientId }) {
                 onChange={updateField('flows_opens')}
               />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               <MetricInput
                 label="Clicks"
                 value={data.flows_clicks}
@@ -419,7 +419,7 @@ export default function EmailMarketingForm({ clientId }) {
             </div>
             <div className="border-t border-gray-100 pt-4">
               <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Calculadas</div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <CalculatedMetric label="Open Rate" value={calculated.flows_open_rate} />
                 <CalculatedMetric label="CTR" value={calculated.flows_ctr} />
                 <CalculatedMetric label="Conv. Rate" value={calculated.flows_conv_rate} />
@@ -436,7 +436,7 @@ export default function EmailMarketingForm({ clientId }) {
             iconBg="bg-emerald-100"
             iconColor="text-emerald-600"
           >
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               <MetricInput
                 label="Master Segment"
                 value={data.master_segment_size}
@@ -453,7 +453,7 @@ export default function EmailMarketingForm({ clientId }) {
                 onChange={updateField('monthly_unsubscribes')}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <MetricInput
                 label="Popup Suscripciones"
                 value={data.popup_subscriptions}
@@ -467,7 +467,7 @@ export default function EmailMarketingForm({ clientId }) {
             </div>
             <div className="border-t border-gray-100 pt-4">
               <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Calculadas</div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <CalculatedMetric label="Unsubscribe Rate" value={calculated.unsubscribe_rate} />
                 <CalculatedMetric label="Popup Conv. Rate" value={calculated.popup_conv_rate} />
               </div>
@@ -483,7 +483,7 @@ export default function EmailMarketingForm({ clientId }) {
             iconColor="text-amber-600"
           >
             <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Cupón del pop-up</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <MetricInput
                 label="Pedidos con el cupón"
                 value={data.coupon_orders}
@@ -519,7 +519,7 @@ export default function EmailMarketingForm({ clientId }) {
             )}
 
             <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Clientes del mes</div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <MetricInput
                 label="Clientes nuevos"
                 value={data.new_customers}
@@ -534,7 +534,7 @@ export default function EmailMarketingForm({ clientId }) {
 
             <div className="border-t border-gray-100 pt-4">
               <div className="text-xs text-gray-400 mb-2 uppercase tracking-wide">Calculadas</div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 <CalculatedMetric label="% Descuento sobre venta cupón" value={calculated.coupon_discount_rate} />
                 <CalculatedMetric label="Cupón / venta email" value={calculated.coupon_share_of_email} />
                 <CalculatedMetric label="% Clientes nuevos" value={calculated.new_customer_share} />

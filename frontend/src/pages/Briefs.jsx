@@ -455,8 +455,8 @@ const Briefs = () => {
 
       {/* Preview Modal */}
       {previewBrief && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`bg-white shadow-xl flex flex-col ${fullscreen ? 'w-full h-full' : 'rounded-2xl w-full max-w-5xl h-[85vh]'}`}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-4">
+          <div className={`bg-white shadow-xl flex flex-col ${fullscreen ? 'w-full h-full' : 'sm:rounded-2xl w-full max-w-5xl h-full sm:h-[85vh]'}`}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
               <div>
                 <h3 className="font-semibold text-[#17181A]">{previewBrief.title}</h3>
@@ -513,7 +513,7 @@ const Briefs = () => {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-[#17181A]">
@@ -539,7 +539,7 @@ const Briefs = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Título *</label>
                   <input

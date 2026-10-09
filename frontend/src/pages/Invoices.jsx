@@ -821,12 +821,12 @@ const Invoices = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Facturas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de facturas e ingresos</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {siigoConnected && (
             <button
               onClick={handleSyncFromSiigo}
@@ -1101,7 +1101,85 @@ const Invoices = () => {
         </div>
       )}
 
-      <div className="glass-card overflow-x-auto">
+      {/* Móvil: lista de tarjetas (la tabla ancha se oculta) */}
+      <div className="md:hidden space-y-3">
+        {filteredInvoices.length === 0 && (
+          <div className="glass-card p-6 text-center text-sm text-gray-400">No hay facturas</div>
+        )}
+        {filteredInvoices.map((invoice) => (
+          <div key={invoice.id} className={`glass-card p-4 ${selectedIds.has(invoice.id) ? 'ring-2 ring-[#D7F653]' : ''}`}>
+            <div className="flex items-start gap-3">
+              <button onClick={() => toggleSelectOne(invoice.id)} className="mt-0.5 text-gray-400 hover:text-[#17181A] flex-shrink-0">
+                {selectedIds.has(invoice.id) ? <CheckSquare size={18} className="text-[#17181A]" /> : <Square size={18} />}
+              </button>
+              <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(`/app/invoices/${invoice.id}`)}>
+                <p className="font-semibold text-[#17181A] truncate flex items-center gap-2">
+                  {invoice.client_name}
+                  {invoice.is_recurring === 1 && <Repeat size={12} className="text-indigo-600 flex-shrink-0" />}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {invoice.invoice_number ? `${invoice.invoice_number} · ` : ''}{invoice.issue_date}
+                  {' · '}{invoice.invoice_type === 'con_iva' ? '+IVA' : 'Sin IVA'}
+                </p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="font-bold text-[#17181A]">${invoice.amount?.toLocaleString('es-CO')}</p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setStatusDropdownOpen(statusDropdownOpen === invoice.id ? null : invoice.id); }}
+                  className={`mt-1 px-2 py-0.5 rounded-full text-[11px] ${statusColors[invoice.status]}`}
+                >
+                  {statusLabels[invoice.status]}
+                </button>
+              </div>
+            </div>
+            {statusDropdownOpen === invoice.id && (
+              <div className="status-dropdown-container mt-2 bg-white border rounded-lg shadow-lg py-1">
+                {Object.entries(statusLabels).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={(e) => { e.stopPropagation(); if (key !== invoice.status) handleInlineStatusChange(invoice.id, key); else setStatusDropdownOpen(null); }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 ${key === invoice.status ? 'bg-gray-50' : ''}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${statusColors[key].replace('text-', 'bg-').split(' ')[0]}`}></span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {invoice.notes && <p className="text-xs text-gray-500 mt-2 line-clamp-2">{invoice.notes}</p>}
+            <div className="flex flex-wrap items-center gap-1 mt-3">
+              {invoice.siigo_status === 'sent' ? (
+                <span className="flex items-center gap-1 text-emerald-600 text-xs mr-1"><CheckCircle size={14} /> DIAN</span>
+              ) : invoice.siigo_status === 'draft' ? (
+                <button onClick={() => handleSendToDian(invoice)} disabled={sendingToSiigo === invoice.id} className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg disabled:opacity-50">
+                  {sendingToSiigo === invoice.id ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />} A DIAN
+                </button>
+              ) : invoice.siigo_status === 'error' ? (
+                <span className="flex items-center gap-1 text-red-600 text-xs mr-1"><AlertCircle size={14} /> Error Siigo</span>
+              ) : siigoConnected ? (
+                <button onClick={() => handleSendToSiigo(invoice)} disabled={sendingToSiigo === invoice.id} className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg disabled:opacity-50">
+                  {sendingToSiigo === invoice.id ? <RefreshCw size={14} className="animate-spin" /> : <Link2 size={14} />} Siigo
+                </button>
+              ) : null}
+              <span className="flex-1" />
+              <button onClick={() => handleDuplicate(invoice)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Duplicar"><Copy size={18} /></button>
+              {invoice.status === 'draft' && (
+                <button onClick={() => handleSendEmail(invoice)} className="p-2 rounded-lg text-green-600 hover:bg-green-50" title="Enviar por email"><Send size={18} /></button>
+              )}
+              <button onClick={() => handleEdit(invoice)} className="p-2 rounded-lg text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={18} /></button>
+              <button onClick={() => handleDelete(invoice.id)} className="p-2 rounded-lg text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={18} /></button>
+            </div>
+          </div>
+        ))}
+        {filteredInvoices.length > 0 && (
+          <div className="glass-card p-4 flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-700">Total · {filteredInvoices.length} factura{filteredInvoices.length !== 1 ? 's' : ''}</span>
+            <span className="font-bold text-lg text-gray-900">${filteredInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0).toLocaleString('es-CO')}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="glass-card overflow-x-auto hidden md:block">
         <table className="invoices-table" style={{ tableLayout: 'fixed', width: tableWidth }}>
           <colgroup>
             <col style={{ width: columnWidths.select }} />
@@ -1510,7 +1588,7 @@ const Invoices = () => {
             </div>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-6 overflow-y-auto flex-1">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Cliente *</label>
                   {showNewClient ? (
@@ -1709,7 +1787,7 @@ const Invoices = () => {
                           Vista previa Siigo
                         </label>
                         <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                             <div>
                               <span className="text-gray-500">Cliente:</span>
                               <span className="ml-2 font-medium text-[#17181A]">{selectedClient?.company || selectedClient?.name || '-'}</span>
@@ -1735,7 +1813,7 @@ const Invoices = () => {
                               <span className="ml-2 font-medium">{formData.issue_date || '-'}</span>
                             </div>
                           </div>
-                          <div className="border-t border-gray-200 pt-3 grid grid-cols-3 gap-4 text-center">
+                          <div className="border-t border-gray-200 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                             <div>
                               <p className="text-gray-500 text-xs uppercase">Subtotal</p>
                               <p className="font-bold text-[#17181A]">${baseAmount.toLocaleString('es-CO')}</p>
@@ -1778,7 +1856,7 @@ const Invoices = () => {
                   </label>
 
                   {formData.is_recurring && (
-                    <div className="grid grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
                       <div>
                         <label className="block text-sm font-medium mb-1">Frecuencia</label>
                         <select
@@ -1926,7 +2004,7 @@ const Invoices = () => {
       {/* Siigo Confirmation Modal */}
       {siigoConfirmInvoice && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-[#17181A] mb-4">Enviar a Siigo</h3>
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-sm">
@@ -2067,7 +2145,7 @@ const Invoices = () => {
       {/* Email Modal */}
       {emailModalInvoice && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-[#17181A] mb-4 flex items-center gap-2">
               <Mail size={20} />
               Enviar factura electrónica

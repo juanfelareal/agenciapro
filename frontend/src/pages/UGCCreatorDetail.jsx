@@ -450,7 +450,7 @@ export default function UGCCreatorDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 mb-6">
+      <div className="flex gap-1 border-b border-gray-200 mb-6 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
         {[
           { id: 'info', label: 'Información', icon: User },
           { id: 'assignments', label: 'Asignaciones', icon: Package },
@@ -630,7 +630,7 @@ export default function UGCCreatorDetail() {
               <h3 className="font-semibold text-[#17181A] mb-4 flex items-center gap-2">
                 <Palette className="w-4 h-4 text-gray-400" /> Características
               </h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 {creator.traits.gender && (
                   <div className="flex items-center gap-2">
                     <User className="w-3.5 h-3.5 text-gray-400" />
@@ -793,7 +793,7 @@ export default function UGCCreatorDetail() {
               <h3 className="font-semibold text-[#17181A] mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-gray-400" /> Disponibilidad
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {creator.availability.videos_per_week && (
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-[#17181A]">{creator.availability.videos_per_week}</p>
@@ -1076,7 +1076,7 @@ export default function UGCCreatorDetail() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Fecha inicio</label>
                   <input
@@ -1097,7 +1097,7 @@ export default function UGCCreatorDetail() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Valor acordado (COP)</label>
                   <input
@@ -1169,7 +1169,7 @@ export default function UGCCreatorDetail() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Monto (COP) *</label>
                   <input
@@ -1193,7 +1193,7 @@ export default function UGCCreatorDetail() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Método de pago</label>
                   <select
@@ -1460,7 +1460,7 @@ export default function UGCCreatorDetail() {
       {/* Delete Creator Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !deleting && setShowDeleteModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">

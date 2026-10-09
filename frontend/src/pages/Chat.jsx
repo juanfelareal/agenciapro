@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MessageCircle, Plus, Search, Send, Hash, ArrowDown, Paperclip, X, Image as ImageIcon } from 'lucide-react';
+import { MessageCircle, Plus, Search, Send, Hash, ArrowDown, ArrowLeft, Paperclip, X, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI } from '../utils/api';
 import useChat from '../hooks/useChat';
@@ -300,9 +300,9 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] -mx-6 -my-8">
-      {/* Sidebar - Conversation List */}
-      <div className="w-[320px] border-r border-gray-200 bg-white flex flex-col flex-shrink-0">
+    <div className="flex h-[calc(100dvh-3.5rem)] -mx-4 -my-5 md:-mx-6 md:-my-8">
+      {/* Sidebar - Conversation List (en móvil solo cuando no hay conversación abierta) */}
+      <div className={`w-full md:w-[320px] border-r border-gray-200 bg-white flex-col flex-shrink-0 ${conversationId ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-3">
@@ -389,7 +389,7 @@ const Chat = () => {
 
       {/* Main Chat Area */}
       <div
-        className="flex-1 flex flex-col bg-[#F8F9FA]"
+        className={`flex-1 flex-col bg-[#F8F9FA] min-w-0 ${conversationId ? 'flex' : 'hidden md:flex'}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
@@ -403,7 +403,15 @@ const Chat = () => {
         ) : (
           <>
             {/* Chat Header */}
-            <div className="px-6 py-3 bg-white border-b flex items-center gap-3">
+            <div className="px-3 md:px-6 py-3 bg-white border-b flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/app/chat')}
+                className="md:hidden p-1.5 -ml-1 text-gray-500 hover:bg-gray-100 rounded-lg"
+                aria-label="Volver a conversaciones"
+              >
+                <ArrowLeft size={18} />
+              </button>
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
                 currentConversation?.type === 'group'
                   ? 'bg-purple-100 text-purple-700'

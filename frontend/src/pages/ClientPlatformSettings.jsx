@@ -1060,7 +1060,7 @@ function ClientPlatformSettings() {
                       <p className="text-xs text-gray-500 mt-0.5">Client ID y Secret del Dev Dashboard de Shopify Partners</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Client ID</label>
                       <input
@@ -1247,7 +1247,7 @@ function ClientPlatformSettings() {
       {/* Shopify Store Confirmation Modal */}
       {showStoreConfirmModal && storeInfo && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden max-h-[90dvh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Confirmar Tienda</h3>

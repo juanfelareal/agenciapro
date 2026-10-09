@@ -58,7 +58,7 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved 
 
         {editing ? (
           <div className="mt-3 space-y-2">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {['conservador', 'base', 'optimista'].map((k) => (
                 <label key={k} className="text-[11px] text-gray-500 capitalize">
                   {k}
@@ -83,7 +83,7 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved 
             <div className="mt-3 h-2.5 rounded-full bg-gray-100 overflow-hidden">
               <div className={`h-full rounded-full ${pct >= 100 ? 'bg-[#16a34a]' : onTrack ? 'bg-[#D7F653]' : 'bg-[#F59E0B]'}`} style={{ width: `${pct}%` }} />
             </div>
-            <div className="grid grid-cols-3 gap-3 mt-4 text-[13px]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-[13px]">
               <div>
                 <div className="text-[11px] text-gray-400">Falta</div>
                 <div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(missing)}</div>
@@ -114,7 +114,7 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved 
         </div>
         {be.reachable && be.roas_min ? (
           <>
-            <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
               <div>
                 <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">ROAS mínimo <Info text="Con este ROAS la pauta empata: cada peso invertido trae justo lo necesario para cubrir producto y variables. Por debajo, cada venta pagada pierde plata." /></div>
                 <div className="text-2xl font-bold tabular-nums text-[#17181A]">{fmtX(be.roas_min)}</div>

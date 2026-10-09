@@ -88,6 +88,7 @@ export default function MoneyFlow({ data }) {
             <Info text="El mismo cálculo, línea por línea: de la venta neta se restan los costos hasta llegar a la utilidad." />
           </div>
           <p className="text-xs text-gray-400 mt-0.5">{data.is_current_month ? `Del 1 al ${data.days_elapsed} de este mes` : 'Mes completo'} · sin IVA</p>
+          <div className="overflow-x-auto">
           <table className="w-full mt-4 text-[13px]">
             <tbody>
               {rows.map((r) => (
@@ -115,6 +116,7 @@ export default function MoneyFlow({ data }) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

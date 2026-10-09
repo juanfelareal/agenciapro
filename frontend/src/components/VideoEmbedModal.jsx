@@ -49,7 +49,7 @@ const VideoEmbedModal = ({ isOpen, onClose, onInsert }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg overflow-hidden shadow-xl">
+      <div className="bg-white rounded-xl w-full max-w-lg overflow-hidden shadow-xl max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <div className="flex items-center gap-2">

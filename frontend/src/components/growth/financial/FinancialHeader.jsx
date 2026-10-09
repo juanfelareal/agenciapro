@@ -77,7 +77,7 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
                 value={period}
                 max={currentPeriod()}
                 onChange={(e) => e.target.value && onPeriodChange(e.target.value)}
-                className="input !py-1.5 !px-3 text-sm font-semibold w-[160px] text-center"
+                className="input !py-1.5 !px-3 text-sm font-semibold w-full sm:w-[160px] text-center"
               />
             </label>
             <button

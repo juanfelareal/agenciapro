@@ -165,13 +165,13 @@ const StatusBadge = ({ status, onChange }) => {
       if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
         setDropdownStyle({
           bottom: window.innerHeight - rect.top + 4,
-          left: rect.left,
+          left: Math.max(8, Math.min(rect.left, window.innerWidth - 216)),
           maxHeight: Math.min(spaceAbove - 20, 400)
         });
       } else {
         setDropdownStyle({
           top: rect.bottom + 4,
-          left: rect.left,
+          left: Math.max(8, Math.min(rect.left, window.innerWidth - 216)),
           maxHeight: Math.min(spaceBelow - 20, 400)
         });
       }
@@ -246,13 +246,13 @@ const AngleAssigner = ({ creatorId, assignedAngles, projectAngles, onToggle }) =
       if (spaceBelow < dropdownHeight) {
         setDropdownStyle({
           bottom: window.innerHeight - rect.top + 4,
-          left: rect.left,
+          left: Math.max(8, Math.min(rect.left, window.innerWidth - 216)),
           maxHeight: Math.min(rect.top - 20, 200)
         });
       } else {
         setDropdownStyle({
           top: rect.bottom + 4,
-          left: rect.left,
+          left: Math.max(8, Math.min(rect.left, window.innerWidth - 216)),
           maxHeight: Math.min(spaceBelow - 20, 200)
         });
       }
@@ -966,7 +966,7 @@ export default function UGCProjectDetail() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="mb-5">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex flex-wrap items-center gap-3 mb-3">
           <button
             onClick={() => navigate('/app/ugc/projects')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -980,15 +980,15 @@ export default function UGCProjectDetail() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {editingProjectBrief ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <input
                   type="url"
                   value={projectBriefValue}
                   onChange={(e) => setProjectBriefValue(e.target.value)}
                   placeholder="URL del brief del proyecto..."
-                  className="w-64 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  className="w-full sm:w-64 min-w-0 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                   autoFocus
                 />
                 <button
@@ -1095,14 +1095,14 @@ export default function UGCProjectDetail() {
           </div>
 
           {/* Add new angle */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
               value={newAngleName}
               onChange={(e) => setNewAngleName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleAddAngle()}
               placeholder="Nombre del ángulo..."
-              className="w-48 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+              className="w-full sm:w-48 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
             />
             <div className="flex items-center gap-1 p-1 bg-gray-50 rounded-xl">
               {angleColors.map(color => (
@@ -1514,7 +1514,7 @@ export default function UGCProjectDetail() {
       {/* Creator Details Edit Modal (videos, price, brief) */}
       {editingCreatorDetails && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Editar detalles del creador</h2>
@@ -1529,7 +1529,7 @@ export default function UGCProjectDetail() {
             </div>
 
             <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Cantidad de videos
@@ -1634,7 +1634,7 @@ export default function UGCProjectDetail() {
               {/* Contract Details */}
               <div className="bg-green-50 rounded-xl p-4">
                 <h3 className="text-sm font-medium text-green-800 mb-2">Detalles del Contrato</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-500">Videos:</span>
                     <span className="ml-2 font-medium">{viewingContract.project_details?.video_count || 1}</span>

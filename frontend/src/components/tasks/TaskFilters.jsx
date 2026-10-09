@@ -178,13 +178,13 @@ export default function TaskFilters({
         />
 
         {/* Date Range Filter */}
-        <div className="flex items-center gap-2">
-          <Calendar size={16} className="text-gray-500" />
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Calendar size={16} className="text-gray-500 hidden sm:block" />
           <input
             type="date"
             value={filters.dueDateFrom || ''}
             onChange={(e) => updateFilter('dueDateFrom', e.target.value)}
-            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+            className="border border-gray-100 rounded-xl px-3 py-2 text-sm flex-1 min-w-0 sm:flex-none sm:w-32 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
             placeholder="Desde"
           />
           <span className="text-gray-400">-</span>
@@ -192,7 +192,7 @@ export default function TaskFilters({
             type="date"
             value={filters.dueDateTo || ''}
             onChange={(e) => updateFilter('dueDateTo', e.target.value)}
-            className="border border-gray-100 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+            className="border border-gray-100 rounded-xl px-3 py-2 text-sm flex-1 min-w-0 sm:flex-none sm:w-32 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
             placeholder="Hasta"
           />
         </div>

@@ -1021,10 +1021,10 @@ const Tasks = () => {
                   e.currentTarget.requestSubmit();
                 }
               }}
-              className={`flex-1 min-h-0 flex ${modalExpanded ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'}`}
+              className={`flex-1 min-h-0 flex ${modalExpanded ? 'flex-col md:flex-row overflow-y-auto md:overflow-hidden' : 'flex-col overflow-y-auto'}`}
             >
               {/* When expanded: left sidebar with fields, right side with description */}
-              <div className={`${modalExpanded ? 'w-[400px] flex-shrink-0 border-r border-gray-100 overflow-y-auto p-6' : 'p-6'}`}>
+              <div className={`${modalExpanded ? 'w-full md:w-[400px] flex-shrink-0 border-b md:border-b-0 md:border-r border-gray-100 md:overflow-y-auto p-4 md:p-6' : 'p-4 sm:p-6'}`}>
               <div className="space-y-4">
                 {/* Título — hero, sin bordes */}
                 <input
@@ -1832,7 +1832,7 @@ const Tasks = () => {
       {/* Approval prompt — shown when marking a client task as Completada */}
       {doneApprovalPrompt && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full p-6">
+          <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full p-6 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-[#17181A] mb-2">
               ¿Necesita aprobación del cliente?
             </h3>
@@ -1917,7 +1917,7 @@ function SaveViewModal({ snapshot, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-[#17181A]">Guardar vista</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1 rounded">

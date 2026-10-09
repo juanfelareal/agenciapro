@@ -353,12 +353,12 @@ const Comisiones = () => {
 
       {/* Filters */}
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 max-w-full">
           <label className="text-sm font-medium text-gray-600">Miembro:</label>
           <select
             value={filterMember}
             onChange={(e) => setFilterMember(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm"
+            className="border rounded-lg px-3 py-2 text-sm min-w-0 max-w-[70vw] sm:max-w-none"
           >
             <option value="">Todos</option>
             {teamMembers.map((member) => (
@@ -368,12 +368,12 @@ const Comisiones = () => {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 max-w-full">
           <label className="text-sm font-medium text-gray-600">Cliente:</label>
           <select
             value={filterClient}
             onChange={(e) => setFilterClient(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm"
+            className="border rounded-lg px-3 py-2 text-sm min-w-0 max-w-[70vw] sm:max-w-none"
           >
             <option value="">Todos</option>
             {clients.map((client) => (
@@ -612,7 +612,7 @@ const Comisiones = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Mes *</label>
                       <select
@@ -658,7 +658,7 @@ const Comisiones = () => {
                     />
                     <p className="text-xs text-gray-500 mt-1">Venta neta o utilidad según el acuerdo</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Porcentaje *</label>
                       <div className="relative">

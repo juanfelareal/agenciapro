@@ -157,7 +157,7 @@ const Inbox = () => {
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-1 mb-5 border-b border-gray-200 overflow-x-auto">
+      <div className="flex gap-1 mb-5 border-b border-gray-200 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin">
         {tabs.map(tab => {
           const isActive = activeCategory === tab.id;
           const highlight = tab.id === 'client_action';

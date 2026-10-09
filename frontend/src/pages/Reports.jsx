@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { reportsAPI, projectsAPI, teamAPI, clientsAPI } from '../utils/api';
+import useIsMobile from '../hooks/useIsMobile';
 import {
   BarChart,
   Bar,
@@ -168,6 +169,7 @@ const CustomTooltip = ({ active, payload, label, formatter }) => {
 // MAIN REPORTS COMPONENT
 // ============================================
 const Reports = () => {
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('productivity');
   const [loading, setLoading] = useState(true);
   const [productivityData, setProductivityData] = useState(null);
@@ -427,7 +429,7 @@ const Reports = () => {
               <ChartGradients />
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis type="number" stroke="#64748B" fontSize={12} />
-              <YAxis dataKey="name" type="category" width={120} stroke="#64748B" fontSize={12} />
+              <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ color: '#64748B' }} />
               <Bar dataKey="completed" name="Completadas" fill="#10B981" radius={[0, 4, 4, 0]} />
@@ -600,7 +602,7 @@ const Reports = () => {
               <ChartGradients />
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis type="number" tickFormatter={formatCurrency} stroke="#64748B" fontSize={12} />
-              <YAxis dataKey="name" type="category" width={150} stroke="#64748B" fontSize={12} />
+              <YAxis dataKey="name" type="category" width={isMobile ? 80 : 150} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
               <Tooltip content={<CustomTooltip formatter={formatCurrencyFull} />} />
               <Bar dataKey="total_revenue" name="Ingresos" fill="url(#gradientIndigo)" radius={[0, 8, 8, 0]} />
             </BarChart>
@@ -868,7 +870,7 @@ const Reports = () => {
                 <ChartGradients />
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis type="number" stroke="#64748B" fontSize={12} />
-                <YAxis dataKey="name" type="category" width={120} stroke="#64748B" fontSize={12} />
+                <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="active_tasks" name="Tareas Activas" fill="url(#gradientIndigo)" radius={[0, 8, 8, 0]} />
               </BarChart>
@@ -883,7 +885,7 @@ const Reports = () => {
                 <ChartGradients />
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#64748B" fontSize={12} />
-                <YAxis dataKey="name" type="category" width={120} stroke="#64748B" fontSize={12} />
+                <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
                 <Tooltip content={<CustomTooltip formatter={(v) => `${v?.toFixed(1)}%`} />} />
                 <Bar dataKey="completion_rate" name="Tasa" fill="url(#gradientEmerald)" radius={[0, 8, 8, 0]} />
               </BarChart>

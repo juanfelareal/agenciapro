@@ -349,21 +349,21 @@ export default function GrowthDashboard() {
               <button onClick={() => changePeriod(-1)} className="p-1.5 hover:bg-gray-100 rounded transition-colors">
                 <ChevronLeft className="w-4 h-4 text-gray-500" />
               </button>
-              <span className="text-sm font-medium text-[#17181A] min-w-[120px] text-center">{getPeriodLabel(period)}</span>
+              <span className="text-sm font-medium text-[#17181A] min-w-[96px] sm:min-w-[120px] text-center">{getPeriodLabel(period)}</span>
               <button onClick={() => changePeriod(1)} className="p-1.5 hover:bg-gray-100 rounded transition-colors">
                 <ChevronRight className="w-4 h-4 text-gray-500" />
               </button>
             </div>
           ) : (
             /* Custom date range */
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-2 py-1">
                 <CalendarDays className="w-4 h-4 text-gray-400" />
                 <input
                   type="date"
                   value={dateRange.start}
                   onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  className="text-sm border-0 focus:ring-0 p-0 w-28"
+                  className="text-sm border-0 focus:ring-0 p-0 w-full sm:w-28 min-w-0"
                 />
               </div>
               <span className="text-gray-400 text-sm">a</span>
@@ -373,7 +373,7 @@ export default function GrowthDashboard() {
                   type="date"
                   value={dateRange.end}
                   onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  className="text-sm border-0 focus:ring-0 p-0 w-28"
+                  className="text-sm border-0 focus:ring-0 p-0 w-full sm:w-28 min-w-0"
                 />
               </div>
               {/* Quick presets */}
@@ -680,8 +680,8 @@ export default function GrowthDashboard() {
 
       {/* Add Client Modal */}
       {showAddClient && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setShowAddClient(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4" onClick={() => setShowAddClient(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
               <h3 className="font-semibold text-[#17181A]">Agregar cliente a Growth</h3>
             </div>
@@ -717,8 +717,8 @@ export default function GrowthDashboard() {
 
       {/* Commission Settings Modal */}
       {commissionModal && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setCommissionModal(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4" onClick={() => setCommissionModal(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
@@ -766,7 +766,7 @@ export default function GrowthDashboard() {
               {/* Tiered Commission Section */}
               <div className="border-t border-gray-100 pt-4 mt-4">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Comisión escalonada (opcional)</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Umbral de ventas
@@ -1010,7 +1010,7 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
           </div>
 
           {/* Projection stats */}
-          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-gray-100">
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wider">Proyección</p>
               <p className="text-lg font-bold text-[#17181A]">{formatCOP(projection)}</p>
@@ -1076,7 +1076,7 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
                 optimista={emailObj.optimista}
                 format={formatCOP}
                 extra={em.has_data ? (
-                  <div className="grid grid-cols-3 gap-3 pt-3 mt-3 border-t border-gray-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-3 border-t border-gray-100">
                     <div>
                       <p className="text-[10px] text-gray-400 uppercase tracking-wider">Meta base</p>
                       <p className={`text-base font-bold ${emailPct >= 100 ? 'text-green-600' : 'text-[#17181A]'}`}>{emailMeta > 0 ? `${emailPct}%` : '—'}</p>
@@ -1214,7 +1214,7 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
           {['revenue', 'roas', 'email_revenue'].map((metric) => (
             <div key={metric}>
               <p className="text-xs font-medium text-gray-500 mb-2">{OBJECTIVE_LABELS[metric]}</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {['conservador', 'base', 'optimista'].map((level) => (
                   <div key={level}>
                     <label className="text-[10px] text-gray-400 uppercase">{level}</label>
@@ -1558,7 +1558,7 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
       {showForm ? (
         <div className="glass-solid rounded-xl p-4 space-y-3">
           <input value={form.nombre} onChange={(e) => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del milestone" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input value={form.meta} onChange={(e) => setForm(f => ({ ...f, meta: e.target.value }))} placeholder="Meta (ej: Semana 2 — Abril)" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             <select value={form.responsable} onChange={(e) => setForm(f => ({ ...f, responsable: e.target.value }))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
               <option value="lareal">LA REAL</option>
@@ -1642,8 +1642,8 @@ function AlertasTab({ banderas, clientId, period, onRefresh }) {
 
       {showForm ? (
         <div className="glass-solid rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-4 gap-2">
-            <input value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Título de la bandera" className="col-span-3 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <input value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Título de la bandera" className="sm:col-span-3 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
             <select value={form.nivel} onChange={(e) => setForm(f => ({ ...f, nivel: e.target.value }))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
               <option value="critica">Crítica</option>
               <option value="alta">Alta</option>

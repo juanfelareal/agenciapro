@@ -18,7 +18,7 @@ const DarkTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-[#17181A] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[220px] space-y-1">
+    <div className="bg-[#17181A] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[220px] max-w-[80vw] space-y-1">
       <div className="font-medium capitalize mb-1.5">{dayLong(d.date)}{d.orders ? ` · ${d.orders} pedidos` : ''}</div>
       <Row label="Ventas netas" value={d.revenue} color={COLORS.revenue} />
       <Row label="Costos" value={d.costs} color={COLORS.costs} />

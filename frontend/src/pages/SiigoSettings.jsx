@@ -178,7 +178,7 @@ const SiigoSettings = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#17181A]">Integración Siigo</h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -238,7 +238,7 @@ const SiigoSettings = () => {
         )}
 
         {settings?.has_token && (
-          <div className="flex gap-3 mt-4 pt-4 border-t border-gray-100">
+          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
             <button
               onClick={handleTestConnection}
               disabled={isTesting}

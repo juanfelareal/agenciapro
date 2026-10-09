@@ -176,7 +176,7 @@ const FinancialDashboard = () => {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Siigo Sync Button */}
           <button
             onClick={handleSiigoSync}

@@ -60,7 +60,7 @@ const NewConversationModal = ({ onClose, onCreated }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="glass-solid rounded-2xl shadow-glass-lg w-full max-w-md mx-4">
+      <div className="glass-solid rounded-2xl shadow-glass-lg w-full max-w-md mx-4 max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">Nueva Conversación</h2>
