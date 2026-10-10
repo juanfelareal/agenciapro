@@ -3,7 +3,7 @@ import db from '../config/database.js';
 import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllClientsSmart } from '../services/metricsSyncService.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
-import ShopifyIntegration from '../integrations/shopify.js';
+import { getStoreIntegration } from '../integrations/storeIntegration.js';
 import { withFacebookFallback } from '../utils/facebookClient.js';
 import { normalizeRevenueMetric, revenueMetricLabel, pickDisplayRevenue, pickDailyDisplayRevenue, dailyAdSpend } from '../utils/revenueMetric.js';
 
@@ -569,8 +569,13 @@ router.get('/aggregate/all', async (req, res) => {
           FROM client_shopify_credentials sc
           JOIN clients c ON c.id = sc.client_id
           WHERE c.organization_id = ? AND sc.last_sync_at IS NOT NULL
+          UNION ALL
+          SELECT wc.last_sync_at
+          FROM client_woocommerce_credentials wc
+          JOIN clients c ON c.id = wc.client_id
+          WHERE c.organization_id = ? AND wc.last_sync_at IS NOT NULL
         ) t
-      `).get(orgId, orgId, orgId, orgId);
+      `).get(orgId, orgId, orgId, orgId, orgId);
       last_sync_at = lastSyncRow?.last_sync_at || null;
     } catch (e) {
       // If anything fails here we still return the metrics — last_sync_at is just informative
@@ -604,12 +609,15 @@ router.get('/summary/all', async (req, res) => {
         tt.status as tiktok_status,
         tt.last_sync_at as tiktok_last_sync,
         sh.status as shopify_status,
-        sh.last_sync_at as shopify_last_sync
+        sh.last_sync_at as shopify_last_sync,
+        wc.status as woocommerce_status,
+        wc.last_sync_at as woocommerce_last_sync
       FROM clients c
       LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id
       LEFT JOIN client_google_ads_credentials ga ON c.id = ga.client_id
       LEFT JOIN client_tiktok_credentials tt ON c.id = tt.client_id
       LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id
+      LEFT JOIN client_woocommerce_credentials wc ON c.id = wc.client_id
       WHERE c.status = 'active' AND c.organization_id = ?
       ORDER BY c.name
     `).all(orgId);
@@ -800,17 +808,12 @@ router.get('/:clientId/top-products', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    // Get Shopify credentials
-    const shopifyCred = await db.prepare(
-      'SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = ? AND status = ?'
-    ).get(clientId, 'active');
-
-    if (!shopifyCred || !shopifyCred.store_url || !shopifyCred.access_token) {
-      return res.json({ products: [], message: 'Sin conexión Shopify' });
+    // Tienda conectada (Shopify o WooCommerce)
+    const storeInfo = await getStoreIntegration(clientId, { requireActive: true });
+    if (!storeInfo) {
+      return res.json({ products: [], message: 'Sin tienda conectada' });
     }
-
-    const shopify = new ShopifyIntegration(shopifyCred.store_url, shopifyCred.access_token);
-    const products = await shopify.getTopProducts(start_date, end_date, 10);
+    const products = await storeInfo.store.getTopProducts(start_date, end_date, 10);
 
     res.json({ products });
   } catch (error) {

@@ -805,6 +805,28 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // WooCommerce (WordPress) credentials — misma lógica que Shopify, con consumer key/secret
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_woocommerce_credentials (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL UNIQUE REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER REFERENCES organizations(id),
+        store_url TEXT NOT NULL,
+        consumer_key TEXT NOT NULL,
+        consumer_secret TEXT NOT NULL,
+        key_id TEXT,
+        key_permissions TEXT,
+        auth_method TEXT DEFAULT 'manual',
+        store_name TEXT,
+        currency TEXT,
+        status TEXT CHECK(status IN ('active', 'inactive', 'error')) DEFAULT 'active',
+        last_sync_at TEXT,
+        last_error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Daily metrics
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_daily_metrics (

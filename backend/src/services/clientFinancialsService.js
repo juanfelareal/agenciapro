@@ -18,7 +18,7 @@
  * daily_cogs se mantiene como marcador de "día sincronizado" (y total legacy).
  */
 import db from '../config/database.js';
-import ShopifyIntegration from '../integrations/shopify.js';
+import { getStoreCredentials, createStoreIntegration } from '../integrations/storeIntegration.js';
 
 const num = (v) => (v === null || v === undefined ? 0 : Number(v) || 0);
 const round = (v, d = 0) => (Number.isFinite(v) ? Math.round(v * 10 ** d) / 10 ** d : 0);
@@ -76,13 +76,9 @@ async function waitUpTo(promise, ms) {
 }
 
 // ─── Acceso a datos básicos ───
+/** Tienda conectada (Shopify o WooCommerce); null si no hay. Incluye `platform`. */
 export async function getShopifyCredentials(clientId) {
-  const row = await db.get(
-    'SELECT store_url, access_token, status, last_sync_at, last_error FROM client_shopify_credentials WHERE client_id = ?',
-    [clientId]
-  );
-  if (!row || !row.store_url || !row.access_token) return null;
-  return row;
+  return getStoreCredentials(clientId);
 }
 
 export async function getFinancialSettings(clientId) {
@@ -116,8 +112,8 @@ async function getProductsSyncState(clientId) {
 export async function syncProducts(clientId, orgId, shopify = null) {
   if (!shopify) {
     const cred = await getShopifyCredentials(clientId);
-    if (!cred) throw new Error('Sin conexión Shopify activa');
-    shopify = new ShopifyIntegration(cred.store_url, cred.access_token);
+    if (!cred) throw new Error('Sin tienda conectada (Shopify o WooCommerce)');
+    shopify = createStoreIntegration(cred);
   }
   const products = await shopify.getProductsWithCosts();
   const now = new Date().toISOString();
@@ -216,8 +212,8 @@ async function getCostMap(clientId) {
 export async function syncProductSalesRange(clientId, orgId, start, end, shopify = null) {
   if (!shopify) {
     const cred = await getShopifyCredentials(clientId);
-    if (!cred) throw new Error('Sin conexión Shopify activa');
-    shopify = new ShopifyIntegration(cred.store_url, cred.access_token);
+    if (!cred) throw new Error('Sin tienda conectada (Shopify o WooCommerce)');
+    shopify = createStoreIntegration(cred);
   }
   const [rows, costMap, settings] = await Promise.all([
     shopify.getProductSales(start, end), getCostMap(clientId), getFinancialSettings(clientId),
@@ -507,7 +503,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   const daysRevenueNoSales = daily.filter((d) => d.revenue > 0 && !d.has_sales_data).length;
   let cogsStatus = cogsState.status;
   let cogsMessage = null;
-  if (!shopifyCred) { cogsStatus = 'missing'; cogsMessage = 'Conecta Shopify para traer productos y calcular el costo de producto.'; }
+  if (!shopifyCred) { cogsStatus = 'missing'; cogsMessage = 'Conecta la tienda (Shopify o WooCommerce) para traer productos y calcular el costo de producto.'; }
   else if (productsState.total === 0 && productsState.syncing) { cogsMessage = 'Trayendo los productos de Shopify…'; }
   else if (productsState.total === 0) { cogsStatus = 'missing'; cogsMessage = productsState.error ? `No pudimos traer los productos: ${productsState.error}` : 'Aún no hay productos sincronizados.'; }
   else if (cogsState.refreshing) { cogsMessage = 'Calculando el costo de producto con los pedidos de Shopify…'; }
@@ -551,7 +547,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     missing_cost_count: missingSold.length,
     missing_cost_catalog: products.filter((p) => p.in_catalog && p.cost_estimated).length,
     default_cogs_rate: defaultRate,
-    shopify: shopifyCred ? { connected: true, store_url: shopifyCred.store_url, status: shopifyCred.status, last_sync_at: shopifyCred.last_sync_at, last_error: shopifyCred.last_error } : { connected: false },
+    shopify: shopifyCred ? { connected: true, platform: shopifyCred.platform, store_url: shopifyCred.store_url, status: shopifyCred.status, last_sync_at: shopifyCred.last_sync_at, last_error: shopifyCred.last_error } : { connected: false },
     products_synced_at: productsState.last_synced_at,
     products_syncing: !!productsState.syncing,
     cogs_status: cogsStatus,

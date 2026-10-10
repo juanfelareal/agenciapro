@@ -106,17 +106,17 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
         <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
           {shopify?.connected ? (
             <Pill tone={shopify.status === 'error' ? 'bad' : 'ok'} icon={<Store className="w-3 h-3" />} title={shopify.store_url}>
-              Shopify conectado{shopify.status === 'error' ? ' · con error' : ''}
+              {shopify.platform === 'woocommerce' ? 'WooCommerce' : 'Shopify'} conectado{shopify.status === 'error' ? ' · con error' : ''}
             </Pill>
           ) : (
-            <Pill tone="neutral" icon={<Store className="w-3 h-3" />}>Shopify no conectado</Pill>
+            <Pill tone="neutral" icon={<Store className="w-3 h-3" />}>Tienda no conectada</Pill>
           )}
           {shopify?.connected && (
             <Pill
               tone="neutral"
               icon={syncing || data.products_syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Package className="w-3 h-3" />}
               onClick={syncing ? undefined : onSync}
-              title="Volver a traer el catálogo y los costos de Shopify"
+              title="Volver a traer el catálogo y los costos de la tienda"
             >
               {data.products_syncing || syncing
                 ? 'Sincronizando productos…'

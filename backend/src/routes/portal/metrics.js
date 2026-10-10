@@ -276,11 +276,19 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       WHERE client_id = ? AND status = 'active'
     `, [clientId]);
 
-    const shopifyStore = await db.get(`
-      SELECT store_url, status, last_sync_at
+    let shopifyStore = await db.get(`
+      SELECT store_url, status, last_sync_at, 'shopify' as platform
       FROM client_shopify_credentials
       WHERE client_id = ? AND status = 'active'
     `, [clientId]);
+    if (!shopifyStore) {
+      // WooCommerce usa las mismas métricas de tienda; el portal la muestra igual
+      shopifyStore = await db.get(`
+        SELECT store_url, status, last_sync_at, store_name, 'woocommerce' as platform
+        FROM client_woocommerce_credentials
+        WHERE client_id = ? AND status = 'active'
+      `, [clientId]);
+    }
 
     const hasComparison = previous !== null;
 
@@ -305,7 +313,8 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         facebook: facebookAccounts,
         google_ads: googleAccounts,
         tiktok: tiktokAccounts,
-        shopify: shopifyStore
+        shopify: shopifyStore,
+        store_platform: shopifyStore?.platform || null
       }
     };
 

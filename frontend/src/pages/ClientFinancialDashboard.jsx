@@ -116,7 +116,7 @@ export default function ClientFinancialDashboard() {
   const handleResetCost = async (product) => {
     try {
       await growthAPI.resetProductCost(clientId, product.id);
-      notify('ok', 'Volvimos al costo de Shopify.');
+      notify('ok', 'Volvimos al costo de la tienda.');
       await load({ silent: true });
     } catch (err) {
       notify('error', errText(err, 'No pudimos restaurar el costo.'));
@@ -193,9 +193,9 @@ export default function ClientFinancialDashboard() {
       ) : !data.shopify?.connected && !hasAny ? (
         <div className="glass-solid rounded-2xl p-10 text-center max-w-xl mx-auto">
           <Store className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <h2 className="text-base font-semibold text-[#17181A]">Conecta Shopify para ver la utilidad real</h2>
+          <h2 className="text-base font-semibold text-[#17181A]">Conecta la tienda (Shopify o WooCommerce) para ver la utilidad real</h2>
           <p className="text-sm text-gray-500 mt-1">Con la tienda conectada traemos ventas, pedidos, productos y el costo de cada uno. Luego cargas los costos fijos y variables de la marca.</p>
-          <button type="button" onClick={() => navigate(`/app/clients/${clientId}/plataformas`)} className="btn-primary text-sm mt-5">Conectar Shopify</button>
+          <button type="button" onClick={() => navigate(`/app/clients/${clientId}/plataformas`)} className="btn-primary text-sm mt-5">Conectar tienda</button>
         </div>
       ) : (
         <>

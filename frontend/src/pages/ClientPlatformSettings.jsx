@@ -15,7 +15,7 @@ import {
   Check,
   Video
 } from 'lucide-react';
-import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, portalAdminAPI } from '../utils/api';
+import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, woocommerceAuthAPI, portalAdminAPI } from '../utils/api';
 
 // WIP: la integración Google Ads / TikTok Ads tiene el backend sin desplegar
 // (faltan tablas ga_/tt_ y env vars en prod). Ocultamos las cards hasta terminarla.
@@ -26,7 +26,17 @@ function ClientPlatformSettings() {
   const navigate = useNavigate();
 
   const [client, setClient] = useState(null);
-  const [credentials, setCredentials] = useState({ facebook: [], google_ads: [], tiktok: [], shopify: null });
+  const [credentials, setCredentials] = useState({ facebook: [], google_ads: [], tiktok: [], shopify: null, woocommerce: null });
+  // WooCommerce (WordPress)
+  const [wooStoreUrl, setWooStoreUrl] = useState('');
+  const [wooKey, setWooKey] = useState('');
+  const [wooSecret, setWooSecret] = useState('');
+  const [wooMode, setWooMode] = useState('auth'); // 'auth' (un clic) | 'manual' (claves API)
+  const [connectingWoo, setConnectingWoo] = useState(false);
+  const [wooSession, setWooSession] = useState(null); // { sessionId, store }
+  const [linkingWoo, setLinkingWoo] = useState(false);
+  const [testingWoo, setTestingWoo] = useState(false);
+  const [wooTestResult, setWooTestResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState({});
 
@@ -141,8 +151,10 @@ function ClientPlatformSettings() {
           : [],
         google_ads: Array.isArray(gaCredentials) ? gaCredentials : [gaCredentials],
         tiktok: Array.isArray(ttCredentials) ? ttCredentials : [ttCredentials],
-        shopify: credentialsRes.data.shopify
+        shopify: credentialsRes.data.shopify,
+        woocommerce: credentialsRes.data.woocommerce || null
       });
+      if (credentialsRes.data.woocommerce?.store_url) setWooStoreUrl(credentialsRes.data.woocommerce.store_url);
 
       // Pre-fill Shopify store URL input and custom app state
       if (credentialsRes.data.shopify) {
@@ -511,6 +523,98 @@ function ClientPlatformSettings() {
       alert('Error al guardar credenciales: ' + (error.response?.data?.error || error.message));
     } finally {
       setSavingCredentials(false);
+    }
+  };
+
+  // ---------- WooCommerce (WordPress) ----------
+  const connectWithWooCommerce = async () => {
+    const storeUrl = wooStoreUrl.trim();
+    if (!storeUrl) { alert('Ingresa la URL de la tienda WordPress (ej. https://mitienda.com)'); return; }
+    try {
+      setConnectingWoo(true);
+      const res = await woocommerceAuthAPI.getAuthUrl(clientId, storeUrl);
+      const state = res.data.state;
+      const width = 640; const height = 760;
+      const left = window.screenX + (window.innerWidth - width) / 2;
+      const top = window.screenY + (window.innerHeight - height) / 2;
+      const popup = window.open(res.data.authUrl, 'woocommerce_auth', `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=no`);
+      const poll = setInterval(async () => {
+        try {
+          const r = await woocommerceAuthAPI.pollCallbackStatus(state);
+          if (!r.data.pending) {
+            clearInterval(poll);
+            setConnectingWoo(false);
+            if (r.data.type === 'woocommerce_auth_success') {
+              const info = await woocommerceAuthAPI.getStoreInfo(r.data.sessionId);
+              setWooSession({ sessionId: r.data.sessionId, store: info.data.store });
+            } else {
+              alert('No se pudo conectar WooCommerce: ' + (r.data.error || 'Error desconocido'));
+            }
+            return;
+          }
+          if (popup && popup.closed) { clearInterval(poll); setConnectingWoo(false); }
+        } catch { /* reintenta */ }
+      }, 2000);
+      setTimeout(() => { clearInterval(poll); setConnectingWoo(false); }, 10 * 60 * 1000);
+    } catch (error) {
+      setConnectingWoo(false);
+      alert('Error al iniciar la conexión: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const linkWooStore = async () => {
+    if (!wooSession) return;
+    try {
+      setLinkingWoo(true);
+      await woocommerceAuthAPI.linkStore({ session_id: wooSession.sessionId, client_id: parseInt(clientId) });
+      setWooSession(null);
+      await loadData();
+      alert('Tienda WooCommerce vinculada');
+    } catch (error) {
+      alert('Error al vincular: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setLinkingWoo(false);
+    }
+  };
+
+  const saveWooManual = async () => {
+    const storeUrl = wooStoreUrl.trim();
+    if (!storeUrl || !wooKey.trim() || !wooSecret.trim()) { alert('Ingresa la URL, la clave (ck_…) y el secreto (cs_…)'); return; }
+    try {
+      setConnectingWoo(true);
+      const res = await platformCredentialsAPI.connectWooCommerce({ client_id: parseInt(clientId), store_url: storeUrl, consumer_key: wooKey.trim(), consumer_secret: wooSecret.trim() });
+      setWooKey(''); setWooSecret('');
+      await loadData();
+      alert(`Conectado: ${res.data.store?.name || storeUrl}`);
+    } catch (error) {
+      alert('No se pudo conectar: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setConnectingWoo(false);
+    }
+  };
+
+  const testWoo = async () => {
+    if (!credentials.woocommerce?.id) return;
+    try {
+      setTestingWoo(true);
+      const res = await platformCredentialsAPI.testWooCommerce(credentials.woocommerce.id);
+      setWooTestResult(res.data);
+    } catch (error) {
+      setWooTestResult({ success: false, error: error.response?.data?.error || error.message });
+    } finally {
+      setTestingWoo(false);
+    }
+  };
+
+  const disconnectWoo = async () => {
+    if (!credentials.woocommerce?.id) return;
+    if (!confirm('¿Seguro que quieres desconectar la tienda WooCommerce?')) return;
+    try {
+      await platformCredentialsAPI.disconnectWooCommerce(credentials.woocommerce.id);
+      setWooTestResult(null);
+      await loadData();
+    } catch (error) {
+      alert('Error al desconectar: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -1142,6 +1246,128 @@ function ClientPlatformSettings() {
                     Se abrirá una ventana para autorizar el acceso a tu tienda
                   </p>
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* WooCommerce (WordPress) Card */}
+        <div className="glass rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 text-violet-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">WordPress · WooCommerce</h2>
+                <p className="text-sm text-gray-500">
+                  {credentials.woocommerce ? 'Tienda conectada' : 'Sin tienda conectada'}
+                </p>
+              </div>
+            </div>
+            {credentials.woocommerce && <StatusBadge status={credentials.woocommerce.status} />}
+          </div>
+
+          <div className="p-6">
+            {credentials.woocommerce ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <ShoppingBag className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{credentials.woocommerce.store_name || credentials.woocommerce.store_url}</p>
+                      <p className="text-xs text-gray-500 truncate">{credentials.woocommerce.store_url}{credentials.woocommerce.currency ? ` · ${credentials.woocommerce.currency}` : ''}</p>
+                      {credentials.woocommerce.last_sync_at && (
+                        <p className="text-xs text-gray-500">Última sync: {new Date(credentials.woocommerce.last_sync_at).toLocaleString('es-CO')}</p>
+                      )}
+                      {credentials.woocommerce.last_error && (
+                        <p className="text-xs text-red-600 truncate" title={credentials.woocommerce.last_error}>{credentials.woocommerce.last_error}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={testWoo} disabled={testingWoo} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors" title="Probar conexión">
+                      {testingWoo ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    </button>
+                    <button onClick={disconnectWoo} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desconectar">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                {wooTestResult && (
+                  <div className={`p-3 rounded-lg text-sm ${wooTestResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    {wooTestResult.success ? <p>Conexión exitosa: {wooTestResult.storeName}{wooTestResult.wcVersion ? ` · WooCommerce ${wooTestResult.wcVersion}` : ''}</p> : <p>Error: {wooTestResult.error}</p>}
+                  </div>
+                )}
+                <p className="text-xs text-gray-400">Las ventas, pedidos, productos y costos de esta tienda se sincronizan cada 5 minutos y alimentan Métricas, Growth, el portal y el dashboard financiero, igual que Shopify.</p>
+              </div>
+            ) : wooSession ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-violet-50 rounded-lg">
+                  <p className="text-sm font-medium text-gray-900">Tienda autorizada</p>
+                  <p className="text-sm text-gray-600 mt-1">{wooSession.store?.name || wooSession.store?.url}</p>
+                  <p className="text-xs text-gray-500">{wooSession.store?.url}{wooSession.store?.currency ? ` · ${wooSession.store.currency}` : ''}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setWooSession(null)} className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
+                  <button onClick={linkWooStore} disabled={linkingWoo} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-violet-600 text-white rounded-lg text-sm hover:bg-violet-700 disabled:opacity-50">
+                    {linkingWoo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Vincular a este cliente
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">URL de la tienda WordPress</label>
+                  <input
+                    type="url"
+                    value={wooStoreUrl}
+                    onChange={(e) => setWooStoreUrl(e.target.value)}
+                    placeholder="https://mitienda.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                </div>
+
+                <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                  <button type="button" onClick={() => setWooMode('auth')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${wooMode === 'auth' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Con un clic</button>
+                  <button type="button" onClick={() => setWooMode('manual')} className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${wooMode === 'manual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>Con claves API</button>
+                </div>
+
+                {wooMode === 'auth' ? (
+                  <>
+                    <button
+                      onClick={connectWithWooCommerce}
+                      disabled={connectingWoo || !wooStoreUrl.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50"
+                    >
+                      {connectingWoo ? <><Loader2 className="w-5 h-5 animate-spin" /> Esperando autorización…</> : <><ShoppingBag className="w-5 h-5" /> Conectar con WooCommerce</>}
+                    </button>
+                    <p className="text-xs text-gray-400 text-center">Se abre WordPress: inicia sesión como administrador de la tienda y aprueba el acceso de solo lectura.</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Clave del cliente (ck_…)</label>
+                        <input type="text" value={wooKey} onChange={(e) => setWooKey(e.target.value)} placeholder="ck_xxxxxxxx" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Clave secreta (cs_…)</label>
+                        <input type="password" value={wooSecret} onChange={(e) => setWooSecret(e.target.value)} placeholder="cs_xxxxxxxx" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                      </div>
+                    </div>
+                    <button
+                      onClick={saveWooManual}
+                      disabled={connectingWoo || !wooStoreUrl.trim() || !wooKey.trim() || !wooSecret.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50"
+                    >
+                      {connectingWoo ? <><Loader2 className="w-5 h-5 animate-spin" /> Probando conexión…</> : <><Check className="w-5 h-5" /> Guardar y conectar</>}
+                    </button>
+                    <p className="text-xs text-gray-400">En WordPress: WooCommerce → Ajustes → Avanzado → REST API → Añadir clave, permisos <strong>Lectura</strong>. Copia la clave y el secreto aquí.</p>
+                  </>
+                )}
               </div>
             )}
           </div>

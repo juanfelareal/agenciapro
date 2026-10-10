@@ -1311,7 +1311,7 @@ export default function PortalMetrics() {
           {metrics?.shopify && (
             <CollapsibleSection
               id="portal-shopify"
-              title="Shopify"
+              title="Tienda online"
               icon={ShoppingBag}
               iconBg="bg-[#17181A]"
               iconColor="text-[#D7F653]"

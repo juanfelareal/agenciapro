@@ -24,7 +24,7 @@ const SourceChip = ({ source, estimated }) => {
   if (estimated) return <span className="inline-flex rounded-full bg-amber-50 text-amber-700 px-1.5 py-[1px] text-[10px] font-semibold">Estimado</span>;
   return source === 'manual'
     ? <span className="inline-flex rounded-full bg-[#17181A] text-[#D7F653] px-1.5 py-[1px] text-[10px] font-semibold">Manual</span>
-    : <span className="inline-flex rounded-full bg-gray-100 text-gray-600 px-1.5 py-[1px] text-[10px] font-semibold">Shopify</span>;
+    : <span className="inline-flex rounded-full bg-gray-100 text-gray-600 px-1.5 py-[1px] text-[10px] font-semibold">Tienda</span>;
 };
 
 /** Celda de costo unitario editable inline, con origen y botón para volver al costo de Shopify. */
@@ -132,7 +132,7 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
             <Info text="Qué se vendió en el mes, cuánto costó cada unidad y cuánto dejó cada producto antes de ads y fijos." />
           </div>
           <p className="text-xs text-gray-400 mt-0.5 max-w-xl">
-            El costo unitario sale del que registras en Shopify en cada variante (Productos → variante → Inventario → <em>Costo por artículo</em>).
+            El costo unitario sale del que registras en la tienda: en Shopify en cada variante (Inventario → <em>Costo por artículo</em>); en WooCommerce con un plugin de costo de producto (p. ej. Cost of Goods). Si no existe, edítalo aquí.
             Si allá no está, puedes escribirlo aquí y queda como <strong className="text-gray-600">Manual</strong>; mientras no exista, se estima al {fmtPct(defaultRate, 0)} de la venta.
           </p>
         </div>
@@ -140,7 +140,7 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
           {shopifyConnected && (
             <button type="button" onClick={onSync} disabled={syncing} className="btn-secondary !py-2 !px-3 text-xs">
               <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Sincronizando…' : 'Sincronizar productos de Shopify'}
+              {syncing ? 'Sincronizando…' : 'Sincronizar productos de la tienda'}
             </button>
           )}
         </div>
@@ -173,14 +173,14 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
           {shopifyConnected ? (
             <>
               <p className="text-sm text-gray-600 font-medium">Todavía no hay productos sincronizados</p>
-              <p className="text-xs text-gray-400 mt-1 mb-4">Traemos el catálogo de Shopify con el costo por artículo de cada variante.</p>
+              <p className="text-xs text-gray-400 mt-1 mb-4">Traemos el catálogo de la tienda (Shopify o WooCommerce) con el costo por artículo de cada variante.</p>
               <button type="button" onClick={onSync} disabled={syncing} className="btn-primary !py-2 text-xs">
-                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />{syncing ? 'Sincronizando…' : 'Sincronizar productos de Shopify'}
+                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />{syncing ? 'Sincronizando…' : 'Sincronizar productos de la tienda'}
               </button>
             </>
           ) : (
             <>
-              <p className="text-sm text-gray-600 font-medium">Conecta Shopify para traer los productos</p>
+              <p className="text-sm text-gray-600 font-medium">Conecta la tienda (Shopify o WooCommerce) para traer los productos</p>
               <p className="text-xs text-gray-400 mt-1">Sin la tienda conectada no podemos calcular el costo de producto.</p>
             </>
           )}

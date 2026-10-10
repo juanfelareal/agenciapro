@@ -1044,7 +1044,7 @@ function ClientMetrics() {
       {/* ============ SHOPIFY (colapsable) ============ */}
       <CollapsibleSection
         id="shopify"
-        title="Shopify"
+        title="Tienda online"
         icon={ShoppingBag}
         iconBg="bg-emerald-100"
         iconColor="text-emerald-600"

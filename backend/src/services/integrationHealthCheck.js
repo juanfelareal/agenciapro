@@ -2,6 +2,7 @@ import db from '../config/database.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
+import WooCommerceIntegration from '../integrations/woocommerce.js';
 import siigoService from './siigoService.js';
 import { testFacebookConnectionWithFallback } from '../utils/facebookClient.js';
 
@@ -12,7 +13,7 @@ import { testFacebookConnectionWithFallback } from '../utils/facebookClient.js';
  */
 export async function runIntegrationHealthCheck() {
   const startedAt = new Date();
-  const summary = { facebook: { ok: 0, fail: 0 }, google: { ok: 0, fail: 0 }, tiktok: { ok: 0, fail: 0 }, shopify: { ok: 0, fail: 0 }, siigo: { ok: 0, fail: 0 } };
+  const summary = { facebook: { ok: 0, fail: 0 }, google: { ok: 0, fail: 0 }, tiktok: { ok: 0, fail: 0 }, shopify: { ok: 0, fail: 0 }, woocommerce: { ok: 0, fail: 0 }, siigo: { ok: 0, fail: 0 } };
   const failures = [];
 
   // -------- Facebook Ads --------
@@ -149,6 +150,34 @@ export async function runIntegrationHealthCheck() {
     }
   }
 
+  // -------- WooCommerce --------
+  const wooAccounts = await db.prepare(`
+    SELECT w.id, w.client_id, w.store_url, w.consumer_key, w.consumer_secret,
+           c.organization_id, c.name as client_name, c.company
+    FROM client_woocommerce_credentials w
+    JOIN clients c ON w.client_id = c.id
+    WHERE w.consumer_key IS NOT NULL AND w.consumer_secret IS NOT NULL
+  `).all();
+  for (const w of wooAccounts) {
+    try {
+      const woo = new WooCommerceIntegration(w.store_url, w.consumer_key, w.consumer_secret);
+      const result = await woo.testConnection();
+      if (result?.success) {
+        summary.woocommerce.ok++;
+        await db.prepare("UPDATE client_woocommerce_credentials SET status = 'active', last_error = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(w.id);
+      } else {
+        summary.woocommerce.fail++;
+        const msg = result?.error || 'Unknown error';
+        await db.prepare("UPDATE client_woocommerce_credentials SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(msg, w.id);
+        failures.push({ platform: 'WooCommerce', client: w.company || w.client_name, account: w.store_url, error: msg });
+      }
+    } catch (err) {
+      summary.woocommerce.fail++;
+      await db.prepare("UPDATE client_woocommerce_credentials SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(err.message, w.id);
+      failures.push({ platform: 'WooCommerce', client: w.company || w.client_name, account: w.store_url, error: err.message });
+    }
+  }
+
   // -------- Shopify --------
   const shopifyAccounts = await db.prepare(`
     SELECT csc.id, csc.client_id, csc.store_url, csc.access_token,
@@ -222,6 +251,7 @@ export async function runIntegrationHealthCheck() {
     google: summary.google,
     tiktok: summary.tiktok,
     shopify: summary.shopify,
+    woocommerce: summary.woocommerce,
     siigo: summary.siigo,
     failureCount: failures.length,
   });

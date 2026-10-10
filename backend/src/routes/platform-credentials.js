@@ -4,6 +4,7 @@ import { testFacebookConnectionWithFallback } from '../utils/facebookClient.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
+import WooCommerceIntegration from '../integrations/woocommerce.js';
 
 const router = Router();
 
@@ -55,11 +56,18 @@ router.get('/client/:clientId', async (req, res) => {
       WHERE client_id = ?
     `).get(clientId);
 
+    const woocommerce = await db.prepare(`
+      SELECT id, client_id, store_url, store_name, currency, auth_method, key_permissions, status, last_sync_at, last_error, created_at
+      FROM client_woocommerce_credentials
+      WHERE client_id = ?
+    `).get(clientId);
+
     res.json({
       facebook: facebook || [],
       google_ads: googleAds || [],
       tiktok: tiktok || [],
-      shopify: shopify || null
+      shopify: shopify || null,
+      woocommerce: woocommerce || null
     });
   } catch (error) {
     console.error('Error fetching credentials:', error);
@@ -560,3 +568,88 @@ router.delete('/shopify/:id', async (req, res) => {
 });
 
 export default router;
+
+// ============================================
+// WOOCOMMERCE (WordPress) — conexión manual con claves API
+// ============================================
+
+/**
+ * POST /api/platform-credentials/woocommerce
+ * Guarda store_url + consumer_key + consumer_secret (WooCommerce → Ajustes → Avanzado → REST API, permiso Lectura)
+ */
+router.post('/woocommerce', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { client_id, store_url, consumer_key, consumer_secret } = req.body || {};
+    if (!client_id || !store_url || !consumer_key || !consumer_secret) {
+      return res.status(400).json({ error: 'client_id, store_url, consumer_key y consumer_secret son requeridos' });
+    }
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);
+    if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
+
+    const normalized = WooCommerceIntegration.normalizeStoreUrl(store_url);
+    if (!normalized) return res.status(400).json({ error: 'URL de tienda inválida. Ej: https://mitienda.com' });
+    if (!String(consumer_key).startsWith('ck_') || !String(consumer_secret).startsWith('cs_')) {
+      return res.status(400).json({ error: 'Las claves de WooCommerce empiezan por ck_ (clave) y cs_ (secreto)' });
+    }
+
+    const woo = new WooCommerceIntegration(normalized, consumer_key.trim(), consumer_secret.trim());
+    const test = await woo.testConnection();
+    if (!test.success) return res.status(400).json({ error: `No se pudo conectar: ${test.error}` });
+
+    await db.query(`
+      INSERT INTO client_woocommerce_credentials (client_id, organization_id, store_url, consumer_key, consumer_secret, auth_method, store_name, currency, status, last_error)
+      VALUES ($1, $2, $3, $4, $5, 'manual', $6, $7, 'active', NULL)
+      ON CONFLICT (client_id) DO UPDATE SET
+        store_url = EXCLUDED.store_url, consumer_key = EXCLUDED.consumer_key, consumer_secret = EXCLUDED.consumer_secret,
+        auth_method = 'manual', store_name = EXCLUDED.store_name, currency = EXCLUDED.currency, status = 'active', last_error = NULL,
+        updated_at = CURRENT_TIMESTAMP
+    `, [client_id, orgId, normalized, consumer_key.trim(), consumer_secret.trim(), test.storeName || null, test.currency || null]);
+
+    res.json({ message: 'Tienda WooCommerce conectada', store: { name: test.storeName, url: normalized, currency: test.currency } });
+  } catch (error) {
+    console.error('Error saving WooCommerce credentials:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/** POST /api/platform-credentials/woocommerce/:id/test */
+router.post('/woocommerce/:id/test', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { id } = req.params;
+    const cred = await db.prepare(`
+      SELECT w.* FROM client_woocommerce_credentials w JOIN clients c ON w.client_id = c.id
+      WHERE w.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
+    if (!cred) return res.status(404).json({ error: 'Credenciales no encontradas' });
+
+    const woo = new WooCommerceIntegration(cred.store_url, cred.consumer_key, cred.consumer_secret);
+    const result = await woo.testConnection();
+    if (result.success) {
+      await db.prepare(`UPDATE client_woocommerce_credentials SET status = 'active', last_error = NULL, store_name = COALESCE(?, store_name), currency = COALESCE(?, currency), updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(result.storeName || null, result.currency || null, id);
+    } else {
+      await db.prepare(`UPDATE client_woocommerce_credentials SET status = 'error', last_error = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(result.error, id);
+    }
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/** DELETE /api/platform-credentials/woocommerce/:id */
+router.delete('/woocommerce/:id', async (req, res) => {
+  try {
+    const orgId = req.orgId;
+    const { id } = req.params;
+    const cred = await db.prepare(`
+      SELECT w.id FROM client_woocommerce_credentials w JOIN clients c ON w.client_id = c.id
+      WHERE w.id = ? AND c.organization_id = ?
+    `).get(id, orgId);
+    if (!cred) return res.status(404).json({ error: 'Tienda no encontrada' });
+    await db.prepare('DELETE FROM client_woocommerce_credentials WHERE id = ?').run(id);
+    res.json({ message: 'Tienda WooCommerce desconectada' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});

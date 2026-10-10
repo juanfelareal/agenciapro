@@ -3,6 +3,7 @@ import FacebookAdsIntegration from '../integrations/facebookAds.js';
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
+import { createStoreIntegration } from '../integrations/storeIntegration.js';
 import { recordProductSalesFromOrders } from './clientFinancialsService.js';
 
 /**
@@ -36,14 +37,19 @@ export async function getClientsWithCredentials() {
       tt.status as tt_status,
       sh.store_url as shopify_store_url,
       sh.access_token as shopify_access_token,
-      sh.status as shopify_status
+      sh.status as shopify_status,
+      wc.store_url as woo_store_url,
+      wc.consumer_key as woo_consumer_key,
+      wc.consumer_secret as woo_consumer_secret,
+      wc.status as woo_status
     FROM clients c
     LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id
     LEFT JOIN client_google_ads_credentials ga ON c.id = ga.client_id
     LEFT JOIN client_tiktok_credentials tt ON c.id = tt.client_id
     LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id
+    LEFT JOIN client_woocommerce_credentials wc ON c.id = wc.client_id
     WHERE c.status = 'active'
-      AND (fb.id IS NOT NULL OR ga.id IS NOT NULL OR tt.id IS NOT NULL OR sh.id IS NOT NULL)
+      AND (fb.id IS NOT NULL OR ga.id IS NOT NULL OR tt.id IS NOT NULL OR sh.id IS NOT NULL OR wc.id IS NOT NULL)
   `;
 
   const clients = await db.prepare(query).all();
@@ -368,12 +374,16 @@ export async function syncClientForDate(clientId, date) {
       tt.access_token as tt_access_token,
       tt.advertiser_id as tt_advertiser_id,
       sh.store_url as shopify_store_url,
-      sh.access_token as shopify_access_token
+      sh.access_token as shopify_access_token,
+      wc.store_url as woo_store_url,
+      wc.consumer_key as woo_consumer_key,
+      wc.consumer_secret as woo_consumer_secret
     FROM clients c
     LEFT JOIN client_facebook_credentials fb ON c.id = fb.client_id
     LEFT JOIN client_google_ads_credentials ga ON c.id = ga.client_id
     LEFT JOIN client_tiktok_credentials tt ON c.id = tt.client_id
     LEFT JOIN client_shopify_credentials sh ON c.id = sh.client_id
+    LEFT JOIN client_woocommerce_credentials wc ON c.id = wc.client_id
     WHERE c.id = ?
   `).get(clientId);
 
@@ -391,7 +401,11 @@ export async function syncClientForDate(clientId, date) {
   let tiktokOk = false;
   const gaRefreshToken = client.ga_refresh_token || (client.ga_customer_id ? systemGoogleRefresh : null);
   const ttAccessToken = client.tt_access_token || (client.tt_advertiser_id ? systemTiktokToken : null);
-  const hasShopify = !!(client.shopify_store_url && client.shopify_access_token);
+  // Tienda: Shopify tiene prioridad; si no, WooCommerce. Ambas escriben en las columnas shopify_* (métricas de tienda).
+  const hasShopifyStore = !!(client.shopify_store_url && client.shopify_access_token);
+  const hasWooStore = !hasShopifyStore && !!(client.woo_store_url && client.woo_consumer_key && client.woo_consumer_secret);
+  const storePlatform = hasShopifyStore ? 'shopify' : (hasWooStore ? 'woocommerce' : null);
+  const hasShopify = Boolean(storePlatform);
   const hasFacebook = !!(client.fb_access_token && client.fb_ad_account_id);
   const hasGoogle = !!(gaRefreshToken && client.ga_customer_id);
   const hasTiktok = !!(ttAccessToken && client.tt_advertiser_id);
@@ -401,7 +415,9 @@ export async function syncClientForDate(clientId, date) {
   let shopifyOrders = null;
   if (hasShopify) {
     try {
-      shopify = new ShopifyIntegration(client.shopify_store_url, client.shopify_access_token);
+      shopify = storePlatform === 'woocommerce'
+        ? createStoreIntegration({ platform: 'woocommerce', store_url: client.woo_store_url, consumer_key: client.woo_consumer_key, consumer_secret: client.woo_consumer_secret })
+        : new ShopifyIntegration(client.shopify_store_url, client.shopify_access_token);
       const { metrics, orders } = await shopify.getMetricsAndOrders(date, date);
       shopifyMetrics = metrics;
       shopifyOrders = orders;
@@ -410,7 +426,10 @@ export async function syncClientForDate(clientId, date) {
         console.log(`  Shopify ${date}: ${shopifyMetrics.allOrderCount} orders, $${Math.round(shopifyMetrics.allOrdersRevenue)} total, $${Math.round(shopifyMetrics.revenue)} confirmed`);
       }
     } catch (error) {
-      console.error(`Error syncing Shopify for client ${clientId} on ${date}:`, error.message);
+      console.error(`Error syncing ${storePlatform} for client ${clientId} on ${date}:`, error.message);
+      if (storePlatform === 'woocommerce') {
+        await updateCredentialStatus('client_woocommerce_credentials', clientId, 'error', error.message).catch(() => {});
+      }
     }
   }
 
@@ -579,7 +598,7 @@ export async function syncClientForDate(clientId, date) {
 
   // Update credential status only after successful save
   if (hasShopify && shopifyOk) {
-    await updateCredentialStatus('client_shopify_credentials', clientId, 'active');
+    await updateCredentialStatus(storePlatform === 'woocommerce' ? 'client_woocommerce_credentials' : 'client_shopify_credentials', clientId, 'active');
   }
   if (hasFacebook && fbOk) {
     await updateCredentialStatus('client_facebook_credentials', clientId, 'active');

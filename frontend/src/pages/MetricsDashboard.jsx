@@ -286,7 +286,7 @@ function MetricsDashboard() {
             ) : visibleClients.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
                 <p>No hay datos disponibles para el rango seleccionado.</p>
-                <p className="text-sm mt-2">Conecta Facebook Ads y Shopify a tus clientes para ver métricas.</p>
+                <p className="text-sm mt-2">Conecta Facebook Ads y la tienda (Shopify o WooCommerce) a tus clientes para ver métricas.</p>
               </div>
             ) : (
               <>

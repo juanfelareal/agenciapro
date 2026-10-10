@@ -588,6 +588,10 @@ export const platformCredentialsAPI = {
   connectShopify: (data) => api.post('/platform-credentials/shopify', data),
   testShopify: (id) => api.post(`/platform-credentials/shopify/${id}/test`),
   disconnectShopify: (id) => api.delete(`/platform-credentials/shopify/${id}`),
+  // WooCommerce (WordPress)
+  connectWooCommerce: (data) => api.post('/platform-credentials/woocommerce', data),
+  testWooCommerce: (id) => api.post(`/platform-credentials/woocommerce/${id}/test`),
+  disconnectWooCommerce: (id) => api.delete(`/platform-credentials/woocommerce/${id}`),
 };
 
 // Client Metrics API (Facebook Ads & Shopify metrics)
@@ -730,6 +734,14 @@ export const tiktokOAuthAPI = {
 };
 
 // Shopify OAuth API
+// WooCommerce wc-auth (conexión con un clic desde WordPress)
+export const woocommerceAuthAPI = {
+  getAuthUrl: (clientId, storeUrl) => api.get(`/oauth/woocommerce/url?client_id=${clientId}&store_url=${encodeURIComponent(storeUrl)}`),
+  pollCallbackStatus: (state) => api.get(`/oauth/woocommerce/callback-status?state=${state}`),
+  getStoreInfo: (sessionId) => api.get(`/oauth/woocommerce/store-info?session_id=${sessionId}`),
+  linkStore: (data) => api.post('/oauth/woocommerce/link-store', data),
+};
+
 export const shopifyOAuthAPI = {
   getAuthUrl: (clientId, storeUrl) =>
     api.get(`/oauth/shopify/url?client_id=${clientId}&store_url=${encodeURIComponent(storeUrl)}`),
