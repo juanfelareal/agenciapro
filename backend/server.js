@@ -52,11 +52,6 @@ import shopifyOAuthRoutes from './src/routes/shopify-oauth.js';
 import woocommerceAuthRoutes from './src/routes/woocommerce-auth.js';
 import { syncAllClientsForDate } from './src/services/metricsSyncService.js';
 import { runScheduled as runWhatsAppBriefing } from './src/services/whatsappBriefings.js';
-// WooCommerce (wc-auth): callback (POST desde la tienda), return (redirect del navegador) y callback-status (polling) son públicos
-app.use('/api/oauth/woocommerce', (req, res, next) => {
-  if (req.path === '/callback' || req.path === '/return' || req.path === '/callback-status') return next();
-  teamAuthMiddleware(req, res, next);
-}, woocommerceAuthRoutes);
 // PDF Analysis (RUT extraction with Claude AI)
 import pdfAnalysisRoutes from './src/routes/pdf-analysis.js';
 // SOPs (Standard Operating Procedures)
@@ -263,6 +258,11 @@ app.use('/api/oauth/shopify', (req, res, next) => {
   if (req.path === '/callback' || req.path === '/callback-status') return next();
   teamAuthMiddleware(req, res, next);
 }, shopifyOAuthRoutes);
+// WooCommerce (wc-auth): callback (POST desde la tienda), return (redirect del navegador) y callback-status (polling) son públicos
+app.use('/api/oauth/woocommerce', (req, res, next) => {
+  if (req.path === '/callback' || req.path === '/return' || req.path === '/callback-status') return next();
+  teamAuthMiddleware(req, res, next);
+}, woocommerceAuthRoutes);
 // PDF Analysis (RUT extraction with Claude AI)
 app.use('/api/pdf', teamAuthMiddleware, pdfAnalysisRoutes);
 // SOPs (Standard Operating Procedures)
