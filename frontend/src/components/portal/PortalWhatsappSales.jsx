@@ -29,7 +29,7 @@ export default function PortalWhatsappSales({ startDate, endDate, summary, onCha
   const save = async () => {
     try {
       setSaving(true); setMsg(null);
-      const clean = (v) => Number(String(v).replace(/[^\d.]/g, ''));
+      const clean = (v) => Number(String(v).replace(/[^\d]/g, ''));
       if (mode === 'day') await portalWhatsappSalesAPI.save({ date: form.date, revenue: clean(form.revenue), orders: Number(form.orders) || 0 });
       else await portalWhatsappSalesAPI.save({ start_date: form.start, end_date: form.end, revenue: clean(form.revenue), orders: Number(form.orders) || 0 });
       setForm((f) => ({ ...f, revenue: '', orders: '' }));

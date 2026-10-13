@@ -137,11 +137,11 @@ function SalesModal({ clientId, startDate, endDate, sales, onClose, onChanged })
     try {
       setSaving(true); setMsg(null);
       if (mode === 'day') {
-        await whatsappSalesAPI.save(clientId, { date, revenue: Number(String(revenue).replace(/[^\d.]/g, '')), orders: Number(orders) || 0, notes: notes || undefined });
+        await whatsappSalesAPI.save(clientId, { date, revenue: Number(String(revenue).replace(/[^\d]/g, '')), orders: Number(orders) || 0, notes: notes || undefined });
         setRevenue(''); setOrders(''); setNotes('');
         setMsg({ ok: true, text: `Guardado ${fmtDate(date)}` });
       } else {
-        const r = await whatsappSalesAPI.bulk(clientId, { start_date: bulk.start, end_date: bulk.end, revenue: Number(String(bulk.revenue).replace(/[^\d.]/g, '')), orders: Number(bulk.orders) || 0 });
+        const r = await whatsappSalesAPI.bulk(clientId, { start_date: bulk.start, end_date: bulk.end, revenue: Number(String(bulk.revenue).replace(/[^\d]/g, '')), orders: Number(bulk.orders) || 0 });
         setMsg({ ok: true, text: `Total repartido en ${r.data.days} días` });
       }
       onChanged();
