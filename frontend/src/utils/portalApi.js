@@ -270,6 +270,13 @@ export const portalMetricsAPI = {
   },
 };
 
+// Ventas por WhatsApp registradas por el cliente
+export const portalWhatsappSalesAPI = {
+  list: async (params = {}) => (await portalApi.get('/whatsapp-sales', { params })).data,
+  save: async (data) => (await portalApi.post('/whatsapp-sales', data)).data,
+  remove: async (date) => (await portalApi.delete(`/whatsapp-sales/${date}`)).data,
+};
+
 // ============================================
 // NOTIFICATIONS API
 // ============================================

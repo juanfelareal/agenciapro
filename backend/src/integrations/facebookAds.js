@@ -86,6 +86,39 @@ class FacebookAdsIntegration {
   }
 
   /**
+   * Gasto por campaña y día (para separar pauta de WhatsApp vs web).
+   * @returns {Promise<Array<{date, campaign_id, campaign_name, objective, spend, messaging_conversations}>>}
+   */
+  async getCampaignSpend(startDate, endDate) {
+    const rows = [];
+    let url = `${FB_GRAPH_API_URL}/${this.adAccountId}/insights`;
+    let params = {
+      access_token: this.accessToken,
+      time_range: JSON.stringify({ since: startDate, until: endDate }),
+      time_increment: 1,
+      level: 'campaign',
+      fields: 'date_start,campaign_id,campaign_name,objective,spend,actions',
+      limit: 500,
+    };
+    for (let page = 0; page < 20 && url; page++) {
+      const response = await axios.get(url, { params });
+      for (const r of response.data?.data || []) {
+        rows.push({
+          date: r.date_start,
+          campaign_id: r.campaign_id,
+          campaign_name: r.campaign_name,
+          objective: r.objective || null,
+          spend: parseFloat(r.spend) || 0,
+          messaging_conversations: this.parseMessagingConversations(r.actions),
+        });
+      }
+      url = response.data?.paging?.next || null;
+      params = undefined; // la URL "next" ya trae los parámetros
+    }
+    return rows;
+  }
+
+  /**
    * Parse Facebook actions to extract purchase conversions
    * @param {Array} actions - Facebook actions array
    * @returns {number}

@@ -805,6 +805,38 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Ventas por WhatsApp (canal reportado por el cliente) + clasificación de campañas por canal
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_whatsapp_sales (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        sale_date TEXT NOT NULL,
+        revenue REAL NOT NULL DEFAULT 0,
+        orders INTEGER DEFAULT 0,
+        notes TEXT,
+        source TEXT DEFAULT 'orbit',
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, sale_date)
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_campaign_channels (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        platform TEXT NOT NULL DEFAULT 'facebook',
+        campaign_id TEXT NOT NULL,
+        campaign_name TEXT,
+        channel TEXT NOT NULL CHECK(channel IN ('whatsapp', 'web')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, platform, campaign_id)
+      )
+    `);
+
     // WooCommerce (WordPress) credentials — misma lógica que Shopify, con consumer key/secret
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_woocommerce_credentials (
@@ -2374,6 +2406,10 @@ export const initializeDatabase = async () => {
         PRIMARY KEY (kind, run_key)
       )
     `);
+    // Canal WhatsApp en las métricas diarias: ventas reportadas y pauta de campañas de WhatsApp
+    await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS whatsapp_revenue REAL DEFAULT 0`);
+    await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS whatsapp_orders INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS fb_spend_whatsapp REAL DEFAULT 0`);
     // Canal por el que se envió cada recordatorio de cartera (email | whatsapp)
     await pool.query(`ALTER TABLE collection_reminders ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'email'`);
 

@@ -90,6 +90,7 @@ import orbitFeedbackRoutes from './src/routes/orbit-feedback.js';
 import newsRoutes from './src/routes/news.js';
 import whatsappRoutes from './src/routes/whatsapp.js';
 import whatsappWebhookRoutes from './src/routes/whatsapp-webhook.js';
+import whatsappSalesRoutes from './src/routes/whatsapp-sales.js';
 // Ad Creative Tagging
 import adTagRoutes from './src/routes/ad-tags.js';
 // Chat
@@ -301,6 +302,8 @@ app.use('/api/orbit-feedback', teamAuthMiddleware, orbitFeedbackRoutes);
 app.use('/api/news', teamAuthMiddleware, newsRoutes);
 // WhatsApp (Kapso): bandeja, envío y plantillas
 app.use('/api/whatsapp', teamAuthMiddleware, whatsappRoutes);
+// Ventas por WhatsApp (canal reportado) + campañas por canal
+app.use('/api/whatsapp-sales', teamAuthMiddleware, whatsappSalesRoutes);
 // Client Documents
 import clientDocumentsRoutes from './src/routes/client-documents.js';
 app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);

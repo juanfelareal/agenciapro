@@ -70,3 +70,18 @@ export async function getClientRevenueMetric(db, clientId) {
   ).get(clientId);
   return normalizeRevenueMetric(row?.portal_revenue_metric);
 }
+
+/** Venta reportada por WhatsApp de una fila diaria (canal fuera de la tienda). */
+export function dailyWhatsappRevenue(row) {
+  return parseFloat(row?.whatsapp_revenue) || 0;
+}
+
+/** Pauta de Meta atribuida a campañas de WhatsApp en una fila diaria. */
+export function dailyWhatsappSpend(row) {
+  return parseFloat(row?.fb_spend_whatsapp) || 0;
+}
+
+/** Venta de todos los canales (tienda según la métrica configurada + WhatsApp). */
+export function pickDailyDisplayRevenueAllChannels(metric, row) {
+  return pickDailyDisplayRevenue(metric, row) + dailyWhatsappRevenue(row);
+}

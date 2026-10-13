@@ -9,6 +9,9 @@ import express from 'express';
 import { getKapsoConfig, verifyKapsoSignature } from '../utils/kapsoClient.js';
 import { rememberWebhookEvent, handleInboundMessage, handleStatusEvent } from '../services/whatsappService.js';
 import { deliverPendingBriefings } from '../services/whatsappBriefings.js';
+import { parseWhatsappSalesMessage, upsertWhatsappSale } from '../services/whatsappSales.js';
+import { sendTextAndRecord } from '../services/whatsappService.js';
+import db from '../config/database.js';
 
 const router = express.Router();
 
@@ -26,12 +29,36 @@ const processEvent = async (eventName, payload) => {
     if (result?.phone) {
       const sent = await deliverPendingBriefings(getKapsoConfig().organizationId, result.phone).catch((e) => { console.error('[briefings]', e.message); return 0; });
       if (sent) result.pending_delivered = sent;
+      // Reporte de ventas por WhatsApp escrito por el cliente ("Ventas WhatsApp hoy: $1.250.000, 8 pedidos")
+      await maybeRecordWhatsappSales(result, payload).catch((e) => console.error('[whatsapp-sales intake]', e.message));
     }
     return result;
   }
   if (STATUS_EVENTS.has(eventName)) return handleStatusEvent(eventName, payload);
   return { ignored: eventName };
 };
+
+/**
+ * Si el mensaje entrante viene de un cliente con ficha en Orbit y tiene la forma
+ * "ventas whatsapp <fecha> <monto> <pedidos>", lo registra y responde con confirmación.
+ */
+async function maybeRecordWhatsappSales(result, payload) {
+  if (!result?.clientId) return;
+  const text = payload?.message?.text?.body || payload?.message?.kapso?.content || '';
+  const parsed = parseWhatsappSalesMessage(text);
+  if (!parsed) return;
+  const orgId = getKapsoConfig().organizationId;
+  const client = await db.get('SELECT id, name, company, nickname FROM clients WHERE id = ? AND organization_id = ?', [result.clientId, orgId]);
+  if (!client) return;
+  const saved = await upsertWhatsappSale({ clientId: client.id, orgId, date: parsed.date, revenue: parsed.revenue, orders: parsed.orders, notes: `Reportado por WhatsApp: "${text.slice(0, 140)}"`, source: 'whatsapp' });
+  const money = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+  const name = client.nickname || client.company || client.name;
+  await sendTextAndRecord({
+    orgId, to: result.phone, clientId: client.id,
+    body: `✅ Registrado en Orbit para *${name}*: ventas por WhatsApp del ${saved.date} por ${money(saved.revenue)}${saved.orders ? ` (${saved.orders} pedidos)` : ''}. Si hay un error, envía el dato corregido con la misma fecha y lo reemplazo.`,
+    context: { source: 'whatsapp-sales', date: saved.date },
+  });
+}
 
 // Verificación simple de que el endpoint está vivo (Kapso no usa GET challenge, pero sirve para probar)
 router.get('/', (req, res) => {

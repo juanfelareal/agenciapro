@@ -4,6 +4,7 @@ import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
 import { createStoreIntegration } from '../integrations/storeIntegration.js';
+import { recalcWhatsappSpend } from './whatsappSales.js';
 import { recordProductSalesFromOrders } from './clientFinancialsService.js';
 
 /**
@@ -593,6 +594,15 @@ export async function syncClientForDate(clientId, date) {
       await recordProductSalesFromOrders(clientId, client.organization_id, date, shopifyOrders, shopify);
     } catch (error) {
       console.error(`Error guardando ventas por producto para cliente ${clientId} en ${date}:`, error.message);
+    }
+  }
+
+  // Pauta de campañas de WhatsApp del día (para ROAS web vs WhatsApp)
+  if (hasFacebook && fbOk) {
+    try {
+      await recalcWhatsappSpend(clientId, date, date);
+    } catch (error) {
+      console.error(`Error calculando pauta WhatsApp para cliente ${clientId} en ${date}:`, error.response?.data?.error?.message || error.message);
     }
   }
 

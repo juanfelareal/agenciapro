@@ -305,6 +305,17 @@ export const collectionsAPI = {
   sendWhatsApp: (data) => api.post('/collections/send-whatsapp', data),
 };
 
+// Ventas por WhatsApp (canal reportado) + campañas de Meta por canal
+export const whatsappSalesAPI = {
+  get: (clientId, startDate, endDate) => api.get(`/whatsapp-sales/${clientId}`, { params: { start_date: startDate, end_date: endDate } }),
+  save: (clientId, data) => api.post(`/whatsapp-sales/${clientId}`, data),
+  bulk: (clientId, data) => api.post(`/whatsapp-sales/${clientId}/bulk`, data),
+  remove: (clientId, date) => api.delete(`/whatsapp-sales/${clientId}/${date}`),
+  campaigns: (clientId, startDate, endDate) => api.get(`/whatsapp-sales/${clientId}/campaigns`, { params: { start_date: startDate, end_date: endDate } }),
+  setCampaignChannel: (clientId, campaignId, data) => api.put(`/whatsapp-sales/${clientId}/campaigns/${campaignId}`, data),
+  recalculate: (clientId, startDate, endDate) => api.post(`/whatsapp-sales/${clientId}/recalculate`, { start_date: startDate, end_date: endDate }),
+};
+
 // WhatsApp (Kapso) API — bandeja, envío y plantillas
 export const whatsappAPI = {
   status: () => api.get('/whatsapp/status'),

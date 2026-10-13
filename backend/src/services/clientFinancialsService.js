@@ -328,7 +328,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   const [metricRows, salesRows, productRows, orphanRows] = isFuture ? [[], [], [], []] : await Promise.all([
     db.all(`
       SELECT metric_date, shopify_net_revenue, shopify_revenue, shopify_all_orders_revenue, shopify_orders,
-             fb_spend, ga_spend, tt_spend
+             fb_spend, ga_spend, tt_spend, whatsapp_revenue, whatsapp_orders, fb_spend_whatsapp
       FROM client_daily_metrics WHERE client_id = ? AND metric_date >= ? AND metric_date <= ?
     `, [clientId, start, effEnd]),
     db.all(`
@@ -376,12 +376,14 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   const daily = (isFuture ? [] : rangeDays(start, effEnd)).map((date) => {
     const m = metricsByDate.get(date) || {};
     const s = salesByDate.get(date) || {};
-    const revenue = num(m.shopify_net_revenue);
-    const revenue_confirmed = num(m.shopify_revenue);
-    const revenue_total = num(m.shopify_all_orders_revenue) || revenue_confirmed;
-    const orders = num(m.shopify_orders);
+    // Ventas por WhatsApp (reportadas): suman a la venta; su costo de producto se estima con la tasa por defecto
+    const revenue_whatsapp = num(m.whatsapp_revenue);
+    const revenue = num(m.shopify_net_revenue) + revenue_whatsapp;
+    const revenue_confirmed = num(m.shopify_revenue) + revenue_whatsapp;
+    const revenue_total = (num(m.shopify_all_orders_revenue) || num(m.shopify_revenue)) + revenue_whatsapp;
+    const orders = num(m.shopify_orders) + num(m.whatsapp_orders);
     const cogs_known = num(s.cogs_known);
-    const cogs_estimated = num(s.revenue_without_cost) * defaultRate;
+    const cogs_estimated = (num(s.revenue_without_cost) + revenue_whatsapp) * defaultRate;
     const cogs = cogs_known + cogs_estimated;
     const fb = num(m.fb_spend); const ga = num(m.ga_spend); const tt = num(m.tt_spend);
     const ad_spend = fb + ga + tt;
@@ -391,14 +393,15 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     const net_profit = gross_profit - ad_spend - variable_costs - fixed_costs;
     // Sin redondear: los totales y el acumulado se suman sobre estos valores y se redondean al final
     return {
-      date, revenue, revenue_total, revenue_confirmed, orders,
+      date, revenue, revenue_total, revenue_confirmed, orders, revenue_whatsapp,
+      ad_spend_whatsapp: Math.min(num(m.fb_spend_whatsapp), fb),
       units: num(s.units), cogs, cogs_estimated, gross_profit,
       ad_spend, ad_spend_by_source: { fb, ga, tt },
       variable_costs, fixed_costs, net_profit,
       has_sales_data: salesByDate.has(date),
     };
   });
-  const MONEY_KEYS = ['revenue', 'revenue_total', 'revenue_confirmed', 'cogs', 'cogs_estimated', 'gross_profit', 'ad_spend', 'variable_costs', 'fixed_costs', 'net_profit'];
+  const MONEY_KEYS = ['revenue', 'revenue_total', 'revenue_confirmed', 'revenue_whatsapp', 'ad_spend_whatsapp', 'cogs', 'cogs_estimated', 'gross_profit', 'ad_spend', 'variable_costs', 'fixed_costs', 'net_profit'];
   const roundDay = (d) => ({
     ...d,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, round(d[k])])),
@@ -416,6 +419,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   const sum = (k) => daily.reduce((s, d) => s + d[k], 0);
   const t = {
     revenue: sum('revenue'), revenue_total: sum('revenue_total'), revenue_confirmed: sum('revenue_confirmed'), orders: sum('orders'), units: sum('units'),
+    revenue_whatsapp: sum('revenue_whatsapp'), ad_spend_whatsapp: sum('ad_spend_whatsapp'),
     cogs: sum('cogs'), cogs_estimated: sum('cogs_estimated'), gross_profit: sum('gross_profit'), ad_spend: sum('ad_spend'),
     ad_spend_by_source: { fb: daily.reduce((s, d) => s + d.ad_spend_by_source.fb, 0), ga: daily.reduce((s, d) => s + d.ad_spend_by_source.ga, 0), tt: daily.reduce((s, d) => s + d.ad_spend_by_source.tt, 0) },
     variable_costs: sum('variable_costs'), fixed_costs: sum('fixed_costs'), net_profit: sum('net_profit'),
@@ -425,6 +429,10 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   t.margin = ratio(t.net_profit, t.revenue);
   t.mer = ratio(t.revenue, t.ad_spend);
   t.roas = t.mer;
+  // ROAS por canal: web (tienda / pauta sin WhatsApp) y WhatsApp (ventas WhatsApp / pauta WhatsApp)
+  t.roas_web = ratio(t.revenue - t.revenue_whatsapp, t.ad_spend - t.ad_spend_whatsapp);
+  t.roas_whatsapp = ratio(t.revenue_whatsapp, t.ad_spend_whatsapp);
+  t.whatsapp_share = ratio(t.revenue_whatsapp, t.revenue);
   t.cpa = ratio(t.ad_spend, t.orders);
   t.cogs_pct = ratio(t.cogs, t.revenue);
   t.ads_pct = ratio(t.ad_spend, t.revenue);

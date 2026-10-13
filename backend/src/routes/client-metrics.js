@@ -4,6 +4,7 @@ import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllC
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import { getStoreIntegration } from '../integrations/storeIntegration.js';
+import { dailyWhatsappRevenue, dailyWhatsappSpend } from '../utils/revenueMetric.js';
 import { withFacebookFallback } from '../utils/facebookClient.js';
 import { normalizeRevenueMetric, revenueMetricLabel, pickDisplayRevenue, pickDailyDisplayRevenue, dailyAdSpend } from '../utils/revenueMetric.js';
 
@@ -216,7 +217,10 @@ router.get('/:clientId', async (req, res) => {
         SUM(fb_landing_page_views) as total_landing_page_views,
         SUM(shopify_pending_orders) as total_pending_orders,
         SUM(COALESCE(shopify_all_orders_revenue, 0)) as total_all_orders_revenue,
-        SUM(COALESCE(shopify_all_orders_count, 0)) as total_all_orders_count
+        SUM(COALESCE(shopify_all_orders_count, 0)) as total_all_orders_count,
+        SUM(COALESCE(whatsapp_revenue, 0)) as total_whatsapp_revenue,
+        SUM(COALESCE(whatsapp_orders, 0)) as total_whatsapp_orders,
+        SUM(COALESCE(fb_spend_whatsapp, 0)) as total_whatsapp_ad_spend
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
     `).get(clientId, start_date, end_date);
@@ -247,9 +251,40 @@ router.get('/:clientId', async (req, res) => {
     const totalSessions = parseFloat(metrics.total_sessions) || 0;
 
     // Pick revenue based on the client's portal_revenue_metric setting (shared helper)
-    const displayRevenue = pickDisplayRevenue(revenueMetric, { total: totalRevenue, net: netRevenue, allOrders: allOrdersRevenue });
+    const webRevenue = pickDisplayRevenue(revenueMetric, { total: totalRevenue, net: netRevenue, allOrders: allOrdersRevenue });
+    // Canal WhatsApp: ventas reportadas por el cliente + pauta de campañas de WhatsApp.
+    // display_revenue = tienda + WhatsApp; roas = todos los canales; roas_web excluye la pauta de WhatsApp.
+    const whatsappRevenue = parseFloat(metrics.total_whatsapp_revenue) || 0;
+    const whatsappOrders = parseFloat(metrics.total_whatsapp_orders) || 0;
+    const whatsappAdSpend = Math.min(parseFloat(metrics.total_whatsapp_ad_spend) || 0, totalFbSpend);
+    const webAdSpend = totalAdSpend - whatsappAdSpend;
+    const displayRevenue = webRevenue + whatsappRevenue;
+    const hasWhatsapp = whatsappRevenue > 0 || whatsappOrders > 0 || whatsappAdSpend > 0;
 
     const result = {
+      channels: {
+        has_whatsapp: hasWhatsapp,
+        web_revenue: webRevenue,
+        web_orders: totalOrders,
+        web_ad_spend: webAdSpend,
+        roas_web: webAdSpend > 0 ? webRevenue / webAdSpend : 0,
+        whatsapp_revenue: whatsappRevenue,
+        whatsapp_orders: whatsappOrders,
+        whatsapp_ad_spend: whatsappAdSpend,
+        roas_whatsapp: whatsappAdSpend > 0 ? whatsappRevenue / whatsappAdSpend : 0,
+        total_revenue: displayRevenue,
+        total_orders: totalOrders + whatsappOrders,
+        total_ad_spend: totalAdSpend,
+        roas_total: totalAdSpend > 0 ? displayRevenue / totalAdSpend : 0,
+        whatsapp_share: displayRevenue > 0 ? whatsappRevenue / displayRevenue : 0,
+      },
+      web_revenue: webRevenue,
+      whatsapp_revenue: whatsappRevenue,
+      whatsapp_orders: whatsappOrders,
+      whatsapp_ad_spend: whatsappAdSpend,
+      web_ad_spend: webAdSpend,
+      roas_web: webAdSpend > 0 ? webRevenue / webAdSpend : 0,
+      roas_whatsapp: whatsappAdSpend > 0 ? whatsappRevenue / whatsappAdSpend : 0,
       ...metrics,
       total_revenue: totalRevenue,
       net_revenue: netRevenue,
@@ -264,9 +299,9 @@ router.get('/:clientId', async (req, res) => {
       revenue_label: revenueMetricLabel(revenueMetric),
       display_revenue: displayRevenue,
       roas: totalAdSpend > 0 ? displayRevenue / totalAdSpend : 0,
-      cost_per_order: totalOrders > 0 ? totalAdSpend / totalOrders : 0,
+      cost_per_order: (totalOrders + whatsappOrders) > 0 ? totalAdSpend / (totalOrders + whatsappOrders) : 0,
       ad_spend_percentage: displayRevenue > 0 ? (totalAdSpend / displayRevenue) * 100 : 0,
-      ticket_promedio: totalOrders > 0 ? displayRevenue / totalOrders : 0,
+      ticket_promedio: (totalOrders + whatsappOrders) > 0 ? displayRevenue / (totalOrders + whatsappOrders) : 0,
       cpm: totalFbSpend > 0 && totalImpressions > 0 ? (totalFbSpend / totalImpressions) * 1000 : 0,
       cost_per_purchase: totalConversions > 0 ? totalFbSpend / totalConversions : 0,
       // Google Ads breakdown
@@ -398,7 +433,10 @@ router.get('/:clientId/daily', async (req, res) => {
         shopify_conversion_rate,
         shopify_pending_orders,
         shopify_all_orders_revenue,
-        shopify_all_orders_count
+        shopify_all_orders_count,
+        whatsapp_revenue,
+        whatsapp_orders,
+        fb_spend_whatsapp
       FROM client_daily_metrics
       WHERE client_id = ? AND metric_date BETWEEN ? AND ?
       ORDER BY metric_date DESC
@@ -407,8 +445,11 @@ router.get('/:clientId/daily', async (req, res) => {
     // Enrich each day with the SAME revenue/ROAS definition the summary endpoints use,
     // so daily breakdowns always match the aggregated rows.
     const metrics = rows.map(row => {
-      const displayRevenue = pickDailyDisplayRevenue(revenueMetric, row);
+      const webRevenue = pickDailyDisplayRevenue(revenueMetric, row);
+      const waRevenue = dailyWhatsappRevenue(row);
       const adSpend = dailyAdSpend(row);
+      const waSpend = Math.min(dailyWhatsappSpend(row), adSpend);
+      const displayRevenue = webRevenue + waRevenue; // tienda + WhatsApp
       return {
         ...row,
         revenue_metric: revenueMetric,
@@ -416,6 +457,12 @@ router.get('/:clientId/daily', async (req, res) => {
         display_revenue: displayRevenue,
         display_ad_spend: adSpend,
         display_roas: adSpend > 0 ? displayRevenue / adSpend : 0,
+        web_revenue: webRevenue,
+        whatsapp_revenue: waRevenue,
+        whatsapp_ad_spend: waSpend,
+        web_ad_spend: adSpend - waSpend,
+        roas_web: (adSpend - waSpend) > 0 ? webRevenue / (adSpend - waSpend) : 0,
+        roas_whatsapp: waSpend > 0 ? waRevenue / waSpend : 0,
       };
     });
 
@@ -466,7 +513,10 @@ router.get('/aggregate/all', async (req, res) => {
         SUM(m.fb_landing_page_views) as total_landing_page_views,
         SUM(m.shopify_pending_orders) as total_pending_orders,
         SUM(COALESCE(m.shopify_all_orders_revenue, 0)) as total_all_orders_revenue,
-        SUM(COALESCE(m.shopify_all_orders_count, 0)) as total_all_orders_count
+        SUM(COALESCE(m.shopify_all_orders_count, 0)) as total_all_orders_count,
+        SUM(COALESCE(m.whatsapp_revenue, 0)) as total_whatsapp_revenue,
+        SUM(COALESCE(m.whatsapp_orders, 0)) as total_whatsapp_orders,
+        SUM(COALESCE(m.fb_spend_whatsapp, 0)) as total_whatsapp_ad_spend
       FROM clients c
       INNER JOIN client_daily_metrics m ON c.id = m.client_id
       LEFT JOIN client_portal_settings ps ON c.id = ps.client_id
@@ -493,10 +543,22 @@ router.get('/aggregate/all', async (req, res) => {
 
       // Pick the display revenue based on the client's portal_revenue_metric setting (shared helper)
       const revenueMetric = normalizeRevenueMetric(client.portal_revenue_metric);
-      const displayRevenue = pickDisplayRevenue(revenueMetric, { total: totalRevenue, net: netRevenue, allOrders: allOrdersRevenue });
+      const webRevenue = pickDisplayRevenue(revenueMetric, { total: totalRevenue, net: netRevenue, allOrders: allOrdersRevenue });
+      const whatsappRevenue = parseFloat(client.total_whatsapp_revenue) || 0;
+      const whatsappOrders = parseFloat(client.total_whatsapp_orders) || 0;
+      const whatsappAdSpend = Math.min(parseFloat(client.total_whatsapp_ad_spend) || 0, totalFbSpend);
+      const displayRevenue = webRevenue + whatsappRevenue; // tienda + WhatsApp
 
       return {
         ...client,
+        web_revenue: webRevenue,
+        whatsapp_revenue: whatsappRevenue,
+        whatsapp_orders: whatsappOrders,
+        whatsapp_ad_spend: whatsappAdSpend,
+        web_ad_spend: totalAdSpend - whatsappAdSpend,
+        roas_web: (totalAdSpend - whatsappAdSpend) > 0 ? webRevenue / (totalAdSpend - whatsappAdSpend) : 0,
+        roas_whatsapp: whatsappAdSpend > 0 ? whatsappRevenue / whatsappAdSpend : 0,
+        has_whatsapp: whatsappRevenue > 0 || whatsappAdSpend > 0,
         total_revenue: totalRevenue,
         net_revenue: netRevenue,
         total_all_orders_revenue: allOrdersRevenue,

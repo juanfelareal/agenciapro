@@ -6,6 +6,7 @@ import CollapsibleSection from '../../components/CollapsibleSection';
 import FacebookCampaignsBreakdown from '../../components/portal/FacebookCampaignsBreakdown';
 import PortalReportExport from '../../components/portal/PortalReportExport';
 import PortalEmailMarketingSection from '../../components/portal/PortalEmailMarketingSection';
+import PortalWhatsappSales from '../../components/portal/PortalWhatsappSales';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
   PieChart, Pie, Cell,
@@ -1306,6 +1307,9 @@ export default function PortalMetrics() {
               </div>
             </CollapsibleSection>
           )}
+
+          {/* Ventas por WhatsApp: el cliente registra lo que cierra por chat */}
+          <PortalWhatsappSales startDate={getApiParams().start_date} endDate={getApiParams().end_date} summary={metrics?.whatsapp || null} onChanged={loadMetrics} />
 
           {/* Shopify Metrics (colapsable, cerrado por defecto) */}
           {metrics?.shopify && (

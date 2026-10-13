@@ -104,7 +104,10 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         COALESCE(SUM(shopify_all_orders_revenue), 0) as total_all_orders_revenue,
         COALESCE(SUM(shopify_all_orders_count), 0) as total_all_orders_count,
         COALESCE(SUM(shopify_net_revenue), 0) as total_net_revenue,
-        COALESCE(SUM(shopify_refunds), 0) as total_refunds
+        COALESCE(SUM(shopify_refunds), 0) as total_refunds,
+        COALESCE(SUM(whatsapp_revenue), 0) as total_whatsapp_revenue,
+        COALESCE(SUM(whatsapp_orders), 0) as total_whatsapp_orders,
+        COALESCE(SUM(fb_spend_whatsapp), 0) as total_whatsapp_ad_spend
       FROM client_daily_metrics
       WHERE client_id = ?
         AND metric_date >= ?
@@ -494,6 +497,28 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
           margin_after_ads_change: calcChange(marginAfterAds, prevMarginAfterAds),
         }),
       };
+    }
+
+    // Canal WhatsApp (ventas reportadas por el cliente + pauta de campañas de WhatsApp)
+    {
+      const waRevenue = p(current?.total_whatsapp_revenue);
+      const waOrders = p(current?.total_whatsapp_orders);
+      const totalSpendAll = p(current?.total_ad_spend) + p(current?.total_google_spend || 0) + p(current?.total_tiktok_spend || 0);
+      const waSpend = Math.min(p(current?.total_whatsapp_ad_spend), totalSpendAll);
+      if (waRevenue > 0 || waOrders > 0 || waSpend > 0) {
+        const webRevenue = response.shopify?.revenue || 0;
+        response.whatsapp = {
+          revenue: waRevenue,
+          orders: waOrders,
+          ad_spend: waSpend,
+          roas: waSpend > 0 ? waRevenue / waSpend : 0,
+          web_ad_spend: totalSpendAll - waSpend,
+          roas_web: (totalSpendAll - waSpend) > 0 ? webRevenue / (totalSpendAll - waSpend) : 0,
+          total_revenue: webRevenue + waRevenue,
+          roas_total: totalSpendAll > 0 ? (webRevenue + waRevenue) / totalSpendAll : 0,
+          share: (webRevenue + waRevenue) > 0 ? waRevenue / (webRevenue + waRevenue) : 0,
+        };
+      }
     }
 
     res.json(response);

@@ -42,6 +42,7 @@ import { clientsAPI, clientMetricsAPI, adTagsAPI, platformCredentialsAPI, facebo
 import MetricCard from '../components/MetricCard';
 import MetricsTable from '../components/MetricsTable';
 import CollapsibleSection from '../components/CollapsibleSection';
+import WhatsappChannelPanel from '../components/metrics/WhatsappChannelPanel';
 import DashboardShareModal from '../components/DashboardShareModal';
 import EmailMarketingForm from '../components/EmailMarketingForm';
 import { revenueMetricLabel, pickDailyDisplayRevenue, pickDailyDisplayRoas } from '../utils/revenueMetric';
@@ -741,7 +742,8 @@ function ClientMetrics() {
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
-          title="ROAS"
+          title={metrics?.channels?.has_whatsapp ? 'ROAS (web + WhatsApp)' : 'ROAS'}
+          subtitle={metrics?.channels?.has_whatsapp ? `Web ${Number(metrics.channels.roas_web || 0).toFixed(2)}x · WhatsApp ${Number(metrics.channels.roas_whatsapp || 0).toFixed(2)}x` : undefined}
           value={metrics?.roas}
           icon={TrendingUp}
           iconBgColor="bg-purple-100"
@@ -807,6 +809,9 @@ function ClientMetrics() {
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
       </div>
+
+      {/* ============ CANALES: WEB + WHATSAPP ============ */}
+      <WhatsappChannelPanel clientId={clientId} startDate={dateRange.start} endDate={dateRange.end} onChanged={loadMetrics} />
 
       {/* ============ EMAIL MARKETING ============ */}
       <EmailMarketingForm clientId={clientId} />

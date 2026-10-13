@@ -18,7 +18,7 @@
  *   WHATSAPP_ALERT_MIN_SPEND       pauta mínima del día para evaluar alertas (default 50000)
  */
 import db from '../config/database.js';
-import { pickDailyDisplayRevenue, dailyAdSpend } from '../utils/revenueMetric.js';
+import { pickDailyDisplayRevenue, dailyAdSpend, dailyWhatsappRevenue, dailyWhatsappSpend } from '../utils/revenueMetric.js';
 import { getKapsoConfig, isKapsoConfigured, normalizeWaNumber, getApprovedTemplate } from '../utils/kapsoClient.js';
 import { sendTextAndRecord, sendTemplateAndRecord } from './whatsappService.js';
 
@@ -58,12 +58,16 @@ const brandName = (c) => c.nickname || c.company || c.name;
 // Datos: métricas por marca
 // ---------------------------------------------------------------------------
 const brandRow = (r) => {
-  const revenue = pickDailyDisplayRevenue(r.portal_revenue_metric, r);
+  const webRevenue = pickDailyDisplayRevenue(r.portal_revenue_metric, r);
+  const waRevenue = dailyWhatsappRevenue(r);
+  const revenue = webRevenue + waRevenue; // tienda + WhatsApp
   const spend = dailyAdSpend(r);
-  const orders = Number(r.shopify_orders) || 0;
+  const waSpend = Math.min(dailyWhatsappSpend(r), spend);
+  const orders = (Number(r.shopify_orders) || 0) + (Number(r.whatsapp_orders) || 0);
   return {
     id: r.id, name: brandName(r), growth: r.service_type === 'growth',
     revenue, spend, orders,
+    webRevenue, waRevenue, waSpend, webSpend: spend - waSpend,
     fb: Number(r.fb_spend) || 0, ga: Number(r.ga_spend) || 0, tt: Number(r.tt_spend) || 0,
     aov: orders ? revenue / orders : 0,
     cpo: orders && spend ? spend / orders : 0,
@@ -75,7 +79,7 @@ export const loadBrandMetrics = async (orgId, date) => {
   const rows = await db.all(`
     SELECT c.id, c.nickname, c.company, c.name, c.service_type, ps.portal_revenue_metric,
            m.shopify_revenue, m.shopify_net_revenue, m.shopify_all_orders_revenue, m.shopify_orders,
-           m.fb_spend, m.ga_spend, m.tt_spend
+           m.fb_spend, m.ga_spend, m.tt_spend, m.whatsapp_revenue, m.whatsapp_orders, m.fb_spend_whatsapp
     FROM clients c
     JOIN client_daily_metrics m ON m.client_id = c.id AND m.metric_date = ?
     LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
@@ -88,7 +92,7 @@ export const loadBrandMetrics = async (orgId, date) => {
 const loadBaselines = async (orgId, date, days = 14) => {
   const rows = await db.all(`
     SELECT c.id, ps.portal_revenue_metric, m.metric_date, m.shopify_revenue, m.shopify_net_revenue, m.shopify_all_orders_revenue,
-           m.shopify_orders, m.fb_spend, m.ga_spend, m.tt_spend
+           m.shopify_orders, m.fb_spend, m.ga_spend, m.tt_spend, m.whatsapp_revenue, m.whatsapp_orders, m.fb_spend_whatsapp
     FROM clients c
     JOIN client_daily_metrics m ON m.client_id = c.id AND m.metric_date >= ? AND m.metric_date < ?
     LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
@@ -117,15 +121,19 @@ const brandBlockFull = (b, prev) => {
   const mix = [b.fb ? `Meta ${money(b.fb)}` : null, b.ga ? `Google ${money(b.ga)}` : null, b.tt ? `TikTok ${money(b.tt)}` : null].filter(Boolean);
   lines.push(`Inversión en pauta: ${money(b.spend)}${mix.length > 1 ? ` (${mix.join(' · ')})` : ''}`);
   lines.push(`ROAS: ${roasStr(b.revenue, b.spend)}${b.cpo ? ` · costo por pedido ${money(b.cpo)}` : ''}`);
+  if (b.waRevenue > 0 || b.waSpend > 0) {
+    lines.push(`Web: ${money(b.webRevenue)} · pauta ${money(b.webSpend)} · ROAS ${roasStr(b.webRevenue, b.webSpend)}`);
+    lines.push(`WhatsApp: ${money(b.waRevenue)} · pauta ${money(b.waSpend)} · ROAS ${roasStr(b.waRevenue, b.waSpend)}`);
+  }
   return lines.join('\n');
 };
 
 const brandBlockShort = (b) => [
   `• *${b.name}*`,
-  `Venta neta: ${money(b.revenue)}`,
+  `Venta neta: ${money(b.revenue)}${b.waRevenue > 0 ? ` (web ${money(b.webRevenue)} + WhatsApp ${money(b.waRevenue)})` : ''}`,
   `Cantidad de pedidos: ${b.orders} ped.`,
   `Inversión en pauta: ${money(b.spend)}`,
-  `ROAS: ${roasStr(b.revenue, b.spend)}`,
+  `ROAS: ${roasStr(b.revenue, b.spend)}${b.waSpend > 0 ? ` (web ${roasStr(b.webRevenue, b.webSpend)} · WhatsApp ${roasStr(b.waRevenue, b.waSpend)})` : ''}`,
 ].join('\n');
 
 const totalBlock = (label, t) => [
