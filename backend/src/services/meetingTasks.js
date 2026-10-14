@@ -34,6 +34,7 @@ const DEFAULT_ALIASES = {
   'jose': ['jose', 'josé', 'roa', 'jose roa'],
 };
 
+const COMPOUND_FIRST = new Set(['maria', 'juan', 'jose', 'ana', 'luis', 'luisa']);
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 // ---------------------------------------------------------------------------
@@ -262,10 +263,21 @@ function resolveDate(fragment, baseIso) {
 
 function matchMember(members, fragment) {
   const f = norm(fragment);
+  // 1ª pasada: nombre completo o alias (p. ej. "juan felipe", "juanfe", "mapau")
+  let best = null;
   for (const m of members) {
-    if (m.aliases.some((a) => new RegExp(`\\b${norm(a)}\\b`).test(f))) return m;
+    const full = norm(m.name);
+    const hits = [full, ...m.aliases.map(norm)].filter((a) => a.length >= 3 && new RegExp(`\\b${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(f));
+    const len = Math.max(0, ...hits.map((h) => h.length));
+    if (len && (!best || len > best.len)) best = { m, len };
+  }
+  if (best) return best.m;
+  // 2ª pasada: primer nombre, solo si es inequívoco en el equipo
+  for (const m of members) {
     const first = norm(m.name).split(' ')[0];
-    if (first.length > 3 && new RegExp(`\\b${first}\\b`).test(f)) return m;
+    if (first.length <= 3 || COMPOUND_FIRST.has(first)) continue;
+    if (members.filter((x) => norm(x.name).split(' ')[0] === first).length > 1) continue;
+    if (new RegExp(`\\b${first}\\b`).test(f)) return m;
   }
   return null;
 }
@@ -279,15 +291,24 @@ function matchArea(members, fragment) {
 }
 function matchClient(clients, fragment) {
   const f = norm(fragment);
-  let best = null;
   const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const GENERIC = new Set(['casa', 'mundo', 'personal', 'snacks', 'shop', 'tienda', 'santi', 'detalles', 'origen']);
+  const GENERIC = new Set(['casa', 'mundo', 'personal', 'snacks', 'shop', 'tienda', 'santi', 'detalles', 'origen', 'colombia']);
+  // Solo apodo (nickname) y empresa; `name` suele ser la persona de contacto. El apodo pesa más que la empresa.
+  let best = null;
   for (const c of clients) {
-    const names = [c.nickname, c.company, c.name].filter(Boolean);
-    const variants = new Set();
-    for (const nm of names) { const n = norm(nm); if (n.length >= 4 && n !== 'la real') variants.add(n); const w = n.split(/\s+/)[0]; if (w.length >= 5 && !GENERIC.has(w)) variants.add(w); }
-    for (const n of variants) {
-      if (new RegExp(`\\b${esc(n)}\\b`).test(f) && (!best || n.length > best.len)) best = { c, len: n.length };
+    const sources = [[c.nickname, 2], [c.company, 1]];
+    for (const [nm, weight] of sources) {
+      if (!nm) continue;
+      const n = norm(nm);
+      const variants = new Set();
+      if (n.length >= 4 && n !== 'la real') variants.add(n);
+      const w = n.split(/\s+/)[0];
+      if (w.length >= 5 && !GENERIC.has(w)) variants.add(w);
+      for (const v of variants) {
+        if (!new RegExp(`\\b${esc(v)}\\b`).test(f)) continue;
+        const score = v.length * 10 + weight;
+        if (!best || score > best.score) best = { c, score };
+      }
     }
   }
   return best?.c || null;
@@ -374,7 +395,6 @@ const fmtDay = (iso) => {
   const d = new Date(`${iso}T12:00:00`);
   return d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', '');
 };
-const COMPOUND_FIRST = new Set(['maria', 'juan', 'jose', 'ana', 'luis', 'luisa']);
 const firstName = (name) => {
   if (!name) return null;
   const parts = name.trim().split(/\s+/);
@@ -383,7 +403,7 @@ const firstName = (name) => {
 
 export function formatProposal(intake) {
   const active = intake.tasks.filter((t) => !t.removed);
-  const lines = [`📋 *${intake.meeting_title}*${intake.meeting_date ? ` · ${fmtDay(intake.meeting_date)}` : ''}`];
+  const lines = [`📋 *${intake.title || intake.meeting_title || 'Reunión'}*${intake.meeting_date ? ` · ${fmtDay(intake.meeting_date)}` : ''}`];
   if (intake.summary) lines.push(`_${intake.summary.slice(0, 300)}_`);
   lines.push('');
   if (!active.length) {
