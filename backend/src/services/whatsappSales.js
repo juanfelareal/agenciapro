@@ -15,6 +15,12 @@ import { withFacebookFallback } from '../utils/facebookClient.js';
 const num = (v) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
 const isoDate = (v) => String(v || '').slice(0, 10);
 
+/** La función se habilita por cliente en Configuración (client_portal_settings.whatsapp_sales_enabled). */
+export async function isWhatsappSalesEnabled(clientId) {
+  const row = await db.get('SELECT whatsapp_sales_enabled FROM client_portal_settings WHERE client_id = ?', [clientId]);
+  return Number(row?.whatsapp_sales_enabled) === 1;
+}
+
 // ---------------------------------------------------------------------------
 // Clasificación de campañas
 // ---------------------------------------------------------------------------
@@ -285,6 +291,6 @@ export function parseWhatsappSalesMessage(text, { today = new Date().toLocaleDat
 }
 
 export default {
-  classifyCampaign, getCampaignOverrides, setCampaignChannel, getCampaignChannels, recalcWhatsappSpend,
+  isWhatsappSalesEnabled, classifyCampaign, getCampaignOverrides, setCampaignChannel, getCampaignChannels, recalcWhatsappSpend,
   upsertWhatsappSale, distributeWhatsappSales, deleteWhatsappSale, listWhatsappSales, channelSummary, parseWhatsappSalesMessage,
 };

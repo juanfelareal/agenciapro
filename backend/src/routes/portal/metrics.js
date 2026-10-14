@@ -65,7 +65,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
 
     // Get portal revenue metric setting
     const portalSettings = await db.get(
-      'SELECT portal_revenue_metric FROM client_portal_settings WHERE client_id = ?',
+      'SELECT portal_revenue_metric, whatsapp_sales_enabled FROM client_portal_settings WHERE client_id = ?',
       [clientId]
     );
     const revenueMetric = portalSettings?.portal_revenue_metric || 'confirmed';
@@ -311,6 +311,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       period: { start_date: startDate, end_date: endDate },
       has_comparison: hasComparison,
       revenue_metric: revenueMetric,
+      whatsapp_sales_enabled: Number(portalSettings?.whatsapp_sales_enabled) === 1,
       last_sync_at: lastSyncAt,
       connected_platforms: {
         facebook: facebookAccounts,
@@ -505,7 +506,7 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
       const waOrders = p(current?.total_whatsapp_orders);
       const totalSpendAll = p(current?.total_ad_spend) + p(current?.total_google_spend || 0) + p(current?.total_tiktok_spend || 0);
       const waSpend = Math.min(p(current?.total_whatsapp_ad_spend), totalSpendAll);
-      if (waRevenue > 0 || waOrders > 0 || waSpend > 0) {
+      if (Number(portalSettings?.whatsapp_sales_enabled) === 1 && (waRevenue > 0 || waOrders > 0 || waSpend > 0)) {
         const webRevenue = response.shopify?.revenue || 0;
         response.whatsapp = {
           revenue: waRevenue,

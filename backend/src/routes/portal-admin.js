@@ -91,7 +91,8 @@ router.put('/clients/:id/settings', async (req, res) => {
       can_download_files,
       welcome_message,
       portal_revenue_metric,
-      dashboard_template
+      dashboard_template,
+      whatsapp_sales_enabled
     } = req.body;
 
     // Check client exists and belongs to org
@@ -127,6 +128,7 @@ router.put('/clients/:id/settings', async (req, res) => {
           welcome_message = COALESCE(?, welcome_message),
           portal_revenue_metric = COALESCE(?, portal_revenue_metric),
           dashboard_template = COALESCE(?, dashboard_template),
+          whatsapp_sales_enabled = COALESCE(?, whatsapp_sales_enabled),
           updated_at = CURRENT_TIMESTAMP
         WHERE client_id = ?
       `, [
@@ -134,7 +136,7 @@ router.put('/clients/:id/settings', async (req, res) => {
         toInt(can_view_payment_proofs), toInt(can_view_metrics), toInt(can_view_reports), toInt(can_view_calls),
         toInt(can_view_forms), toInt(can_view_ugc), toInt(can_view_documents),
         toInt(can_approve_tasks), toInt(can_comment_tasks), toInt(can_view_team), toInt(can_download_files),
-        welcome_message, portal_revenue_metric || null, dashboard_template || null, id
+        welcome_message, portal_revenue_metric || null, dashboard_template || null, toInt(whatsapp_sales_enabled), id
       ]);
     } else {
       await db.run(`
@@ -143,15 +145,15 @@ router.put('/clients/:id/settings', async (req, res) => {
           can_view_payment_proofs, can_view_metrics, can_view_reports, can_view_calls,
           can_view_forms, can_view_ugc, can_view_documents,
           can_approve_tasks, can_comment_tasks, can_view_team, can_download_files,
-          welcome_message, portal_revenue_metric, dashboard_template
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          welcome_message, portal_revenue_metric, dashboard_template, whatsapp_sales_enabled
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         id,
         toInt(can_view_dashboard) ?? 1, toInt(can_view_projects) ?? 1, toInt(can_view_tasks) ?? 1, toInt(can_view_invoices) ?? 1,
         toInt(can_view_payment_proofs) ?? 1, toInt(can_view_metrics) ?? 1, toInt(can_view_reports) ?? 1, toInt(can_view_calls) ?? 1,
         toInt(can_view_forms) ?? 1, toInt(can_view_ugc) ?? 0, toInt(can_view_documents) ?? 1,
         toInt(can_approve_tasks) ?? 1, toInt(can_comment_tasks) ?? 1, toInt(can_view_team) ?? 0, toInt(can_download_files) ?? 1,
-        welcome_message ?? null, portal_revenue_metric || 'confirmed', dashboard_template || null
+        welcome_message ?? null, portal_revenue_metric || 'confirmed', dashboard_template || null, toInt(whatsapp_sales_enabled) ?? 0
       ]);
     }
 

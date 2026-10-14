@@ -176,7 +176,7 @@ router.get('/:clientId', async (req, res) => {
 
     // Verify client belongs to org and get revenue metric setting
     const client = await db.prepare(`
-      SELECT c.id, ps.portal_revenue_metric
+      SELECT c.id, ps.portal_revenue_metric, ps.whatsapp_sales_enabled
       FROM clients c
       LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
       WHERE c.id = ? AND c.organization_id = ?
@@ -185,6 +185,7 @@ router.get('/:clientId', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
     const revenueMetric = normalizeRevenueMetric(client.portal_revenue_metric);
+    const whatsappSalesEnabled = Number(client.whatsapp_sales_enabled) === 1;
 
     const metrics = await db.prepare(`
       SELECT
@@ -262,7 +263,9 @@ router.get('/:clientId', async (req, res) => {
     const hasWhatsapp = whatsappRevenue > 0 || whatsappOrders > 0 || whatsappAdSpend > 0;
 
     const result = {
+      whatsapp_sales_enabled: whatsappSalesEnabled,
       channels: {
+        enabled: whatsappSalesEnabled,
         has_whatsapp: hasWhatsapp,
         web_revenue: webRevenue,
         web_orders: totalOrders,

@@ -9,7 +9,7 @@ import express from 'express';
 import { getKapsoConfig, verifyKapsoSignature } from '../utils/kapsoClient.js';
 import { rememberWebhookEvent, handleInboundMessage, handleStatusEvent } from '../services/whatsappService.js';
 import { deliverPendingBriefings } from '../services/whatsappBriefings.js';
-import { parseWhatsappSalesMessage, upsertWhatsappSale } from '../services/whatsappSales.js';
+import { parseWhatsappSalesMessage, upsertWhatsappSale, isWhatsappSalesEnabled } from '../services/whatsappSales.js';
 import { sendTextAndRecord } from '../services/whatsappService.js';
 import db from '../config/database.js';
 
@@ -44,6 +44,7 @@ const processEvent = async (eventName, payload) => {
  */
 async function maybeRecordWhatsappSales(result, payload) {
   if (!result?.clientId) return;
+  if (!(await isWhatsappSalesEnabled(result.clientId))) return;
   const text = payload?.message?.text?.body || payload?.message?.kapso?.content || '';
   const parsed = parseWhatsappSalesMessage(text);
   if (!parsed) return;

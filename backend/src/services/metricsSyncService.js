@@ -4,7 +4,7 @@ import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
 import { createStoreIntegration } from '../integrations/storeIntegration.js';
-import { recalcWhatsappSpend } from './whatsappSales.js';
+import { recalcWhatsappSpend, isWhatsappSalesEnabled } from './whatsappSales.js';
 import { recordProductSalesFromOrders } from './clientFinancialsService.js';
 
 /**
@@ -598,7 +598,7 @@ export async function syncClientForDate(clientId, date) {
   }
 
   // Pauta de campañas de WhatsApp del día (para ROAS web vs WhatsApp)
-  if (hasFacebook && fbOk) {
+  if (hasFacebook && fbOk && await isWhatsappSalesEnabled(clientId)) {
     try {
       await recalcWhatsappSpend(clientId, date, date);
     } catch (error) {

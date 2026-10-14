@@ -5,10 +5,14 @@
 import express from 'express';
 import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
-import { listWhatsappSales, upsertWhatsappSale, distributeWhatsappSales, deleteWhatsappSale, channelSummary } from '../../services/whatsappSales.js';
+import { listWhatsappSales, upsertWhatsappSale, distributeWhatsappSales, deleteWhatsappSale, channelSummary, isWhatsappSalesEnabled } from '../../services/whatsappSales.js';
 
 const router = express.Router();
 const guard = [clientAuthMiddleware, requirePortalPermission('can_view_metrics')];
+const requireEnabled = async (req, res, next) => {
+  if (!(await isWhatsappSalesEnabled(req.client.id))) return res.status(403).json({ error: 'Ventas por WhatsApp no está habilitado para tu cuenta' });
+  next();
+};
 
 const range = (q) => {
   const start = String(q.start_date || q.startDate || '').slice(0, 10);
@@ -16,7 +20,7 @@ const range = (q) => {
   return start && end ? { start, end } : null;
 };
 
-router.get('/', ...guard, async (req, res) => {
+router.get('/', ...guard, requireEnabled, async (req, res) => {
   try {
     const clientId = req.client.id;
     const r = range(req.query) || (() => {
@@ -30,7 +34,7 @@ router.get('/', ...guard, async (req, res) => {
   }
 });
 
-router.post('/', ...guard, async (req, res) => {
+router.post('/', ...guard, requireEnabled, async (req, res) => {
   try {
     const clientId = req.client.id;
     const org = await db.get('SELECT organization_id FROM clients WHERE id = ?', [clientId]);
@@ -46,7 +50,7 @@ router.post('/', ...guard, async (req, res) => {
   }
 });
 
-router.delete('/:date', ...guard, async (req, res) => {
+router.delete('/:date', ...guard, requireEnabled, async (req, res) => {
   try {
     res.json(await deleteWhatsappSale(req.client.id, req.params.date));
   } catch (error) {

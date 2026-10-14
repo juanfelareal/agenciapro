@@ -13,7 +13,8 @@ import {
   Trash2,
   Loader2,
   Check,
-  Video
+  Video,
+  MessageCircle
 } from 'lucide-react';
 import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, woocommerceAuthAPI, portalAdminAPI } from '../utils/api';
 
@@ -83,6 +84,8 @@ function ClientPlatformSettings() {
 
   // Portal UGC visibility
   const [canViewUgc, setCanViewUgc] = useState(false);
+  const [whatsappSalesEnabled, setWhatsappSalesEnabled] = useState(false);
+  const [savingWhatsappSales, setSavingWhatsappSales] = useState(false);
   const [savingUgc, setSavingUgc] = useState(false);
 
 
@@ -172,6 +175,7 @@ function ClientPlatformSettings() {
           setPortalRevenueMetric(portalRes.settings.portal_revenue_metric);
         }
         setCanViewUgc(!!portalRes.settings?.can_view_ugc);
+        setWhatsappSalesEnabled(!!portalRes.settings?.whatsapp_sales_enabled);
       } catch (e) {
         // Settings may not exist yet, use default
       }
@@ -193,6 +197,20 @@ function ClientPlatformSettings() {
       alert('Error al guardar configuración');
     } finally {
       setSavingRevenueMetric(false);
+    }
+  };
+
+  const toggleWhatsappSales = async () => {
+    setSavingWhatsappSales(true);
+    try {
+      const newValue = !whatsappSalesEnabled;
+      await portalAdminAPI.updateSettings(clientId, { whatsapp_sales_enabled: newValue });
+      setWhatsappSalesEnabled(newValue);
+    } catch (error) {
+      console.error('Error saving WhatsApp sales setting:', error);
+      alert('Error al guardar configuración');
+    } finally {
+      setSavingWhatsappSales(false);
     }
   };
 
@@ -1419,6 +1437,48 @@ function ClientPlatformSettings() {
             >
               {savingRevenueMetric ? 'Guardando...' : 'Guardar'}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Canal de ventas por WhatsApp (por cliente) */}
+      <div className="glass rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-gray-900">Ventas por WhatsApp</h2>
+              <p className="text-sm text-gray-500">Para marcas que cierran ventas por chat: suma ese canal a las ventas y separa su pauta</p>
+            </div>
+          </div>
+          <button
+            onClick={toggleWhatsappSales}
+            disabled={savingWhatsappSales}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D7F653] focus:ring-offset-2 flex-shrink-0 ${
+              whatsappSalesEnabled ? 'bg-[#17181A]' : 'bg-gray-300'
+            } ${savingWhatsappSales ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${whatsappSalesEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className={`p-4 rounded-lg ${whatsappSalesEnabled ? 'bg-green-50' : 'bg-gray-50'}`}>
+            {whatsappSalesEnabled ? (
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">Canal WhatsApp activo para este cliente</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-gray-500">
+                <XCircle className="w-5 h-5" />
+                <span className="font-medium">Canal WhatsApp desactivado</span>
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-2 ml-7">
+              Al activarlo aparece la sección "Canales de venta: Web y WhatsApp" en Métricas, el cliente puede registrar sus ventas por WhatsApp desde el portal o escribiendo al número de LA REAL, y las campañas de Meta de WhatsApp se separan para calcular el ROAS web real.
+            </p>
           </div>
         </div>
       </div>

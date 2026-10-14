@@ -742,8 +742,8 @@ function ClientMetrics() {
           changeLabel={compareMode ? 'vs anterior' : ''}
         />
         <MetricCard
-          title={metrics?.channels?.has_whatsapp ? 'ROAS (web + WhatsApp)' : 'ROAS'}
-          subtitle={metrics?.channels?.has_whatsapp ? `Web ${Number(metrics.channels.roas_web || 0).toFixed(2)}x · WhatsApp ${Number(metrics.channels.roas_whatsapp || 0).toFixed(2)}x` : undefined}
+          title={metrics?.whatsapp_sales_enabled && metrics?.channels?.has_whatsapp ? 'ROAS (web + WhatsApp)' : 'ROAS'}
+          subtitle={metrics?.whatsapp_sales_enabled && metrics?.channels?.has_whatsapp ? `Web ${Number(metrics.channels.roas_web || 0).toFixed(2)}x · WhatsApp ${Number(metrics.channels.roas_whatsapp || 0).toFixed(2)}x` : undefined}
           value={metrics?.roas}
           icon={TrendingUp}
           iconBgColor="bg-purple-100"
@@ -811,7 +811,9 @@ function ClientMetrics() {
       </div>
 
       {/* ============ CANALES: WEB + WHATSAPP ============ */}
-      <WhatsappChannelPanel clientId={clientId} startDate={dateRange.start} endDate={dateRange.end} onChanged={loadMetrics} />
+      {metrics?.whatsapp_sales_enabled && (
+        <WhatsappChannelPanel clientId={clientId} startDate={dateRange.start} endDate={dateRange.end} onChanged={loadMetrics} />
+      )}
 
       {/* ============ EMAIL MARKETING ============ */}
       <EmailMarketingForm clientId={clientId} />

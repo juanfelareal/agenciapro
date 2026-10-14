@@ -1309,7 +1309,9 @@ export default function PortalMetrics() {
           )}
 
           {/* Ventas por WhatsApp: el cliente registra lo que cierra por chat */}
-          <PortalWhatsappSales startDate={getApiParams().start_date} endDate={getApiParams().end_date} summary={metrics?.whatsapp || null} onChanged={loadMetrics} />
+          {metrics?.whatsapp_sales_enabled && (
+            <PortalWhatsappSales startDate={getApiParams().start_date} endDate={getApiParams().end_date} summary={metrics?.whatsapp || null} onChanged={loadMetrics} />
+          )}
 
           {/* Shopify Metrics (colapsable, cerrado por defecto) */}
           {metrics?.shopify && (
