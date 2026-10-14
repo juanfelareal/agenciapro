@@ -2430,6 +2430,27 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Reuniones → tareas: celular del equipo (para identificar quién escribe por WhatsApp) y propuestas
+    await pool.query(`ALTER TABLE team_members ADD COLUMN IF NOT EXISTS phone TEXT`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS meeting_intakes (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        team_member_id INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        phone TEXT,
+        source TEXT DEFAULT 'whatsapp',
+        title TEXT,
+        meeting_date TEXT,
+        transcript TEXT,
+        summary TEXT,
+        tasks TEXT,
+        status TEXT DEFAULT 'proposed',
+        created_task_ids TEXT,
+        confirmed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     // Clientes privados: JSON con ids de team_members que pueden ver el cliente (null = todos)
     await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS visible_to_member_ids TEXT`);
     // Alcances OAuth de Shopify por cliente (null = los estándar de solo lectura)

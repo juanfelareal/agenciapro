@@ -330,6 +330,14 @@ export const whatsappAPI = {
   sendTemplate: (data) => api.post('/whatsapp/send-template', data),
   templates: (refresh) => api.get('/whatsapp/templates', { params: refresh ? { refresh: 1 } : {} }),
   contacts: (q) => api.get('/whatsapp/contacts', { params: q ? { q } : {} }),
+  // Reuniones → tareas
+  meetings: (params) => api.get('/whatsapp/meetings', { params }),
+  meeting: (id) => api.get(`/whatsapp/meetings/${id}`),
+  createMeeting: (data) => api.post('/whatsapp/meetings', data),
+  saveMeetingTasks: (id, tasks) => api.put(`/whatsapp/meetings/${id}/tasks`, { tasks }),
+  correctMeeting: (id, instruction) => api.post(`/whatsapp/meetings/${id}/correct`, { instruction }),
+  confirmMeeting: (id) => api.post(`/whatsapp/meetings/${id}/confirm`),
+  cancelMeeting: (id) => api.post(`/whatsapp/meetings/${id}/cancel`),
 };
 
 // Expenses API

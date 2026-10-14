@@ -10,6 +10,7 @@ import { getKapsoConfig, verifyKapsoSignature } from '../utils/kapsoClient.js';
 import { rememberWebhookEvent, handleInboundMessage, handleStatusEvent } from '../services/whatsappService.js';
 import { deliverPendingBriefings } from '../services/whatsappBriefings.js';
 import { parseWhatsappSalesMessage, upsertWhatsappSale, isWhatsappSalesEnabled } from '../services/whatsappSales.js';
+import { handleWhatsappMessage as handleMeetingMessage } from '../services/meetingTasks.js';
 import { sendTextAndRecord } from '../services/whatsappService.js';
 import db from '../config/database.js';
 
@@ -29,8 +30,10 @@ const processEvent = async (eventName, payload) => {
     if (result?.phone) {
       const sent = await deliverPendingBriefings(getKapsoConfig().organizationId, result.phone).catch((e) => { console.error('[briefings]', e.message); return 0; });
       if (sent) result.pending_delivered = sent;
+      // Equipo: transcripción de reunión → propuesta de tareas (o registro "soy <nombre>")
+      const handled = await maybeHandleTeamMeeting(result, payload).catch((e) => { console.error('[meetings]', e.message); return false; });
       // Reporte de ventas por WhatsApp escrito por el cliente ("Ventas WhatsApp hoy: $1.250.000, 8 pedidos")
-      await maybeRecordWhatsappSales(result, payload).catch((e) => console.error('[whatsapp-sales intake]', e.message));
+      if (!handled) await maybeRecordWhatsappSales(result, payload).catch((e) => console.error('[whatsapp-sales intake]', e.message));
     }
     return result;
   }
@@ -59,6 +62,17 @@ async function maybeRecordWhatsappSales(result, payload) {
     body: `✅ Registrado en Orbit para *${name}*: ventas por WhatsApp del ${saved.date} por ${money(saved.revenue)}${saved.orders ? ` (${saved.orders} pedidos)` : ''}. Si hay un error, envía el dato corregido con la misma fecha y lo reemplazo.`,
     context: { source: 'whatsapp-sales', date: saved.date },
   });
+}
+
+/** Mensajes del equipo: reuniones → tareas. Devuelve true si respondió. */
+async function maybeHandleTeamMeeting(result, payload) {
+  const orgId = getKapsoConfig().organizationId;
+  const message = payload?.message;
+  const text = message?.text?.body || message?.kapso?.content || '';
+  const out = await handleMeetingMessage({ orgId, phone: result.phone, text, message });
+  if (!out?.reply) return false;
+  await sendTextAndRecord({ orgId, to: result.phone, body: out.reply, context: { source: 'meetings' } });
+  return true;
 }
 
 // Verificación simple de que el endpoint está vivo (Kapso no usa GET challenge, pero sirve para probar)

@@ -116,6 +116,7 @@ const Team = () => {
     email: '',
     role: 'member',
     position: '',
+    phone: '',
     status: 'active',
     hire_date: '',
     birthday: '',
@@ -172,6 +173,7 @@ const Team = () => {
       email: member.email,
       role: member.role,
       position: member.position || '',
+      phone: member.phone || '',
       status: member.status,
       hire_date: member.hire_date || '',
       birthday: member.birthday || '',
@@ -199,6 +201,7 @@ const Team = () => {
       email: '',
       role: 'member',
       position: '',
+      phone: '',
       status: 'active',
       hire_date: '',
       birthday: '',
@@ -467,6 +470,16 @@ const Team = () => {
                     className="w-full border rounded-lg px-3 py-2"
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Celular (WhatsApp)</label>
+                  <input
+                    type="tel"
+                    className="w-full border rounded-lg px-3 py-2"
+                    placeholder="573001234567"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </div>
                 <div>

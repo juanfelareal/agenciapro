@@ -37,6 +37,7 @@ import Collections from './pages/Collections';
 import OrbitFeedback from './pages/OrbitFeedback';
 import News from './pages/News';
 import WhatsAppInbox from './pages/WhatsAppInbox';
+import Meetings from './pages/Meetings';
 import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
@@ -327,6 +328,14 @@ function App() {
                   element={
                     <ProtectedRoute permission="clients">
                       <WhatsAppInbox />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="reuniones"
+                  element={
+                    <ProtectedRoute permission="tasks">
+                      <Meetings />
                     </ProtectedRoute>
                   }
                 />

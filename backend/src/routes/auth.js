@@ -481,7 +481,8 @@ router.get('/me', teamAuthMiddleware, async (req, res) => {
         role: req.teamMember.role,
         position: req.teamMember.position,
         permissions: req.teamMember.permissions,
-        avatar_url: req.user?.avatar_url || null
+        avatar_url: req.user?.avatar_url || null,
+        phone: (await db.get('SELECT phone FROM team_members WHERE id = ?', [req.teamMember.id]))?.phone || null
       },
       current_org: req.currentOrg || null,
       organizations

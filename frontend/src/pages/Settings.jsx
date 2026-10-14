@@ -70,6 +70,7 @@ const Settings = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileName, setProfileName] = useState(user?.name || '');
   const [profilePosition, setProfilePosition] = useState(user?.position || '');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '');
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
 
@@ -81,7 +82,7 @@ const Settings = () => {
     setProfileLoading(true);
     setProfileMessage(null);
     try {
-      await teamAPI.updateProfile({ name: profileName, position: profilePosition });
+      await teamAPI.updateProfile({ name: profileName, position: profilePosition, phone: profilePhone });
       await checkAuth();
       setIsEditingProfile(false);
       setProfileMessage({ type: 'success', text: 'Perfil actualizado' });
@@ -96,6 +97,7 @@ const Settings = () => {
   const cancelEditProfile = () => {
     setProfileName(user?.name || '');
     setProfilePosition(user?.position || '');
+    setProfilePhone(user?.phone || '');
     setIsEditingProfile(false);
     setProfileMessage(null);
   };
@@ -260,6 +262,21 @@ const Settings = () => {
             ) : (
               <p className="text-sm font-medium text-[#17181A]">{user?.position || '-'}</p>
             )}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Celular (WhatsApp)</label>
+            {isEditingProfile ? (
+              <input
+                type="tel"
+                value={profilePhone}
+                onChange={(e) => setProfilePhone(e.target.value)}
+                placeholder="Ej: 573001234567"
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
+              />
+            ) : (
+              <p className="text-sm font-medium text-[#17181A]">{user?.phone ? `+${user.phone}` : '-'}</p>
+            )}
+            <p className="text-[11px] text-gray-400 mt-1">Con indicativo del país. Sirve para que Orbit te reconozca cuando le escribes al WhatsApp de LA REAL (reuniones → tareas).</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Rol</label>

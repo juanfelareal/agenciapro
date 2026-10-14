@@ -158,7 +158,7 @@ router.put('/org-logo', teamAuthMiddleware, requireAdmin, async (req, res) => {
  */
 router.put('/profile', teamAuthMiddleware, async (req, res) => {
   try {
-    const { name, position } = req.body;
+    const { name, position, phone } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'El nombre es requerido' });
@@ -169,8 +169,8 @@ router.put('/profile', teamAuthMiddleware, async (req, res) => {
 
     // Update team_member record
     await db.run(
-      'UPDATE team_members SET name = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [trimmedName, trimmedPosition, req.teamMember.id]
+      'UPDATE team_members SET name = ?, position = ?, phone = CASE WHEN ? THEN ? ELSE phone END, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [trimmedName, trimmedPosition, phone !== undefined, phone === undefined ? null : (String(phone || '').replace(/\D/g, '') || null), req.teamMember.id]
     );
 
     // Also update the users table name if user_id exists
@@ -391,7 +391,7 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
 // Update team member (org-scoped)
 router.put('/:id', teamAuthMiddleware, async (req, res) => {
   try {
-    const { name, email, role, position, status, hire_date, birthday, permissions, avatar_url } = req.body;
+    const { name, email, role, position, status, hire_date, birthday, permissions, avatar_url, phone } = req.body;
 
     // Verify member belongs to this org
     const existing = await db.get(
@@ -416,11 +416,13 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
     await db.run(`
       UPDATE team_members
       SET name = ?, email = ?, role = ?, position = ?, status = ?,
-          hire_date = ?, birthday = ?, permissions = ?, updated_at = CURRENT_TIMESTAMP
+          hire_date = ?, birthday = ?, permissions = ?,
+          phone = CASE WHEN ? THEN ? ELSE phone END, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
     `, [
       name, emailLower, role, position, status,
       hire_date, birthday, permissions ? JSON.stringify(permissions) : null,
+      phone !== undefined, phone === undefined ? null : (String(phone || '').replace(/\D/g, '') || null),
       req.params.id, req.orgId
     ]);
 

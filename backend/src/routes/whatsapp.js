@@ -23,6 +23,7 @@ import {
   matchClientByPhone,
 } from '../services/whatsappService.js';
 import { sendBriefing, buildMorningReport, buildNoonReport, buildTasksReport, buildAlertsReport } from '../services/whatsappBriefings.js';
+import * as meetings from '../services/meetingTasks.js';
 
 const router = express.Router();
 
@@ -226,6 +227,96 @@ router.get('/contacts', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Reuniones → tareas (también desde Orbit, pegando la transcripción)
+// ---------------------------------------------------------------------------
+router.get('/meetings', async (req, res) => {
+  try { res.json({ items: await meetings.listIntakes(req.orgId, { limit: Number(req.query.limit) || 50 }), ai: meetings.hasAI() }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/meetings/:id', async (req, res) => {
+  try {
+    const it = await meetings.getIntake(req.params.id);
+    if (!it || it.organization_id !== req.orgId) return res.status(404).json({ error: 'No encontrada' });
+    res.json(it);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** Pegar transcripción desde Orbit → propuesta */
+router.post('/meetings', async (req, res) => {
+  try {
+    const text = String(req.body?.text || '').trim();
+    if (text.length < 120) return res.status(400).json({ error: 'Pega la transcripción completa (mínimo 120 caracteres)' });
+    const extraction = await meetings.extractTasksFromTranscript({ orgId: req.orgId, text, senderName: req.teamMember.name });
+    const intake = await meetings.createIntake({ orgId: req.orgId, teamMemberId: req.teamMember.id, phone: null, source: 'orbit', title: req.body?.title || extraction.meeting_title, text, extraction });
+    res.status(201).json(intake);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** Editar tareas propuestas (lista completa) */
+router.put('/meetings/:id/tasks', async (req, res) => {
+  try {
+    const it = await meetings.getIntake(req.params.id);
+    if (!it || it.organization_id !== req.orgId) return res.status(404).json({ error: 'No encontrada' });
+    if (it.status !== 'proposed') return res.status(400).json({ error: `La reunión ya está ${it.status}` });
+    const tasks = Array.isArray(req.body?.tasks) ? req.body.tasks : null;
+    if (!tasks) return res.status(400).json({ error: 'tasks requerido' });
+    const [members, clients] = await Promise.all([
+      db.all("SELECT id, name FROM team_members WHERE organization_id = ? AND status = 'active'", [req.orgId]),
+      db.all("SELECT id, nickname, company, name FROM clients WHERE organization_id = ?", [req.orgId]),
+    ]);
+    const mById = Object.fromEntries(members.map((m) => [m.id, m])); const cById = Object.fromEntries(clients.map((c) => [c.id, c]));
+    const clean = tasks.map((t, i) => ({
+      n: Number(t.n) || i + 1,
+      title: String(t.title || '').slice(0, 120),
+      detail: String(t.detail || '').slice(0, 600),
+      assignee_member_id: mById[Number(t.assignee_member_id)] ? Number(t.assignee_member_id) : null,
+      assignee_name: mById[Number(t.assignee_member_id)]?.name || null,
+      client_id: cById[Number(t.client_id)] ? Number(t.client_id) : null,
+      client_name: cById[Number(t.client_id)] ? (cById[Number(t.client_id)].nickname || cById[Number(t.client_id)].company || cById[Number(t.client_id)].name) : null,
+      due_date: /^\d{4}-\d{2}-\d{2}$/.test(t.due_date || '') ? t.due_date : null,
+      confidence: Number(t.confidence) || 0.8,
+      quote: String(t.quote || '').slice(0, 160),
+      removed: Boolean(t.removed),
+    })).filter((t) => t.title);
+    await meetings.saveIntakeTasks(it.id, clean);
+    res.json(await meetings.getIntake(it.id));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/** Corrección en lenguaje natural */
+router.post('/meetings/:id/correct', async (req, res) => {
+  try {
+    const it = await meetings.getIntake(req.params.id);
+    if (!it || it.organization_id !== req.orgId) return res.status(404).json({ error: 'No encontrada' });
+    if (it.status !== 'proposed') return res.status(400).json({ error: `La reunión ya está ${it.status}` });
+    const instruction = String(req.body?.instruction || '').trim();
+    if (!instruction) return res.status(400).json({ error: 'instruction requerido' });
+    const { tasks, note } = await meetings.applyCorrections({ orgId: req.orgId, intake: it, instruction });
+    await meetings.saveIntakeTasks(it.id, tasks);
+    res.json({ ...(await meetings.getIntake(it.id)), note });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/meetings/:id/confirm', async (req, res) => {
+  try {
+    const it = await meetings.getIntake(req.params.id);
+    if (!it || it.organization_id !== req.orgId) return res.status(404).json({ error: 'No encontrada' });
+    const { created } = await meetings.confirmIntake({ orgId: req.orgId, intakeId: it.id, createdBy: req.teamMember.id });
+    res.json({ created, intake: await meetings.getIntake(it.id) });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+router.post('/meetings/:id/cancel', async (req, res) => {
+  try {
+    const it = await meetings.getIntake(req.params.id);
+    if (!it || it.organization_id !== req.orgId) return res.status(404).json({ error: 'No encontrada' });
+    await meetings.cancelIntake(it.id);
+    res.json(await meetings.getIntake(it.id));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 export default router;

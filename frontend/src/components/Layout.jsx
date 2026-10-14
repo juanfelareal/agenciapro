@@ -138,6 +138,7 @@ const Layout = ({ children }) => {
     { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
     { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
     { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks' },
+    { name: 'Reuniones', path: '/app/reuniones', icon: ClipboardList, permission: 'tasks' },
   ];
 
   // Submenú de Finanzas
