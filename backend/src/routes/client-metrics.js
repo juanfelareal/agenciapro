@@ -4,6 +4,7 @@ import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllC
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import { getStoreIntegration } from '../integrations/storeIntegration.js';
+import { backfillSessions } from '../services/metricsSyncService.js';
 import { dailyWhatsappRevenue, dailyWhatsappSpend } from '../utils/revenueMetric.js';
 import { withFacebookFallback } from '../utils/facebookClient.js';
 import { normalizeRevenueMetric, revenueMetricLabel, pickDisplayRevenue, pickDailyDisplayRevenue, dailyAdSpend } from '../utils/revenueMetric.js';
@@ -884,6 +885,26 @@ router.get('/:clientId/top-products', async (req, res) => {
   } catch (error) {
     console.error('Error fetching top products:', error.response?.data || error.message);
     res.status(500).json({ error: 'Error al cargar productos' });
+  }
+});
+
+/**
+ * POST /api/client-metrics/backfill-sessions { client_id?, start_date, end_date }
+ * Rellena sesiones de Shopify (ShopifyQL) por día para una tienda o todas las de la organización.
+ */
+router.post('/backfill-sessions', async (req, res) => {
+  try {
+    if (req.teamMember?.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
+    const { client_id, start_date, end_date } = req.body || {};
+    if (!start_date || !end_date) return res.status(400).json({ error: 'start_date y end_date son requeridos' });
+    const clients = client_id
+      ? await db.prepare('SELECT c.id FROM clients c JOIN client_shopify_credentials s ON s.client_id = c.id WHERE c.id = ? AND c.organization_id = ?').all(client_id, req.orgId)
+      : await db.prepare("SELECT c.id FROM clients c JOIN client_shopify_credentials s ON s.client_id = c.id WHERE c.organization_id = ? AND s.access_token IS NOT NULL AND s.access_token != '' AND c.status = 'active'").all(req.orgId);
+    const results = [];
+    for (const c of clients) results.push(await backfillSessions(c.id, start_date, end_date));
+    res.json({ clients: results.length, results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

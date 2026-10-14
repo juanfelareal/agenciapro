@@ -237,63 +237,58 @@ class ShopifyIntegration {
    * (including the diagnostics endpoint) can surface why sessions came back 0.
    */
   async getSessionsWithDiagnostics(startDate, endDate) {
-    // ShopifyQL UNTIL is exclusive, so add 1 day to endDate to include it
-    const untilDate = new Date(endDate + 'T00:00:00');
-    untilDate.setDate(untilDate.getDate() + 1);
-    const untilStr = untilDate.toISOString().split('T')[0];
-
-    // Try the modern dataset first, fall back to legacy if it errors out.
-    const queries = [
-      { source: 'sessions(visits)', sql: `FROM visits SINCE ${startDate} UNTIL ${untilStr} SHOW sum(totalSessions)` },
-      { source: 'sessions(online_store_sessions)', sql: `FROM online_store_sessions SINCE ${startDate} UNTIL ${untilStr} SHOW sum(sessions)` },
-    ];
-
-    let lastError = null;
-    for (const q of queries) {
-      try {
-        const response = await axios.post(
-          `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
-          { query: `{ shopifyqlQuery(query: "${q.sql}") { __typename ... on TableResponse { tableData { rowData columns { name dataType } } } } }` },
-          {
-            headers: {
-              'X-Shopify-Access-Token': this.accessToken,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (response.data?.errors?.length > 0) {
-          lastError = { source: q.source, errors: response.data.errors };
-          console.warn(`[Shopify ${this.storeUrl}] ShopifyQL error on ${q.source}:`, JSON.stringify(response.data.errors));
-          continue;
-        }
-
-        const tableData = response.data?.data?.shopifyqlQuery?.tableData;
-        if (tableData?.rowData?.length > 0) {
-          const row = tableData.rowData[0];
-          const parsed = typeof row === 'string' ? JSON.parse(row) : row;
-          const value = Array.isArray(parsed) ? parsed[0] : parsed;
-          const sessions = parseInt(value) || 0;
-          return { sessions, source: q.source, error: null, raw: tableData };
-        }
-        // No rows = 0 sessions but no error — keep trying alternatives
-        lastError = { source: q.source, errors: 'empty rowData' };
-      } catch (error) {
-        const status = error.response?.status;
-        const body = error.response?.data;
-        lastError = {
-          source: q.source,
-          status,
-          message: error.message,
-          body: body ? JSON.stringify(body).slice(0, 500) : null,
-        };
-        console.warn(`[Shopify ${this.storeUrl}] sessions fetch failed (${q.source}):`, status, body || error.message);
-        // 401/403 = auth/scope problem — no point trying the next query
-        if (status === 401 || status === 403) break;
+    // ShopifyQL (Admin GraphQL): `shopifyqlQuery` devuelve { parseErrors: [String], tableData: { columns, rows: JSON } }.
+    // El dataset vigente es `sessions` y UNTIL es inclusivo. (Los datasets `visits` /
+    // `online_store_sessions` y el fragmento `... on TableResponse` ya no existen.)
+    const sql = `FROM sessions SHOW sessions SINCE ${startDate} UNTIL ${endDate}`;
+    try {
+      const data = await this.shopifyql(sql);
+      if (data.parseErrors?.length) {
+        console.warn(`[Shopify ${this.storeUrl}] ShopifyQL parseErrors:`, JSON.stringify(data.parseErrors));
+        return { sessions: 0, source: 'sessions', error: { source: 'sessions', errors: data.parseErrors }, raw: null };
       }
+      const rows = data.tableData?.rows || [];
+      const sessions = rows.reduce((sum, r) => sum + (parseInt(r?.sessions) || 0), 0);
+      return { sessions, source: 'sessions', error: null, raw: data.tableData };
+    } catch (error) {
+      const status = error.response?.status;
+      const body = error.response?.data;
+      console.warn(`[Shopify ${this.storeUrl}] sessions fetch failed:`, status, body ? JSON.stringify(body).slice(0, 300) : error.message);
+      return { sessions: 0, source: null, error: { source: 'sessions', status, message: error.message, body: body ? JSON.stringify(body).slice(0, 500) : null }, raw: null };
     }
+  }
 
-    return { sessions: 0, source: null, error: lastError, raw: null };
+  /**
+   * Ejecuta una consulta ShopifyQL y devuelve { parseErrors, tableData }.
+   * Lanza si GraphQL responde con `errors` (p. ej. falta el scope read_reports).
+   */
+  async shopifyql(sql) {
+    const response = await axios.post(
+      `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
+      { query: `{ shopifyqlQuery(query: ${JSON.stringify(sql)}) { parseErrors tableData { columns { name dataType } rows } } }` },
+      { headers: { 'X-Shopify-Access-Token': this.accessToken, 'Content-Type': 'application/json' } }
+    );
+    if (response.data?.errors?.length) {
+      const err = new Error(response.data.errors.map((e) => e.message).join(' | '));
+      err.response = { status: 200, data: response.data.errors };
+      throw err;
+    }
+    return response.data?.data?.shopifyqlQuery || { parseErrors: [], tableData: null };
+  }
+
+  /**
+   * Sesiones por día en un rango (una sola consulta ShopifyQL).
+   * @returns {Promise<Object<string, number>>} { 'YYYY-MM-DD': sesiones }
+   */
+  async getDailySessions(startDate, endDate) {
+    const data = await this.shopifyql(`FROM sessions SHOW sessions GROUP BY day SINCE ${startDate} UNTIL ${endDate} ORDER BY day`);
+    if (data.parseErrors?.length) throw new Error(`ShopifyQL: ${data.parseErrors.join(' | ')}`);
+    const out = {};
+    for (const r of data.tableData?.rows || []) {
+      const day = String(r?.day || '').slice(0, 10);
+      if (day) out[day] = parseInt(r?.sessions) || 0;
+    }
+    return out;
   }
 
   /**

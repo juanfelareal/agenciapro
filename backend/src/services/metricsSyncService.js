@@ -624,6 +624,34 @@ export async function syncClientForDate(clientId, date) {
 }
 
 /**
+ * Rellena shopify_sessions / shopify_conversion_rate de un rango con UNA consulta ShopifyQL por tienda.
+ * No toca ventas ni pauta. Devuelve { client_id, days, updated, error }.
+ */
+export async function backfillSessions(clientId, startDate, endDate) {
+  const cred = await db.prepare('SELECT store_url, access_token FROM client_shopify_credentials WHERE client_id = ?').get(clientId);
+  if (!cred?.store_url || !cred?.access_token) return { client_id: clientId, days: 0, updated: 0, error: 'sin Shopify' };
+  try {
+    const shopify = new ShopifyIntegration(cred.store_url, cred.access_token);
+    const byDay = await shopify.getDailySessions(startDate, endDate);
+    let updated = 0;
+    for (const date of generateDateRange(startDate, endDate)) {
+      const sessions = byDay[date] || 0;
+      const r = await db.run(`
+        UPDATE client_daily_metrics
+        SET shopify_sessions = ?,
+            shopify_conversion_rate = CASE WHEN ? > 0 THEN (COALESCE(shopify_orders, 0)::float / ?) * 100 ELSE 0 END,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE client_id = ? AND metric_date = ?
+      `, [sessions, sessions, sessions, clientId, date]);
+      updated += r.changes || 0;
+    }
+    return { client_id: clientId, days: Object.keys(byDay).length, updated, error: null };
+  } catch (error) {
+    return { client_id: clientId, days: 0, updated: 0, error: error.message };
+  }
+}
+
+/**
  * Generate array of YYYY-MM-DD strings between two dates (inclusive)
  */
 function generateDateRange(startDate, endDate) {
