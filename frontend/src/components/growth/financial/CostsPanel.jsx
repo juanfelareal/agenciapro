@@ -102,7 +102,8 @@ export function CostModal({ type, item, onSave, onClose }) {
                   </Field>
                   <Field label="Aplica sobre">
                     <select className="input" value={form.applies_to} onChange={set('applies_to')}>
-                      <option value="revenue">Venta neta</option>
+                      <option value="revenue">Venta neta (sin IVA ni envío)</option>
+                      <option value="gross_revenue">Venta total pagada (con IVA y envío)</option>
                       <option value="net_revenue">Venta neta − costo de producto</option>
                     </select>
                   </Field>
@@ -149,7 +150,7 @@ const describeVariable = (vc) => {
   if (vc.kind === 'per_order') return `${fmtMoney(vc.amount_per_order)} por pedido`;
   if (vc.kind === 'per_unit') return `${fmtMoney(vc.amount_per_order)} por unidad`;
   if (vc.kind === 'monthly_fixed') return `${fmtMoney(vc.amount_per_order)} fijo al mes`;
-  return `${fmtPctNum(vc.percentage, vc.percentage % 1 ? 1 : 0)} ${vc.applies_to === 'net_revenue' ? 'de la venta neta − producto' : 'de la venta neta'}`;
+  return `${fmtPctNum(vc.percentage, vc.percentage % 1 ? 1 : 0)} ${vc.applies_to === 'net_revenue' ? 'de la venta neta − producto' : vc.applies_to === 'gross_revenue' ? 'de la venta total pagada' : 'de la venta neta'}`;
 };
 
 /**

@@ -156,6 +156,7 @@ export async function computeReserves(clientId, orgId, period) {
     db.all(`SELECT id, category, name, percentage, applies_to, kind, amount, is_active, notes, reserve_provider FROM client_variable_costs WHERE client_id = ? AND organization_id = ? AND reserve_provider IS NOT NULL AND reserve_provider <> '' ORDER BY reserve_provider, name`, [clientId, orgId]),
     isFuture ? null : db.get(`
       SELECT COALESCE(SUM(shopify_net_revenue), 0) + COALESCE(SUM(whatsapp_revenue), 0) AS revenue,
+             COALESCE(SUM(shopify_revenue), 0) + COALESCE(SUM(whatsapp_revenue), 0) AS gross_revenue,
              COALESCE(SUM(shopify_orders), 0) + COALESCE(SUM(whatsapp_orders), 0) AS orders,
              COALESCE(SUM(shopify_shipping_collected), 0) AS shipping_collected
       FROM client_daily_metrics WHERE client_id = ? AND metric_date >= ? AND metric_date <= ?
@@ -169,13 +170,13 @@ export async function computeReserves(clientId, orgId, period) {
     db.all('SELECT id, provider, period, amount, paid_at, notes, created_at FROM client_reserve_payments WHERE client_id = ? AND period = ? ORDER BY paid_at DESC, id DESC', [clientId, period]),
   ]);
 
-  const revenue = num(metrics?.revenue); const orders = num(metrics?.orders);
+  const revenue = num(metrics?.revenue); const orders = num(metrics?.orders); const grossRevenue = num(metrics?.gross_revenue);
   const shippingCollected = num(metrics?.shipping_collected);
   const units = num(sales?.units); const cogs = num(sales?.cogs);
   const providers = {};
   for (const r of rules) {
     const active = r.is_active === null || r.is_active === undefined || Number(r.is_active) === 1 || r.is_active === true;
-    const accrued = active && !isFuture ? variableCostsFor([r], revenue, cogs, orders, { units, dayFraction: daysElapsed / daysInMonth }) : 0;
+    const accrued = active && !isFuture ? variableCostsFor([r], revenue, cogs, orders, { units, dayFraction: daysElapsed / daysInMonth, grossRevenue }) : 0;
     const p = providers[r.reserve_provider] || (providers[r.reserve_provider] = { provider: r.reserve_provider, rules: [], accrued: 0, paid: 0, pending: 0, projected: 0 });
     p.rules.push({ ...r, kind: r.kind || 'percent', amount: r.amount === null ? null : num(r.amount), percentage: num(r.percentage), accrued: round(accrued), is_active: active });
     p.accrued += accrued;

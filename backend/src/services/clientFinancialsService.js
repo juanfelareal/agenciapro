@@ -282,7 +282,7 @@ export function fixedCostsForMonth(items, start, end) {
  * Costos variables del periodo. kinds: percent (de la venta o de la venta−costo), per_order ($ por pedido),
  * per_unit ($ por unidad vendida), monthly_fixed ($ fijo al mes, prorrateado con dayFraction).
  */
-export function variableCostsFor(items, revenue, cogs, orders, { units = 0, dayFraction = 0 } = {}) {
+export function variableCostsFor(items, revenue, cogs, orders, { units = 0, dayFraction = 0, grossRevenue = null } = {}) {
   let total = 0;
   for (const vc of items) {
     const kind = vc.kind || 'percent';
@@ -290,7 +290,12 @@ export function variableCostsFor(items, revenue, cogs, orders, { units = 0, dayF
     else if (kind === 'per_unit') total += units * num(vc.amount);
     else if (kind === 'monthly_fixed') total += num(vc.amount) * dayFraction;
     else {
-      const base = vc.applies_to === 'net_revenue' ? revenue - cogs : revenue;
+      // revenue = venta neta (sin IVA ni envío); net_revenue = venta neta − costo de producto;
+      // gross_revenue = venta total pagada por el cliente (con IVA y envío), que es sobre lo que cobran
+      // pasarelas como Wompi o Mercado Pago.
+      const base = vc.applies_to === 'net_revenue' ? revenue - cogs
+        : vc.applies_to === 'gross_revenue' ? (grossRevenue === null || grossRevenue === undefined ? revenue : num(grossRevenue))
+        : revenue;
       total += base * (num(vc.percentage) / 100);
     }
   }
@@ -394,7 +399,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     const cogs = cogs_known + cogs_estimated;
     const fb = num(m.fb_spend); const ga = num(m.ga_spend); const tt = num(m.tt_spend);
     const ad_spend = fb + ga + tt;
-    const variable_costs = variableCostsFor(variableItems, revenue, cogs, orders, { units: num(s.units), dayFraction: 1 / daysInMonth });
+    const variable_costs = variableCostsFor(variableItems, revenue, cogs, orders, { units: num(s.units), dayFraction: 1 / daysInMonth, grossRevenue: revenue_confirmed });
     const fixed_costs = fixedPerDay;
     const gross_profit = revenue - cogs;
     const net_profit = gross_profit - ad_spend - variable_costs - fixed_costs;
@@ -553,7 +558,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
       total: t.variable_costs,
       items: variableAll.map((vc) => {
         const active = vc.is_active === null || vc.is_active === undefined || Number(vc.is_active) === 1 || vc.is_active === true;
-        const amount = active ? variableCostsFor([vc], t.revenue, t.cogs, t.orders, { units: t.units, dayFraction: daysElapsed / daysInMonth }) : 0;
+        const amount = active ? variableCostsFor([vc], t.revenue, t.cogs, t.orders, { units: t.units, dayFraction: daysElapsed / daysInMonth, grossRevenue: t.revenue_confirmed }) : 0;
         return { ...vc, kind: vc.kind || 'percent', percentage: vc.percentage === null ? null : num(vc.percentage), amount_per_order: vc.amount === null ? null : num(vc.amount), is_active: active, amount: round(amount) };
       }),
     },
