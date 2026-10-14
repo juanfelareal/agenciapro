@@ -688,6 +688,7 @@ export const growthAPI = {
   setLab: (clientId, enabled) => api.put(`/growth/clients/${clientId}/lab`, { lab_enabled: enabled }),
   getInventory: (clientId, params) => api.get(`/growth/clients/${clientId}/inventory`, { params }),
   syncInventory: (clientId) => api.post(`/growth/clients/${clientId}/inventory/sync`),
+  setInventoryHidden: (clientId, productId, hidden) => api.put(`/growth/clients/${clientId}/inventory/${productId}/hidden`, { hidden }),
   getReserves: (clientId, period) => api.get(`/growth/clients/${clientId}/reserves`, { params: { period } }),
   addReservePayment: (clientId, data) => api.post(`/growth/clients/${clientId}/reserves/payments`, data),
   deleteReservePayment: (clientId, id) => api.delete(`/growth/clients/${clientId}/reserves/payments/${id}`),

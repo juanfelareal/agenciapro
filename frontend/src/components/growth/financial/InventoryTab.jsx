@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Package, RefreshCw, Search, AlertTriangle, Info } from 'lucide-react';
+import { Package, RefreshCw, Search, AlertTriangle, Info, EyeOff, Eye } from 'lucide-react';
 import { growthAPI } from '../../../utils/api';
 import { fmtMoney, fmtInt } from './format';
 
@@ -36,16 +36,17 @@ export default function InventoryTab({ clientId }) {
   const [status, setStatus] = useState('all');
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('status');
+  const [showHidden, setShowHidden] = useState(false);
 
   const load = useCallback(async ({ silent = false } = {}) => {
     try {
       if (!silent) setLoading(true);
-      const res = await growthAPI.getInventory(clientId, { window: windowDays, horizon });
+      const res = await growthAPI.getInventory(clientId, { window: windowDays, horizon, include_hidden: showHidden ? 1 : 0 });
       setData(res.data); setError(null);
     } catch (e) {
       setError(e.response?.data?.error || 'No se pudo cargar el inventario');
     } finally { setLoading(false); }
-  }, [clientId, windowDays, horizon]);
+  }, [clientId, windowDays, horizon, showHidden]);
   useEffect(() => { load(); }, [load]);
 
   const sync = async () => {
@@ -56,6 +57,15 @@ export default function InventoryTab({ clientId }) {
     } catch (e) {
       setError(e.response?.data?.error || 'No se pudo sincronizar el inventario');
     } finally { setSyncing(false); }
+  };
+
+  const toggleHidden = async (item) => {
+    try {
+      await growthAPI.setInventoryHidden(clientId, item.id, !item.hidden);
+      await load({ silent: true });
+    } catch (e) {
+      setError(e.response?.data?.error || 'No se pudo cambiar la visibilidad');
+    }
   };
 
   const items = useMemo(() => {
@@ -120,6 +130,9 @@ export default function InventoryTab({ clientId }) {
           <select value={horizon} onChange={(e) => setHorizon(Number(e.target.value))} className="input w-auto" title="Horizonte para calcular cuánto reponer">
             {[15, 30, 45, 60, 90].map((d) => <option key={d} value={d}>Cubrir {d} días</option>)}
           </select>
+          <button type="button" onClick={() => setShowHidden((v) => !v)} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm ${showHidden ? 'border-[#17181A] bg-[#17181A] text-[#D7F653]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`} title="Ver también los productos ocultos">
+            {showHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />} {showHidden ? 'Mostrando ocultos' : `Ocultos${s?.hidden_count ? ` (${s.hidden_count})` : ''}`}
+          </button>
           <select value={sort} onChange={(e) => setSort(e.target.value)} className="input w-auto">
             <option value="status">Orden: urgencia</option>
             <option value="days">Orden: días de inventario</option>
@@ -150,11 +163,12 @@ export default function InventoryTab({ clientId }) {
                     <th className="text-right py-2 px-2 font-medium">Reponer</th>
                     <th className="text-right py-2 px-2 font-medium">Valor costo</th>
                     <th className="text-right py-2 pl-2 font-medium">Estado</th>
+                    <th className="py-2 pl-2"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((i) => (
-                    <tr key={i.id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                    <tr key={i.id} className={`border-b border-gray-50 hover:bg-gray-50/60 ${i.hidden ? 'opacity-50' : ''}`}>
                       <td className="py-2 pr-3">
                         <div className="flex items-center gap-2 min-w-0">
                           {i.image_url ? <img src={i.image_url} alt="" className="w-8 h-8 rounded-md object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded-md bg-gray-100 flex-shrink-0" />}
@@ -172,6 +186,11 @@ export default function InventoryTab({ clientId }) {
                       <td className={`text-right px-2 tabular-nums ${i.units_to_restock > 0 ? 'text-orange-700 font-semibold' : 'text-gray-400'}`}>{i.units_to_restock > 0 ? fmtInt(i.units_to_restock) : '—'}</td>
                       <td className="text-right px-2 tabular-nums">{i.inventory_value_cost === null ? '—' : fmtMoney(i.inventory_value_cost)}</td>
                       <td className="text-right pl-2"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[i.status].cls}`}>{STATUS[i.status].label}</span></td>
+                      <td className="pl-2 text-right">
+                        <button type="button" onClick={() => toggleHidden(i)} className={`p-1.5 rounded-lg ${i.hidden ? 'text-[#17181A] bg-[#D7F653]/40' : 'text-gray-300 hover:text-gray-700 hover:bg-gray-100'}`} title={i.hidden ? 'Volver a mostrar' : 'Ocultar del inventario'}>
+                          {i.hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -184,8 +203,11 @@ export default function InventoryTab({ clientId }) {
                   {i.image_url ? <img src={i.image_url} alt="" className="w-10 h-10 rounded-md object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-md bg-gray-100 flex-shrink-0" />}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium text-sm text-[#17181A] truncate">{i.title}</p>
-                      <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS[i.status].cls}`}>{STATUS[i.status].label}</span>
+                      <p className={`font-medium text-sm text-[#17181A] truncate ${i.hidden ? 'opacity-50' : ''}`}>{i.title}</p>
+                      <span className="flex items-center gap-1 flex-shrink-0">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS[i.status].cls}`}>{STATUS[i.status].label}</span>
+                        <button type="button" onClick={() => toggleHidden(i)} className="p-1 text-gray-400" title={i.hidden ? 'Volver a mostrar' : 'Ocultar'}>{i.hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}</button>
+                      </span>
                     </div>
                     <p className="text-[11px] text-gray-400 truncate">{[i.variant_title, i.sku].filter(Boolean).join(' · ') || '—'}</p>
                     <p className="text-xs text-gray-600 mt-1">Stock <strong>{i.inventory_quantity === null ? '—' : fmtInt(i.inventory_quantity)}</strong> · {fmtInt(i.units_30d)} vend. · {i.days_of_stock === null ? 'sin ritmo' : `${fmtInt(i.days_of_stock)} días`}{i.stockout_date ? ` · agota ${fmtDate(i.stockout_date)}` : ''}{i.units_to_restock > 0 ? ` · reponer ${fmtInt(i.units_to_restock)}` : ''}</p>

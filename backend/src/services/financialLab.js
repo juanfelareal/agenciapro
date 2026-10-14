@@ -56,14 +56,20 @@ export async function syncInventory(clientId, { store = null } = {}) {
  * Inventario + proyección según ventas de los últimos `windowDays` días.
  * Estados: sin_stock (0), critico (< 14 días), bajo (< 30), ok, sin_ventas (stock sin rotación).
  */
-export async function computeInventory(clientId, orgId, { windowDays = 30, horizonDays = 30 } = {}) {
+export async function setInventoryHidden(clientId, productId, hidden) {
+  const r = await db.run('UPDATE shopify_products SET inventory_hidden = ? WHERE id = ? AND client_id = ?', [hidden ? 1 : 0, productId, clientId]);
+  if (!r.changes) throw new Error('Producto no encontrado');
+  return { id: Number(productId), hidden: Boolean(hidden) };
+}
+
+export async function computeInventory(clientId, orgId, { windowDays = 30, horizonDays = 30, includeHidden = false } = {}) {
   const today = todayColombia();
   const from = addDays(today, -(windowDays - 1));
   const from90 = addDays(today, -89);
   const [products, sales30, sales90, state] = await Promise.all([
     db.all(`
       SELECT id, shopify_product_id, shopify_variant_id, sku, title, variant_title, price, cost, image_url, status,
-             inventory_quantity, inventory_tracked, inventory_synced_at
+             inventory_quantity, inventory_tracked, inventory_synced_at, COALESCE(inventory_hidden, 0) AS inventory_hidden
       FROM shopify_products WHERE client_id = ? AND organization_id = ?
     `, [clientId, orgId]),
     db.all('SELECT shopify_variant_id, SUM(units) AS units, SUM(revenue) AS revenue, SUM(orders) AS orders FROM client_product_daily_sales WHERE client_id = ? AND date >= ? AND date <= ? GROUP BY shopify_variant_id', [clientId, from, today]),
@@ -73,7 +79,7 @@ export async function computeInventory(clientId, orgId, { windowDays = 30, horiz
   const s30 = Object.fromEntries(sales30.map((r) => [String(r.shopify_variant_id), r]));
   const s90 = Object.fromEntries(sales90.map((r) => [String(r.shopify_variant_id), num(r.units)]));
 
-  const items = products
+  const allItems = products
     .filter((p) => p.status === 'active' || p.status === null || p.status === 'publish')
     .map((p) => {
       const qty = p.inventory_quantity === null || p.inventory_quantity === undefined ? null : Number(p.inventory_quantity);
@@ -101,11 +107,14 @@ export async function computeInventory(clientId, orgId, { windowDays = 30, horiz
         days_of_stock: daysOfStock === null ? null : Math.round(daysOfStock),
         stockout_date: stockoutDate,
         units_to_restock: needHorizon,
-        inventory_value_cost: qty && p.cost !== null ? round(qty * num(p.cost)) : null,
-        inventory_value_price: qty ? round(qty * num(p.price)) : 0,
+        inventory_value_cost: qty > 0 && p.cost !== null ? round(qty * num(p.cost)) : (qty !== null && p.cost !== null ? 0 : null),
+        inventory_value_price: qty > 0 ? round(qty * num(p.price)) : 0,
+        hidden: Number(p.inventory_hidden) === 1,
         status,
       };
     });
+  const hiddenCount = allItems.filter((i) => i.hidden).length;
+  const items = includeHidden ? allItems : allItems.filter((i) => !i.hidden);
 
   const sum = (k, f = () => true) => items.filter(f).reduce((t, i) => t + num(i[k]), 0);
   const summary = {
@@ -120,6 +129,7 @@ export async function computeInventory(clientId, orgId, { windowDays = 30, horiz
     sin_ventas: items.filter((i) => i.status === 'sin_ventas').length,
     units_to_restock: sum('units_to_restock'),
     restock_cost: round(items.reduce((t, i) => t + (i.cost !== null ? i.units_to_restock * i.cost : 0), 0)),
+    hidden_count: hiddenCount,
     synced_at: state?.synced_at || null,
     window_days: windowDays,
     horizon_days: horizonDays,
@@ -197,4 +207,4 @@ export async function deleteReservePayment(clientId, id) {
   return { deleted: true };
 }
 
-export default { isLabEnabled, setLabEnabled, syncInventory, computeInventory, computeReserves, addReservePayment, deleteReservePayment };
+export default { isLabEnabled, setLabEnabled, syncInventory, computeInventory, setInventoryHidden, computeReserves, addReservePayment, deleteReservePayment };

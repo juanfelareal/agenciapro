@@ -611,8 +611,15 @@ router.get('/clients/:clientId/inventory', requireLab, async (req, res) => {
   try {
     const windowDays = [7, 14, 30, 60, 90].includes(Number(req.query.window)) ? Number(req.query.window) : 30;
     const horizonDays = [15, 30, 45, 60, 90].includes(Number(req.query.horizon)) ? Number(req.query.horizon) : 30;
-    res.json(await lab.computeInventory(Number(req.params.clientId), req.orgId, { windowDays, horizonDays }));
+    const includeHidden = req.query.include_hidden === '1' || req.query.include_hidden === 'true';
+    res.json(await lab.computeInventory(Number(req.params.clientId), req.orgId, { windowDays, horizonDays, includeHidden }));
   } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+router.put('/clients/:clientId/inventory/:productId/hidden', requireLab, async (req, res) => {
+  try {
+    res.json(await lab.setInventoryHidden(Number(req.params.clientId), Number(req.params.productId), Boolean(req.body?.hidden)));
+  } catch (error) { res.status(400).json({ error: error.message }); }
 });
 
 router.post('/clients/:clientId/inventory/sync', requireLab, async (req, res) => {
