@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../config/database.js';
 import * as financials from '../services/clientFinancialsService.js';
+import * as lab from '../services/financialLab.js';
 
 const router = express.Router();
 
@@ -541,21 +542,22 @@ router.post('/clients/:clientId/variable-costs', async (req, res) => {
   try {
     const { clientId } = req.params;
     const { category, name, applies_to, notes } = req.body;
-    const kind = req.body.kind === 'per_order' ? 'per_order' : 'percent';
+    const kind = ['per_order', 'per_unit', 'monthly_fixed'].includes(req.body.kind) ? req.body.kind : 'percent';
     const percentage = kind === 'percent' ? parseFloat(req.body.percentage) : 0;
-    const amount = kind === 'per_order' ? parseFloat(req.body.amount) : null;
+    const amount = kind !== 'percent' ? parseFloat(req.body.amount) : null;
+    const reserveProvider = String(req.body.reserve_provider || '').trim() || null;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
     if (!category || !name) return res.status(400).json({ error: 'category y name son requeridos' });
     if (kind === 'percent' && !Number.isFinite(percentage)) return res.status(400).json({ error: 'percentage es requerido' });
-    if (kind === 'per_order' && !Number.isFinite(amount)) return res.status(400).json({ error: 'amount (valor por pedido) es requerido' });
+    if (kind !== 'percent' && !Number.isFinite(amount)) return res.status(400).json({ error: 'amount es requerido' });
 
     const result = await db.run(`
-      INSERT INTO client_variable_costs (organization_id, client_id, category, name, percentage, applies_to, kind, amount, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    `, [req.orgId, clientId, category, name, percentage, applies_to || 'revenue', kind, amount, notes || null]);
+      INSERT INTO client_variable_costs (organization_id, client_id, category, name, percentage, applies_to, kind, amount, notes, reserve_provider)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `, [req.orgId, clientId, category, name, percentage, applies_to || 'revenue', kind, amount, notes || null, reserveProvider]);
 
-    res.json({ id: result.lastInsertRowid, category, name, percentage, applies_to: applies_to || 'revenue', kind, amount, notes });
+    res.json({ id: result.lastInsertRowid, category, name, percentage, applies_to: applies_to || 'revenue', kind, amount, notes, reserve_provider: reserveProvider });
   } catch (error) {
     console.error('Error creating variable cost:', error);
     res.status(500).json({ error: error.message });
