@@ -2406,6 +2406,8 @@ export const initializeDatabase = async () => {
         PRIMARY KEY (kind, run_key)
       )
     `);
+    // Alcances OAuth de Shopify por cliente (null = los estándar de solo lectura)
+    await pool.query(`ALTER TABLE client_shopify_credentials ADD COLUMN IF NOT EXISTS shopify_scopes TEXT`);
     // Canal de ventas WhatsApp: se habilita por cliente (apagado por defecto)
     await pool.query(`ALTER TABLE client_portal_settings ADD COLUMN IF NOT EXISTS whatsapp_sales_enabled INTEGER DEFAULT 0`);
     // Canal WhatsApp en las métricas diarias: ventas reportadas y pauta de campañas de WhatsApp

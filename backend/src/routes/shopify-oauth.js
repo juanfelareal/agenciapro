@@ -18,6 +18,13 @@ const REDIRECT_URI = `${BACKEND_URL}/api/oauth/shopify/callback`;
 // Scopes needed for Shopify metrics (orders + reports + analytics for sessions + draft orders + marketing events + products/inventory for COGS)
 const SCOPES = 'read_orders,read_reports,read_analytics,read_draft_orders,read_marketing_events,read_products,read_inventory';
 
+/** Lista de alcances limpia (coma-separada, sin espacios ni duplicados) o null si viene vacía */
+function normalizeScopes(raw) {
+  if (!raw) return null;
+  const list = String(raw).split(/[,\s]+/).map((x) => x.trim()).filter((x) => /^[a-z_]+$/.test(x));
+  return list.length ? Array.from(new Set(list)).join(',') : null;
+}
+
 /**
  * Get Shopify credentials for a client (per-client app or global fallback)
  */
@@ -25,13 +32,13 @@ async function getShopifyCredentials(clientId) {
   // Check if client has stored app credentials
   if (clientId) {
     const cred = await db.get(`
-      SELECT shopify_api_key, shopify_api_secret FROM client_shopify_credentials WHERE client_id = ?
+      SELECT shopify_api_key, shopify_api_secret, shopify_scopes FROM client_shopify_credentials WHERE client_id = ?
     `, [clientId]);
     if (cred?.shopify_api_key && cred?.shopify_api_secret) {
-      return { apiKey: cred.shopify_api_key, apiSecret: cred.shopify_api_secret };
+      return { apiKey: cred.shopify_api_key, apiSecret: cred.shopify_api_secret, scopes: normalizeScopes(cred.shopify_scopes) || SCOPES };
     }
   }
-  return { apiKey: GLOBAL_SHOPIFY_API_KEY, apiSecret: GLOBAL_SHOPIFY_API_SECRET };
+  return { apiKey: GLOBAL_SHOPIFY_API_KEY, apiSecret: GLOBAL_SHOPIFY_API_SECRET, scopes: SCOPES };
 }
 
 /**
@@ -93,7 +100,7 @@ function cleanOldSessions() {
 router.post('/save-credentials', async (req, res) => {
   try {
     const orgId = req.orgId;
-    const { client_id, shopify_api_key, shopify_api_secret } = req.body;
+    const { client_id, shopify_api_key, shopify_api_secret, shopify_scopes } = req.body;
 
     if (!client_id || !shopify_api_key || !shopify_api_secret) {
       return res.status(400).json({ error: 'client_id, shopify_api_key y shopify_api_secret son requeridos' });
@@ -107,14 +114,15 @@ router.post('/save-credentials', async (req, res) => {
 
     // Upsert credentials
     await db.run(`
-      INSERT INTO client_shopify_credentials (client_id, store_url, access_token, shopify_api_key, shopify_api_secret, status, organization_id)
-      VALUES (?, '', '', ?, ?, 'inactive', ?)
+      INSERT INTO client_shopify_credentials (client_id, store_url, access_token, shopify_api_key, shopify_api_secret, shopify_scopes, status, organization_id)
+      VALUES (?, '', '', ?, ?, ?, 'inactive', ?)
       ON CONFLICT(client_id)
       DO UPDATE SET
         shopify_api_key = EXCLUDED.shopify_api_key,
         shopify_api_secret = EXCLUDED.shopify_api_secret,
+        shopify_scopes = CASE WHEN EXCLUDED.shopify_scopes IS NULL THEN client_shopify_credentials.shopify_scopes ELSE EXCLUDED.shopify_scopes END,
         updated_at = CURRENT_TIMESTAMP
-    `, [client_id, shopify_api_key.trim(), shopify_api_secret.trim(), orgId]);
+    `, [client_id, shopify_api_key.trim(), shopify_api_secret.trim(), normalizeScopes(shopify_scopes), orgId]);
 
     res.json({ message: 'Credenciales guardadas exitosamente' });
   } catch (error) {
@@ -141,7 +149,7 @@ router.get('/url', async (req, res) => {
     }
 
     // Get per-client or global credentials
-    const { apiKey, apiSecret } = await getShopifyCredentials(client_id);
+    const { apiKey, apiSecret, scopes } = await getShopifyCredentials(client_id);
 
     if (!apiKey) {
       return res.status(500).json({ error: 'No hay credenciales de Shopify configuradas para este cliente. Ingresa el Client ID y Secret primero.' });
@@ -178,7 +186,7 @@ router.get('/url', async (req, res) => {
 
     const authUrl = `https://${normalizedStore}/admin/oauth/authorize?` +
       `client_id=${apiKey}` +
-      `&scope=${SCOPES}` +
+      `&scope=${scopes}` +
       `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
       `&state=${state}`;
 
