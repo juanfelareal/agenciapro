@@ -147,6 +147,8 @@ const ItemRow = ({ color, title, subtitle, right, rightSub, onEdit, onDelete, in
 
 const describeVariable = (vc) => {
   if (vc.kind === 'per_order') return `${fmtMoney(vc.amount_per_order)} por pedido`;
+  if (vc.kind === 'per_unit') return `${fmtMoney(vc.amount_per_order)} por unidad`;
+  if (vc.kind === 'monthly_fixed') return `${fmtMoney(vc.amount_per_order)} fijo al mes`;
   return `${fmtPctNum(vc.percentage, vc.percentage % 1 ? 1 : 0)} ${vc.applies_to === 'net_revenue' ? 'de la venta neta − producto' : 'de la venta neta'}`;
 };
 

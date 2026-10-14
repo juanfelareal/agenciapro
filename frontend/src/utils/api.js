@@ -684,6 +684,13 @@ export const growthAPI = {
   deleteVariableCost: (clientId, costId) => api.delete(`/growth/clients/${clientId}/variable-costs/${costId}`),
   // Products (COGS)
   getProducts: (clientId) => api.get(`/growth/clients/${clientId}/products`),
+  // Laboratorio financiero (inventario + reservas), solo clientes con lab_enabled
+  setLab: (clientId, enabled) => api.put(`/growth/clients/${clientId}/lab`, { lab_enabled: enabled }),
+  getInventory: (clientId, params) => api.get(`/growth/clients/${clientId}/inventory`, { params }),
+  syncInventory: (clientId) => api.post(`/growth/clients/${clientId}/inventory/sync`),
+  getReserves: (clientId, period) => api.get(`/growth/clients/${clientId}/reserves`, { params: { period } }),
+  addReservePayment: (clientId, data) => api.post(`/growth/clients/${clientId}/reserves/payments`, data),
+  deleteReservePayment: (clientId, id) => api.delete(`/growth/clients/${clientId}/reserves/payments/${id}`),
   updateProductCost: (clientId, productId, cost) => api.put(`/growth/clients/${clientId}/products/${productId}/cost`, { cost }),
   resetProductCost: (clientId, productId) => api.delete(`/growth/clients/${clientId}/products/${productId}/cost`),
   syncProducts: (clientId) => api.post(`/growth/clients/${clientId}/products/sync`),

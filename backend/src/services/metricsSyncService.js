@@ -5,6 +5,7 @@ import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import ShopifyIntegration from '../integrations/shopify.js';
 import { createStoreIntegration } from '../integrations/storeIntegration.js';
 import { recalcWhatsappSpend, isWhatsappSalesEnabled } from './whatsappSales.js';
+import { isLabEnabled, syncInventory } from './financialLab.js';
 import { recordProductSalesFromOrders } from './clientFinancialsService.js';
 
 /**
@@ -594,6 +595,15 @@ export async function syncClientForDate(clientId, date) {
       await recordProductSalesFromOrders(clientId, client.organization_id, date, shopifyOrders, shopify);
     } catch (error) {
       console.error(`Error guardando ventas por producto para cliente ${clientId} en ${date}:`, error.message);
+    }
+  }
+
+  // Laboratorio financiero: existencias por variante en cada sincronización
+  if (hasShopify && shopifyOk && shopify && storePlatform === 'shopify') {
+    try {
+      if (await isLabEnabled(clientId)) await syncInventory(clientId, { store: shopify });
+    } catch (error) {
+      console.error(`Error sincronizando inventario de cliente ${clientId}:`, error.message);
     }
   }
 

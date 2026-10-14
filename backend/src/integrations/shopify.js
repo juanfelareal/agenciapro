@@ -690,6 +690,37 @@ class ShopifyIntegration {
   }
 
   /**
+   * Existencias por variante (GraphQL productVariants, 250 por página).
+   * @returns {Promise<Array<{variant_id, product_id, quantity, tracked}>>}
+   */
+  async getInventoryLevels() {
+    const out = [];
+    let cursor = null;
+    for (let page = 0; page < 40; page++) {
+      const after = cursor ? `, after: "${cursor}"` : '';
+      const query = `{ productVariants(first: 250${after}) { edges { cursor node { legacyResourceId inventoryQuantity product { legacyResourceId } inventoryItem { tracked } } } pageInfo { hasNextPage } } }`;
+      const response = await axios.post(
+        `https://${this.storeUrl}/admin/api/${this.apiVersion}/graphql.json`,
+        { query },
+        { headers: { 'X-Shopify-Access-Token': this.accessToken, 'Content-Type': 'application/json' } }
+      );
+      if (response.data?.errors?.length) throw new Error(response.data.errors[0].message);
+      const edges = response.data?.data?.productVariants?.edges || [];
+      for (const e of edges) {
+        out.push({
+          variant_id: String(e.node.legacyResourceId),
+          product_id: String(e.node.product?.legacyResourceId || ''),
+          quantity: Number.isFinite(Number(e.node.inventoryQuantity)) ? Number(e.node.inventoryQuantity) : null,
+          tracked: Boolean(e.node.inventoryItem?.tracked),
+        });
+      }
+      if (!response.data?.data?.productVariants?.pageInfo?.hasNextPage || !edges.length) break;
+      cursor = edges[edges.length - 1].cursor;
+    }
+    return out;
+  }
+
+  /**
    * Calculate COGS for orders in a date range
    * Requires a productCostMap: { variantId: cost }
    * @param {string} startDate

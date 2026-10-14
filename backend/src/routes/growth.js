@@ -567,22 +567,76 @@ router.put('/clients/:clientId/variable-costs/:costId', async (req, res) => {
   try {
     const { clientId, costId } = req.params;
     const { category, name, applies_to, is_active, notes } = req.body;
-    const kind = req.body.kind === 'per_order' ? 'per_order' : 'percent';
+    const kind = ['per_order', 'per_unit', 'monthly_fixed'].includes(req.body.kind) ? req.body.kind : 'percent';
     const percentage = kind === 'percent' ? (parseFloat(req.body.percentage) || 0) : 0;
-    const amount = kind === 'per_order' ? (parseFloat(req.body.amount) || 0) : null;
+    const amount = kind !== 'percent' ? (parseFloat(req.body.amount) || 0) : null;
     const active = is_active === undefined || is_active === null ? 1 : (is_active ? 1 : 0);
+    const reserveProvider = req.body.reserve_provider === undefined ? undefined : (String(req.body.reserve_provider || '').trim() || null);
 
     await db.run(`
       UPDATE client_variable_costs
-      SET category = $1, name = $2, percentage = $3, applies_to = $4, is_active = $5, notes = $6, kind = $7, amount = $8, updated_at = CURRENT_TIMESTAMP
+      SET category = $1, name = $2, percentage = $3, applies_to = $4, is_active = $5, notes = $6, kind = $7, amount = $8,
+          reserve_provider = CASE WHEN $12::boolean THEN $13 ELSE reserve_provider END, updated_at = CURRENT_TIMESTAMP
       WHERE id = $9 AND client_id = $10 AND organization_id = $11
-    `, [category, name, percentage, applies_to || 'revenue', active, notes || null, kind, amount, costId, clientId, req.orgId]);
+    `, [category, name, percentage, applies_to || 'revenue', active, notes || null, kind, amount, costId, clientId, req.orgId, reserveProvider !== undefined, reserveProvider ?? null]);
 
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating variable cost:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// ─── Laboratorio financiero (solo clientes con lab_enabled) ───
+const LAB_OWNERS = (process.env.CLIENT_PRIVACY_OWNER_EMAILS || 'juanfe@larealmarketing.com').split(',').map((e) => e.trim().toLowerCase());
+const requireLab = async (req, res, next) => {
+  try {
+    if (!(await verifyClient(req.params.clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+    if (!(await lab.isLabEnabled(req.params.clientId))) return res.status(403).json({ error: 'El laboratorio financiero no está habilitado para este cliente' });
+    next();
+  } catch (e) { res.status(500).json({ error: e.message }); }
+};
+
+router.put('/clients/:clientId/lab', async (req, res) => {
+  try {
+    if (!LAB_OWNERS.includes(String(req.teamMember?.email || '').toLowerCase())) return res.status(403).json({ error: 'Solo el dueño de la cuenta puede habilitar el laboratorio' });
+    if (!(await verifyClient(req.params.clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+    res.json(await lab.setLabEnabled(Number(req.params.clientId), req.orgId, Boolean(req.body?.lab_enabled)));
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+router.get('/clients/:clientId/inventory', requireLab, async (req, res) => {
+  try {
+    const windowDays = [7, 14, 30, 60, 90].includes(Number(req.query.window)) ? Number(req.query.window) : 30;
+    const horizonDays = [15, 30, 45, 60, 90].includes(Number(req.query.horizon)) ? Number(req.query.horizon) : 30;
+    res.json(await lab.computeInventory(Number(req.params.clientId), req.orgId, { windowDays, horizonDays }));
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+router.post('/clients/:clientId/inventory/sync', requireLab, async (req, res) => {
+  try {
+    res.json(await lab.syncInventory(Number(req.params.clientId)));
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+router.get('/clients/:clientId/reserves', requireLab, async (req, res) => {
+  try {
+    const period = /^\d{4}-\d{2}$/.test(req.query.period || '') ? req.query.period : getCurrentPeriod();
+    res.json(await lab.computeReserves(Number(req.params.clientId), req.orgId, period));
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+router.post('/clients/:clientId/reserves/payments', requireLab, async (req, res) => {
+  try {
+    const { provider, period, amount, paid_at, notes } = req.body || {};
+    res.json(await lab.addReservePayment({ clientId: Number(req.params.clientId), orgId: req.orgId, provider, period, amount, paidAt: paid_at, notes, createdBy: req.teamMember?.id || null }));
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+
+router.delete('/clients/:clientId/reserves/payments/:paymentId', requireLab, async (req, res) => {
+  try {
+    res.json(await lab.deleteReservePayment(Number(req.params.clientId), Number(req.params.paymentId)));
+  } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 // Delete variable cost

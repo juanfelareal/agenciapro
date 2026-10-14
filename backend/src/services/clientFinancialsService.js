@@ -82,9 +82,9 @@ export async function getShopifyCredentials(clientId) {
 }
 
 export async function getFinancialSettings(clientId) {
-  const row = await db.get('SELECT default_cogs_rate FROM client_financial_settings WHERE client_id = ?', [clientId]);
+  const row = await db.get('SELECT default_cogs_rate, lab_enabled FROM client_financial_settings WHERE client_id = ?', [clientId]);
   const rate = row?.default_cogs_rate;
-  return { default_cogs_rate: rate === null || rate === undefined ? DEFAULT_COGS_RATE : Number(rate) };
+  return { default_cogs_rate: rate === null || rate === undefined ? DEFAULT_COGS_RATE : Number(rate), lab_enabled: Number(row?.lab_enabled) === 1 };
 }
 
 export async function saveFinancialSettings(clientId, orgId, { default_cogs_rate }) {
@@ -278,10 +278,17 @@ export function fixedCostsForMonth(items, start, end) {
   });
 }
 
-export function variableCostsFor(items, revenue, cogs, orders) {
+/**
+ * Costos variables del periodo. kinds: percent (de la venta o de la venta−costo), per_order ($ por pedido),
+ * per_unit ($ por unidad vendida), monthly_fixed ($ fijo al mes, prorrateado con dayFraction).
+ */
+export function variableCostsFor(items, revenue, cogs, orders, { units = 0, dayFraction = 0 } = {}) {
   let total = 0;
   for (const vc of items) {
-    if ((vc.kind || 'percent') === 'per_order') total += orders * num(vc.amount);
+    const kind = vc.kind || 'percent';
+    if (kind === 'per_order') total += orders * num(vc.amount);
+    else if (kind === 'per_unit') total += units * num(vc.amount);
+    else if (kind === 'monthly_fixed') total += num(vc.amount) * dayFraction;
     else {
       const base = vc.applies_to === 'net_revenue' ? revenue - cogs : revenue;
       total += base * (num(vc.percentage) / 100);
@@ -308,7 +315,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     getShopifyCredentials(clientId),
     getFinancialSettings(clientId),
     db.all('SELECT id, category, name, amount, start_date, end_date, notes FROM client_fixed_costs WHERE client_id = ? AND organization_id = ? ORDER BY category, name', [clientId, orgId]),
-    db.all('SELECT id, category, name, percentage, applies_to, kind, amount, is_active, notes FROM client_variable_costs WHERE client_id = ? AND organization_id = ? ORDER BY category, name', [clientId, orgId]),
+    db.all('SELECT id, category, name, percentage, applies_to, kind, amount, is_active, notes, reserve_provider FROM client_variable_costs WHERE client_id = ? AND organization_id = ? ORDER BY category, name', [clientId, orgId]),
   ]);
   const defaultRate = settings.default_cogs_rate;
 
@@ -387,7 +394,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     const cogs = cogs_known + cogs_estimated;
     const fb = num(m.fb_spend); const ga = num(m.ga_spend); const tt = num(m.tt_spend);
     const ad_spend = fb + ga + tt;
-    const variable_costs = variableCostsFor(variableItems, revenue, cogs, orders);
+    const variable_costs = variableCostsFor(variableItems, revenue, cogs, orders, { units: num(s.units), dayFraction: 1 / daysInMonth });
     const fixed_costs = fixedPerDay;
     const gross_profit = revenue - cogs;
     const net_profit = gross_profit - ad_spend - variable_costs - fixed_costs;
@@ -546,7 +553,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
       total: t.variable_costs,
       items: variableAll.map((vc) => {
         const active = vc.is_active === null || vc.is_active === undefined || Number(vc.is_active) === 1 || vc.is_active === true;
-        const amount = active ? variableCostsFor([vc], t.revenue, t.cogs, t.orders) : 0;
+        const amount = active ? variableCostsFor([vc], t.revenue, t.cogs, t.orders, { units: t.units, dayFraction: daysElapsed / daysInMonth }) : 0;
         return { ...vc, kind: vc.kind || 'percent', percentage: vc.percentage === null ? null : num(vc.percentage), amount_per_order: vc.amount === null ? null : num(vc.amount), is_active: active, amount: round(amount) };
       }),
     },
@@ -555,6 +562,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     missing_cost_count: missingSold.length,
     missing_cost_catalog: products.filter((p) => p.in_catalog && p.cost_estimated).length,
     default_cogs_rate: defaultRate,
+    lab_enabled: Boolean(settings.lab_enabled),
     shopify: shopifyCred ? { connected: true, platform: shopifyCred.platform, store_url: shopifyCred.store_url, status: shopifyCred.status, last_sync_at: shopifyCred.last_sync_at, last_error: shopifyCred.last_error } : { connected: false },
     products_synced_at: productsState.last_synced_at,
     products_syncing: !!productsState.syncing,

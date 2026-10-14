@@ -2406,6 +2406,27 @@ export const initializeDatabase = async () => {
         PRIMARY KEY (kind, run_key)
       )
     `);
+    // Laboratorio financiero por cliente (inventario + reservas), apagado por defecto
+    await pool.query(`ALTER TABLE client_financial_settings ADD COLUMN IF NOT EXISTS lab_enabled INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS inventory_quantity INTEGER`);
+    await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS inventory_tracked INTEGER`);
+    await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS inventory_synced_at TEXT`);
+    // Costos variables que son reservas para un proveedor (transportadora, 3PL…) y pagos hechos
+    await pool.query(`ALTER TABLE client_variable_costs ADD COLUMN IF NOT EXISTS reserve_provider TEXT`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_reserve_payments (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        provider TEXT NOT NULL,
+        period TEXT NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        paid_at TEXT,
+        notes TEXT,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     // Clientes privados: JSON con ids de team_members que pueden ver el cliente (null = todos)
     await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS visible_to_member_ids TEXT`);
     // Alcances OAuth de Shopify por cliente (null = los estándar de solo lectura)

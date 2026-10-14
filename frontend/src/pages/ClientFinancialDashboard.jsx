@@ -15,6 +15,8 @@ import DailyPnlChart from '../components/growth/financial/DailyPnlChart';
 import CumulativeProfitChart from '../components/growth/financial/CumulativeProfitChart';
 import ProductsTable from '../components/growth/financial/ProductsTable';
 import CostsPanel, { CostModal } from '../components/growth/financial/CostsPanel';
+import InventoryTab from '../components/growth/financial/InventoryTab';
+import ReservesTab from '../components/growth/financial/ReservesTab';
 import { fmtMoney, fmtPct, fmtX, fmtInt, relDelta, currentPeriod, prevPeriod, sumDays, monthShort } from '../components/growth/financial/format';
 
 const POLL_MS = 5000;
@@ -55,6 +57,15 @@ export default function ClientFinancialDashboard() {
   useEffect(() => {
     clientsAPI.getById(clientId).then((r) => setClient(r.data)).catch(() => {});
   }, [clientId]);
+
+  // Laboratorio financiero: pestañas extra solo cuando el cliente lo tiene habilitado
+  const [labTab, setLabTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'resumen');
+  const switchTab = (tab) => {
+    setLabTab(tab);
+    const url = new URL(window.location.href);
+    if (tab === 'resumen') url.searchParams.delete('tab'); else url.searchParams.set('tab', tab);
+    window.history.replaceState({}, '', url);
+  };
 
   const load = useCallback(async ({ silent = false } = {}) => {
     if (!silent) { setLoading(true); setError(null); }
@@ -188,7 +199,20 @@ export default function ClientFinancialDashboard() {
     <div className="space-y-4 sm:space-y-6 pb-10">
       <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} />
 
-      {data.is_future ? (
+      {data.lab_enabled && (
+        <div className="flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
+          {[['resumen', 'Resumen'], ['inventario', 'Inventario'], ['reservas', 'Reservas']].map(([k, label]) => (
+            <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${labTab === k ? 'bg-[#17181A] text-[#D7F653]' : 'text-gray-500 hover:text-[#17181A]'}`}>{label}</button>
+          ))}
+          <span className="hidden sm:inline-flex items-center px-2 text-[10px] uppercase tracking-wide text-amber-700">Laboratorio</span>
+        </div>
+      )}
+
+      {data.lab_enabled && labTab === 'inventario' ? (
+        <InventoryTab clientId={clientId} />
+      ) : data.lab_enabled && labTab === 'reservas' ? (
+        <ReservesTab clientId={clientId} period={period} />
+      ) : data.is_future ? (
         <div className="glass-solid rounded-2xl p-10 text-center text-sm text-gray-500">Ese mes todavía no ha empezado.</div>
       ) : !data.shopify?.connected && !hasAny ? (
         <div className="glass-solid rounded-2xl p-10 text-center max-w-xl mx-auto">
