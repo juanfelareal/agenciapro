@@ -226,6 +226,9 @@ export const tasksAPI = {
   update: (id, data) => api.put(`/tasks/${id}`, data),
   delete: (id) => api.delete(`/tasks/${id}`),
   bulkVisibility: (project_id, visible_to_client) => api.put('/tasks/bulk-visibility', { project_id, visible_to_client }),
+  // Tareas asignadas sin ver (badge + barras de anuncio)
+  assignedAlerts: () => api.get('/tasks/assigned-alerts'),
+  dismissAssignedAlert: (payload) => api.post('/tasks/assigned-alerts/dismiss', payload),
 };
 
 // Auth API (multi-tenant)

@@ -549,9 +549,11 @@ export async function handleWhatsappMessage({ orgId, phone, text, message }) {
 
   const open = await openIntakeForPhone(orgId, phone);
   const isDoc = message?.type === 'document' || Boolean(message?.kapso?.has_media && message?.document);
+  // Parece transcripción (varias líneas con marca de tiempo + hablante, o encabezado de Tactiq)
+  const looksLikeTranscript = /##\s*Transcript|Meeting started:/i.test(body) || (body.match(/^(?:\d{1,2}:)?\d{1,2}:\d{2}\s+[^:\n]{2,60}:/gm) || []).length >= 3;
 
   // 1) Hay una propuesta abierta → confirmar / cancelar / corregir
-  if (open && !isDoc && body.length < 600) {
+  if (open && !isDoc && !looksLikeTranscript && body.length < 600) {
     if (YES_RE.test(body)) {
       const { created } = await confirmIntake({ orgId, intakeId: open.id, createdBy: member.id });
       const lines = [`✅ Creé *${created.length} tarea${created.length === 1 ? '' : 's'}* en Orbit:`];

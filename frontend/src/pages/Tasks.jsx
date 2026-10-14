@@ -12,6 +12,7 @@ import KanbanView from '../components/tasks/KanbanView';
 import ListView from '../components/tasks/ListView';
 import CalendarView from '../components/tasks/CalendarView';
 import TaskHistory from '../components/tasks/TaskHistory';
+import AssignedAlerts from '../components/tasks/AssignedAlerts';
 import { PillSelect, DatePill, ToggleRow, Section } from '../components/tasks/TaskModalKit';
 
 // Config visual de estados y prioridades (pills del modal)
@@ -745,12 +746,27 @@ const Tasks = () => {
     loadTaskFiles(task.id);
   };
 
+  // Abrir una tarea desde una barra de "te asignaron": si está en la lista la usamos, si no la traemos
+  const openTaskById = async (taskId) => {
+    const local = tasks.find((t) => t.id === taskId);
+    if (local) return handleTaskClick(local);
+    try {
+      const { data } = await tasksAPI.getById(taskId);
+      if (data) handleTaskClick(data);
+    } catch (error) {
+      console.error('No pude abrir la tarea', error);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">Cargando...</div>;
   }
 
   return (
     <div className="flex flex-col h-full space-y-6">
+      {/* Avisos: tareas que me asignaron y no he visto (una barra por tarea) */}
+      <AssignedAlerts onOpenTask={openTaskById} />
+
       {/* Header */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -86,6 +86,63 @@ router.get('/', async (req, res) => {
 });
 
 // Get task by ID (scoped to organization directly)
+// Tareas asignadas al usuario que aún no ha visto (notificaciones task_assigned sin leer).
+// Alimenta el badge de "Tareas" en el menú y las barras de anuncio arriba de la página.
+router.get('/assigned-alerts', async (req, res) => {
+  try {
+    const rows = await db.prepare(`
+      SELECT n.id AS notification_id, n.created_at AS notified_at, n.metadata,
+             t.id AS task_id, t.title, t.status, t.priority, t.due_date, t.project_id,
+             p.name AS project_name, c.id AS client_id, COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) AS client_name
+      FROM notifications n
+      JOIN tasks t ON t.id = COALESCE(n.related_task_id, CASE WHEN n.entity_type = 'task' THEN n.entity_id END)
+      LEFT JOIN projects p ON p.id = t.project_id
+      LEFT JOIN clients c ON c.id = p.client_id
+      WHERE n.user_id = ? AND n.organization_id = ? AND n.type = 'task_assigned' AND n.is_read = 0
+        AND t.status != 'done'
+      ORDER BY n.created_at DESC
+      LIMIT 30
+    `).all(req.teamMember.id, req.orgId);
+    const byIds = [...new Set(rows.map((r) => { try { return JSON.parse(r.metadata || '{}').assigned_by; } catch { return null; } }).filter(Boolean))];
+    const names = byIds.length ? await db.prepare(`SELECT id, name FROM team_members WHERE id IN (${byIds.map(() => '?').join(',')})`).all(...byIds) : [];
+    const nameById = Object.fromEntries(names.map((n) => [n.id, n.name]));
+    const seen = new Set();
+    const items = [];
+    for (const r of rows) {
+      if (seen.has(r.task_id)) continue; // una barra por tarea aunque haya varias notificaciones
+      seen.add(r.task_id);
+      let assignedBy = null;
+      try { assignedBy = JSON.parse(r.metadata || '{}').assigned_by || null; } catch { /* ignore */ }
+      items.push({
+        notification_id: r.notification_id, task_id: r.task_id, title: r.title, status: r.status, priority: r.priority,
+        due_date: r.due_date, project_id: r.project_id, project_name: r.project_name, client_id: r.client_id, client_name: r.client_name,
+        assigned_by_id: assignedBy, assigned_by_name: assignedBy ? (nameById[assignedBy] || null) : null, notified_at: r.notified_at,
+      });
+    }
+    res.json({ count: items.length, items });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Quitar una barra (marca leída la notificación; si es "all", todas las de tareas asignadas)
+router.post('/assigned-alerts/dismiss', async (req, res) => {
+  try {
+    const { notification_id, task_id, all } = req.body || {};
+    if (all) {
+      await db.prepare(`UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE user_id = ? AND organization_id = ? AND type = 'task_assigned' AND is_read = 0`).run(req.teamMember.id, req.orgId);
+    } else if (task_id) {
+      await db.prepare(`UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE user_id = ? AND organization_id = ? AND type = 'task_assigned' AND is_read = 0 AND (related_task_id = ? OR (entity_type = 'task' AND entity_id = ?))`).run(req.teamMember.id, req.orgId, task_id, task_id);
+    } else if (notification_id) {
+      await db.prepare(`UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND organization_id = ?`).run(notification_id, req.teamMember.id, req.orgId);
+    }
+    const left = await db.prepare(`SELECT COUNT(DISTINCT COALESCE(n.related_task_id, n.entity_id)) AS c FROM notifications n JOIN tasks t ON t.id = COALESCE(n.related_task_id, CASE WHEN n.entity_type = 'task' THEN n.entity_id END) WHERE n.user_id = ? AND n.organization_id = ? AND n.type = 'task_assigned' AND n.is_read = 0 AND t.status != 'done'`).get(req.teamMember.id, req.orgId);
+    res.json({ ok: true, count: Number(left?.c || 0) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const currentTeamMemberId = req.teamMember?.id || null;

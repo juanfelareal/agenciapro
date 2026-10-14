@@ -35,7 +35,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { orbitFeedbackAPI, newsAPI, whatsappAPI } from '../utils/api';
+import { orbitFeedbackAPI, newsAPI, whatsappAPI, tasksAPI } from '../utils/api';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
@@ -95,6 +95,32 @@ const Layout = ({ children }) => {
     };
   }, []);
 
+  // Tareas asignadas sin ver (badge azul). Mismo patrón: montar, 60 s, volver a la pestaña y evento `tasks:alerts-changed`.
+  const [taskAlertCount, setTaskAlertCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      tasksAPI.assignedAlerts()
+        .then((res) => { if (!cancelled) setTaskAlertCount(res.data?.count || 0); })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = setInterval(refresh, 60000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
+    const onChanged = (e) => {
+      if (typeof e?.detail?.count === 'number') setTaskAlertCount(e.detail.count);
+      else refresh();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('tasks:alerts-changed', onChanged);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('tasks:alerts-changed', onChanged);
+    };
+  }, []);
+
   const [newsUnreadCount, setNewsUnreadCount] = useState(0);
   useEffect(() => {
     let cancelled = false;
@@ -137,7 +163,7 @@ const Layout = ({ children }) => {
     { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos' },
     { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
     { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
-    { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks' },
+    { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks', badge: 'tasks' },
     { name: 'Reuniones', path: '/app/reuniones', icon: ClipboardList, permission: 'tasks' },
   ];
 
@@ -250,11 +276,23 @@ const Layout = ({ children }) => {
         {collapsedUI && item.badge === 'whatsapp' && waUnreadCount > 0 && (
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 ring-2 ring-white rounded-full" />
         )}
+        {/* Tareas asignadas sin ver: badge azul (expandido) o punto azul (colapsado) */}
+        {!collapsedUI && item.badge === 'tasks' && taskAlertCount > 0 && (
+          <span
+            className="ml-auto bg-sky-500 text-white text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center"
+            title={`${taskAlertCount} tarea${taskAlertCount === 1 ? '' : 's'} nueva${taskAlertCount === 1 ? '' : 's'}`}
+          >
+            {taskAlertCount > 99 ? '99+' : taskAlertCount}
+          </span>
+        )}
+        {collapsedUI && item.badge === 'tasks' && taskAlertCount > 0 && (
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-sky-500 ring-2 ring-white rounded-full" />
+        )}
 
         {/* Tooltip for collapsed state */}
         {collapsedUI && (
           <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-            {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}{item.badge === 'whatsapp' && waUnreadCount > 0 ? ` · ${waUnreadCount} sin leer` : ''}
+            {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}{item.badge === 'whatsapp' && waUnreadCount > 0 ? ` · ${waUnreadCount} sin leer` : ''}{item.badge === 'tasks' && taskAlertCount > 0 ? ` · ${taskAlertCount} nueva${taskAlertCount === 1 ? '' : 's'}` : ''}
           </div>
         )}
       </Link>
