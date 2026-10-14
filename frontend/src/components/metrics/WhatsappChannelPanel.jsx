@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MessageCircle, Plus, Trash2, RefreshCw, X, Check, Globe, SlidersHorizontal, Info } from 'lucide-react';
 import { whatsappSalesAPI } from '../../utils/api';
 
@@ -106,19 +107,22 @@ export default function WhatsappChannelPanel({ clientId, startDate, endDate, onC
   );
 }
 
-const Modal = ({ title, subtitle, onClose, children, wide }) => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-    <div className={`bg-white rounded-2xl w-full ${wide ? 'max-w-3xl' : 'max-w-2xl'} max-h-[90dvh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
-      <div className="flex items-start justify-between px-5 py-4 border-b border-gray-100">
+// Se monta en document.body: la tarjeta padre usa backdrop-filter y eso convierte a `position: fixed`
+// en relativo a la tarjeta (el modal quedaba atrapado dentro del panel).
+const Modal = ({ title, subtitle, onClose, children, wide }) => createPortal(
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={onClose}>
+    <div className={`bg-white rounded-2xl shadow-2xl w-full ${wide ? 'max-w-3xl' : 'max-w-2xl'} max-h-[90dvh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100 flex-shrink-0">
         <div>
           <h3 className="text-lg font-bold text-[#17181A]">{title}</h3>
           {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 flex-shrink-0"><X size={20} /></button>
       </div>
       <div className="p-5 overflow-y-auto">{children}</div>
     </div>
-  </div>
+  </div>,
+  document.body,
 );
 
 function SalesModal({ clientId, startDate, endDate, sales, onClose, onChanged }) {
