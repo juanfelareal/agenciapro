@@ -151,11 +151,13 @@ export async function computeReserves(clientId, orgId, period) {
   const isFuture = start > today;
   const daysElapsed = isFuture ? 0 : rangeDays(start, effEnd).length;
 
+  const CARRIER_RE = /coordinadora|transport|env[ií]o|servientrega|interrapid|tcc\b|envia\b|deprisa|mensajer|domicilio/i;
   const [rules, metrics, sales, payments] = await Promise.all([
     db.all(`SELECT id, category, name, percentage, applies_to, kind, amount, is_active, notes, reserve_provider FROM client_variable_costs WHERE client_id = ? AND organization_id = ? AND reserve_provider IS NOT NULL AND reserve_provider <> '' ORDER BY reserve_provider, name`, [clientId, orgId]),
     isFuture ? null : db.get(`
       SELECT COALESCE(SUM(shopify_net_revenue), 0) + COALESCE(SUM(whatsapp_revenue), 0) AS revenue,
-             COALESCE(SUM(shopify_orders), 0) + COALESCE(SUM(whatsapp_orders), 0) AS orders
+             COALESCE(SUM(shopify_orders), 0) + COALESCE(SUM(whatsapp_orders), 0) AS orders,
+             COALESCE(SUM(shopify_shipping_collected), 0) AS shipping_collected
       FROM client_daily_metrics WHERE client_id = ? AND metric_date >= ? AND metric_date <= ?
     `, [clientId, start, effEnd]),
     isFuture ? null : db.get(`
@@ -168,6 +170,7 @@ export async function computeReserves(clientId, orgId, period) {
   ]);
 
   const revenue = num(metrics?.revenue); const orders = num(metrics?.orders);
+  const shippingCollected = num(metrics?.shipping_collected);
   const units = num(sales?.units); const cogs = num(sales?.cogs);
   const providers = {};
   for (const r of rules) {
@@ -181,16 +184,33 @@ export async function computeReserves(clientId, orgId, period) {
     const p = providers[pay.provider] || (providers[pay.provider] = { provider: pay.provider, rules: [], accrued: 0, paid: 0, pending: 0, projected: 0 });
     p.paid += num(pay.amount);
   }
-  const list = Object.values(providers).map((p) => ({
-    ...p,
-    accrued: round(p.accrued),
-    paid: round(p.paid),
-    pending: round(p.accrued - p.paid),
-    projected: round(daysElapsed > 0 ? (p.accrued / daysElapsed) * daysInMonth : 0),
-    per_day: round(daysElapsed > 0 ? p.accrued / daysElapsed : 0),
-  }));
+  const list = Object.values(providers).map((p) => {
+    const isCarrier = CARRIER_RE.test(p.provider);
+    return {
+      ...p,
+      is_carrier: isCarrier,
+      accrued: round(p.accrued),
+      paid: round(p.paid),
+      pending: round(p.accrued - p.paid),
+      projected: round(daysElapsed > 0 ? (p.accrued / daysElapsed) * daysInMonth : 0),
+      per_day: round(daysElapsed > 0 ? p.accrued / daysElapsed : 0),
+      // Transportadora: lo que cobramos de envío a los clientes vs. lo que reservamos
+      shipping_collected: isCarrier ? round(shippingCollected) : null,
+      shipping_coverage: isCarrier && p.accrued > 0 ? shippingCollected / p.accrued : null,
+      shipping_net: isCarrier ? round(shippingCollected - p.accrued) : null,
+    };
+  });
   const totals = list.reduce((t, p) => ({ accrued: t.accrued + p.accrued, paid: t.paid + p.paid, pending: t.pending + p.pending, projected: t.projected + p.projected }), { accrued: 0, paid: 0, pending: 0, projected: 0 });
-  return { period, start, end: effEnd, days_elapsed: daysElapsed, days_in_month: daysInMonth, base: { revenue: round(revenue), orders, units, cogs: round(cogs) }, providers: list, payments, totals };
+  return { period, start, end: effEnd, days_elapsed: daysElapsed, days_in_month: daysInMonth, base: { revenue: round(revenue), orders, units, cogs: round(cogs), shipping_collected: round(shippingCollected), shipping_per_order: orders > 0 ? round(shippingCollected / orders) : 0 }, providers: list, payments, totals: { ...totals, shipping_collected: round(shippingCollected) } };
+}
+
+/** Renombra un proveedor (tarifas y pagos) */
+export async function renameReserveProvider(clientId, orgId, from, to) {
+  const name = String(to || '').trim();
+  if (!name) throw new Error('Nombre requerido');
+  await db.run('UPDATE client_variable_costs SET reserve_provider = ?, updated_at = CURRENT_TIMESTAMP WHERE client_id = ? AND organization_id = ? AND reserve_provider = ?', [name, clientId, orgId, from]);
+  await db.run('UPDATE client_reserve_payments SET provider = ? WHERE client_id = ? AND provider = ?', [name, clientId, from]);
+  return { provider: name };
 }
 
 export async function addReservePayment({ clientId, orgId, provider, period, amount, paidAt, notes, createdBy }) {
@@ -207,4 +227,4 @@ export async function deleteReservePayment(clientId, id) {
   return { deleted: true };
 }
 
-export default { isLabEnabled, setLabEnabled, syncInventory, computeInventory, setInventoryHidden, computeReserves, addReservePayment, deleteReservePayment };
+export default { isLabEnabled, setLabEnabled, syncInventory, computeInventory, setInventoryHidden, renameReserveProvider, computeReserves, addReservePayment, deleteReservePayment };

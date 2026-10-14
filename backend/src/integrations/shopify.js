@@ -133,6 +133,7 @@ class ShopifyIntegration {
     let totalRefunds = 0;
     let totalTax = 0;
     let totalShippingTax = 0;   // Tax on shipping lines only (needed to separate product tax)
+    let shippingCollected = 0;  // Envío cobrado al cliente en pedidos pagados
     let totalDiscounts = 0;
     let confirmedOrderCount = 0;
     let pendingOrders = 0;
@@ -175,6 +176,7 @@ class ShopifyIntegration {
         // Calculate shipping tax (needed to separate product tax from total tax)
         if (order.shipping_lines) {
           order.shipping_lines.forEach(sl => {
+            shippingCollected += parseFloat(sl.discounted_price ?? sl.price) || 0;
             if (sl.tax_lines) {
               sl.tax_lines.forEach(tl => {
                 totalShippingTax += parseFloat(tl.price) || 0;
@@ -218,6 +220,7 @@ class ShopifyIntegration {
       allOrdersRevenue,                    // "Venta total" = ALL non-cancelled (including pending)
       allOrderCount,                       // Total pedidos (including pending)
       customers: uniqueCustomers.size,     // Clientes únicos
+      shippingCollected,                   // Envío cobrado al cliente (pedidos pagados)
     };
   }
 

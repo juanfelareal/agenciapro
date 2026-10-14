@@ -2412,6 +2412,8 @@ export const initializeDatabase = async () => {
     await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS inventory_tracked INTEGER`);
     await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS inventory_synced_at TEXT`);
     await pool.query(`ALTER TABLE shopify_products ADD COLUMN IF NOT EXISTS inventory_hidden INTEGER DEFAULT 0`);
+    // Envío cobrado al cliente en los pedidos pagados del día (para cruzar con la reserva de transportadora)
+    await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS shopify_shipping_collected REAL DEFAULT 0`);
     // Costos variables que son reservas para un proveedor (transportadora, 3PL…) y pagos hechos
     await pool.query(`ALTER TABLE client_variable_costs ADD COLUMN IF NOT EXISTS reserve_provider TEXT`);
     await pool.query(`

@@ -149,6 +149,7 @@ class WooCommerceIntegration {
     let confirmedProductNet = 0;
     let allOrdersRevenue = 0;
     let totalRefunds = 0;
+    let shippingCollected = 0;
     let totalTax = 0;
     let totalDiscounts = 0;
     let confirmedOrderCount = 0;
@@ -169,6 +170,7 @@ class WooCommerceIntegration {
 
       confirmedOrderCount += 1;
       confirmedRevenue += total;
+      shippingCollected += (parseFloat(order.shipping_total) || 0);
       totalTax += (parseFloat(order.total_tax) || 0);
       totalDiscounts += (parseFloat(order.discount_total) || 0);
       // Venta neta: líneas de producto (ya con descuento, sin impuesto ni envío)
@@ -194,6 +196,7 @@ class WooCommerceIntegration {
       allOrdersRevenue,
       allOrderCount,
       customers: uniqueCustomers.size,
+      shippingCollected,
     };
   }
 

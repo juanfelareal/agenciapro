@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { PiggyBank, Plus, Trash2, Truck, Warehouse, Check, X, Settings2 } from 'lucide-react';
+import { PiggyBank, Plus, Trash2, Truck, Warehouse, Check, X, Settings2, Pencil } from 'lucide-react';
 import { growthAPI } from '../../../utils/api';
 import { fmtMoney, fmtInt } from './format';
 
@@ -57,6 +57,12 @@ export default function ReservesTab({ clientId, period }) {
       setRuleForm(null); await load({ silent: true });
     } catch (e) { alert(e.response?.data?.error || 'No se pudo guardar la tarifa'); } finally { setSaving(false); }
   };
+  const renameProvider = async (p) => {
+    const name = prompt('Nuevo nombre del proveedor (por ejemplo Servientrega, Interrapidísimo, TCC…):', p.provider);
+    if (!name || name.trim() === p.provider) return;
+    try { await growthAPI.renameReserveProvider(clientId, p.provider, name.trim()); await load({ silent: true }); } catch (e) { alert(e.response?.data?.error || 'No se pudo renombrar'); }
+  };
+
   const removeRule = async (r) => {
     if (!confirm(`¿Quitar la tarifa "${r.name}"? Dejará de contarse en el P&L y en la reserva.`)) return;
     try { await growthAPI.deleteVariableCost(clientId, r.id); await load({ silent: true }); } catch (e) { alert(e.response?.data?.error || 'No se pudo borrar'); }
@@ -77,7 +83,8 @@ export default function ReservesTab({ clientId, period }) {
       {error && <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm">{error}</div>}
 
       {t && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="glass-solid rounded-2xl p-4 ring-1 ring-sky-100"><p className="text-[11px] uppercase tracking-wide text-gray-500">Recaudado por envíos</p><p className="text-2xl font-bold text-[#17181A] tabular-nums">{fmtMoney(data.base.shipping_collected)}</p><p className="text-xs text-gray-500 mt-1">{fmtMoney(data.base.shipping_per_order)} por pedido · lo que pagan los clientes de envío</p></div>
           <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Acumulado del mes</p><p className="text-2xl font-bold text-[#17181A] tabular-nums">{fmtMoney(t.accrued)}</p><p className="text-xs text-gray-500 mt-1">{data.days_elapsed} de {data.days_in_month} días · {fmtInt(data.base.orders)} pedidos · {fmtInt(data.base.units)} und.</p></div>
           <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Proyección fin de mes</p><p className="text-2xl font-bold text-[#17181A] tabular-nums">{fmtMoney(t.projected)}</p><p className="text-xs text-gray-500 mt-1">Al ritmo actual</p></div>
           <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Ya pagado</p><p className="text-2xl font-bold text-[#17181A] tabular-nums">{fmtMoney(t.paid)}</p><p className="text-xs text-gray-500 mt-1">{data.payments.length} pago{data.payments.length === 1 ? '' : 's'} registrados</p></div>
@@ -106,8 +113,17 @@ export default function ReservesTab({ clientId, period }) {
                       <p className="text-[11px] text-gray-500">{fmtMoney(p.per_day)} / día · proyección {fmtMoney(p.projected)}</p>
                     </div>
                   </div>
-                  <button type="button" onClick={() => setPayForm({ provider: p.provider, amount: '', paid_at: todayISO(), notes: '' })} className="btn-ghost text-xs inline-flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Registrar pago</button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button type="button" onClick={() => renameProvider(p)} className="p-1.5 text-gray-400 hover:text-[#17181A] rounded-lg" title="Cambiar nombre del proveedor"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button type="button" onClick={() => setPayForm({ provider: p.provider, amount: '', paid_at: todayISO(), notes: '' })} className="btn-ghost text-xs inline-flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Registrar pago</button>
+                  </div>
                 </div>
+                {p.is_carrier && (
+                  <div className={`mt-3 rounded-xl p-3 text-xs ${p.shipping_net >= 0 ? 'bg-sky-50 text-sky-800' : 'bg-amber-50 text-amber-800'}`}>
+                    Recaudado por envíos este mes: <strong>{fmtMoney(p.shipping_collected)}</strong>
+                    {p.accrued > 0 ? <> · cubre el <strong>{Math.round((p.shipping_coverage || 0) * 100)}%</strong> de la reserva ({p.shipping_net >= 0 ? `sobran ${fmtMoney(p.shipping_net)}` : `faltan ${fmtMoney(-p.shipping_net)}`})</> : ' · define la tarifa para comparar contra la reserva'}
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                   <div className="rounded-xl bg-gray-50 p-2"><p className="text-[10px] uppercase text-gray-500">Acumulado</p><p className="font-bold tabular-nums text-sm">{fmtMoney(p.accrued)}</p></div>
                   <div className="rounded-xl bg-gray-50 p-2"><p className="text-[10px] uppercase text-gray-500">Pagado</p><p className="font-bold tabular-nums text-sm">{fmtMoney(p.paid)}</p></div>

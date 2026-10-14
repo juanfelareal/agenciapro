@@ -635,6 +635,12 @@ router.get('/clients/:clientId/reserves', requireLab, async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+router.put('/clients/:clientId/reserves/providers/:provider', requireLab, async (req, res) => {
+  try {
+    res.json(await lab.renameReserveProvider(Number(req.params.clientId), req.orgId, decodeURIComponent(req.params.provider), req.body?.name));
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+
 router.post('/clients/:clientId/reserves/payments', requireLab, async (req, res) => {
   try {
     const { provider, period, amount, paid_at, notes } = req.body || {};

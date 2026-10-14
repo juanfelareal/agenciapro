@@ -691,6 +691,7 @@ export const growthAPI = {
   setInventoryHidden: (clientId, productId, hidden) => api.put(`/growth/clients/${clientId}/inventory/${productId}/hidden`, { hidden }),
   getReserves: (clientId, period) => api.get(`/growth/clients/${clientId}/reserves`, { params: { period } }),
   addReservePayment: (clientId, data) => api.post(`/growth/clients/${clientId}/reserves/payments`, data),
+  renameReserveProvider: (clientId, provider, name) => api.put(`/growth/clients/${clientId}/reserves/providers/${encodeURIComponent(provider)}`, { name }),
   deleteReservePayment: (clientId, id) => api.delete(`/growth/clients/${clientId}/reserves/payments/${id}`),
   updateProductCost: (clientId, productId, cost) => api.put(`/growth/clients/${clientId}/products/${productId}/cost`, { cost }),
   resetProductCost: (clientId, productId) => api.delete(`/growth/clients/${clientId}/products/${productId}/cost`),

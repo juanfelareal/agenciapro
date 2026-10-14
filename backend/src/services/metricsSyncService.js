@@ -144,6 +144,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
           shopify_customers = ?,
           shopify_all_orders_revenue = ?,
           shopify_all_orders_count = ?,
+          shopify_shipping_collected = ?,
           fb_spend = ?,
           fb_impressions = ?,
           fb_clicks = ?,
@@ -204,6 +205,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.shopify_customers || 0,
       metrics.shopify_all_orders_revenue || 0,
       metrics.shopify_all_orders_count || 0,
+      metrics.shopify_shipping_collected || 0,
       metrics.fb_spend || 0,
       metrics.fb_impressions || 0,
       metrics.fb_clicks || 0,
@@ -257,7 +259,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
         shopify_revenue, shopify_orders, shopify_aov, shopify_refunds, shopify_net_revenue,
         shopify_total_tax, shopify_total_discounts, shopify_sessions, shopify_conversion_rate,
         shopify_pending_orders, shopify_customers,
-        shopify_all_orders_revenue, shopify_all_orders_count,
+        shopify_all_orders_revenue, shopify_all_orders_count, shopify_shipping_collected,
         fb_spend, fb_impressions, fb_clicks, fb_ctr, fb_cpc, fb_cpm,
         fb_conversions, fb_revenue, fb_roas,
         fb_cost_per_purchase, fb_landing_page_views, fb_link_clicks, fb_add_to_cart,
@@ -269,7 +271,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
         tt_spend, tt_impressions, tt_clicks, tt_ctr, tt_cpc, tt_cpm,
         tt_conversions, tt_revenue, tt_roas, tt_cost_per_conversion,
         total_revenue, overall_roas, cost_per_order, ad_spend_percentage
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       clientId, date,
       metrics.shopify_revenue || 0,
@@ -285,6 +287,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.shopify_customers || 0,
       metrics.shopify_all_orders_revenue || 0,
       metrics.shopify_all_orders_count || 0,
+      metrics.shopify_shipping_collected || 0,
       metrics.fb_spend || 0,
       metrics.fb_impressions || 0,
       metrics.fb_clicks || 0,
@@ -524,6 +527,7 @@ export async function syncClientForDate(clientId, date) {
     shopify_customers: shopifyMetrics.customers,
     shopify_all_orders_revenue: shopifyMetrics.allOrdersRevenue,
     shopify_all_orders_count: shopifyMetrics.allOrderCount,
+    shopify_shipping_collected: shopifyMetrics.shippingCollected || 0,
     fb_spend: fbMetrics.spend,
     fb_impressions: fbMetrics.impressions,
     fb_clicks: fbMetrics.clicks,
