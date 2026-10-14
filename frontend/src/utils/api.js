@@ -705,6 +705,7 @@ export const growthAPI = {
   renameReserveProvider: (clientId, provider, name) => api.put(`/growth/clients/${clientId}/reserves/providers/${encodeURIComponent(provider)}`, { name }),
   deleteReservePayment: (clientId, id) => api.delete(`/growth/clients/${clientId}/reserves/payments/${id}`),
   updateProductCost: (clientId, productId, cost) => api.put(`/growth/clients/${clientId}/products/${productId}/cost`, { cost }),
+  updateVariantCost: (clientId, variantId, cost) => api.put(`/growth/clients/${clientId}/products/variant/${encodeURIComponent(variantId)}/cost`, { cost }),
   resetProductCost: (clientId, productId) => api.delete(`/growth/clients/${clientId}/products/${productId}/cost`),
   syncProducts: (clientId) => api.post(`/growth/clients/${clientId}/products/sync`),
   calculateCOGS: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/cogs/calculate`, { start_date: startDate, end_date: endDate }),

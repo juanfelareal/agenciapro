@@ -44,8 +44,16 @@ function CostCell({ product, onSave, onReset, defaultRate }) {
   };
   const reset = async () => { setBusy(true); try { await onReset(product); } finally { setBusy(false); } };
 
-  if (!product.in_catalog) {
-    return <div className="text-right text-[11px] text-gray-400">No está en el catálogo<br />estimado {fmtPct(defaultRate, 0)}</div>;
+  if (!product.in_catalog && !editing) {
+    return (
+      <button type="button" onClick={start} className="group inline-flex flex-col items-end gap-0.5 rounded-lg px-2 py-1 hover:bg-gray-50 transition text-right" title="Escribir el costo unitario (queda como Manual)">
+        <span className="inline-flex items-center gap-1.5 tabular-nums font-semibold text-[13px] text-amber-600">
+          Sin costo
+          <Pencil className="w-3 h-3 text-gray-300 group-hover:text-gray-500" />
+        </span>
+        <span className="text-[10px] text-gray-400 leading-tight">No está en el catálogo · estimado {fmtPct(defaultRate, 0)}</span>
+      </button>
+    );
   }
   if (editing) {
     return (

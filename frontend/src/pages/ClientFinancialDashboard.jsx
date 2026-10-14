@@ -116,7 +116,8 @@ export default function ClientFinancialDashboard() {
 
   const handleSaveCost = async (product, cost) => {
     try {
-      await growthAPI.updateProductCost(clientId, product.id, cost);
+      if (product.in_catalog === false || !product.id) await growthAPI.updateVariantCost(clientId, product.shopify_variant_id, cost);
+      else await growthAPI.updateProductCost(clientId, product.id, cost);
       notify('ok', `Costo de ${product.title} guardado.`);
       await load({ silent: true });
     } catch (err) {

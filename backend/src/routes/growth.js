@@ -700,6 +700,34 @@ router.get('/clients/:clientId/products', async (req, res) => {
 });
 
 // Costo manual de un producto (pisa el de Shopify; el COGS se recalcula en vivo)
+// Costo manual para una variante vendida que NO está en el catálogo (p. ej. la tienda no dio permiso
+// read_products y nunca se pudo sincronizar). Creamos la fila del producto a partir de las ventas.
+router.put('/clients/:clientId/products/variant/:variantId/cost', async (req, res) => {
+  try {
+    const { clientId, variantId } = req.params;
+    const cost = parseFloat(req.body?.cost);
+    if (!Number.isFinite(cost) || cost < 0) return res.status(400).json({ error: 'cost debe ser un número mayor o igual a 0' });
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+
+    const sale = await db.get(`
+      SELECT MAX(shopify_product_id) AS shopify_product_id, MAX(title) AS title, MAX(variant_title) AS variant_title, MAX(sku) AS sku
+      FROM client_product_daily_sales WHERE client_id = ? AND shopify_variant_id = ?
+    `, [clientId, String(variantId)]);
+    if (!sale || !sale.title) return res.status(404).json({ error: 'No encontramos ventas de esa variante' });
+
+    await db.run(`
+      INSERT INTO shopify_products (organization_id, client_id, shopify_product_id, shopify_variant_id, sku, title, variant_title, cost, shopify_cost, cost_source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'manual')
+      ON CONFLICT (client_id, shopify_variant_id) DO UPDATE SET cost = EXCLUDED.cost, cost_source = 'manual', updated_at = CURRENT_TIMESTAMP
+    `, [req.orgId, clientId, String(sale.shopify_product_id || variantId), String(variantId), sale.sku, sale.title, sale.variant_title, cost]);
+    const row = await db.get('SELECT id FROM shopify_products WHERE client_id = ? AND shopify_variant_id = ?', [clientId, String(variantId)]);
+    res.json({ success: true, id: row?.id || null, cost, cost_source: 'manual' });
+  } catch (error) {
+    console.error('Error setting variant cost:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.put('/clients/:clientId/products/:productId/cost', async (req, res) => {
   try {
     const { clientId, productId } = req.params;
