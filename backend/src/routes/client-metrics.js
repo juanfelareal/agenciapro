@@ -531,7 +531,8 @@ router.get('/aggregate/all', async (req, res) => {
 
     // Calculate derived metrics for each client
     // Note: PostgreSQL SUM() returns BIGINT which pg driver sends as string — must parseFloat
-    const result = metrics.map(client => {
+    const hiddenSet = new Set((req.hiddenClientIds || []).map(Number));
+    const result = metrics.filter((client) => !hiddenSet.has(Number(client.client_id))).map(client => {
       const totalRevenue = parseFloat(client.total_revenue) || 0;
       const totalAdSpend = parseFloat(client.total_ad_spend) || 0;
       const totalFbSpend = parseFloat(client.total_fb_spend) || 0;

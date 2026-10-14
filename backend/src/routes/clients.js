@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import db from '../config/database.js';
+import { invalidateVisibilityCache } from '../middleware/clientVisibility.js';
 import axios from 'axios';
 import { createRecurringInvoice } from '../utils/recurringInvoices.js';
 
@@ -34,6 +35,31 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Client not found' });
     }
     res.json(client);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Clientes privados — solo el dueño de la cuenta (CLIENT_PRIVACY_OWNER_EMAILS) puede cambiar quién ve un cliente
+const PRIVACY_OWNERS = (process.env.CLIENT_PRIVACY_OWNER_EMAILS || 'juanfe@larealmarketing.com').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+const isPrivacyOwner = (req) => PRIVACY_OWNERS.includes(String(req.teamMember?.email || '').toLowerCase());
+
+router.get('/privacy/can-manage', (req, res) => {
+  res.json({ can_manage: isPrivacyOwner(req), member_id: req.teamMember?.id || null });
+});
+
+router.put('/:id/visibility', async (req, res) => {
+  try {
+    if (!isPrivacyOwner(req)) return res.status(403).json({ error: 'Solo el dueño de la cuenta puede cambiar la privacidad de un cliente' });
+    const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
+    const raw = req.body?.member_ids;
+    const ids = Array.isArray(raw) ? Array.from(new Set(raw.map(Number).filter(Number.isFinite))) : [];
+    // El dueño siempre conserva acceso
+    if (ids.length && !ids.includes(req.teamMember.id)) ids.push(req.teamMember.id);
+    await db.run('UPDATE clients SET visible_to_member_ids = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [ids.length ? JSON.stringify(ids) : null, client.id]);
+    invalidateVisibilityCache(req.orgId);
+    res.json({ id: client.id, visible_to_member_ids: ids.length ? ids : null, private: ids.length > 0 });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

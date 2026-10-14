@@ -14,9 +14,10 @@ import {
   Loader2,
   Check,
   Video,
-  MessageCircle
+  MessageCircle,
+  Lock
 } from 'lucide-react';
-import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, woocommerceAuthAPI, portalAdminAPI } from '../utils/api';
+import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, woocommerceAuthAPI, portalAdminAPI, teamAPI } from '../utils/api';
 
 // WIP: la integración Google Ads / TikTok Ads tiene el backend sin desplegar
 // (faltan tablas ga_/tt_ y env vars en prod). Ocultamos las cards hasta terminarla.
@@ -85,6 +86,8 @@ function ClientPlatformSettings() {
   // Portal UGC visibility
   const [canViewUgc, setCanViewUgc] = useState(false);
   const [whatsappSalesEnabled, setWhatsappSalesEnabled] = useState(false);
+  // Clientes privados (solo el dueño de la cuenta ve esta tarjeta)
+  const [privacy, setPrivacy] = useState({ canManage: false, memberId: null, members: [], selected: [], saving: false, loaded: false });
   const [savingWhatsappSales, setSavingWhatsappSales] = useState(false);
   const [savingUgc, setSavingUgc] = useState(false);
 
@@ -177,6 +180,18 @@ function ClientPlatformSettings() {
         setCanViewUgc(!!portalRes.settings?.can_view_ugc);
         setWhatsappSalesEnabled(!!portalRes.settings?.whatsapp_sales_enabled);
       } catch (e) {
+        // Settings may not exist yet
+      }
+      try {
+        const can = await clientsAPI.canManagePrivacy();
+        if (can.data?.can_manage) {
+          const [members, clientRes] = await Promise.all([teamAPI.getAll({ status: 'active' }), clientsAPI.getById(clientId)]);
+          const list = (members.data?.members || members.data || []).filter((m) => m.status !== 'inactive');
+          let selected = [];
+          try { selected = JSON.parse(clientRes.data?.visible_to_member_ids || '[]'); } catch { selected = []; }
+          setPrivacy({ canManage: true, memberId: can.data.member_id, members: list, selected: Array.isArray(selected) ? selected : [], saving: false, loaded: true });
+        }
+      } catch (e) {
         // Settings may not exist yet, use default
       }
 
@@ -197,6 +212,22 @@ function ClientPlatformSettings() {
       alert('Error al guardar configuración');
     } finally {
       setSavingRevenueMetric(false);
+    }
+  };
+
+  const togglePrivacyMember = (id) => {
+    setPrivacy((p) => ({ ...p, selected: p.selected.includes(id) ? p.selected.filter((x) => x !== id) : [...p.selected, id] }));
+  };
+  const savePrivacy = async (makePublic = false) => {
+    try {
+      setPrivacy((p) => ({ ...p, saving: true }));
+      const ids = makePublic ? [] : privacy.selected;
+      const res = await clientsAPI.setVisibility(clientId, ids);
+      setPrivacy((p) => ({ ...p, saving: false, selected: res.data?.visible_to_member_ids || [] }));
+      alert(res.data?.private ? 'Cliente privado: solo lo ven las personas seleccionadas.' : 'Cliente visible para todo el equipo.');
+    } catch (error) {
+      setPrivacy((p) => ({ ...p, saving: false }));
+      alert('Error al guardar: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -1440,6 +1471,42 @@ function ClientPlatformSettings() {
           </div>
         </div>
       </div>
+
+      {/* Cliente privado — solo el dueño de la cuenta */}
+      {privacy.canManage && (
+        <div className="glass rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Lock className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-gray-900">Privacidad del cliente</h2>
+              <p className="text-sm text-gray-500">Si eliges personas, solo ellas verán este cliente y todos sus datos (métricas, tienda, financiero, facturas, proyectos). Nadie más del equipo lo verá en Orbit.</p>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className={`p-3 rounded-lg text-sm mb-4 ${privacy.selected.length ? 'bg-amber-50 text-amber-800' : 'bg-gray-50 text-gray-600'}`}>
+              {privacy.selected.length ? `Cliente privado · visible para ${privacy.selected.length} persona${privacy.selected.length === 1 ? '' : 's'}` : 'Visible para todo el equipo'}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {privacy.members.map((m) => (
+                <label key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${privacy.selected.includes(m.id) ? 'border-[#17181A] bg-[#17181A]/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <input type="checkbox" checked={privacy.selected.includes(m.id)} onChange={() => togglePrivacyMember(m.id)} className="w-4 h-4 accent-[#17181A]" />
+                  <span className="text-sm text-gray-900 truncate">{m.name}{m.id === privacy.memberId ? ' (tú)' : ''}</span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              {privacy.selected.length > 0 && (
+                <button onClick={() => savePrivacy(true)} disabled={privacy.saving} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Hacer visible para todos</button>
+              )}
+              <button onClick={() => savePrivacy(false)} disabled={privacy.saving || privacy.selected.length === 0} className="px-5 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2">
+                <Lock className="w-4 h-4" /> {privacy.saving ? 'Guardando...' : 'Guardar como privado'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Canal de ventas por WhatsApp (por cliente) */}
       <div className="glass rounded-xl overflow-hidden">

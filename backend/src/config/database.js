@@ -2406,6 +2406,8 @@ export const initializeDatabase = async () => {
         PRIMARY KEY (kind, run_key)
       )
     `);
+    // Clientes privados: JSON con ids de team_members que pueden ver el cliente (null = todos)
+    await pool.query(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS visible_to_member_ids TEXT`);
     // Alcances OAuth de Shopify por cliente (null = los estándar de solo lectura)
     await pool.query(`ALTER TABLE client_shopify_credentials ADD COLUMN IF NOT EXISTS shopify_scopes TEXT`);
     // Canal de ventas WhatsApp: se habilita por cliente (apagado por defecto)

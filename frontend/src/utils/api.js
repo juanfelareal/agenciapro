@@ -106,6 +106,8 @@ export const clientsAPI = {
   delete: (id) => api.delete(`/clients/${id}`),
   searchNit: (nit) => api.get(`/clients/search-nit/${nit}`),
   syncToSiigo: (id) => api.post(`/siigo/customers/sync/${id}`),
+  canManagePrivacy: () => api.get('/clients/privacy/can-manage'),
+  setVisibility: (id, memberIds) => api.put(`/clients/${id}/visibility`, { member_ids: memberIds }),
 };
 
 // Bitácora por cliente (registro de cambios/sucesos + acciones a tomar)

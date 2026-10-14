@@ -1,4 +1,5 @@
 import db from '../config/database.js';
+import { applyClientVisibility } from './clientVisibility.js';
 
 /**
  * Middleware to authenticate team member requests (multi-tenant).
@@ -99,7 +100,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
 
       req.tokenId = newToken.token_id;
 
-      return next();
+      return applyClientVisibility(req, res, next);
     }
 
     // --- Fallback to legacy team_session_tokens ---
@@ -165,7 +166,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
 
     req.tokenId = null; // no user_session_token id in legacy mode
 
-    next();
+    return applyClientVisibility(req, res, next);
   } catch (error) {
     console.error('Team auth error:', error);
     res.status(500).json({ error: 'Error de autenticación' });
