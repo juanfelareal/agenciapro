@@ -233,7 +233,7 @@ router.get('/contacts', async (req, res) => {
 // Reuniones → tareas (también desde Orbit, pegando la transcripción)
 // ---------------------------------------------------------------------------
 router.get('/meetings', async (req, res) => {
-  try { res.json({ items: await meetings.listIntakes(req.orgId, { limit: Number(req.query.limit) || 50 }), ai: meetings.hasAI() }); }
+  try { res.json({ items: await meetings.listIntakes(req.orgId, { limit: Number(req.query.limit) || 50 }), ai: meetings.hasAI(), ai_provider: meetings.aiProvider() }); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 

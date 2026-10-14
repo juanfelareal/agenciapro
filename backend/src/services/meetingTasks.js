@@ -21,6 +21,35 @@ const TZ = 'America/Bogota';
 const todayColombia = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 const anthropic = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+/**
+ * Proveedor de IA sin costo: Google Gemini (AI Studio) tiene nivel gratuito sin tarjeta y
+ * contexto de 1M tokens, suficiente para una reunión de 2-3 horas. Si hay GEMINI_API_KEY se usa
+ * primero; si no, Anthropic (de pago); si no hay ninguna, la heurística sin IA.
+ */
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const hasGemini = () => Boolean((process.env.GEMINI_API_KEY || '').trim()) && !/^your-/i.test(process.env.GEMINI_API_KEY || '');
+const hasAnthropic = () => /^sk-ant-/.test(process.env.ANTHROPIC_API_KEY || '');
+export const aiProvider = () => (hasGemini() ? `gemini:${GEMINI_MODEL}` : hasAnthropic() ? `anthropic:${MODEL}` : null);
+
+async function callLLM(prompt, maxTokens) {
+  if (hasGemini()) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+    const res = await axios.post(url, {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens, responseMimeType: 'application/json' },
+    }, { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY.trim(), 'Content-Type': 'application/json' }, timeout: 180000 });
+    const parts = res.data?.candidates?.[0]?.content?.parts || [];
+    const text = parts.map((p) => p.text || '').join('\n');
+    if (!text) throw new Error(`Gemini no devolvió texto (${res.data?.candidates?.[0]?.finishReason || 'sin candidatos'})`);
+    return { text, usage: res.data?.usageMetadata || null };
+  }
+  if (hasAnthropic()) {
+    const res = await anthropic().messages.create({ model: MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] });
+    return { text: res.content?.map((c) => c.text || '').join('\n'), usage: res.usage };
+  }
+  throw new Error('Sin proveedor de IA configurado');
+}
+
 // Apodos habituales del equipo (se suman a lo que Claude infiere por nombre/cargo)
 const DEFAULT_ALIASES = {
   'juan felipe': ['juanfe', 'juan felipe', 'jf', 'felipe'],
@@ -92,7 +121,7 @@ const extractJson = (text) => {
   return JSON.parse(m[0]);
 };
 
-export const hasAI = () => /^sk-ant-/.test(process.env.ANTHROPIC_API_KEY || '');
+export const hasAI = () => Boolean(aiProvider());
 
 export async function extractTasksFromTranscript({ orgId, text, senderName = '' }) {
   if (!hasAI()) return extractTasksHeuristic({ orgId, text });
@@ -142,8 +171,8 @@ TRANSCRIPCIÓN:
 ${transcript}
 >>>`;
 
-  const res = await anthropic().messages.create({ model: MODEL, max_tokens: 6000, messages: [{ role: 'user', content: prompt }] });
-  const out = extractJson(res.content?.map((c) => c.text || '').join('\n'));
+  const res = await callLLM(prompt, 8000);
+  const out = extractJson(res.text);
   const memberById = Object.fromEntries(members.map((m) => [m.id, m]));
   const clientById = Object.fromEntries(clients.map((c) => [c.id, c]));
   const tasks = (out.tasks || []).slice(0, 25).map((t, i) => {
@@ -164,7 +193,7 @@ ${transcript}
       removed: false,
     };
   });
-  return { meeting_title: out.meeting_title || 'Reunión', meeting_date: out.meeting_date || null, summary: out.summary || '', tasks, model: MODEL, usage: res.usage };
+  return { meeting_title: out.meeting_title || 'Reunión', meeting_date: out.meeting_date || null, summary: out.summary || '', tasks, model: aiProvider(), usage: res.usage };
 }
 
 /** Aplica correcciones en lenguaje natural ("2 para Valentina", "3 el lunes", "quita 1", "agrega: ...") */
@@ -189,8 +218,8 @@ ${JSON.stringify(intake.tasks.map(({ n, title, detail, assignee_member_id, clien
 INSTRUCCIÓN: "${instruction}"
 
 Reglas: "quita N" / "borra N" → removed true. "N para <persona>" → cambia assignee_member_id. "N <fecha>" → due_date YYYY-MM-DD. "N es de <marca>" → client_id. "agrega: <texto>" → nueva tarea al final con n siguiente. Conserva todo lo demás igual. Responde SOLO con JSON: { "tasks": [ ...misma forma... ], "note": "qué cambiaste en una frase" }`;
-  const res = await anthropic().messages.create({ model: MODEL, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] });
-  const out = extractJson(res.content?.map((c) => c.text || '').join('\n'));
+  const res = await callLLM(prompt, 4000);
+  const out = extractJson(res.text);
   const memberById = Object.fromEntries(members.map((m) => [m.id, m]));
   const clientById = Object.fromEntries(clients.map((c) => [c.id, c]));
   const tasks = (out.tasks || []).map((t, i) => {
@@ -596,4 +625,4 @@ export async function handleWhatsappMessage({ orgId, phone, text, message }) {
 
 const safeJson = (v, fallback) => { if (!v) return fallback; if (typeof v === 'object') return v; try { return JSON.parse(v); } catch { return fallback; } };
 
-export default { hasAI, extractTasksHeuristic, applyCorrectionsHeuristic, handleWhatsappMessage, extractTasksFromTranscript, applyCorrections, formatProposal, createIntake, getIntake, listIntakes, confirmIntake, cancelIntake, saveIntakeTasks, findTeamMemberByPhone, registerTeamPhoneByName };
+export default { hasAI, aiProvider, extractTasksHeuristic, applyCorrectionsHeuristic, handleWhatsappMessage, extractTasksFromTranscript, applyCorrections, formatProposal, createIntake, getIntake, listIntakes, confirmIntake, cancelIntake, saveIntakeTasks, findTeamMemberByPhone, registerTeamPhoneByName };

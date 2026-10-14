@@ -78,7 +78,7 @@ export default function Meetings() {
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" />
           <div>
-            <b>IA apagada.</b> Falta la llave de Anthropic en el servidor, así que Orbit solo detecta la convención <i>«tarea para &lt;persona&gt;: …»</i> y compromisos explícitos («Laura queda de…»). Con la llave activa lee toda la conversación.
+            <b>IA apagada.</b> Falta una llave de Gemini (gratis, AI Studio) en el servidor, así que Orbit solo detecta la convención <i>«tarea para &lt;persona&gt;: …»</i> y compromisos explícitos («Laura queda de…»). Con la llave activa lee toda la conversación.
           </div>
         </div>
       )}
