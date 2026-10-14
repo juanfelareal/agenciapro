@@ -170,6 +170,34 @@ export default function ClientFinancialDashboard() {
   // ─── Render ───
   const back = () => navigate('/app/metricas');
 
+  // Exportar el dashboard a PDF (html2pdf: captura el DOM con el layout de escritorio)
+  const pdfRef = useRef(null);
+  const [exporting, setExporting] = useState(false);
+  const handleExportPdf = async () => {
+    const el = pdfRef.current;
+    if (!el || exporting) return;
+    setExporting(true);
+    el.classList.add('pdf-exporting');
+    try {
+      const { default: html2pdf } = await import('html2pdf.js');
+      const name = (client?.nickname || client?.company || client?.name || 'cliente').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+      await html2pdf().set({
+        margin: [8, 8, 10, 8],
+        filename: `Finanzas-${name}-${period}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#F7F7F4', windowWidth: 1120, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.glass-solid', 'tr', '.pdf-avoid-break'] },
+      }).from(el).save();
+    } catch (err) {
+      console.error('Error exportando PDF', err);
+      notify('error', 'No pudimos generar el PDF.');
+    } finally {
+      el.classList.remove('pdf-exporting');
+      setExporting(false);
+    }
+  };
+
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -197,11 +225,11 @@ export default function ClientFinancialDashboard() {
   const costsTotalRevenueShare = t.revenue ? ((t.cogs + t.ad_spend + t.variable_costs + t.fixed_costs) / t.revenue) : null;
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-10">
-      <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} />
+    <div ref={pdfRef} className="space-y-4 sm:space-y-6 pb-10">
+      <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} onExportPdf={handleExportPdf} exporting={exporting} />
 
       {data.lab_enabled && (
-        <div className="flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
+        <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
           {[['resumen', 'Resumen'], ['inventario', 'Inventario'], ['reservas', 'Reservas']].map(([k, label]) => (
             <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${labTab === k ? 'bg-[#17181A] text-[#D7F653]' : 'text-gray-500 hover:text-[#17181A]'}`}>{label}</button>
           ))}

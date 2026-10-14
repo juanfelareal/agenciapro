@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Store, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Package } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Store, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Package, FileDown } from 'lucide-react';
 import { monthLabel, prevPeriod, nextPeriod, currentPeriod, fmtRelative, fmtPct } from './format';
 
 const Pill = ({ tone = 'neutral', icon, children, onClick, title }) => {
@@ -27,7 +27,7 @@ const Pill = ({ tone = 'neutral', icon, children, onClick, title }) => {
  * Encabezado: marca, selector de mes, "Día X de Y" y pills de estado de datos
  * (Shopify, productos sincronizados, costo de producto).
  */
-export default function FinancialHeader({ client, period, onPeriodChange, data, onSync, syncing, onBack }) {
+export default function FinancialHeader({ client, period, onPeriodChange, data, onSync, syncing, onBack, onExportPdf, exporting }) {
   const name = client?.nickname || client?.company || client?.name || 'Cliente';
   const isCurrent = period === currentPeriod();
   const days = data?.days_elapsed || 0;
@@ -50,7 +50,7 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
     <div className="glass-solid rounded-2xl px-5 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3 min-w-0">
-          <button type="button" onClick={onBack} className="mt-1 p-2 -ml-2 rounded-xl hover:bg-black/5 transition" aria-label="Volver">
+          <button type="button" onClick={onBack} className="no-print mt-1 p-2 -ml-2 rounded-xl hover:bg-black/5 transition" aria-label="Volver">
             <ArrowLeft className="w-5 h-5 text-gray-500" />
           </button>
           <div className="min-w-0">
@@ -67,10 +67,23 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
 
         <div className="flex flex-col items-start lg:items-end gap-2.5 shrink-0">
           <div className="flex items-center gap-1.5">
-            <button type="button" onClick={() => onPeriodChange(prevPeriod(period))} className="p-2 rounded-xl hover:bg-black/5 transition" aria-label="Mes anterior">
+            {onExportPdf && (
+              <button
+                type="button"
+                onClick={onExportPdf}
+                disabled={exporting || !data}
+                className="no-print mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-medium text-[#17181A] hover:bg-gray-50 disabled:opacity-50"
+                title="Descargar este dashboard como PDF"
+              >
+                {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{exporting ? 'Generando…' : 'Exportar PDF'}</span>
+              </button>
+            )}
+            <span className="pdf-only text-sm font-semibold text-[#17181A] capitalize">{monthLabel(period)}</span>
+            <button type="button" onClick={() => onPeriodChange(prevPeriod(period))} className="no-print p-2 rounded-xl hover:bg-black/5 transition" aria-label="Mes anterior">
               <ChevronLeft className="w-4 h-4 text-gray-500" />
             </button>
-            <label className="relative">
+            <label className="relative no-print">
               <span className="sr-only">Mes</span>
               <input
                 type="month"
@@ -84,7 +97,7 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
               type="button"
               onClick={() => onPeriodChange(nextPeriod(period))}
               disabled={isCurrent}
-              className="p-2 rounded-xl hover:bg-black/5 transition disabled:opacity-30"
+              className="no-print p-2 rounded-xl hover:bg-black/5 transition disabled:opacity-30"
               aria-label="Mes siguiente"
             >
               <ChevronRight className="w-4 h-4 text-gray-500" />
