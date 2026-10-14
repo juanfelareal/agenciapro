@@ -603,7 +603,8 @@ export async function syncClientForDate(clientId, date) {
   }
 
   // Laboratorio financiero: existencias por variante en cada sincronización
-  if (hasShopify && shopifyOk && shopify && storePlatform === 'shopify') {
+  // (solo para el día de hoy: en re-sincronizaciones históricas no tiene sentido y sería muy lento)
+  if (hasShopify && shopifyOk && shopify && storePlatform === 'shopify' && date === getColombiaDate(0)) {
     try {
       if (await isLabEnabled(clientId)) await syncInventory(clientId, { store: shopify });
     } catch (error) {
