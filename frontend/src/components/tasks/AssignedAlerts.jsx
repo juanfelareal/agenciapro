@@ -63,8 +63,19 @@ export default function AssignedAlerts({ onOpenTask }) {
   const visible = items.filter((i) => !hidden.has(i.task_id));
   if (!visible.length) return null;
 
+  const dismissAll = async () => {
+    setHidden((prev) => { const n = new Set(prev); visible.forEach((i) => n.add(i.task_id)); return n; });
+    try { const { data } = await tasksAPI.dismissAssignedAlert({ all: true }); emit(data?.count); } catch { emit(); }
+  };
+
   return (
     <div className="space-y-2">
+      {visible.length >= 3 && (
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-medium text-gray-500">{visible.length} tareas nuevas asignadas a ti</span>
+          <button type="button" onClick={dismissAll} className="text-xs text-gray-500 hover:text-[#17181A] underline underline-offset-2">Quitar todos los avisos</button>
+        </div>
+      )}
       {visible.map((item) => {
         const pr = PRIORITY[item.priority];
         const due = fmtDue(item.due_date);
@@ -81,7 +92,10 @@ export default function AssignedAlerts({ onOpenTask }) {
             <span className="shrink-0 w-8 h-8 rounded-full bg-sky-500 text-white flex items-center justify-center"><UserPlus size={15} /></span>
             <div className="flex-1 min-w-0">
               <div className="text-sm text-[#17181A] truncate">
-                <span className="font-semibold">{firstName(item.assigned_by_name) || 'Alguien'}</span> te asignó: <span className="font-medium">{item.title}</span>
+                {item.assigned_by_name
+                  ? <><span className="font-semibold">{firstName(item.assigned_by_name)}</span> te asignó: </>
+                  : <span className="font-semibold">Te asignaron: </span>}
+                <span className="font-medium">{item.title}</span>
               </div>
               <div className="text-xs text-gray-600 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 {item.client_name && <span>{item.client_name}</span>}

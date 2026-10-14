@@ -99,7 +99,7 @@ router.get('/assigned-alerts', async (req, res) => {
       LEFT JOIN projects p ON p.id = t.project_id
       LEFT JOIN clients c ON c.id = p.client_id
       WHERE n.user_id = ? AND n.organization_id = ? AND n.type = 'task_assigned' AND n.is_read = 0
-        AND t.status != 'done'
+        AND t.status != 'done' AND n.created_at > NOW() - INTERVAL '30 days'
       ORDER BY n.created_at DESC
       LIMIT 30
     `).all(req.teamMember.id, req.orgId);
@@ -136,7 +136,7 @@ router.post('/assigned-alerts/dismiss', async (req, res) => {
     } else if (notification_id) {
       await db.prepare(`UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND organization_id = ?`).run(notification_id, req.teamMember.id, req.orgId);
     }
-    const left = await db.prepare(`SELECT COUNT(DISTINCT COALESCE(n.related_task_id, n.entity_id)) AS c FROM notifications n JOIN tasks t ON t.id = COALESCE(n.related_task_id, CASE WHEN n.entity_type = 'task' THEN n.entity_id END) WHERE n.user_id = ? AND n.organization_id = ? AND n.type = 'task_assigned' AND n.is_read = 0 AND t.status != 'done'`).get(req.teamMember.id, req.orgId);
+    const left = await db.prepare(`SELECT COUNT(DISTINCT COALESCE(n.related_task_id, n.entity_id)) AS c FROM notifications n JOIN tasks t ON t.id = COALESCE(n.related_task_id, CASE WHEN n.entity_type = 'task' THEN n.entity_id END) WHERE n.user_id = ? AND n.organization_id = ? AND n.type = 'task_assigned' AND n.is_read = 0 AND t.status != 'done' AND n.created_at > NOW() - INTERVAL '30 days'`).get(req.teamMember.id, req.orgId);
     res.json({ ok: true, count: Number(left?.c || 0) });
   } catch (error) {
     res.status(500).json({ error: error.message });
