@@ -35,9 +35,11 @@ function CostCell({ product, onSave, onReset, defaultRate }) {
   const ref = useRef(null);
   useEffect(() => { if (editing) ref.current?.select(); }, [editing]);
 
-  const start = () => { setValue(product.cost ?? ''); setEditing(true); };
+  const start = () => { setValue(product.cost === null || product.cost === undefined ? '' : String(Math.round(product.cost))); setEditing(true); };
+  // Acepta "86.400", "86,400", "$86.400" o "86400": solo cuentan los dígitos (pesos sin decimales)
+  const parseCost = (raw) => { const digits = String(raw || '').replace(/\D/g, ''); return digits ? Number(digits) : NaN; };
   const save = async () => {
-    const n = Number(value);
+    const n = parseCost(value);
     if (!Number.isFinite(n) || n < 0) return;
     setBusy(true);
     try { await onSave(product, n); setEditing(false); } finally { setBusy(false); }
@@ -60,10 +62,10 @@ function CostCell({ product, onSave, onReset, defaultRate }) {
       <div className="flex items-center gap-1 justify-end">
         <input
           ref={ref}
-          type="number" min="0" step="1" inputMode="numeric"
+          type="text" inputMode="numeric" placeholder="86.400"
           className="input !py-1 !px-2 w-28 text-right tabular-nums"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => setValue(e.target.value.replace(/[^\d.,$\s]/g, ''))}
           onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
           disabled={busy}
         />

@@ -332,6 +332,29 @@ class ShopifyIntegration {
    * Revenue is the product line (price × qty − line discounts), without shipping/tax.
    * @returns {Array<{date, shopify_variant_id, shopify_product_id, title, variant_title, sku, units, revenue, orders}>}
    */
+  /**
+   * Venta neta de una línea: precio × cantidad − descuentos (de línea y de pedido, vía
+   * discount_allocations) − IVA cuando la tienda tiene precios con impuesto incluido
+   * (taxes_included). Así coincide con la "venta neta" del pedido (subtotal − impuesto de productos).
+   */
+  static lineNetRevenue(item, taxesIncluded) {
+    const qty = item.quantity || 0;
+    const gross = (parseFloat(item.price) || 0) * qty;
+    const allocs = Array.isArray(item.discount_allocations) ? item.discount_allocations.reduce((s, d) => s + (parseFloat(d.amount) || 0), 0) : 0;
+    const discount = allocs > 0 ? allocs : (parseFloat(item.total_discount) || 0);
+    const tax = taxesIncluded ? (item.tax_lines || []).reduce((s, t) => s + (parseFloat(t.price) || 0), 0) : 0;
+    return gross - discount - tax;
+  }
+
+  /** Neto devuelto de una línea reembolsada (subtotal ya trae descuentos; con IVA incluido se resta el impuesto). */
+  static refundLineNetRevenue(ri, taxesIncluded) {
+    const li = ri.line_item || {};
+    const qty = ri.quantity || 0;
+    const subtotal = ri.subtotal !== undefined && ri.subtotal !== null ? (parseFloat(ri.subtotal) || 0) : (parseFloat(li.price) || 0) * qty;
+    const tax = taxesIncluded ? (parseFloat(ri.total_tax) || 0) : 0;
+    return subtotal - tax;
+  }
+
   aggregateProductSales(orders) {
     const map = {};
     const row = (date, item) => {
@@ -363,7 +386,7 @@ class ShopifyIntegration {
         const qty = item.quantity || 0;
         const r = row(orderDate, item);
         r.units += qty;
-        r.revenue += (parseFloat(item.price) || 0) * qty - (parseFloat(item.total_discount) || 0);
+        r.revenue += ShopifyIntegration.lineNetRevenue(item, Boolean(order.taxes_included));
         r._orders.add(order.id);
       });
 
@@ -375,7 +398,7 @@ class ShopifyIntegration {
           const qty = ri.quantity || 0;
           const r = row(refundDate, li);
           r.units -= qty;
-          r.revenue -= parseFloat(ri.subtotal) || (parseFloat(li.price) || 0) * qty;
+          r.revenue -= ShopifyIntegration.refundLineNetRevenue(ri, Boolean(order.taxes_included));
         });
       });
     });
@@ -420,7 +443,7 @@ class ShopifyIntegration {
           };
         }
         productMap[key].quantity += item.quantity || 0;
-        productMap[key].revenue += (parseFloat(item.price) || 0) * (item.quantity || 0);
+        productMap[key].revenue += ShopifyIntegration.lineNetRevenue(item, Boolean(order.taxes_included));
         if (!orderCounted.has(key)) {
           productMap[key].orders += 1;
           orderCounted.add(key);
