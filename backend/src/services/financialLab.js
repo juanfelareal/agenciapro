@@ -82,7 +82,7 @@ export async function computeInventory(clientId, orgId, { windowDays = 30, horiz
       const perDay = u30 / windowDays;
       const perDay90 = u90 / 90;
       const rate = perDay > 0 ? perDay : perDay90; // si no vendió en 30 días, usa el ritmo de 90
-      const daysOfStock = qty === null ? null : (rate > 0 ? qty / rate : null);
+      const daysOfStock = qty === null ? null : qty <= 0 ? 0 : (rate > 0 ? qty / rate : null);
       const stockoutDate = daysOfStock !== null && qty > 0 ? addDays(today, Math.floor(daysOfStock)) : (qty === 0 ? today : null);
       const needHorizon = Math.max(Math.ceil(rate * horizonDays) - (qty || 0), 0);
       let status = 'ok';
