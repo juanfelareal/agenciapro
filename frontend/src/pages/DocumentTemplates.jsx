@@ -10,7 +10,8 @@ import {
   Clock,
   X,
   Eye,
-  Users
+  Users,
+  PenLine
 } from 'lucide-react';
 
 export default function DocumentTemplates() {
@@ -25,6 +26,9 @@ export default function DocumentTemplates() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [editingTemplate, setEditingTemplate] = useState(null);
+  // Vista previa como cliente: { name, description, content } + cliente de muestra
+  const [preview, setPreview] = useState(null);
+  const [previewClientId, setPreviewClientId] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -237,6 +241,13 @@ export default function DocumentTemplates() {
                       <Send className="w-4 h-4" />
                     </button>
                     <button
+                      onClick={() => setPreview({ name: template.name, description: template.description, content: template.content })}
+                      className="p-2 text-ink-500 hover:text-ink-700 hover:bg-ink-100 rounded-lg"
+                      title="Vista previa como cliente"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => openEditModal(template)}
                       className="p-2 text-ink-500 hover:text-ink-700 hover:bg-ink-100 rounded-lg"
                       title="Editar"
@@ -381,7 +392,15 @@ export default function DocumentTemplates() {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex flex-wrap justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setPreview({ name: formData.name || 'Documento', description: formData.description, content: formData.content })}
+                  disabled={!formData.content}
+                  className="mr-auto px-4 py-2 border border-ink-200 text-ink-700 rounded-lg hover:bg-ink-50 inline-flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Eye className="w-4 h-4" /> Vista previa como cliente
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowTemplateModal(false)}
@@ -451,6 +470,98 @@ export default function DocumentTemplates() {
           </div>
         </div>
       )}
+
+      {/* Vista previa: exactamente lo que ve el cliente en su portal (documento + bloque de firma) */}
+      {preview && (
+        <ClientPreviewModal
+          preview={preview}
+          clients={clients}
+          clientId={previewClientId}
+          onClientChange={setPreviewClientId}
+          onClose={() => setPreview(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Reemplaza las variables como lo hace el portal (portal/documents.js) con un cliente real o de muestra. */
+function renderForClient(content, client) {
+  const name = client ? (client.name || client.company || '') : 'Nombre del contacto';
+  const company = client ? (client.company || client.nickname || client.name || '') : 'Empresa del cliente S.A.S.';
+  const date = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+  const map = { '{{CLIENT_NAME}}': name, '{{CLIENT_COMPANY}}': company, '{{DATE}}': date, '{{SIGNER_NAME}}': client ? (client.name || '') : 'Nombre de quien firma', '{{fecha}}': date, '{{cliente}}': company, '{{empresa}}': company };
+  let out = String(content || '');
+  for (const [k, v] of Object.entries(map)) out = out.split(k).join(v);
+  return out;
+}
+
+function ClientPreviewModal({ preview, clients, clientId, onClientChange, onClose }) {
+  const client = clients.find((c) => String(c.id) === String(clientId)) || null;
+  const html = renderForClient(preview.content, client);
+  const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>body{margin:0;padding:8px;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;color:#1a1a1a;line-height:1.6}img{max-width:100%}table{border-collapse:collapse}</style>
+    </head><body>${html}</body></html>`;
+  const signerName = client ? (client.name || '') : '';
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-6" onClick={onClose}>
+      <div className="bg-[#F5F5F3] rounded-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-white border-b border-ink-200">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-ink-500" />
+            <div>
+              <div className="font-semibold text-ink-900 text-sm">Vista previa · así lo ve el cliente en su portal</div>
+              <div className="text-xs text-ink-400">Las variables se llenan con los datos del cliente que elijas. Nada se envía ni se guarda.</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <select value={clientId} onChange={(e) => onClientChange(e.target.value)} className="px-3 py-1.5 border border-ink-200 rounded-lg text-sm bg-white">
+              <option value="">Cliente de muestra</option>
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}</option>)}
+            </select>
+            <button onClick={onClose} className="p-2 text-ink-400 hover:text-ink-700 rounded-lg" aria-label="Cerrar"><X className="w-5 h-5" /></button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto p-4 sm:p-8">
+          <div className="max-w-3xl mx-auto">
+            {/* Encabezado tal como en el portal */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center"><FileSignature className="w-7 h-7 text-amber-600" /></div>
+              <div>
+                <h1 className="text-2xl font-bold text-ink-900">{preview.name}</h1>
+                {preview.description && <p className="text-ink-500 mt-1">{preview.description}</p>}
+              </div>
+            </div>
+
+            {/* Documento */}
+            <div className="bg-white border border-ink-200 rounded-xl p-2 sm:p-4 mb-6">
+              <iframe title="Vista previa del documento" sandbox="" srcDoc={srcDoc} className="w-full border-0 rounded-lg" style={{ minHeight: '60vh' }} />
+            </div>
+
+            {/* Bloque de firma (maqueta, deshabilitado) */}
+            <div className="bg-white border border-ink-200 rounded-xl p-6 opacity-95">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">Firma del documento</h2>
+              <div className="grid gap-4 md:grid-cols-2 mb-6">
+                <label className="text-sm text-ink-600">Nombre completo *
+                  <input disabled value={signerName} placeholder="Nombre de quien firma" className="mt-1 w-full px-4 py-2 border border-ink-200 rounded-lg bg-ink-50 text-ink-700" />
+                </label>
+                <label className="text-sm text-ink-600">Cédula
+                  <input disabled placeholder="Número de documento" className="mt-1 w-full px-4 py-2 border border-ink-200 rounded-lg bg-ink-50" />
+                </label>
+              </div>
+              <div className="text-sm text-ink-600 mb-2">Firma (dibuja con el mouse o el dedo)</div>
+              <div className="h-40 border-2 border-dashed border-ink-200 rounded-xl bg-ink-50 flex items-center justify-center text-ink-400 text-sm gap-2"><PenLine className="w-4 h-4" /> Aquí el cliente dibuja su firma</div>
+              <label className="flex items-start gap-2 mt-4 text-sm text-ink-600">
+                <input type="checkbox" disabled className="mt-1" /> He leído y acepto los términos de este documento. Entiendo que esta firma electrónica tiene la misma validez que una firma manuscrita.
+              </label>
+              <button disabled className="mt-4 w-full md:w-auto px-6 py-3 bg-ink-900 text-white rounded-xl font-medium opacity-60 cursor-not-allowed">Firmar documento</button>
+              <p className="text-xs text-ink-400 mt-3">Al firmar, Orbit guarda el documento con las variables ya reemplazadas, la firma dibujada, la fecha y hora, la IP y el navegador del cliente.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
