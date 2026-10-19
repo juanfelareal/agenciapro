@@ -490,7 +490,8 @@ function renderForClient(content, client) {
   const name = client ? (client.name || client.company || '') : 'Nombre del contacto';
   const company = client ? (client.company || client.nickname || client.name || '') : 'Empresa del cliente S.A.S.';
   const date = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
-  const map = { '{{CLIENT_NAME}}': name, '{{CLIENT_COMPANY}}': company, '{{DATE}}': date, '{{SIGNER_NAME}}': client ? (client.name || '') : 'Nombre de quien firma', '{{fecha}}': date, '{{cliente}}': company, '{{empresa}}': company };
+  // Solo estas 4 variables las reemplaza el portal; cualquier otra ({{ciudad}}, {{fecha}}…) le llega al cliente tal cual.
+  const map = { '{{CLIENT_NAME}}': name, '{{CLIENT_COMPANY}}': company, '{{DATE}}': date, '{{SIGNER_NAME}}': client ? (client.name || '') : 'Nombre de quien firma' };
   let out = String(content || '');
   for (const [k, v] of Object.entries(map)) out = out.split(k).join(v);
   return out;
