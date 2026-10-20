@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../config/database.js';
 import * as financials from '../services/clientFinancialsService.js';
+import * as edits from '../services/clientFinancialsEdits.js';
 import * as lab from '../services/financialLab.js';
 import { buildFinancialsWorkbook, financialsExportFilename, getClientBrandName } from '../services/financialsExport.js';
 import { backfillDiscounts } from '../services/discountsBackfill.js';
@@ -18,6 +19,12 @@ const getCurrentPeriod = () => {
 const verifyClient = async (clientId, orgId) => {
   const client = await db.get('SELECT id FROM clients WHERE id = $1 AND organization_id = $2', [clientId, orgId]);
   return !!client;
+};
+
+// Errores del servicio de ediciones financieras (err.status = 400/403/404) → respuesta HTTP
+const sendEditError = (res, error, label) => {
+  if (!error?.status) console.error(`Error ${label}:`, error);
+  res.status(error?.status || 500).json({ error: error?.message, ...(error?.needs_reconnect ? { needs_reconnect: true } : {}) });
 };
 
 // Fecha de hoy en hora Colombia (YYYY-MM-DD)
@@ -303,17 +310,9 @@ router.post('/:clientId/objectives', async (req, res) => {
     const { period, metric, conservador, base, optimista } = req.body;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    // Upsert: delete existing + insert
-    await db.run('DELETE FROM growth_objectives WHERE client_id = $1 AND period = $2 AND metric = $3 AND organization_id = $4', [clientId, period, metric, req.orgId]);
-    const result = await db.run(`
-      INSERT INTO growth_objectives (client_id, period, metric, conservador, base, optimista, organization_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [clientId, period, metric, conservador || 0, base || 0, optimista || 0, req.orgId]);
-
-    res.json({ id: result.lastInsertRowid, client_id: clientId, period, metric, conservador, base, optimista });
+    res.json(await edits.upsertObjective(clientId, req.orgId, { period, metric, conservador, base, optimista }));
   } catch (error) {
-    console.error('Error creating objective:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'creating objective');
   }
 });
 
@@ -470,13 +469,7 @@ router.get('/clients/:clientId/fixed-costs', async (req, res) => {
     const { clientId } = req.params;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const costs = await db.all(`
-      SELECT * FROM client_fixed_costs
-      WHERE client_id = $1 AND organization_id = $2
-      ORDER BY category, name
-    `, [clientId, req.orgId]);
-
-    res.json(costs);
+    res.json(await edits.listFixedCosts(clientId, req.orgId));
   } catch (error) {
     console.error('Error getting fixed costs:', error);
     res.status(500).json({ error: error.message });
@@ -487,22 +480,11 @@ router.get('/clients/:clientId/fixed-costs', async (req, res) => {
 router.post('/clients/:clientId/fixed-costs', async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { category, name, amount, start_date, end_date, notes } = req.body;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    if (!category || !name || amount === undefined || !start_date) {
-      return res.status(400).json({ error: 'category, name, amount, and start_date are required' });
-    }
-
-    const result = await db.run(`
-      INSERT INTO client_fixed_costs (organization_id, client_id, category, name, amount, start_date, end_date, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `, [req.orgId, clientId, category, name, amount, start_date, end_date || null, notes || null]);
-
-    res.json({ id: result.lastInsertRowid, category, name, amount, start_date, end_date, notes });
+    res.json(await edits.createFixedCost(clientId, req.orgId, req.body));
   } catch (error) {
-    console.error('Error creating fixed cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'creating fixed cost');
   }
 });
 
@@ -510,18 +492,9 @@ router.post('/clients/:clientId/fixed-costs', async (req, res) => {
 router.put('/clients/:clientId/fixed-costs/:costId', async (req, res) => {
   try {
     const { clientId, costId } = req.params;
-    const { category, name, amount, start_date, end_date, notes } = req.body;
-
-    await db.run(`
-      UPDATE client_fixed_costs
-      SET category = $1, name = $2, amount = $3, start_date = $4, end_date = $5, notes = $6, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $7 AND client_id = $8 AND organization_id = $9
-    `, [category, name, amount, start_date, end_date || null, notes || null, costId, clientId, req.orgId]);
-
-    res.json({ success: true });
+    res.json(await edits.updateFixedCost(clientId, req.orgId, costId, req.body));
   } catch (error) {
-    console.error('Error updating fixed cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'updating fixed cost');
   }
 });
 
@@ -529,11 +502,9 @@ router.put('/clients/:clientId/fixed-costs/:costId', async (req, res) => {
 router.delete('/clients/:clientId/fixed-costs/:costId', async (req, res) => {
   try {
     const { clientId, costId } = req.params;
-    await db.run('DELETE FROM client_fixed_costs WHERE id = $1 AND client_id = $2 AND organization_id = $3', [costId, clientId, req.orgId]);
-    res.json({ success: true });
+    res.json(await edits.deleteFixedCost(clientId, req.orgId, costId));
   } catch (error) {
-    console.error('Error deleting fixed cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'deleting fixed cost');
   }
 });
 
@@ -545,13 +516,7 @@ router.get('/clients/:clientId/variable-costs', async (req, res) => {
     const { clientId } = req.params;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const costs = await db.all(`
-      SELECT * FROM client_variable_costs
-      WHERE client_id = $1 AND organization_id = $2
-      ORDER BY category, name
-    `, [clientId, req.orgId]);
-
-    res.json(costs);
+    res.json(await edits.listVariableCosts(clientId, req.orgId));
   } catch (error) {
     console.error('Error getting variable costs:', error);
     res.status(500).json({ error: error.message });
@@ -562,26 +527,11 @@ router.get('/clients/:clientId/variable-costs', async (req, res) => {
 router.post('/clients/:clientId/variable-costs', async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { category, name, applies_to, notes } = req.body;
-    const kind = ['per_order', 'per_unit', 'monthly_fixed'].includes(req.body.kind) ? req.body.kind : 'percent';
-    const percentage = kind === 'percent' ? parseFloat(req.body.percentage) : 0;
-    const amount = kind !== 'percent' ? parseFloat(req.body.amount) : null;
-    const reserveProvider = String(req.body.reserve_provider || '').trim() || null;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    if (!category || !name) return res.status(400).json({ error: 'category y name son requeridos' });
-    if (kind === 'percent' && !Number.isFinite(percentage)) return res.status(400).json({ error: 'percentage es requerido' });
-    if (kind !== 'percent' && !Number.isFinite(amount)) return res.status(400).json({ error: 'amount es requerido' });
-
-    const result = await db.run(`
-      INSERT INTO client_variable_costs (organization_id, client_id, category, name, percentage, applies_to, kind, amount, notes, reserve_provider)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    `, [req.orgId, clientId, category, name, percentage, applies_to || 'revenue', kind, amount, notes || null, reserveProvider]);
-
-    res.json({ id: result.lastInsertRowid, category, name, percentage, applies_to: applies_to || 'revenue', kind, amount, notes, reserve_provider: reserveProvider });
+    res.json(await edits.createVariableCost(clientId, req.orgId, req.body));
   } catch (error) {
-    console.error('Error creating variable cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'creating variable cost');
   }
 });
 
@@ -589,24 +539,9 @@ router.post('/clients/:clientId/variable-costs', async (req, res) => {
 router.put('/clients/:clientId/variable-costs/:costId', async (req, res) => {
   try {
     const { clientId, costId } = req.params;
-    const { category, name, applies_to, is_active, notes } = req.body;
-    const kind = ['per_order', 'per_unit', 'monthly_fixed'].includes(req.body.kind) ? req.body.kind : 'percent';
-    const percentage = kind === 'percent' ? (parseFloat(req.body.percentage) || 0) : 0;
-    const amount = kind !== 'percent' ? (parseFloat(req.body.amount) || 0) : null;
-    const active = is_active === undefined || is_active === null ? 1 : (is_active ? 1 : 0);
-    const reserveProvider = req.body.reserve_provider === undefined ? undefined : (String(req.body.reserve_provider || '').trim() || null);
-
-    await db.run(`
-      UPDATE client_variable_costs
-      SET category = $1, name = $2, percentage = $3, applies_to = $4, is_active = $5, notes = $6, kind = $7, amount = $8,
-          reserve_provider = CASE WHEN $12::boolean THEN $13 ELSE reserve_provider END, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $9 AND client_id = $10 AND organization_id = $11
-    `, [category, name, percentage, applies_to || 'revenue', active, notes || null, kind, amount, costId, clientId, req.orgId, reserveProvider !== undefined, reserveProvider ?? null]);
-
-    res.json({ success: true });
+    res.json(await edits.updateVariableCost(clientId, req.orgId, costId, req.body));
   } catch (error) {
-    console.error('Error updating variable cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'updating variable cost');
   }
 });
 
@@ -679,11 +614,9 @@ router.delete('/clients/:clientId/reserves/payments/:paymentId', requireLab, asy
 router.delete('/clients/:clientId/variable-costs/:costId', async (req, res) => {
   try {
     const { clientId, costId } = req.params;
-    await db.run('DELETE FROM client_variable_costs WHERE id = $1 AND client_id = $2 AND organization_id = $3', [costId, clientId, req.orgId]);
-    res.json({ success: true });
+    res.json(await edits.deleteVariableCost(clientId, req.orgId, costId));
   } catch (error) {
-    console.error('Error deleting variable cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'deleting variable cost');
   }
 });
 
@@ -726,47 +659,22 @@ router.get('/clients/:clientId/products', async (req, res) => {
 router.put('/clients/:clientId/products/variant/:variantId/cost', async (req, res) => {
   try {
     const { clientId, variantId } = req.params;
-    const cost = parseFloat(req.body?.cost);
-    if (!Number.isFinite(cost) || cost < 0) return res.status(400).json({ error: 'cost debe ser un número mayor o igual a 0' });
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const sale = await db.get(`
-      SELECT MAX(shopify_product_id) AS shopify_product_id, MAX(title) AS title, MAX(variant_title) AS variant_title, MAX(sku) AS sku
-      FROM client_product_daily_sales WHERE client_id = ? AND shopify_variant_id = ?
-    `, [clientId, String(variantId)]);
-    if (!sale || !sale.title) return res.status(404).json({ error: 'No encontramos ventas de esa variante' });
-
-    await db.run(`
-      INSERT INTO shopify_products (organization_id, client_id, shopify_product_id, shopify_variant_id, sku, title, variant_title, cost, shopify_cost, cost_source)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, 'manual')
-      ON CONFLICT (client_id, shopify_variant_id) DO UPDATE SET cost = EXCLUDED.cost, cost_source = 'manual', updated_at = CURRENT_TIMESTAMP
-    `, [req.orgId, clientId, String(sale.shopify_product_id || variantId), String(variantId), sale.sku, sale.title, sale.variant_title, cost]);
-    const row = await db.get('SELECT id FROM shopify_products WHERE client_id = ? AND shopify_variant_id = ?', [clientId, String(variantId)]);
-    res.json({ success: true, id: row?.id || null, cost, cost_source: 'manual' });
+    res.json(await edits.setVariantCost(clientId, req.orgId, variantId, req.body?.cost));
   } catch (error) {
-    console.error('Error setting variant cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'setting variant cost');
   }
 });
 
 router.put('/clients/:clientId/products/:productId/cost', async (req, res) => {
   try {
     const { clientId, productId } = req.params;
-    const cost = parseFloat(req.body?.cost);
-    if (!Number.isFinite(cost) || cost < 0) return res.status(400).json({ error: 'cost debe ser un número mayor o igual a 0' });
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const result = await db.run(`
-      UPDATE shopify_products
-      SET cost = $1, cost_source = 'manual', updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2 AND client_id = $3 AND organization_id = $4
-    `, [cost, productId, clientId, req.orgId]);
-    if (result.changes === 0) return res.status(404).json({ error: 'Producto no encontrado' });
-
-    res.json({ success: true, cost, cost_source: 'manual' });
+    res.json(await edits.setProductCost(clientId, req.orgId, productId, req.body?.cost));
   } catch (error) {
-    console.error('Error updating product cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'updating product cost');
   }
 });
 
@@ -776,18 +684,9 @@ router.delete('/clients/:clientId/products/:productId/cost', async (req, res) =>
     const { clientId, productId } = req.params;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const result = await db.run(`
-      UPDATE shopify_products
-      SET cost = shopify_cost, cost_source = 'shopify', updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND client_id = $2 AND organization_id = $3
-    `, [productId, clientId, req.orgId]);
-    if (result.changes === 0) return res.status(404).json({ error: 'Producto no encontrado' });
-    const row = await db.get('SELECT cost, shopify_cost, cost_source FROM shopify_products WHERE id = $1', [productId]);
-
-    res.json({ success: true, cost: row?.cost === null ? null : Number(row.cost), cost_source: 'shopify' });
+    res.json(await edits.resetProductCost(clientId, req.orgId, productId));
   } catch (error) {
-    console.error('Error resetting product cost:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'resetting product cost');
   }
 });
 
@@ -796,14 +695,10 @@ router.put('/clients/:clientId/settings', async (req, res) => {
   try {
     const { clientId } = req.params;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
-    const rate = parseFloat(req.body?.default_cogs_rate);
-    if (!Number.isFinite(rate) || rate < 0 || rate >= 1) {
-      return res.status(400).json({ error: 'default_cogs_rate debe estar entre 0 y 0.95 (ej. 0.35 = 35 %)' });
-    }
+    const rate = edits.parseCogsRate(req.body?.default_cogs_rate);
     res.json(await financials.saveFinancialSettings(clientId, req.orgId, { default_cogs_rate: rate }));
   } catch (error) {
-    console.error('Error saving financial settings:', error);
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'saving financial settings');
   }
 });
 
@@ -977,30 +872,9 @@ router.post('/clients/:clientId/products/sync', async (req, res) => {
     const { clientId } = req.params;
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
-    const cred = await financials.getShopifyCredentials(clientId);
-    if (!cred) return res.status(400).json({ error: 'Sin conexión Shopify activa' });
-
-    const result = await financials.syncProducts(Number(clientId), req.orgId);
-    res.json({
-      success: true,
-      synced: result.synced,
-      without_cost: result.without_cost,
-      products_synced_at: result.synced_at,
-      message: `Sincronizados ${result.synced} productos. ${result.without_cost} sin costo en Shopify.`
-    });
+    res.json(await edits.syncProductsForClient(clientId, req.orgId));
   } catch (error) {
-    console.error('Error syncing products:', error);
-    if (error.message && (
-      error.message.includes('Access denied') ||
-      error.message.includes('products field') ||
-      error.message.includes('permission')
-    )) {
-      return res.status(403).json({
-        error: 'Tu conexión de Shopify no tiene permisos para leer productos. Ve a la pestaña de Shopify del cliente, desconecta y vuelve a conectar la tienda para obtener los permisos necesarios.',
-        needs_reconnect: true
-      });
-    }
-    res.status(500).json({ error: error.message });
+    sendEditError(res, error, 'syncing products');
   }
 });
 

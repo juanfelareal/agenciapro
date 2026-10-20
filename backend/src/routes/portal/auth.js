@@ -89,7 +89,9 @@ router.post('/login', async (req, res) => {
         can_approve_tasks: toBool(settings.can_approve_tasks),
         can_comment_tasks: toBool(settings.can_comment_tasks),
         can_view_team: toBool(settings.can_view_team, false), // Team defaults to false
-        can_download_files: toBool(settings.can_download_files)
+        can_download_files: toBool(settings.can_download_files),
+        can_view_financials: toBool(settings.can_view_financials, false),
+        financials_editable: toBool(settings.financials_editable, false)
       },
       welcome_message: settings.welcome_message
     });
@@ -165,7 +167,9 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
         can_approve_tasks: toBool(p.can_approve_tasks),
         can_comment_tasks: toBool(p.can_comment_tasks),
         can_view_team: toBool(p.can_view_team, false),
-        can_download_files: toBool(p.can_download_files)
+        can_download_files: toBool(p.can_download_files),
+        can_view_financials: toBool(p.can_view_financials, false),
+        financials_editable: toBool(p.financials_editable, false)
       },
       welcome_message: settings?.welcome_message || null
     });
