@@ -110,6 +110,13 @@ export const createNotification = async (
   { category, relatedTaskId } = {}
 ) => {
   try {
+    // Aislamiento multi-tenant: el destinatario debe ser miembro de la organización.
+    // Si no nos pasan orgId la derivamos del propio miembro (nunca dejamos NULL, porque
+    // el backfill de arranque asignaría la fila a la primera organización).
+    const member = await db.prepare('SELECT organization_id FROM team_members WHERE id = ?').get(userId);
+    if (!member) return null;
+    if (orgId && Number(member.organization_id) !== Number(orgId)) return null;
+    const finalOrgId = orgId || member.organization_id;
     const finalCategory = category || categoryFor(type);
     const result = await db.prepare(`
       INSERT INTO notifications (
@@ -127,7 +134,7 @@ export const createNotification = async (
       entityId,
       relatedTaskId || (entityType === 'task' ? entityId : null),
       metadata ? JSON.stringify(metadata) : null,
-      orgId
+      finalOrgId
     );
     return result.lastInsertRowid;
   } catch (error) {

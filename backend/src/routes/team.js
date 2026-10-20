@@ -10,6 +10,22 @@ import { checkLimit } from '../services/plans.js'; // [modules]
 const router = express.Router();
 router.use(teamInvitesRouter); // [email] POST /:id/invite, GET|POST /invitations/:token
 
+/**
+ * Multi-tenant: la fila de `users` (email de login, pin_hash, avatar) es GLOBAL y
+ * puede estar compartida por varias organizaciones. Un admin de una org NO debe
+ * poder alterar la identidad global de un usuario que también es miembro de otra
+ * org (sería un secuestro de cuenta entre tenants). Devuelve true si el usuario
+ * tiene membresías fuera de `orgId`.
+ */
+const userSharedWithOtherOrgs = async (userId, orgId) => {
+  if (!userId) return false;
+  const row = await db.get(
+    'SELECT COUNT(*)::int AS count FROM team_members WHERE user_id = ? AND organization_id <> ?',
+    [userId, orgId]
+  );
+  return (row?.count || 0) > 0;
+};
+
 // ========================================
 // LEGACY AUTH ENDPOINTS (redirect to /api/auth)
 // Kept for backward compatibility during transition
@@ -110,13 +126,19 @@ router.post('/:id/set-pin', teamAuthMiddleware, requireAdmin, async (req, res) =
       return res.status(404).json({ error: 'Miembro del equipo no encontrado' });
     }
 
+    // El PIN vive en `users` (global). Si el usuario también pertenece a otra
+    // organización, un admin de esta org no puede cambiárselo.
+    if (member.user_id && await userSharedWithOtherOrgs(member.user_id, req.orgId)) {
+      return res.status(403).json({ error: 'Este usuario pertenece a otras organizaciones; solo él puede cambiar su PIN.' });
+    }
+
     // Hash the PIN
     const pinHash = await bcrypt.hash(pin, 10);
 
     // Update team_member pin_hash
     await db.run(`
-      UPDATE team_members SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `, [pinHash, memberId]);
+      UPDATE team_members SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
+    `, [pinHash, memberId, req.orgId]);
 
     // Also update users table if user_id exists
     if (member.user_id) {
@@ -325,7 +347,9 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
     }
 
     // Check if a user with this email already exists
-    let user = await db.get('SELECT id FROM users WHERE email = ?', [emailLower]);
+    let user = await db.get('SELECT id, pin_hash FROM users WHERE email = ?', [emailLower]);
+    // ¿La identidad global ya pertenece a otra organización? Entonces no la tocamos.
+    const identityLocked = user ? await userSharedWithOtherOrgs(user.id, req.orgId) : false;
     if (!user) {
       // Create user record
       const userResult = await db.run(`
@@ -336,13 +360,14 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
       user = { id: userResult.lastInsertRowid };
     }
 
-    // Update user pin_hash if PIN was provided
-    if (pinHash) {
+    // Update user pin_hash if PIN was provided (nunca sobreescribir el PIN de un
+    // usuario que ya accede a otra organización)
+    if (pinHash && (!identityLocked || !user.pin_hash)) {
       await db.run('UPDATE users SET pin_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [pinHash, user.id]);
     }
 
     // Foto del miembro (data-URL comprimida por el frontend)
-    if (avatar_url && avatar_url.startsWith('data:image/') && avatar_url.length <= 300000) {
+    if (!identityLocked && avatar_url && avatar_url.startsWith('data:image/') && avatar_url.length <= 300000) {
       await db.run('UPDATE users SET avatar_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [avatar_url, user.id]);
     }
 
@@ -416,10 +441,15 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
 
     const emailLower = email ? email.toLowerCase().trim() : existing.email;
     const emailChanged = emailLower !== existing.email;
+    const identityLocked = await userSharedWithOtherOrgs(existing.user_id, req.orgId);
 
     if (emailChanged) {
+      // El email es la llave de login global: si el usuario también pertenece a otra org, no se puede cambiar desde aquí
+      if (identityLocked) {
+        return res.status(403).json({ error: 'Este usuario pertenece a otras organizaciones; no se puede cambiar su email de acceso desde aquí.' });
+      }
       const takenUser = await db.get('SELECT id FROM users WHERE email = ? AND id != ?', [emailLower, existing.user_id || 0]);
-      const takenMember = await db.get('SELECT id FROM team_members WHERE email = ? AND id != ?', [emailLower, existing.id]);
+      const takenMember = await db.get('SELECT id FROM team_members WHERE email = ? AND id != ? AND organization_id = ?', [emailLower, existing.id, req.orgId]);
       if (takenUser || takenMember) {
         return res.status(400).json({ error: 'Email already exists' });
       }
@@ -448,7 +478,7 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
 
     // Foto del miembro: se guarda en users.avatar_url como data-URL comprimida
     // (el frontend la reduce a ~192px JPEG). null/'' = quitar foto.
-    if (avatar_url !== undefined && existing.user_id) {
+    if (avatar_url !== undefined && existing.user_id && !identityLocked) {
       const value = avatar_url || null;
       if (value && (!value.startsWith('data:image/') || value.length > 300000)) {
         return res.status(400).json({ error: 'Foto inválida (debe ser imagen, máx ~220KB)' });
@@ -462,8 +492,8 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
     const member = await db.get(
       `SELECT tm.*, u.avatar_url FROM team_members tm
        LEFT JOIN users u ON tm.user_id = u.id
-       WHERE tm.id = ?`,
-      [req.params.id]
+       WHERE tm.id = ? AND tm.organization_id = ?`,
+      [req.params.id, req.orgId]
     );
     res.json(member);
   } catch (error) {

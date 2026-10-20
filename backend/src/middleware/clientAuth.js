@@ -16,7 +16,8 @@ export const clientAuthMiddleware = async (req, res, next) => {
 
     // Find the session token
     const tokenRecord = await db.get(`
-      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email, c.logo_url as client_logo_url
+      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email, c.logo_url as client_logo_url,
+             c.organization_id as client_org_id
       FROM client_access_tokens cat
       JOIN clients c ON cat.client_id = c.id
       WHERE cat.token = ?
@@ -41,6 +42,9 @@ export const clientAuthMiddleware = async (req, res, next) => {
     // Attach client info to request
     req.client = {
       id: tokenRecord.client_id,
+      // Organización dueña del cliente: las rutas del portal la usan para filtrar
+      // tablas que tienen organization_id (aislamiento multi-tenant).
+      organization_id: tokenRecord.client_org_id || tokenRecord.organization_id || null,
       name: tokenRecord.client_name,
       logo_url: tokenRecord.client_logo_url || null,
       nickname: tokenRecord.client_nickname,

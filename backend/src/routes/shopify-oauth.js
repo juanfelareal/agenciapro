@@ -169,7 +169,8 @@ router.get('/url', async (req, res) => {
     }
 
     // Generate state for CSRF protection
-    const state = `${client_id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // Estado aleatorio (CSRF + identificador no adivinable para el polling de callback-status)
+    const state = crypto.randomBytes(24).toString('hex');
 
     // Store state with client_id, orgId, store URL, and credentials for later use in callback
     oauthSessions.set(state, {
@@ -290,7 +291,7 @@ router.get('/callback', async (req, res) => {
     }
 
     // Store token temporarily with session ID
-    const sessionId = `shp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const sessionId = `shp_${crypto.randomBytes(24).toString('hex')}`;
     oauthSessions.set(sessionId, {
       accessToken: tokenData.access_token,
       clientId: clientId,
@@ -368,6 +369,10 @@ router.get('/store-info', async (req, res) => {
     }
 
     const { accessToken, clientId, shop } = session;
+    // La sesión OAuth pertenece a la organización que la inició
+    if (Number(session.orgId) !== Number(orgId)) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
+    }
 
     // Verify client belongs to org
     const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(clientId, orgId);
@@ -423,6 +428,11 @@ router.post('/link-store', async (req, res) => {
     }
 
     const { accessToken, shop } = session;
+
+    // La sesión OAuth debe pertenecer a esta organización y a este mismo cliente
+    if (Number(session.orgId) !== Number(orgId) || Number(session.clientId) !== Number(client_id)) {
+      return res.status(404).json({ error: 'Sesión no encontrada para este cliente' });
+    }
 
     // Verify client belongs to org
     const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, orgId);

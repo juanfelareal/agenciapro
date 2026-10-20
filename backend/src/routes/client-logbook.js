@@ -17,6 +17,13 @@ const parseJson = (v, fallback = []) => {
   try { return JSON.parse(v); } catch { return fallback; }
 };
 
+// Responsable de una acción: debe ser miembro de ESTA organización (si no, se guarda sin responsable)
+const safeAssignee = async (assigneeId, orgId) => {
+  if (!assigneeId) return null;
+  const m = await db.get('SELECT id FROM team_members WHERE id = ? AND organization_id = ?', [assigneeId, orgId]);
+  return m ? m.id : null;
+};
+
 const verifyClient = async (clientId, orgId) =>
   !!(await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [clientId, orgId]));
 
@@ -144,7 +151,7 @@ router.post('/:clientId', async (req, res) => {
       await db.run(`
         INSERT INTO client_logbook_actions (entry_id, organization_id, description, assignee_id, due_date, created_by)
         VALUES (?, ?, ?, ?, ?, ?)
-      `, [entryId, req.orgId, a.description.trim(), a.assignee_id || null, a.due_date || null, req.teamMember?.id || null]);
+      `, [entryId, req.orgId, a.description.trim(), await safeAssignee(a.assignee_id, req.orgId), a.due_date || null, req.teamMember?.id || null]);
     }
 
     res.status(201).json(await loadEntry(entryId, req.orgId));
@@ -229,7 +236,7 @@ router.post('/:clientId/:entryId/actions', async (req, res) => {
     await db.run(`
       INSERT INTO client_logbook_actions (entry_id, organization_id, description, assignee_id, due_date, created_by)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, [entryId, req.orgId, description.trim(), assignee_id || null, due_date || null, req.teamMember?.id || null]);
+    `, [entryId, req.orgId, description.trim(), await safeAssignee(assignee_id, req.orgId), due_date || null, req.teamMember?.id || null]);
 
     res.status(201).json(await loadEntry(entryId, req.orgId));
   } catch (error) {
@@ -259,7 +266,7 @@ router.put('/:clientId/:entryId/actions/:actionId', async (req, res) => {
       WHERE id = ?
     `, [
       b.description !== undefined ? String(b.description).trim() : action.description,
-      b.assignee_id !== undefined ? (b.assignee_id || null) : action.assignee_id,
+      b.assignee_id !== undefined ? await safeAssignee(b.assignee_id, req.orgId) : action.assignee_id,
       b.due_date !== undefined ? (b.due_date || null) : action.due_date,
       isDone,
       doneChanged ? (isDone ? new Date().toISOString() : null) : action.done_at,

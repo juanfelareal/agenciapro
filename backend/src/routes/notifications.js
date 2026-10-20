@@ -135,6 +135,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // El destinatario debe ser miembro de ESTA organización
+    const recipient = await db.get('SELECT id FROM team_members WHERE id = ? AND organization_id = ?', [user_id, req.orgId]);
+    if (!recipient) {
+      return res.status(404).json({ error: 'Miembro no encontrado' });
+    }
+
     const result = await db.prepare(`
       INSERT INTO notifications (
         user_id, type, title, message, entity_type, entity_id, metadata, organization_id

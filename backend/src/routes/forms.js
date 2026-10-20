@@ -1,15 +1,16 @@
 import express from 'express';
 import crypto from 'crypto';
 import db from '../config/database.js';
+import { findRowInOrg, assertRowInOrg, isTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
-// Generate a readable share code (like ABC1-XY23)
+// Generate a readable share code (like ABC1-XY23-9FGH). 12 símbolos de 32 → ~60 bits: no enumerable.
 function generateShareCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
-  for (let i = 0; i < 8; i++) {
-    if (i === 4) code += '-';
+  for (let i = 0; i < 12; i++) {
+    if (i === 4 || i === 8) code += '-';
     code += chars.charAt(crypto.randomInt(chars.length));
   }
   return code;
@@ -53,6 +54,7 @@ router.get('/', async (req, res) => {
 // GET /client/:clientId — Forms assigned to a specific client
 router.get('/client/:clientId', async (req, res) => {
   try {
+    await assertRowInOrg(db, 'clients', req.params.clientId, req.orgId, { columns: 'id', label: 'Cliente' });
     const assignments = await db.prepare(`
       SELECT fa.*, f.title as form_title, f.description as form_description,
         (SELECT COUNT(*) FROM form_sections fs
@@ -65,6 +67,7 @@ router.get('/client/:clientId', async (req, res) => {
     `).all(req.params.clientId, req.orgId);
     res.json(assignments);
   } catch (error) {
+    if (isTenantError(error)) return res.status(404).json({ error: error.message });
     console.error('Error getting client forms:', error);
     res.status(500).json({ error: 'Error al obtener formularios del cliente' });
   }
@@ -409,10 +412,16 @@ router.post('/:id/assign', async (req, res) => {
       return res.status(404).json({ error: 'Formulario no encontrado' });
     }
 
+    // El cliente debe pertenecer a la misma organización (si no, 404 sin revelar existencia)
+    const client = await findRowInOrg(db, 'clients', client_id, req.orgId, { columns: 'id' });
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
     // Check for existing assignment
     const existing = await db.prepare(
-      'SELECT id FROM form_assignments WHERE form_id = ? AND client_id = ?'
-    ).get(formId, client_id);
+      'SELECT id FROM form_assignments WHERE form_id = ? AND client_id = ? AND organization_id = ?'
+    ).get(formId, client_id, req.orgId);
     if (existing) {
       return res.status(400).json({ error: 'Este formulario ya está asignado a este cliente' });
     }
@@ -440,6 +449,7 @@ router.post('/:id/assign', async (req, res) => {
 // GET /:id/assignments — List assignments for a form
 router.get('/:id/assignments', async (req, res) => {
   try {
+    await assertRowInOrg(db, 'forms', req.params.id, req.orgId, { columns: 'id', label: 'Formulario' });
     const assignments = await db.prepare(`
       SELECT fa.*, c.name as client_name, c.company, c.nickname,
         fr.submitted_at,
@@ -453,6 +463,7 @@ router.get('/:id/assignments', async (req, res) => {
 
     res.json(assignments);
   } catch (error) {
+    if (isTenantError(error)) return res.status(404).json({ error: error.message });
     console.error('Error listing assignments:', error);
     res.status(500).json({ error: 'Error al obtener asignaciones' });
   }

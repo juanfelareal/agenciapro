@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
+import { assertProjectInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
@@ -71,6 +72,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Description, amount, and expense date are required' });
     }
 
+    // Multi-tenant: el proyecto (si viene) debe pertenecer a esta organización
+    if (project_id) await assertProjectInOrg(db, project_id, req.orgId, 'id');
+
     const result = await db.prepare(`
       INSERT INTO expenses (description, category, amount, project_id, expense_date, payment_method, receipt_url, notes, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -89,7 +93,7 @@ router.post('/', async (req, res) => {
     const expense = await db.prepare('SELECT * FROM expenses WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(expense);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -104,6 +108,9 @@ router.put('/:id', async (req, res) => {
     if (!oldExpense) {
       return res.status(404).json({ error: 'Expense not found' });
     }
+
+    // Multi-tenant: el proyecto (si viene) debe pertenecer a esta organización
+    if (project_id) await assertProjectInOrg(db, project_id, req.orgId, 'id');
 
     await db.prepare(`
       UPDATE expenses
@@ -127,7 +134,7 @@ router.put('/:id', async (req, res) => {
     const expense = await db.prepare('SELECT * FROM expenses WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(expense);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 

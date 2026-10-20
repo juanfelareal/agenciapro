@@ -1,7 +1,15 @@
 import express from 'express';
 import db from '../config/database.js';
+import { findRowInOrg } from '../utils/tenant.js';
 
 const router = express.Router();
+
+// Carpeta padre opcional: debe pertenecer a la org (null si no viene). Devuelve false si es ajena.
+async function parentFolderInOrg(parentId, orgId) {
+  if (!parentId) return null;
+  const row = await findRowInOrg(db, 'note_folders', parentId, orgId, { columns: 'id' });
+  return row ? row.id : false;
+}
 
 // Get all folders (with hierarchy)
 router.get('/', async (req, res) => {
@@ -57,11 +65,13 @@ router.put('/reorder', async (req, res) => {
       return res.status(400).json({ error: 'Folders array is required' });
     }
 
-    // Use transaction for PostgreSQL
+    // Solo carpetas (y padres) de la organización activa
     for (const { id, position, parent_id } of folders) {
+      const safeParent = await parentFolderInOrg(parent_id, req.orgId);
+      if (safeParent === false) return res.status(404).json({ error: 'Folder not found' });
       await db.prepare(
-        'UPDATE note_folders SET position = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-      ).run(position, parent_id || null, id);
+        'UPDATE note_folders SET position = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?'
+      ).run(position, safeParent, id, req.orgId);
     }
 
     res.json({ message: 'Folders reordered successfully' });
@@ -116,6 +126,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Name is required' });
     }
 
+    // La carpeta padre debe ser de la organización
+    const safeParentId = await parentFolderInOrg(parent_id, req.orgId);
+    if (safeParentId === false) return res.status(404).json({ error: 'Folder not found' });
+
     // Get next position - handle null parent_id correctly for PostgreSQL
     let maxPosition;
     if (parent_id) {
@@ -133,7 +147,7 @@ router.post('/', async (req, res) => {
     const result = await db.prepare(`
       INSERT INTO note_folders (name, parent_id, icon, color, position, organization_id)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(name, parent_id || null, icon || '📁', color || '#6366F1', position, req.orgId);
+    `).run(name, safeParentId, icon || '📁', color || '#6366F1', position, req.orgId);
 
     const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(folder);
@@ -160,8 +174,10 @@ router.put('/:id', async (req, res) => {
       params.push(name);
     }
     if (parent_id !== undefined) {
+      const safeParentId = await parentFolderInOrg(parent_id, req.orgId);
+      if (safeParentId === false) return res.status(404).json({ error: 'Folder not found' });
       updates.push('parent_id = ?');
-      params.push(parent_id || null);
+      params.push(safeParentId);
     }
     if (icon !== undefined) {
       updates.push('icon = ?');
@@ -183,6 +199,7 @@ router.put('/:id', async (req, res) => {
     await db.prepare(`UPDATE note_folders SET ${updates.join(', ')} WHERE id = ? AND organization_id = ?`).run(...params);
 
     const folder = await db.prepare('SELECT * FROM note_folders WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!folder) return res.status(404).json({ error: 'Folder not found' });
     res.json(folder);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -211,32 +228,5 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// Reorder folders
-router.put('/reorder', async (req, res) => {
-  try {
-    const { folders } = req.body; // Array of { id, position, parent_id }
-
-    if (!Array.isArray(folders)) {
-      return res.status(400).json({ error: 'Folders array is required' });
-    }
-
-    const updateStmt = db.prepare(`
-      UPDATE note_folders SET position = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
-    `);
-
-    const orgId = req.orgId;
-    db.transaction(() => {
-      folders.forEach(({ id, position, parent_id }) => {
-        updateStmt.run(position, parent_id || null, id, orgId);
-      });
-    })();
-
-    res.json({ message: 'Folders reordered successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 
 export default router;

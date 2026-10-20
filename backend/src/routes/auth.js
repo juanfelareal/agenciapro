@@ -18,6 +18,11 @@ function generateSessionToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+/** Días de prueba de una organización nueva (ver POST /register) */
+
+/** Roles válidos de membresía (evita que un body arbitrario cree roles desconocidos) */
+const VALID_ROLES = ['admin', 'manager', 'member'];
+
 /**
  * Generate a URL-friendly slug from a name
  */
@@ -641,7 +646,11 @@ router.post('/register', async (req, res) => {
     `, [emailLower, name, pinHash]);
     const userId = userResult.lastInsertRowid;
 
-    // Create organization with optional logo and settings
+    // Create organization with optional logo and settings.
+    // Toda organización nueva arranca VACÍA y aislada (ningún seed copia datos de
+    // otra org; los defaults estructurales —etapas de proyecto, etc.— se crean por
+    // org en initializeDatabase) y en plan 'trial' con 14 días de prueba.
+    const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
     const orgResult = await db.run(`
       INSERT INTO organizations (name, slug, plan, logo_url, settings, plan_status, trial_ends_at)
       VALUES (?, ?, 'trial', ?, ?, 'trial', CURRENT_TIMESTAMP + (? || ' days')::interval)
@@ -694,7 +703,9 @@ router.post('/register', async (req, res) => {
         id: orgId,
         name: org_name,
         slug: slug,
-        logo_url: logoUrl
+        logo_url: logoUrl,
+        plan: 'trial',
+        trial_ends_at: trialEndsAt.toISOString()
       },
       organizations: [{
         id: orgId,
@@ -728,6 +739,9 @@ router.post('/invite', teamAuthMiddleware, async (req, res) => {
     if (req.teamMember.role !== 'admin') {
       return res.status(403).json({ error: 'Solo administradores pueden invitar miembros' });
     }
+    if (!req.orgId) {
+      return res.status(401).json({ error: 'No hay una organización activa en la sesión.' });
+    }
 
     const emailLower = email.toLowerCase().trim();
 
@@ -753,15 +767,21 @@ router.post('/invite', teamAuthMiddleware, async (req, res) => {
 
     const userLimit = await checkLimit(req.orgId, 'users'); // [modules]
     if (!userLimit.allowed) return res.status(402).json(userLimit.payload); // [modules]
+    const memberRole = VALID_ROLES.includes(role) ? role : 'member';
 
     // Create membership (no PIN — user sets it on first login)
     const result = await db.run(`
       INSERT INTO team_members (name, email, role, status, user_id, organization_id)
       VALUES (?, ?, ?, 'active', ?, ?)
       RETURNING id
-    `, [name, emailLower, role || 'member', user.id, req.orgId]);
+    `, [name, emailLower, memberRole, user.id, req.orgId]);
 
-    const member = await db.get('SELECT * FROM team_members WHERE id = ?', [result.lastInsertRowid]);
+    // Siempre acotado a la org activa (y sin exponer pin_hash)
+    const member = await db.get(
+      'SELECT * FROM team_members WHERE id = ? AND organization_id = ?',
+      [result.lastInsertRowid, req.orgId]
+    );
+    if (member) delete member.pin_hash;
 
     res.status(201).json({
       success: true,

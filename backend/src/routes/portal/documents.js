@@ -1,7 +1,11 @@
 import express from 'express';
 import db from '../../config/database.js';
+import { clientAuthMiddleware } from '../../middleware/clientAuth.js';
 
 const router = express.Router();
+
+// Todas las rutas de documentos requieren sesión de cliente del portal (req.client)
+router.use(clientAuthMiddleware);
 
 // GET /pending — Documents pending signature for this client
 router.get('/pending', async (req, res) => {

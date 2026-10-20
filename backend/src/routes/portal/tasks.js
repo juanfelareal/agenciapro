@@ -344,10 +344,11 @@ router.post('/:id/comments', clientAuthMiddleware, requirePortalPermission('can_
     }
 
     // Create client comment
+    // organization_id explícito: la tabla lo tiene y el backfill de arranque asignaría NULL a la org 1
     const result = await db.run(`
-      INSERT INTO client_comments (task_id, client_id, comment)
-      VALUES (?, ?, ?)
-    `, [id, clientId, comment.trim()]);
+      INSERT INTO client_comments (task_id, client_id, comment, organization_id)
+      VALUES (?, ?, ?, ?)
+    `, [id, clientId, comment.trim(), req.client.organization_id || task.organization_id || null]);
 
     // Fan-out to ALL recipients (assignees + creator) with in-app + email
     const clientLabel = req.client.company || req.client.name || 'Cliente';

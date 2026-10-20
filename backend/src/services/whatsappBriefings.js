@@ -385,7 +385,7 @@ export const deliverPendingBriefings = async (orgId, phone) => {
     }
   }
   // Expirar lo viejo
-  await db.run(`UPDATE whatsapp_pending_briefings SET delivered_at = CURRENT_TIMESTAMP WHERE phone = ? AND delivered_at IS NULL AND created_at <= NOW() - INTERVAL '36 hours'`, [to]).catch(() => {});
+  await db.run(`UPDATE whatsapp_pending_briefings SET delivered_at = CURRENT_TIMESTAMP WHERE organization_id = ? AND phone = ? AND delivered_at IS NULL AND created_at <= NOW() - INTERVAL '36 hours'`, [orgId, to]).catch(() => {});
   return sent;
 };
 

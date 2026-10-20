@@ -150,7 +150,7 @@ router.post('/:assignmentId/submit',
 
       // Verify assignment belongs to client
       const assignment = await db.prepare(`
-        SELECT fa.id, fa.status, fa.form_id, fa.assigned_by
+        SELECT fa.id, fa.status, fa.form_id, fa.assigned_by, fa.organization_id
         FROM form_assignments fa
         WHERE fa.id = ? AND fa.client_id = ?
       `).get(req.params.assignmentId, req.client.id);

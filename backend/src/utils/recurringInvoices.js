@@ -26,6 +26,11 @@ export const createRecurringInvoice = async (client) => {
   const dueDateStr = dueDate.toISOString().split('T')[0];
 
   try {
+    // Multi-tenant: un cliente sin organización no puede generar facturas
+    if (!client.organization_id) {
+      console.warn(`⚠️  Cliente #${client.id} sin organization_id — factura recurrente omitida`);
+      return null;
+    }
     // Check if invoice already exists (scoped by org)
     const existing = await db.prepare(
       'SELECT id FROM invoices WHERE invoice_number = ? AND organization_id = ?'
@@ -89,9 +94,9 @@ const processInvoiceRecurring = async () => {
   const recurringInvoices = await db.prepare(`
     SELECT i.*,
       CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END as client_name,
-      c.organization_id
+      COALESCE(i.organization_id, c.organization_id) as organization_id
     FROM invoices i
-    LEFT JOIN clients c ON i.client_id = c.id
+    LEFT JOIN clients c ON i.client_id = c.id AND c.organization_id = i.organization_id
     WHERE i.is_recurring = 1
       AND i.next_recurrence_date IS NOT NULL
       AND i.next_recurrence_date <= ?
@@ -103,6 +108,11 @@ const processInvoiceRecurring = async () => {
     try {
       // Generate new invoice number (scoped by org)
       const orgId = invoice.organization_id;
+      // Multi-tenant: nunca crear facturas sin organización (el backfill de arranque las asignaría a la org 1)
+      if (!orgId) {
+        console.warn(`⚠️  Recurring invoice ${invoice.invoice_number} (#${invoice.id}) sin organization_id — omitida`);
+        continue;
+      }
       const allInvoices = await db.prepare(
         "SELECT invoice_number FROM invoices WHERE invoice_number LIKE 'FAC-%' AND organization_id = ?"
       ).all(orgId);
@@ -138,8 +148,8 @@ const processInvoiceRecurring = async () => {
 
       // Update the original invoice's next_recurrence_date
       await db.prepare(`
-        UPDATE invoices SET next_recurrence_date = ? WHERE id = ?
-      `).run(calculateNextRecurrenceDate(today, invoice.recurrence_frequency), invoice.id);
+        UPDATE invoices SET next_recurrence_date = ? WHERE id = ? AND organization_id = ?
+      `).run(calculateNextRecurrenceDate(today, invoice.recurrence_frequency), invoice.id, orgId);
 
       created++;
       console.log(`✅ Created recurring invoice #${result.lastInsertRowid} for client ${invoice.client_name}`);

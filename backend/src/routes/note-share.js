@@ -5,12 +5,12 @@ import { teamAuthMiddleware } from '../middleware/teamAuth.js';
 
 const router = express.Router();
 
-// Generate a readable share code (like ABC1-XY23)
+// Generate a readable share code (like ABC1-XY23-9FGH). 12 símbolos de 32 → ~60 bits: no enumerable.
 function generateShareCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No 0, O, 1, I, L
   let code = '';
-  for (let i = 0; i < 8; i++) {
-    if (i === 4) code += '-';
+  for (let i = 0; i < 12; i++) {
+    if (i === 4 || i === 8) code += '-';
     code += chars.charAt(crypto.randomInt(chars.length));
   }
   return code;
@@ -108,12 +108,13 @@ router.get('/:id/shares', teamAuthMiddleware, async (req, res) => {
 // Revoke a share token
 router.delete('/:id/share/:tokenId', teamAuthMiddleware, async (req, res) => {
   try {
-    await db.run(`
+    const r = await db.run(`
       UPDATE note_share_tokens
       SET status = 'revoked'
       WHERE id = ? AND note_id = ? AND organization_id = ?
     `, [req.params.tokenId, req.params.id, req.orgId]);
 
+    if (r.changes === 0) return res.status(404).json({ error: 'Enlace no encontrado' });
     res.json({ message: 'Enlace revocado' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -234,16 +235,20 @@ router.put('/:id/edits/:editId', teamAuthMiddleware, async (req, res) => {
     const editId = req.params.editId;
     const orgId = req.orgId;
 
-    await db.run(`
+    const updated = await db.run(`
       UPDATE note_client_edits
       SET status = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
       WHERE id = ? AND note_id = ? AND organization_id = ?
     `, [action, req.teamMember.id, editId, noteId, orgId]);
 
+    if (updated.changes === 0) {
+      return res.status(404).json({ error: 'Edición no encontrada' });
+    }
+
     // When accepting, save current content as a version before the edit overwrites it
     if (action === 'accepted') {
-      const edit = await db.get('SELECT * FROM note_client_edits WHERE id = ?', [editId]);
-      const currentNote = await db.get('SELECT * FROM notes WHERE id = ?', [noteId]);
+      const edit = await db.get('SELECT * FROM note_client_edits WHERE id = ? AND note_id = ? AND organization_id = ?', [editId, noteId, orgId]);
+      const currentNote = await db.get('SELECT * FROM notes WHERE id = ? AND organization_id = ?', [noteId, orgId]);
 
       if (currentNote && currentNote.content) {
         await db.run(`
@@ -356,6 +361,15 @@ router.post('/public/:token/comments', async (req, res) => {
     // Check expiration
     if (shareToken.expires_at && new Date(shareToken.expires_at) < new Date()) {
       return res.status(410).json({ error: 'Este enlace ha expirado' });
+    }
+
+    // El comentario padre debe ser de esta misma nota (no aceptar ids de otras notas/orgs)
+    if (parent_id) {
+      const parent = await db.get(
+        'SELECT id FROM note_comments WHERE id = ? AND note_id = ? AND organization_id = ?',
+        [parent_id, shareToken.note_id, shareToken.organization_id]
+      );
+      if (!parent) return res.status(404).json({ error: 'Comentario no encontrado' });
     }
 
     const result = await db.run(`

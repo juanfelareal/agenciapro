@@ -2,6 +2,8 @@ import express from 'express';
 import db from '../config/database.js';
 import dotenv from 'dotenv';
 import { sendTemplate } from '../services/email.js'; // [email]
+import { sendEmail } from '../utils/emailHelper.js';
+import { assertClientInOrg, assertProjectInOrg, findRowInOrg, sendTenantError } from '../utils/tenant.js';
 
 dotenv.config();
 
@@ -98,6 +100,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Client, amount, and issue date are required' });
     }
 
+    // Multi-tenant: el cliente y el proyecto (si viene) deben ser de esta organización
+    await assertClientInOrg(db, client_id, req.orgId, 'id');
+    if (project_id) await assertProjectInOrg(db, project_id, req.orgId, 'id');
+
     // Idempotency: if siigo_id is provided and already imported, return existing
     if (siigo_id) {
       const existing = await db.prepare(
@@ -134,7 +140,7 @@ router.post('/', async (req, res) => {
     const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(invoice);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -153,6 +159,15 @@ router.put('/:id', async (req, res) => {
     // Use provided values or keep existing ones (for partial updates / bulk operations)
     const updatedClientId = client_id !== undefined ? client_id : currentInvoice.client_id;
     const updatedProjectId = project_id !== undefined ? project_id : currentInvoice.project_id;
+    // Multi-tenant: no se puede reasignar la factura a un cliente/proyecto de otra organización
+    if (client_id !== undefined && client_id !== null && Number(client_id) !== Number(currentInvoice.client_id)) {
+      await assertClientInOrg(db, client_id, req.orgId, 'id');
+    }
+    if (project_id !== undefined && project_id !== null && Number(project_id) !== Number(currentInvoice.project_id)) {
+      await assertProjectInOrg(db, project_id, req.orgId, 'id');
+    }
+    // changed_by debe ser un miembro de esta organización (si no, se guarda null)
+    const changedBy = changed_by && (await findRowInOrg(db, 'team_members', changed_by, req.orgId, { columns: 'id' })) ? changed_by : null;
     const updatedAmount = amount !== undefined ? amount : currentInvoice.amount;
     const updatedInvoiceType = invoice_type !== undefined ? invoice_type : currentInvoice.invoice_type;
     const updatedStatus = status !== undefined ? status : currentInvoice.status;
@@ -192,7 +207,7 @@ router.put('/:id', async (req, res) => {
       await db.prepare(`
         INSERT INTO invoice_status_history (invoice_id, from_status, to_status, changed_by)
         VALUES (?, ?, ?, ?)
-      `).run(req.params.id, oldStatus, updatedStatus, changed_by || null);
+      `).run(req.params.id, oldStatus, updatedStatus, changedBy);
 
       // Create notification when status changes to 'approved'
       if (updatedStatus === 'approved') {
@@ -228,7 +243,7 @@ router.put('/:id', async (req, res) => {
     const invoice = await db.prepare('SELECT * FROM invoices WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(invoice);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -360,7 +375,8 @@ router.post('/:id/duplicate', async (req, res) => {
 // Delete invoice
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM invoices WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
+    const result = await db.prepare('DELETE FROM invoices WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
+    if (!result.changes) return res.status(404).json({ error: 'Factura no encontrada' });
     res.json({ message: 'Invoice deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

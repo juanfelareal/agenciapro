@@ -5,6 +5,14 @@ import { execSync } from 'child_process';
 import db from '../config/database.js';
 import { teamAuthMiddleware } from '../middleware/teamAuth.js';
 import { askClaude, askClaudeJSON } from '../services/claudeService.js';
+import { assertRowInOrg, sendTenantError } from '../utils/tenant.js';
+
+// Etapa del pipeline visible para la org: propia o global (organization_id IS NULL).
+// Las globales son compartidas por todas las organizaciones y por eso son de solo lectura.
+const findVisibleStage = (stageId, orgId, columns = '*') => db.get(
+  `SELECT ${columns} FROM crm_pipeline_stages WHERE id = ? AND (organization_id = ? OR organization_id IS NULL)`,
+  [stageId, orgId]
+);
 
 const router = express.Router();
 
@@ -63,22 +71,24 @@ router.post('/stages', async (req, res) => {
 router.put('/stages/:id', async (req, res) => {
   try {
     const { name, color, position } = req.body;
-    const stage = await db.get(
-      'SELECT * FROM crm_pipeline_stages WHERE id = ? AND (organization_id = ? OR organization_id IS NULL)',
-      [req.params.id, req.orgId]
-    );
+    const stage = await findVisibleStage(req.params.id, req.orgId);
     if (!stage) return res.status(404).json({ error: 'Etapa no encontrada' });
+    // Multi-tenant: una etapa global (compartida) no se puede modificar desde una organización
+    if (stage.organization_id === null || stage.organization_id === undefined) {
+      return res.status(403).json({ error: 'Las etapas predeterminadas son compartidas y no se pueden editar' });
+    }
 
     await db.run(
-      'UPDATE crm_pipeline_stages SET name = ?, color = ?, position = ? WHERE id = ?',
+      'UPDATE crm_pipeline_stages SET name = ?, color = ?, position = ? WHERE id = ? AND organization_id = ?',
       [
         name !== undefined ? name : stage.name,
         color !== undefined ? color : stage.color,
         position !== undefined ? position : stage.position,
         req.params.id,
+        req.orgId,
       ]
     );
-    const updated = await db.get('SELECT * FROM crm_pipeline_stages WHERE id = ?', [req.params.id]);
+    const updated = await db.get('SELECT * FROM crm_pipeline_stages WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -88,16 +98,17 @@ router.put('/stages/:id', async (req, res) => {
 // Eliminar una etapa del pipeline
 router.delete('/stages/:id', async (req, res) => {
   try {
-    const stage = await db.get(
-      'SELECT * FROM crm_pipeline_stages WHERE id = ? AND (organization_id = ? OR organization_id IS NULL)',
-      [req.params.id, req.orgId]
-    );
+    const stage = await findVisibleStage(req.params.id, req.orgId);
     if (!stage) return res.status(404).json({ error: 'Etapa no encontrada' });
+    // Multi-tenant: una etapa global (compartida) no se puede borrar desde una organización
+    if (stage.organization_id === null || stage.organization_id === undefined) {
+      return res.status(403).json({ error: 'Las etapas predeterminadas son compartidas y no se pueden eliminar' });
+    }
 
     // No permitir borrar una etapa que aún tenga negocios dentro.
     const inUse = await db.get(
-      'SELECT COUNT(*) as count FROM crm_deals WHERE stage_id = ?',
-      [req.params.id]
+      'SELECT COUNT(*) as count FROM crm_deals WHERE stage_id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
     );
     if (inUse && Number(inUse.count) > 0) {
       return res.status(400).json({
@@ -105,7 +116,7 @@ router.delete('/stages/:id', async (req, res) => {
       });
     }
 
-    await db.run('DELETE FROM crm_pipeline_stages WHERE id = ?', [req.params.id]);
+    await db.run('DELETE FROM crm_pipeline_stages WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json({ message: 'Etapa eliminada' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -203,17 +214,23 @@ router.post('/deals', async (req, res) => {
         [req.orgId]
       );
       finalStageId = firstStage?.id;
+    } else if (!(await findVisibleStage(finalStageId, req.orgId, 'id'))) {
+      // Multi-tenant: la etapa debe ser de esta org o global
+      return res.status(404).json({ error: 'Etapa no encontrada' });
     }
+
+    // Multi-tenant: el responsable debe ser miembro de esta organización
+    if (assigned_to) await assertRowInOrg(db, 'team_members', assigned_to, req.orgId, { columns: 'id', label: 'Miembro del equipo' });
 
     const result = await db.run(`
       INSERT INTO crm_deals (name, client_name, email, phone, company, source, estimated_value, stage_id, notes, assigned_to, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [name, client_name, email, phone, company, source, estimated_value || 0, finalStageId, notes, assigned_to, req.orgId]);
+    `, [name, client_name, email, phone, company, source, estimated_value || 0, finalStageId, notes, assigned_to || null, req.orgId]);
 
-    const deal = await db.get('SELECT * FROM crm_deals WHERE id = ?', [result.lastInsertRowid]);
+    const deal = await db.get('SELECT * FROM crm_deals WHERE id = ? AND organization_id = ?', [result.lastInsertRowid, req.orgId]);
     res.status(201).json(deal);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -222,24 +239,29 @@ router.put('/deals/:id', async (req, res) => {
   try {
     const { name, client_name, email, phone, company, source, estimated_value, notes, assigned_to } = req.body;
 
+    // Multi-tenant: el deal y el responsable deben ser de esta organización
+    await assertRowInOrg(db, 'crm_deals', req.params.id, req.orgId, { columns: 'id', label: 'Deal' });
+    if (assigned_to) await assertRowInOrg(db, 'team_members', assigned_to, req.orgId, { columns: 'id', label: 'Miembro del equipo' });
+
     await db.run(`
       UPDATE crm_deals
       SET name = ?, client_name = ?, email = ?, phone = ?, company = ?, source = ?,
           estimated_value = ?, notes = ?, assigned_to = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `, [name, client_name, email, phone, company, source, estimated_value, notes, assigned_to, req.params.id, req.orgId]);
+    `, [name, client_name, email, phone, company, source, estimated_value, notes, assigned_to || null, req.params.id, req.orgId]);
 
-    const deal = await db.get('SELECT * FROM crm_deals WHERE id = ?', [req.params.id]);
+    const deal = await db.get('SELECT * FROM crm_deals WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json(deal);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
 // Delete deal
 router.delete('/deals/:id', async (req, res) => {
   try {
-    await db.run('DELETE FROM crm_deals WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    const result = await db.run('DELETE FROM crm_deals WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!result.changes) return res.status(404).json({ error: 'Deal no encontrado' });
     res.json({ message: 'Deal eliminado' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -254,18 +276,20 @@ router.patch('/deals/:id/stage', async (req, res) => {
     const deal = await db.get('SELECT * FROM crm_deals WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     if (!deal) return res.status(404).json({ error: 'Deal no encontrado' });
 
-    const oldStage = await db.get('SELECT name FROM crm_pipeline_stages WHERE id = ?', [deal.stage_id]);
-    const newStage = await db.get('SELECT name FROM crm_pipeline_stages WHERE id = ?', [stage_id]);
+    const oldStage = deal.stage_id ? await findVisibleStage(deal.stage_id, req.orgId, 'name') : null;
+    // Multi-tenant: la etapa destino debe ser de esta org o global
+    const newStage = await findVisibleStage(stage_id, req.orgId, 'name');
+    if (!newStage) return res.status(404).json({ error: 'Etapa no encontrada' });
 
     await db.run(`
-      UPDATE crm_deals SET stage_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-    `, [stage_id, req.params.id]);
+      UPDATE crm_deals SET stage_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?
+    `, [stage_id, req.params.id, req.orgId]);
 
     // Auto-set won_at / lost_at based on stage name
     if (newStage?.name === 'Cliente Ganado') {
-      await db.run('UPDATE crm_deals SET won_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
+      await db.run('UPDATE crm_deals SET won_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     } else if (newStage?.name === 'Perdido') {
-      await db.run('UPDATE crm_deals SET lost_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
+      await db.run('UPDATE crm_deals SET lost_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     }
 
     // Create stage_change activity
@@ -280,7 +304,7 @@ router.patch('/deals/:id/stage', async (req, res) => {
       req.orgId
     ]);
 
-    const updated = await db.get('SELECT * FROM crm_deals WHERE id = ?', [req.params.id]);
+    const updated = await db.get('SELECT * FROM crm_deals WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -311,21 +335,25 @@ router.post('/deals/:id/activities', async (req, res) => {
     const { type, title, content } = req.body;
     if (!type) return res.status(400).json({ error: 'Tipo es requerido' });
 
+    // Multi-tenant: el deal debe ser de esta organización
+    await assertRowInOrg(db, 'crm_deals', req.params.id, req.orgId, { columns: 'id', label: 'Deal' });
+
     const result = await db.run(`
       INSERT INTO crm_activities (deal_id, type, title, content, created_by, organization_id)
       VALUES (?, ?, ?, ?, ?, ?)
     `, [req.params.id, type, title, content, req.teamMember.id, req.orgId]);
 
-    const activity = await db.get('SELECT * FROM crm_activities WHERE id = ?', [result.lastInsertRowid]);
+    const activity = await db.get('SELECT * FROM crm_activities WHERE id = ? AND organization_id = ?', [result.lastInsertRowid, req.orgId]);
     res.status(201).json(activity);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
 router.delete('/activities/:id', async (req, res) => {
   try {
-    await db.run('DELETE FROM crm_activities WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    const result = await db.run('DELETE FROM crm_activities WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!result.changes) return res.status(404).json({ error: 'Actividad no encontrada' });
     res.json({ message: 'Actividad eliminada' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -426,8 +454,8 @@ router.post('/deals/:id/convert', async (req, res) => {
     await db.run(`
       UPDATE crm_deals
       SET converted_client_id = ?, won_at = CURRENT_TIMESTAMP, stage_id = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [clientId, wonStage?.id || deal.stage_id, req.params.id]);
+      WHERE id = ? AND organization_id = ?
+    `, [clientId, wonStage?.id || deal.stage_id, req.params.id, req.orgId]);
 
     // Create activity
     await db.run(`
@@ -435,7 +463,7 @@ router.post('/deals/:id/convert', async (req, res) => {
       VALUES (?, 'stage_change', 'Convertido a cliente', ?, ?, ?)
     `, [req.params.id, `Cliente creado con ID ${clientId}`, req.teamMember.id, req.orgId]);
 
-    const client = await db.get('SELECT * FROM clients WHERE id = ?', [clientId]);
+    const client = await db.get('SELECT * FROM clients WHERE id = ? AND organization_id = ?', [clientId, req.orgId]);
     res.status(201).json({ client, deal_id: deal.id });
   } catch (error) {
     console.error('Error converting deal:', error);
@@ -457,6 +485,13 @@ router.post('/webhook/transcript', async (req, res) => {
     const { deal_id, text, organization_id } = req.body;
     if (!deal_id || !text) {
       return res.status(400).json({ error: 'deal_id y text son requeridos' });
+    }
+
+    // Multi-tenant: la organización se toma del deal (nunca del body). Si el body trae
+    // organization_id debe coincidir; si no, el deal no existe para ese llamador.
+    const deal = await db.get('SELECT id, organization_id FROM crm_deals WHERE id = ?', [deal_id]);
+    if (!deal || (organization_id !== undefined && organization_id !== null && Number(organization_id) !== Number(deal.organization_id))) {
+      return res.status(404).json({ error: 'Deal no encontrado' });
     }
 
     const prompt = `Analiza esta transcripción de una reunión de ventas y extrae la siguiente información en formato JSON. Responde SOLO con el JSON.
@@ -484,7 +519,7 @@ ${text}
     await db.run(`
       INSERT INTO crm_activities (deal_id, type, title, content, metadata, organization_id)
       VALUES (?, 'transcript', 'Transcripción (webhook)', ?, ?, ?)
-    `, [deal_id, extracted.summary || '', JSON.stringify(extracted), organization_id]);
+    `, [deal_id, extracted.summary || '', JSON.stringify(extracted), deal.organization_id]);
 
     res.json({ success: true, extracted });
   } catch (error) {
@@ -515,7 +550,10 @@ router.post('/proposals/generate', async (req, res) => {
     const { deal_id, template_slug, variables } = req.body;
 
     // Get template
-    const template = await db.get('SELECT * FROM proposal_templates WHERE slug = ?', [template_slug]);
+    const template = await db.get(
+      'SELECT * FROM proposal_templates WHERE slug = ? AND (organization_id = ? OR organization_id IS NULL) ORDER BY organization_id NULLS LAST LIMIT 1',
+      [template_slug, req.orgId]
+    );
     if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
 
     // Read template HTML
@@ -1002,6 +1040,12 @@ router.post('/proposals/deploy', async (req, res) => {
   try {
     const { html, repo_name, deal_id } = req.body;
     if (!html || !repo_name) return res.status(400).json({ error: 'html y repo_name son requeridos' });
+
+    // Multi-tenant: si se asocia a un deal, debe ser de esta organización (antes de publicar nada)
+    if (deal_id) {
+      const dealInOrg = await db.get('SELECT id FROM crm_deals WHERE id = ? AND organization_id = ?', [deal_id, req.orgId]);
+      if (!dealInOrg) return res.status(404).json({ error: 'Deal no encontrado' });
+    }
 
     // Sanitize repo name
     const safeName = repo_name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');

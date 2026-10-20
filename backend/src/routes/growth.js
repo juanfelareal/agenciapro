@@ -120,7 +120,8 @@ router.get('/clients/:clientId/commission', async (req, res) => {
       'SELECT commission_rate, commission_deduction, commission_threshold, commission_rate_above FROM clients WHERE id = $1 AND organization_id = $2',
       [clientId, req.orgId]
     );
-    res.json(client || { commission_rate: 0, commission_deduction: 0, commission_threshold: 0, commission_rate_above: 0 });
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+    res.json(client);
   } catch (error) {
     console.error('Error getting commission settings:', error);
     res.status(500).json({ error: error.message });

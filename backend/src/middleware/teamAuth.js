@@ -138,22 +138,24 @@ export const teamAuthMiddleware = async (req, res, next) => {
       try { permissions = JSON.parse(legacyToken.permissions); } catch (e) { /* ignore */ }
     }
 
-    // Set req properties (legacy mode: orgId from team_member if available)
+    // Multi-tenant: una sesión legacy sin organización no puede operar. Sin
+    // req.orgId las consultas no filtran nada y los INSERT quedarían con
+    // organization_id NULL (que el backfill de arranque asignaría a otra org).
+    if (!legacyToken.organization_id) {
+      return res.status(401).json({ error: 'La sesión no tiene una organización asociada. Inicia sesión nuevamente.' });
+    }
+
+    // Set req properties (legacy mode: orgId from team_member)
     req.user = legacyToken.user_id ? {
       id: legacyToken.user_id,
       email: legacyToken.email,
       name: legacyToken.name
     } : null;
 
-    req.orgId = legacyToken.organization_id || null;
+    req.orgId = legacyToken.organization_id;
 
-    // Try to get org info if organization_id exists
-    if (legacyToken.organization_id) {
-      const org = await db.get(`SELECT id, name, slug, logo_url FROM organizations WHERE id = ?`, [legacyToken.organization_id]);
-      req.currentOrg = org || null;
-    } else {
-      req.currentOrg = null;
-    }
+    const org = await db.get(`SELECT id, name, slug, logo_url FROM organizations WHERE id = ?`, [legacyToken.organization_id]);
+    req.currentOrg = org || null;
 
     req.teamMember = {
       id: legacyToken.team_member_id,

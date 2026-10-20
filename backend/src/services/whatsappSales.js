@@ -16,6 +16,12 @@ const num = (v) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : 0);
 const isoDate = (v) => String(v || '').slice(0, 10);
 
 /** La función se habilita por cliente en Configuración (client_portal_settings.whatsapp_sales_enabled). */
+/** organization_id del cliente: toda fila derivada (client_daily_metrics) hereda la org del padre */
+async function clientOrgId(clientId) {
+  const row = await db.get('SELECT organization_id FROM clients WHERE id = ?', [clientId]);
+  return row?.organization_id ?? null;
+}
+
 export async function isWhatsappSalesEnabled(clientId) {
   const row = await db.get('SELECT whatsapp_sales_enabled FROM client_portal_settings WHERE client_id = ?', [clientId]);
   return Number(row?.whatsapp_sales_enabled) === 1;
@@ -123,7 +129,7 @@ export async function recalcWhatsappSpend(clientId, startDate, endDate = startDa
     const wa = perDay[d]?.whatsapp || 0;
     const r = await db.run('UPDATE client_daily_metrics SET fb_spend_whatsapp = ?, updated_at = CURRENT_TIMESTAMP WHERE client_id = ? AND metric_date = ?', [wa, clientId, d]);
     if (!r.changes && wa > 0) {
-      await db.run('INSERT INTO client_daily_metrics (client_id, metric_date, fb_spend_whatsapp) VALUES (?, ?, ?)', [clientId, d, wa]);
+      await db.run('INSERT INTO client_daily_metrics (client_id, organization_id, metric_date, fb_spend_whatsapp) VALUES (?, ?, ?, ?)', [clientId, await clientOrgId(clientId), d, wa]);
     }
     updated += 1;
     cur.setDate(cur.getDate() + 1);
@@ -140,7 +146,7 @@ async function mirrorToDailyMetrics(clientId, date) {
   const orders = Math.round(num(row?.orders));
   const r = await db.run('UPDATE client_daily_metrics SET whatsapp_revenue = ?, whatsapp_orders = ?, updated_at = CURRENT_TIMESTAMP WHERE client_id = ? AND metric_date = ?', [revenue, orders, clientId, date]);
   if (!r.changes && (revenue > 0 || orders > 0)) {
-    await db.run('INSERT INTO client_daily_metrics (client_id, metric_date, whatsapp_revenue, whatsapp_orders) VALUES (?, ?, ?, ?)', [clientId, date, revenue, orders]);
+    await db.run('INSERT INTO client_daily_metrics (client_id, organization_id, metric_date, whatsapp_revenue, whatsapp_orders) VALUES (?, ?, ?, ?, ?)', [clientId, await clientOrgId(clientId), date, revenue, orders]);
   }
 }
 
