@@ -17,6 +17,10 @@ import {
   AGENCY_TYPES, TEAM_SIZES, PLANS, ACCENT_PRESETS, MODULES, MODULE_GROUPS, defaultModulesFor, formatCOP, initialsOf,
 } from '../components/onboarding/modules';
 import LivePreview, { LivePreviewMobile } from './register/LivePreview';
+import {
+  PLANS_BY_KEY as PRICING, CYCLES, normalizeCycle, priceFor, monthlyEquivalent, annualSavings, includedTotal,
+  INCLUDED_LABEL, PRICE_LOCK_LABEL, GUARANTEE_LABEL, TRIAL_DAYS,
+} from '../config/pricing';
 import './register/register.css';
 
 const STEPS = [
@@ -87,6 +91,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const planFromUrl = (searchParams.get('plan') || '').toLowerCase();
+  const cycleFromUrl = searchParams.get('cycle');
 
   const [step, setStep] = useState(1);
   const [justRegistered, setJustRegistered] = useState(false);
@@ -110,6 +115,7 @@ const Register = () => {
   const [agencyType, setAgencyType] = useState('');
   // Paso 3
   const [planId, setPlanId] = useState(PLANS.some((p) => p.id === planFromUrl) ? planFromUrl : 'growth');
+  const [cycle, setCycle] = useState(() => normalizeCycle(cycleFromUrl)); // 'annual' por defecto (paga 10, usa 12)
   // Paso 4
   const [modules, setModules] = useState(() => defaultModulesFor('mixta'));
   const [modulesTouched, setModulesTouched] = useState(false);
@@ -249,6 +255,7 @@ const Register = () => {
         pin,
         org_name: orgName.trim(),
         plan: planId,
+        billing_cycle_selected: cycle, // 'monthly' | 'annual' — el cobro se hace al terminar la prueba, desde Suscripción
         branding: { accent, theme: 'light' },
         modules,
         agency_type: agencyType,
@@ -293,7 +300,7 @@ const Register = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [name, email, pin, orgName, planId, accent, modules, agencyType, teamSize, logo, validInvites]);
+  }, [name, email, pin, orgName, planId, cycle, accent, modules, agencyType, teamSize, logo, validInvites]);
 
   const enterOrbit = () => {
     // El token ya quedó guardado al registrar; refrescamos la sesión sin bloquear la navegación
@@ -304,6 +311,8 @@ const Register = () => {
 
   const previewData = { name, orgName, logo, logoFit, accent: HEX_RE.test(accent) ? accent : '#44BF47', planId, modules, invites, step };
   const selectedPlan = PLANS.find((p) => p.id === planId) || PLANS[1];
+  const selectedPricing = PRICING[planId] || PRICING.growth;
+  const annual = cycle === 'annual';
 
   if (authLoading) {
     return (
@@ -490,26 +499,64 @@ const Register = () => {
             <form className="rg-step" onSubmit={(e) => { e.preventDefault(); goNext(); }} noValidate>
               <p className="rg-eyebrow">Tu plan</p>
               <h1 className="rg-h1">Elige un plan. Pruébalo gratis.</h1>
-              <p className="rg-lead">Todos incluyen implementación acompañada por LA REAL. Precios en COP por mes, más IVA.</p>
-              <span className="rg-trial"><ShieldCheck /> 14 días gratis · sin tarjeta · cancelas cuando quieras</span>
-              <div className="rg-plans" role="radiogroup" aria-label="Planes">
-                {PLANS.map((p) => (
-                  <button type="button" key={p.id} role="radio" aria-checked={planId === p.id} className={`rg-plan ${planId === p.id ? 'is-selected' : ''}`} onClick={() => setPlanId(p.id)}>
-                    {p.badge && <span className="rg-plan__badge">{p.badge}</span>}
-                    <span className="rg-plan__head">
-                      <span className="rg-plan__name">{p.name}</span>
-                      <span className="rg-plan__check"><Check /></span>
-                    </span>
-                    <span className="rg-plan__for">{p.for}</span>
-                    <span className="rg-plan__price"><span className="rg-plan__amount">{formatCOP(p.price)}</span><span className="rg-plan__period">COP / mes</span></span>
-                    <span className="rg-plan__iva">+ IVA</span>
-                    <ul className="rg-plan__list">
-                      {p.features.map((f) => <li key={f}><Check /><span>{f}</span></li>)}
-                    </ul>
-                  </button>
-                ))}
+              <p className="rg-lead">
+                {annual
+                  ? 'En el anual pagas 10 meses y usas 12, con el precio congelado 24 meses y la implementación incluida al iniciar. Precios en COP, más IVA.'
+                  : 'Mes a mes, sin permanencia. Precios en COP por mes, más IVA.'}
+              </p>
+              <div className="rg-plan-bar">
+                <span className="rg-trial"><ShieldCheck /> {TRIAL_DAYS} días gratis · sin tarjeta</span>
+                <div className="rg-cycle" role="radiogroup" aria-label="Ciclo de pago">
+                  {['monthly', 'annual'].map((c) => (
+                    <button type="button" key={c} role="radio" aria-checked={cycle === c} className={`rg-cycle__opt ${cycle === c ? 'is-on' : ''}`} onClick={() => setCycle(c)}>
+                      {CYCLES[c].label}
+                      {c === 'annual' && <span className="rg-cycle__chip">{CYCLES.annual.chip}</span>}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="rg-plans__note">Al terminar la prueba te escribimos para activar el plan. Si no te sirve, no pagas nada y tus datos se pueden exportar.</p>
+              <div className="rg-plans" role="radiogroup" aria-label="Planes">
+                {PLANS.map((p) => {
+                  const pr = PRICING[p.id];
+                  return (
+                    <button type="button" key={p.id} role="radio" aria-checked={planId === p.id} className={`rg-plan ${planId === p.id ? 'is-selected' : ''}`} onClick={() => setPlanId(p.id)}>
+                      {p.badge && <span className="rg-plan__badge">{p.badge}</span>}
+                      <span className="rg-plan__head">
+                        <span className="rg-plan__name">{p.name}</span>
+                        <span className="rg-plan__check"><Check /></span>
+                      </span>
+                      <span className="rg-plan__for">{p.for}</span>
+                      <span className="rg-plan__price"><span className="rg-plan__amount">{formatCOP(priceFor(pr, cycle))}</span><span className="rg-plan__period">COP {CYCLES[cycle].per}</span></span>
+                      {annual
+                        ? <span className="rg-plan__iva">equivale a <b>{formatCOP(monthlyEquivalent(pr))}/mes</b> · ahorras {formatCOP(annualSavings(pr))} · + IVA</span>
+                        : <span className="rg-plan__iva">+ IVA</span>}
+                      <ul className="rg-plan__list">
+                        {p.features.map((f) => <li key={f}><Check /><span>{f}</span></li>)}
+                      </ul>
+                      {annual && (
+                        <span className="rg-included">
+                          <span className="rg-included__head">
+                            <span className="rg-included__label">{INCLUDED_LABEL}</span>
+                            <span className="rg-included__total">{formatCOP(includedTotal(pr))}</span>
+                          </span>
+                          {pr.included.map((it) => (
+                            <span className="rg-included__row" key={it.key}><span>{it.label}</span><span>{formatCOP(it.value)}</span></span>
+                          ))}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {annual && (
+                <div className="rg-plan-chips">
+                  <span className="rg-chip">{PRICE_LOCK_LABEL}</span>
+                  <span className="rg-chip">{GUARANTEE_LABEL} · devolución completa</span>
+                </div>
+              )}
+              <p className="rg-plans__note">
+                La prueba es gratis y sin tarjeta. El cobro se hace al terminar los {TRIAL_DAYS} días, desde <b>Suscripción</b>, con tarjeta, PSE o transferencia. Si no te sirve, no pagas nada y tus datos se pueden exportar.
+              </p>
               <StepActions step={step} onBack={goBack} submitting={submitting} nextLabel={`Seguir con ${selectedPlan.name}`} />
             </form>
           )}
@@ -605,7 +652,7 @@ const Register = () => {
               <div className="rg-summary">
                 <div className="rg-summary__row"><span className="rg-summary__k">Agencia</span><span className="rg-summary__v">{orgName} <span className="rg-chip"><i style={{ display: 'none' }} />{(AGENCY_TYPES.find((t) => t.id === agencyType) || {}).name}</span></span></div>
                 <div className="rg-summary__row"><span className="rg-summary__k">Administrador</span><span className="rg-summary__v">{name} · {email.trim().toLowerCase()}</span></div>
-                <div className="rg-summary__row"><span className="rg-summary__k">Plan</span><span className="rg-summary__v">{selectedPlan.name} · {formatCOP(selectedPlan.price)} + IVA / mes <span className="rg-chip rg-chip--ok"><ShieldCheck /> Gratis hasta {trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }) : 'dentro de 14 días'}</span></span></div>
+                <div className="rg-summary__row"><span className="rg-summary__k">Plan</span><span className="rg-summary__v">{selectedPlan.name} {annual ? 'anual' : 'mensual'} · {formatCOP(priceFor(selectedPricing, cycle))} + IVA {CYCLES[cycle].per} <span className="rg-chip rg-chip--ok"><ShieldCheck /> Gratis hasta {trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }) : 'dentro de 14 días'}</span></span></div>
                 <div className="rg-summary__row"><span className="rg-summary__k">Marca</span><span className="rg-summary__v"><i aria-hidden="true" /> {accent} {logo ? '· logo cargado' : '· sin logo (puedes subirlo en Mi Cuenta)'}</span></div>
                 <div className="rg-summary__row"><span className="rg-summary__k">Módulos</span><span className="rg-summary__v">{activeCount} activos: {MODULES.filter((m) => modules[m.key]).map((m) => m.name).join(', ')}</span></div>
                 <div className="rg-summary__row">

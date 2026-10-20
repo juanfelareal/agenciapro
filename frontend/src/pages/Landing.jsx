@@ -15,6 +15,10 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { HeroDashboard, FinanceScenarios, GrowthView, WhatsAppThread, PortalView } from './landing/Mockups';
+import {
+  PLANS as PRICING_PLANS, ADDONS, CYCLES, fmtCOP, priceFor, monthlyEquivalent, monthlyTimes12, annualSavings,
+  includedTotal, limitsLabel, addonsForPlan, INCLUDED_LABEL, PRICE_LOCK_LABEL, GUARANTEE_LABEL, TRIAL_DAYS,
+} from '../config/pricing';
 import './landing/landing.css';
 
 const FONTS_HREF =
@@ -110,52 +114,6 @@ const STEPS = [
   },
 ];
 
-const PLANS = [
-  {
-    name: 'Starter',
-    for: 'Agencias que arrancan a ordenar la operación',
-    price: '$249.000',
-    features: [
-      'Hasta 3 marcas conectadas',
-      'Clientes, CRM, proyectos y tareas',
-      'Métricas en vivo (Shopify / Woo + pauta)',
-      'Portal del cliente',
-      'Implementación acompañada por LA REAL',
-    ],
-    cta: 'Agenda una demo',
-  },
-  {
-    name: 'Growth',
-    for: 'Agencias que venden resultados por marca',
-    price: '$489.000',
-    featured: true,
-    badge: 'Recomendado',
-    features: [
-      'Hasta 10 marcas conectadas',
-      'Todo lo de Starter',
-      'Finanzas por marca: P&L diario, BE ROAS y escenarios',
-      'Reuniones → tareas por WhatsApp',
-      'Resúmenes automáticos al celular del dueño',
-      'Facturación y cartera',
-      'Implementación acompañada por LA REAL',
-    ],
-    cta: 'Agenda una demo',
-  },
-  {
-    name: 'Agencia',
-    for: 'Operaciones con varios equipos y muchas marcas',
-    price: '$990.000',
-    features: [
-      'Marcas ilimitadas',
-      'Todo lo de Growth',
-      'UGC: creadores, contratos y onboarding',
-      'Bandeja de WhatsApp del número de la agencia',
-      'Acompañamiento mensual de LA REAL',
-    ],
-    cta: 'Hablemos',
-  },
-];
-
 const FAQS = [
   {
     q: '¿Orbit es un software o un servicio?',
@@ -186,6 +144,14 @@ const FAQS = [
     a: 'Conectar tiendas y cuentas de pauta toma un día. Cargar costos y dejar el P&L afinado por marca, alrededor de una semana con el acompañamiento de LA REAL. Desde la segunda semana el equipo y los clientes ya operan en Orbit.',
   },
   {
+    q: '¿Cómo funciona el plan anual?',
+    a: 'Pagas 10 meses y usas 12. El precio queda congelado 24 meses, y al iniciar recibes, incluidos y valorados, la implementación acompañada, los reportes por WhatsApp del plan durante los 12 meses y las sesiones de números con Juanfe según tu plan. Los add-ons de WhatsApp que vienen con el anual no se cobran aparte; usuarios y marcas adicionales se agregan cuando los necesites.',
+  },
+  {
+    q: '¿Qué pasa si no me sirve?',
+    a: 'Tienes 30 días de garantía con devolución completa: si en el primer mes Orbit no es para tu agencia, te devolvemos el pago. Después de ese plazo, si necesitas más marcas o módulos, subes de plan pagando solo la diferencia; el tiempo que ya pagaste se respeta.',
+  },
+  {
     q: '¿Tengo que ser cliente de LA REAL?',
     a: 'No. Orbit se ofrece a agencias de marketing digital que operan marcas de ecommerce, sean o no clientes de LA REAL.',
   },
@@ -204,16 +170,6 @@ function OrbitMark({ size = 24 }) {
       <circle cx="19.2" cy="6.2" r="2" fill="#44BF47" />
     </svg>
   );
-}
-
-function Placeholder({ children }) {
-  return <span className="lp-placeholder">{children}</span>;
-}
-
-/* Marca los {{...}} para que se vean como placeholders */
-function withPlaceholders(text) {
-  const parts = text.split(/(\{\{[A-Z_]+\}\})/g);
-  return parts.map((part, i) => (/^\{\{[A-Z_]+\}\}$/.test(part) ? <Placeholder key={i}>{part}</Placeholder> : part));
 }
 
 function FAQ({ items }) {
@@ -238,6 +194,175 @@ function FAQ({ items }) {
         );
       })}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Precios: mensual / anual (anual por defecto)                          */
+/* ------------------------------------------------------------------ */
+
+function CycleToggle({ cycle, onChange }) {
+  return (
+    <div className="lp-cycle" role="radiogroup" aria-label="Ciclo de pago">
+      {['monthly', 'annual'].map((c) => (
+        <button
+          key={c}
+          type="button"
+          role="radio"
+          aria-checked={cycle === c}
+          className={`lp-cycle__opt${cycle === c ? ' is-on' : ''}`}
+          onClick={() => onChange(c)}
+        >
+          {CYCLES[c].label}
+          {c === 'annual' && <span className="lp-cycle__chip">{CYCLES.annual.chip}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PlanCard({ plan, cycle, index }) {
+  const annual = cycle === 'annual';
+  const price = priceFor(plan, cycle);
+  const addons = addonsForPlan(plan.key);
+  return (
+    <article className={`lp-plan${plan.recommended ? ' lp-plan--featured' : ''}`} data-reveal data-reveal-delay={String(index)}>
+      {plan.badge && <span className="lp-chip lp-chip--green lp-plan__badge">{plan.badge}</span>}
+      <div className="lp-plan__name">{plan.name}</div>
+      <div className="lp-plan__for">{plan.for}</div>
+
+      <div className="lp-plan__price">
+        <span className="lp-plan__amount">{fmtCOP(price)}</span>
+        <span className="lp-plan__period">COP {CYCLES[cycle].per}</span>
+      </div>
+      {annual ? (
+        <>
+          <div className="lp-plan__equiv">
+            equivale a <b>{fmtCOP(monthlyEquivalent(plan))}/mes</b> · ahorras <b>{fmtCOP(annualSavings(plan))}</b>
+          </div>
+          <div className="lp-plan__iva">
+            <s>{fmtCOP(monthlyTimes12(plan))}</s> pagando mes a mes · + IVA
+          </div>
+        </>
+      ) : (
+        <div className="lp-plan__iva">+ IVA · cancelas cuando quieras</div>
+      )}
+
+      <ul className="lp-plan__list">
+        <li><Check aria-hidden="true" /><span>{limitsLabel(plan)}</span></li>
+        {plan.features.map((f) => (
+          <li key={f}><Check aria-hidden="true" /><span>{f}</span></li>
+        ))}
+      </ul>
+
+      {annual ? (
+        <div className="lp-included">
+          <div className="lp-included__head">
+            <span className="lp-included__label">{INCLUDED_LABEL}</span>
+            <span className="lp-included__total">Valor incluido: {fmtCOP(includedTotal(plan))}</span>
+          </div>
+          <ul className="lp-included__list">
+            {plan.included.map((it) => (
+              <li key={it.key}>
+                <span className="lp-included__item">{it.label}</span>
+                <span className="lp-included__value">{fmtCOP(it.value)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="lp-plan__badges">
+            <span className="lp-chip">{PRICE_LOCK_LABEL}</span>
+            <span className="lp-chip">{GUARANTEE_LABEL}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="lp-included lp-included--addons">
+          <div className="lp-included__head">
+            <span className="lp-included__label">Agrega cuando quieras</span>
+          </div>
+          <ul className="lp-included__list">
+            {addons.map((a) => (
+              <li key={a.key}>
+                <span className="lp-included__item">{a.name}</span>
+                <span className="lp-included__value">{fmtCOP(a.price)}<small>/{a.unit.split(' ')[0]}</small></span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <Link to={`/register?plan=${plan.key}&cycle=${cycle}`} className={`lp-btn ${plan.recommended ? 'lp-btn--green' : 'lp-btn--primary'}`}>
+        Empieza {TRIAL_DAYS} días gratis <ArrowRight aria-hidden="true" />
+      </Link>
+      <a href={DEMO_MAIL} className="lp-btn lp-btn--ghost">{plan.cta}</a>
+    </article>
+  );
+}
+
+function Pricing() {
+  const [cycle, setCycle] = useState('annual');
+  const annual = cycle === 'annual';
+  return (
+    <section className="lp-section" id="precios">
+      <div className="lp-container">
+        <div className="lp-section__head lp-section__head--center">
+          <p className="lp-eyebrow lp-eyebrow--plain" data-reveal>Precios</p>
+          <h2 className="lp-h2" data-reveal data-reveal-delay="1">Un plan por el tamaño de tu operación.</h2>
+          <p className="lp-lead" data-reveal data-reveal-delay="2">
+            {annual
+              ? 'En el anual pagas 10 meses y usas 12, con el precio congelado 24 meses y la implementación incluida al iniciar. Precios en pesos colombianos, más IVA.'
+              : 'Mes a mes, sin permanencia. Precios en pesos colombianos, más IVA.'}
+          </p>
+          <div className="lp-pricing__toggle" data-reveal data-reveal-delay="2">
+            <CycleToggle cycle={cycle} onChange={setCycle} />
+          </div>
+        </div>
+
+        <div className="lp-plans">
+          {PRICING_PLANS.map((plan, i) => <PlanCard key={plan.key} plan={plan} cycle={cycle} index={i} />)}
+        </div>
+
+        <p className="lp-plans__note" data-reveal>
+          {annual
+            ? `${GUARANTEE_LABEL} con devolución completa. La prueba de ${TRIAL_DAYS} días es gratis; el cobro se hace al terminar, desde Suscripción.`
+            : `La prueba de ${TRIAL_DAYS} días es gratis y sin tarjeta. Puedes pasar al anual cuando quieras.`}
+        </p>
+
+        {/* Add-ons */}
+        <div className="lp-addons" data-reveal>
+          <div className="lp-addons__head">
+            <p className="lp-eyebrow">Add-ons</p>
+            <h3 className="lp-h3">Lo que agregas por encima del plan.</h3>
+            <p className="lp-addons__note">
+              Precios mensuales, más IVA. <strong>En el plan anual los add-ons de WhatsApp van incluidos</strong> según tu plan: reporte al dueño (Starter), reportes cada hora y reporte al dueño (Growth), y además el número propio (Agencia).
+            </p>
+          </div>
+          <div className="lp-addons__table" role="table" aria-label="Add-ons y precios">
+            <div className="lp-addons__row lp-addons__row--head" role="row">
+              <span role="columnheader">Add-on</span>
+              <span role="columnheader">Qué hace</span>
+              <span role="columnheader">Planes</span>
+              <span role="columnheader" className="num">Precio</span>
+            </div>
+            {ADDONS.map((a) => (
+              <div className="lp-addons__row" role="row" key={a.key}>
+                <span role="cell" className="lp-addons__name">
+                  <span>{a.name}</span>
+                  {a.whatsapp && <span className="lp-chip lp-chip--green">Incluido en anual</span>}
+                </span>
+                <span role="cell" className="lp-addons__desc">{a.desc}{a.note ? ` ${a.note}` : ''}</span>
+                <span role="cell" className="lp-addons__plans">{a.plans.map((k) => PRICING_PLANS.find((p) => p.key === k)?.name).join(' · ')}</span>
+                <span role="cell" className="lp-addons__price num">
+                  {fmtCOP(a.price)}<small>/{a.unit}</small>
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="lp-plans__note" style={{ marginTop: 16 }}>
+            Reuniones → tareas con IA viene incluido en Growth y Agencia. ¿Tu agencia opera marcas fuera de Shopify o Woo, o necesita algo distinto? Escríbenos y lo revisamos juntos.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -587,43 +712,7 @@ const Landing = () => {
         </section>
 
         {/* ---------- Precios ---------- */}
-        <section className="lp-section" id="precios">
-          <div className="lp-container">
-            <div className="lp-section__head lp-section__head--center">
-              <p className="lp-eyebrow lp-eyebrow--plain" data-reveal>Precios</p>
-              <h2 className="lp-h2" data-reveal data-reveal-delay="1">Un plan por el tamaño de tu operación.</h2>
-              <p className="lp-lead" data-reveal data-reveal-delay="2">Todos incluyen implementación acompañada por LA REAL. Precios mensuales en pesos colombianos, más IVA.</p>
-            </div>
-            <div className="lp-plans">
-              {PLANS.map((plan, i) => (
-                <article className={`lp-plan${plan.featured ? ' lp-plan--featured' : ''}`} key={plan.name} data-reveal data-reveal-delay={String(i)}>
-                  {plan.badge && <span className="lp-chip lp-chip--green lp-plan__badge">{plan.badge}</span>}
-                  <div className="lp-plan__name">{plan.name}</div>
-                  <div className="lp-plan__for">{plan.for}</div>
-                  <div className="lp-plan__price">
-                    <span className="lp-plan__amount">{withPlaceholders(plan.price)}</span>
-                    <span className="lp-plan__period">COP / mes</span>
-                  </div>
-                  <div className="lp-plan__iva">+ IVA</div>
-                  <ul className="lp-plan__list">
-                    {plan.features.map((f) => (
-                      <li key={f}><Check aria-hidden="true" /><span>{withPlaceholders(f)}</span></li>
-                    ))}
-                  </ul>
-                  <Link to={`/register?plan=${plan.name.toLowerCase()}`} className={`lp-btn ${plan.featured ? 'lp-btn--green' : 'lp-btn--primary'}`}>
-                    Empieza 14 días gratis <ArrowRight aria-hidden="true" />
-                  </Link>
-                  <a href={DEMO_MAIL} className="lp-btn lp-btn--ghost">
-                    {plan.cta}
-                  </a>
-                </article>
-              ))}
-            </div>
-            <p className="lp-plans__note" data-reveal>
-              ¿Tu agencia opera marcas fuera de Shopify o Woo, o necesita algo distinto? Escríbenos y lo revisamos juntos.
-            </p>
-          </div>
-        </section>
+        <Pricing />
 
         {/* ---------- FAQ ---------- */}
         <section className="lp-section" id="faq">
