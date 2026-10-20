@@ -4,6 +4,7 @@ import * as financials from '../services/clientFinancialsService.js';
 import * as lab from '../services/financialLab.js';
 import { buildFinancialsWorkbook, financialsExportFilename, getClientBrandName } from '../services/financialsExport.js';
 import { backfillDiscounts } from '../services/discountsBackfill.js';
+import * as scenarios from '../services/financialScenarios.js';
 
 const router = express.Router();
 
@@ -1065,6 +1066,78 @@ router.post('/clients/:clientId/discounts/backfill', async (req, res) => {
     console.error('Error backfilling discounts:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// ─── Escenarios financieros ("¿qué pasa si…?") guardados, privados o compartidos ───
+// Owner = quien está logueado en el equipo. Privado → solo lo ve/edita su dueño.
+
+const scenarioOwner = (req) => ({ owner_type: 'team', owner_id: req.teamMember?.id });
+const scenarioPeriod = (v) => (/^\d{4}-\d{2}$/.test(v || '') ? v : getCurrentPeriod());
+const requireScenarioClient = async (req, res, next) => {
+  try {
+    if (!(await verifyClient(req.params.clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+    if (!req.teamMember?.id) return res.status(401).json({ error: 'Sesión de equipo requerida' });
+    next();
+  } catch (e) { res.status(500).json({ error: e.message }); }
+};
+const scenarioError = (res, error, fallback) => {
+  console.error(fallback, error);
+  res.status(error.status || 500).json({ error: error.message });
+};
+
+router.get('/clients/:clientId/scenarios', requireScenarioClient, async (req, res) => {
+  try {
+    const withResults = !(req.query.light === '1' || req.query.light === 'true');
+    res.json(await scenarios.listScenarios({ clientId: Number(req.params.clientId), orgId: req.orgId, owner: scenarioOwner(req), period: scenarioPeriod(req.query.period), withResults }));
+  } catch (error) { scenarioError(res, error, 'Error listing scenarios:'); }
+});
+
+// Antes de /:id para que "compare" no se tome como id
+router.get('/clients/:clientId/scenarios/compare', requireScenarioClient, async (req, res) => {
+  try {
+    const ids = String(req.query.ids || '').split(',').map((x) => x.trim()).filter(Boolean);
+    res.json(await scenarios.compareScenarios({ clientId: Number(req.params.clientId), orgId: req.orgId, owner: scenarioOwner(req), ids, period: scenarioPeriod(req.query.period) }));
+  } catch (error) { scenarioError(res, error, 'Error comparing scenarios:'); }
+});
+
+router.post('/clients/:clientId/scenarios/evaluate', requireScenarioClient, async (req, res) => {
+  try {
+    const { params, period } = req.body || {};
+    res.json(await scenarios.evaluateScenario({ clientId: Number(req.params.clientId), orgId: req.orgId, period: scenarioPeriod(period || req.query.period), params: params || {} }));
+  } catch (error) { scenarioError(res, error, 'Error evaluating scenario:'); }
+});
+
+router.get('/clients/:clientId/scenarios/:id', requireScenarioClient, async (req, res) => {
+  try {
+    const s = await scenarios.getScenario({ clientId: Number(req.params.clientId), orgId: req.orgId, id: Number(req.params.id), owner: scenarioOwner(req) });
+    if (!s) return res.status(404).json({ error: 'Escenario no encontrado' });
+    res.json(s);
+  } catch (error) { scenarioError(res, error, 'Error getting scenario:'); }
+});
+
+router.post('/clients/:clientId/scenarios', requireScenarioClient, async (req, res) => {
+  try {
+    const { name, description, visibility, params, period } = req.body || {};
+    const s = await scenarios.createScenario({ clientId: Number(req.params.clientId), orgId: req.orgId, owner: scenarioOwner(req), name, description, visibility, params, period });
+    res.status(201).json(s);
+  } catch (error) { scenarioError(res, error.status ? error : Object.assign(error, { status: 400 }), 'Error creating scenario:'); }
+});
+
+router.put('/clients/:clientId/scenarios/:id', requireScenarioClient, async (req, res) => {
+  try {
+    const { name, description, visibility, params, period } = req.body || {};
+    const s = await scenarios.updateScenario({ clientId: Number(req.params.clientId), orgId: req.orgId, id: Number(req.params.id), owner: scenarioOwner(req), name, description, visibility, params, period });
+    if (!s) return res.status(404).json({ error: 'Escenario no encontrado' });
+    res.json(s);
+  } catch (error) { scenarioError(res, error.status ? error : Object.assign(error, { status: 400 }), 'Error updating scenario:'); }
+});
+
+router.delete('/clients/:clientId/scenarios/:id', requireScenarioClient, async (req, res) => {
+  try {
+    const ok = await scenarios.deleteScenario({ clientId: Number(req.params.clientId), orgId: req.orgId, id: Number(req.params.id), owner: scenarioOwner(req) });
+    if (!ok) return res.status(404).json({ error: 'Escenario no encontrado' });
+    res.json({ success: true });
+  } catch (error) { scenarioError(res, error, 'Error deleting scenario:'); }
 });
 
 export default router;

@@ -2432,6 +2432,25 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Escenarios financieros guardados ("¿qué pasa si…?"): privados (solo su dueño) o compartidos.
+    // owner_type 'team' → owner_id = team_members.id; 'client' → owner_id = clients.id (portal). params = JSON.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_financial_scenarios (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id),
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        description TEXT,
+        visibility TEXT NOT NULL DEFAULT 'shared',
+        owner_type TEXT NOT NULL DEFAULT 'team',
+        owner_id INTEGER,
+        params TEXT NOT NULL DEFAULT '{}',
+        period TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_financial_scenarios_client ON client_financial_scenarios(client_id)`);
     // Reuniones → tareas: celular del equipo (para identificar quién escribe por WhatsApp) y propuestas
     await pool.query(`ALTER TABLE team_members ADD COLUMN IF NOT EXISTS phone TEXT`);
     await pool.query(`

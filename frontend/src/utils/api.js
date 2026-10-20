@@ -713,6 +713,13 @@ export const growthAPI = {
   // Exportar dashboard financiero a Excel (.xlsx)
   exportFinancialsExcel: (clientId, period) => api.get(`/growth/clients/${clientId}/financials/export.xlsx`, { params: { period }, responseType: 'blob' }),
   backfillDiscounts: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/discounts/backfill`, { start_date: startDate, end_date: endDate }),
+  // Escenarios financieros ("¿qué pasa si…?"), privados o compartidos
+  scenarios: (clientId, params) => api.get(`/growth/clients/${clientId}/scenarios`, { params }),
+  createScenario: (clientId, data) => api.post(`/growth/clients/${clientId}/scenarios`, data),
+  updateScenario: (clientId, id, data) => api.put(`/growth/clients/${clientId}/scenarios/${id}`, data),
+  deleteScenario: (clientId, id) => api.delete(`/growth/clients/${clientId}/scenarios/${id}`),
+  evaluateScenario: (clientId, data) => api.post(`/growth/clients/${clientId}/scenarios/evaluate`, data),
+  compareScenarios: (clientId, ids, period) => api.get(`/growth/clients/${clientId}/scenarios/compare`, { params: { ids: (ids || []).join(','), period } }),
 };
 
 // Briefs API
