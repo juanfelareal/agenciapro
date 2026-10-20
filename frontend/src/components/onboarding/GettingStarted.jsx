@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, Megaphone, UsersRound, FolderKanban, Globe, Wallet, Check, ArrowRight, X, Compass } from 'lucide-react';
+import { Store, Megaphone, UsersRound, FolderKanban, Globe, Wallet, MessageCircle, Check, ArrowRight, X, Compass } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { onboardingAPI, startTour, ONBOARDING_CHANGED_EVENT } from './onboardingApi';
 
@@ -20,6 +20,7 @@ const buildTasks = (status) => {
     { key: 'project', icon: FolderKanban, title: 'Crea el primer proyecto', desc: 'Un tablero por cliente con etapas y entregables.', to: '/app/projects', cta: 'Crear proyecto' },
     { key: 'portal', icon: Globe, title: 'Activa el portal de un cliente', desc: 'Genera el enlace de acceso en la ficha del cliente y compártelo.', to: '/app/clients', cta: 'Ir a Clientes' },
     { key: 'costs', icon: Wallet, title: 'Carga los costos de una marca', desc: 'Fijos y variables para ver la utilidad real día a día.', to: c ? `/app/growth/${c.id}/financials` : '/app/clients', cta: 'Cargar costos' },
+    { key: 'whatsapp', icon: MessageCircle, title: 'Activa tus reportes por WhatsApp', desc: 'Resumen a las 6:00 y 12:00 al dueño de cada marca; cada hora a la agencia si lo activas.', to: '/app/configuracion/whatsapp', cta: 'Configurar WhatsApp' },
   ];
 };
 
@@ -73,7 +74,7 @@ const GettingStarted = () => {
             {done === 0 ? `Montemos tu casa${firstName ? `, ${firstName}` : ''}.` : done < tasks.length - 1 ? 'Vas bien. Sigamos.' : 'Casi listo.'}
           </h2>
           <p className="mt-1 text-sm text-[#7A7772]">
-            Seis pasos para ver utilidad real por marca. Detectamos solos lo que ya hiciste.
+            Siete pasos para ver utilidad real por marca y recibirla en WhatsApp. Detectamos solos lo que ya hiciste.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

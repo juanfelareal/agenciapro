@@ -6,6 +6,9 @@ export const orgAPI = {
   getModules: () => api.get('/org/modules'),
   updateModules: (modules) => api.put('/org/modules', { modules }),
   requestPlan: (plan) => api.put('/org/plan', { plan }),
+  // [billing] Add-ons: body parcial { hourly_reports?, owner_reports?, dedicated_number?: bool, extra_users?, extra_brands?: int }
+  // → { addons, addons_included, limits }. 402 { error, upgrade: true, required_plan } si el plan no lo permite.
+  updateAddons: (patch) => api.put('/org/addons', patch),
 };
 
 export const platformAPI = {

@@ -61,6 +61,15 @@ export const OrgPlanProvider = ({ children }) => {
       return modules[key] !== false;
     };
     const requiredPlanFor = (key) => catalog?.modules?.find((m) => m.key === key)?.required_plan || null;
+    // [billing] add-ons efectivos (activados + los que vienen con el anual) y ciclo de cobro
+    const addons = data?.addons || {};
+    const addonsIncluded = Array.isArray(data?.addons_included) ? data.addons_included : [];
+    const isAddonOn = (key) => {
+      if (!key) return false;
+      if (addonsIncluded.includes(key)) return true;
+      const v = addons[key] ?? addons[key === 'extra_user' ? 'extra_users' : key === 'extra_brand' ? 'extra_brands' : key];
+      return typeof v === 'number' ? v > 0 : !!v;
+    };
     return {
       loading,
       loaded: !!data,
@@ -79,6 +88,13 @@ export const OrgPlanProvider = ({ children }) => {
       overrides: data?.overrides || {},
       catalog,
       isPlatformAdmin: !!(data?.is_platform_admin ?? user?.is_platform_admin),
+      billingCycle: data?.billing_cycle === 'annual' ? 'annual' : 'monthly',
+      addons,
+      addonsIncluded,
+      planRenewsAt: data?.plan_renews_at || null,
+      priceLockedUntil: data?.price_locked_until || null,
+      planPriceLocked: !!data?.plan_price_locked,
+      isAddonOn,
       isModuleEnabled,
       requiredPlanFor,
       refresh,

@@ -11,6 +11,7 @@ import {
   Users, Target, FolderKanban, CheckSquare, BarChart3, Wallet, FileText, CreditCard,
   UsersRound, StickyNote, ClipboardList, BookOpen, FileSignature, Video, MessageCircle, Mail, Globe,
 } from 'lucide-react';
+import { PLANS_BY_KEY as PRICING_PLANS_BY_KEY } from '../../config/pricing';
 
 export const AGENCY_TYPES = [
   { id: 'ecommerce', name: 'Ecommerce', desc: 'Operas marcas que venden online (Shopify / Woo + pauta).' },
@@ -25,18 +26,19 @@ export const TEAM_SIZES = [
   { id: '16+', label: 'Más de 15' },
 ];
 
+// Precios: una sola fuente en src/config/pricing.js (mensual, anual, add-ons, incluidos).
 export const PLANS = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 249000,
+    price: PRICING_PLANS_BY_KEY.starter.monthly,
     for: 'Agencias que arrancan a ordenar la operación',
     features: ['Hasta 3 marcas conectadas', 'Clientes, CRM, proyectos y tareas', 'Métricas en vivo de tienda y pauta', 'Portal del cliente'],
   },
   {
     id: 'growth',
     name: 'Growth',
-    price: 489000,
+    price: PRICING_PLANS_BY_KEY.growth.monthly,
     featured: true,
     badge: 'Recomendado',
     for: 'Agencias que venden resultados por marca',
@@ -45,7 +47,7 @@ export const PLANS = [
   {
     id: 'agencia',
     name: 'Agencia',
-    price: 990000,
+    price: PRICING_PLANS_BY_KEY.agencia.monthly,
     for: 'Operaciones con varios equipos y muchas marcas',
     features: ['Marcas ilimitadas', 'Todo lo de Growth', 'UGC: creadores y contratos', 'Bandeja de WhatsApp de la agencia', 'Acompañamiento mensual'],
   },

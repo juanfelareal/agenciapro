@@ -295,6 +295,18 @@ export const teamAPI = {
 };
 
 // [email] Plantillas de correo con la marca de la org (admin)
+// [billing] Cobro del plan (Bold o transferencia manual) y historial de pagos.
+//   checkout({ plan, cycle }) → { provider: 'bold', url, reference, amount, iva, total }
+//                             | { provider: 'manual', reference, amount, iva, total, instructions }
+//   status(reference)        → { status: 'pending'|'approved'|'rejected'|'voided', plan, cycle, total }
+//   payments()               → [{ reference, provider, plan, cycle, amount, iva, total, status, created_at, paid_at }]
+// Bold vuelve a /app/suscripcion?pago=<reference>.
+export const orgBillingAPI = {
+  checkout: (plan, cycle) => api.post('/org/billing/checkout', { plan, cycle }),
+  status: (reference) => api.get('/org/billing/status', { params: { reference } }),
+  payments: () => api.get('/org/billing/payments'),
+};
+
 export const orgEmailsAPI = {
   listTemplates: () => api.get('/org/emails/templates'),
   preview: (template) => api.get(`/org/emails/preview/${template}`, { params: { format: 'json' } }),
