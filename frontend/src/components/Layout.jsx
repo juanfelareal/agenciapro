@@ -234,11 +234,11 @@ const Layout = ({ children }) => {
         className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
           item.badge === 'news'
             ? (active
-              ? 'bg-[#D7F653] text-[#17181A] font-semibold'
-              : 'bg-[#D7F653]/30 text-[#17181A] font-semibold hover:bg-[#D7F653]/60')
+              ? 'bg-[#44BF47] text-white font-semibold'
+              : 'bg-[#44BF47]/12 text-[#121314] font-semibold hover:bg-[#44BF47]/20')
             : (active
-              ? 'bg-[#17181A] text-[#D7F653]'
-              : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60')
+              ? 'bg-[#121314] text-[#44BF47]'
+              : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]')
         }`}
         title={collapsedUI ? item.name : ''}
       >
@@ -291,7 +291,7 @@ const Layout = ({ children }) => {
 
         {/* Tooltip for collapsed state */}
         {collapsedUI && (
-          <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+          <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
             {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}{item.badge === 'whatsapp' && waUnreadCount > 0 ? ` · ${waUnreadCount} sin leer` : ''}{item.badge === 'tasks' && taskAlertCount > 0 ? ` · ${taskAlertCount} nueva${taskAlertCount === 1 ? '' : 's'}` : ''}
           </div>
         )}
@@ -314,11 +314,11 @@ const Layout = ({ children }) => {
         }`}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center px-3 border-b border-white/60">
+        <div className="h-16 flex items-center px-3 border-b border-[#121212]/[0.09]">
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="md:hidden mr-2 p-2 -ml-1 rounded-lg text-gray-500 hover:bg-white/60"
+            className="md:hidden mr-2 p-2 -ml-1 rounded-lg text-gray-500 hover:bg-[#121212]/[0.04]"
             aria-label="Cerrar menú"
           >
             <X size={20} />
@@ -336,26 +336,26 @@ const Layout = ({ children }) => {
 
         {/* Organization Switcher */}
         {!collapsedUI && currentOrg && (
-          <div className="px-3 py-2 border-b border-white/60">
+          <div className="px-3 py-2 border-b border-[#121212]/[0.09]">
             <OrgSwitcher />
           </div>
         )}
 
         {/* User Info */}
         {!collapsedUI && user && (
-          <div className="p-3 border-b border-white/60">
+          <div className="p-3 border-b border-[#121212]/[0.09]">
             <div className="flex items-center gap-3">
               {user.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
               ) : (
                 <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#D7F653] font-semibold text-sm flex-shrink-0 bg-[#17181A]"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#44BF47] font-semibold text-sm flex-shrink-0 bg-[#121314]"
                 >
                   {getUserInitials(user.name)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-[#17181A] truncate">{user.name}</p>
+                <p className="text-sm font-medium text-[#121314] truncate">{user.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user.position || user.role}</p>
               </div>
             </div>
@@ -375,8 +375,8 @@ const Layout = ({ children }) => {
                   onClick={() => setFinanzasExpanded(!finanzasExpanded)}
                   className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     isFinanzasActive
-                      ? 'bg-[#17181A] text-[#D7F653]'
-                      : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+                      ? 'bg-[#121314] text-[#44BF47]'
+                      : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
                   }`}
                   title={collapsedUI ? 'Finanzas' : ''}
                 >
@@ -395,7 +395,7 @@ const Layout = ({ children }) => {
 
                   {/* Tooltip for collapsed state */}
                   {collapsedUI && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                       Finanzas
                     </div>
                   )}
@@ -403,7 +403,7 @@ const Layout = ({ children }) => {
 
                 {/* Submenú */}
                 {(finanzasExpanded || collapsedUI) && !collapsedUI && (
-                  <div className="mt-1 ml-3 pl-3 border-l border-white/70 space-y-1">
+                  <div className="mt-1 ml-3 pl-3 border-l border-[#121212]/[0.09] space-y-1">
                     {filteredFinanzas.map((item) => {
                       const Icon = item.icon;
                       const active = isActive(item.path);
@@ -413,8 +413,8 @@ const Layout = ({ children }) => {
                           to={item.path}
                           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                             active
-                              ? 'bg-white/70 text-[#17181A]'
-                              : 'text-gray-500 hover:text-[#17181A] hover:bg-white/50'
+                              ? 'bg-[#121212]/[0.06] text-[#121314]'
+                              : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
                           }`}
                         >
                           <Icon size={18} className="flex-shrink-0" />
@@ -437,7 +437,7 @@ const Layout = ({ children }) => {
                           key={item.path}
                           to={item.path}
                           className={`flex items-center gap-2 px-3 py-2 text-sm ${
-                            active ? 'text-[#17181A] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
+                            active ? 'text-[#121314] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
                           <Icon size={16} />
@@ -456,14 +456,14 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 space-y-1 border-t border-white/60" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
+        <div className="p-3 space-y-1 border-t border-[#121212]/[0.09]" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
           {/* Mejoras de Orbit */}
           <Link
             to="/app/mejoras"
             className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               isActive('/app/mejoras')
-                ? 'bg-[#17181A] text-[#D7F653]'
-                : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+                ? 'bg-[#121314] text-[#44BF47]'
+                : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
             }`}
             title={collapsedUI ? 'Mejoras de Orbit' : ''}
           >
@@ -471,16 +471,16 @@ const Layout = ({ children }) => {
             {!collapsedUI && <span className="truncate flex-1">Mejoras de Orbit</span>}
             {!collapsedUI && newFeedbackCount > 0 && (
               <span className={`ml-auto text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
-                isActive('/app/mejoras') ? 'bg-[#D7F653] text-[#17181A]' : 'bg-[#17181A] text-[#D7F653]'
+                isActive('/app/mejoras') ? 'bg-[#44BF47] text-white' : 'bg-[#121314] text-[#44BF47]'
               }`}>
                 {newFeedbackCount > 99 ? '99+' : newFeedbackCount}
               </span>
             )}
             {collapsedUI && newFeedbackCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#D7F653] ring-2 ring-white rounded-full" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-[#44BF47] ring-2 ring-white rounded-full" />
             )}
             {collapsedUI && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mejoras de Orbit{newFeedbackCount > 0 ? ` · ${newFeedbackCount} nuevas` : ''}
               </div>
             )}
@@ -491,15 +491,15 @@ const Layout = ({ children }) => {
             to="/app/settings"
             className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               isActive('/app/settings')
-                ? 'bg-[#17181A] text-[#D7F653]'
-                : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+                ? 'bg-[#121314] text-[#44BF47]'
+                : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
             }`}
             title={collapsedUI ? 'Mi Cuenta' : ''}
           >
             <Settings size={20} className="flex-shrink-0" />
             {!collapsedUI && <span>Mi Cuenta</span>}
             {collapsedUI && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mi Cuenta
               </div>
             )}
@@ -518,7 +518,7 @@ const Layout = ({ children }) => {
           {/* Collapse Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#17181A] hover:bg-gray-100 transition-all duration-150"
+            className="hidden md:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#121314] hover:bg-gray-100 transition-all duration-150"
           >
             {collapsedUI ? (
               <ChevronRight size={20} />
@@ -547,12 +547,12 @@ const Layout = ({ children }) => {
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="relative p-2 rounded-xl text-[#17181A] hover:bg-white/70 active:bg-white"
+              className="relative p-2 rounded-xl text-[#121314] hover:bg-[#121212]/[0.04] active:bg-white"
               aria-label="Abrir menú"
             >
               <Menu size={22} />
               {(newsUnreadCount > 0 || waUnreadCount > 0) && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#F3F4EF]" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#F3F1ED]" />
               )}
             </button>
             {currentOrg?.logo_url ? (
@@ -568,7 +568,7 @@ const Layout = ({ children }) => {
             {/* User Avatar */}
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-[#17181A]">
+                <p className="text-sm font-medium text-[#121314]">
                   {user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -582,7 +582,7 @@ const Layout = ({ children }) => {
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-xl object-cover" />
               ) : (
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#D7F653] font-semibold text-sm bg-[#17181A]">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#44BF47] font-semibold text-sm bg-[#121314]">
                   {getUserInitials(user?.name || 'U')}
                 </div>
               )}

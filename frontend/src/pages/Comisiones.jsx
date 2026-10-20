@@ -315,7 +315,7 @@ const Comisiones = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Comisiones</h1>
+          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Comisiones</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de comisiones del equipo</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -343,7 +343,7 @@ const Comisiones = () => {
           </select>
           <button
             onClick={handleNew}
-            className="bg-[#17181A] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#17181A]"
+            className="bg-[#121314] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#121314]"
           >
             <Plus size={20} />
             Agregar
@@ -390,7 +390,7 @@ const Comisiones = () => {
               setFilterMember('');
               setFilterClient('');
             }}
-            className="text-sm text-[#17181A] hover:text-[#17181A] underline"
+            className="text-sm text-[#121314] hover:text-[#121314] underline"
           >
             Limpiar filtros
           </button>
@@ -714,7 +714,7 @@ const Comisiones = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A]"
+                  className="px-4 py-2 bg-[#121314] text-white rounded-lg hover:bg-[#121314]"
                 >
                   Guardar
                 </button>
@@ -730,7 +730,7 @@ const Comisiones = () => {
           <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <UserPlus size={24} className="text-[#17181A]" />
+                <UserPlus size={24} className="text-[#121314]" />
                 Nuevo Cliente
               </h2>
               <button onClick={() => setShowNewClientModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -804,7 +804,7 @@ const Comisiones = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A]"
+                  className="px-4 py-2 bg-[#121314] text-white rounded-lg hover:bg-[#121314]"
                 >
                   Crear Cliente
                 </button>

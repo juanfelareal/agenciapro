@@ -19,7 +19,7 @@ const deltaColor = (v, inverted = false) => {
   if (v == null) return '#9ca3af';
   const positive = inverted ? v < 0 : v > 0;
   if (Math.abs(v) < 0.05) return '#9ca3af';
-  return positive ? '#16a34a' : '#dc2626';
+  return positive ? '#1E7A30' : '#dc2626';
 };
 const fmtDateShort = (d) => {
   if (!d) return '';
@@ -34,12 +34,12 @@ const fmtDateLong = (d) => {
 
 // ====== Color palette (LA REAL) ======
 const C = {
-  ink: '#0D1B2A',
+  ink: '#121314',
   inkSoft: '#1F2937',
   bone: '#F8F5F0',
   cream: '#FFFCF7',
   hairline: '#E5E2DD',
-  green: '#16a34a',
+  green: '#1E7A30',
   greenSoft: '#DCFCE7',
   amber: '#D97706',
   amberSoft: '#FEF3C7',
@@ -559,7 +559,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-[#0D1B2A] text-white rounded-xl hover:bg-[#1F2937] transition-colors text-sm font-medium shadow-sm"
+        className="flex items-center gap-2 px-4 py-2 bg-[#121314] text-white rounded-xl hover:bg-[#1F2937] transition-colors text-sm font-medium shadow-sm"
         title="Exportar reporte en PDF"
       >
         <Download size={16} />
@@ -571,11 +571,11 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
           <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#0D1B2A] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-[#121314] flex items-center justify-center">
                   <FileText className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#0D1B2A]">Exportar reporte</h2>
+                  <h2 className="text-lg font-semibold text-[#121314]">Exportar reporte</h2>
                   <p className="text-xs text-gray-500">Métricas Combinadas · Email Marketing · Facebook Ads · Shopify</p>
                 </div>
               </div>
@@ -585,7 +585,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
             </div>
 
             <div className="p-6">
-              <label className="block text-sm font-medium text-[#0D1B2A] mb-1">
+              <label className="block text-sm font-medium text-[#121314] mb-1">
                 Insights del período <span className="text-gray-400 font-normal">(opcional)</span>
               </label>
               <p className="text-xs text-gray-500 mb-2">
@@ -595,7 +595,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
                 value={insights}
                 onChange={(e) => setInsights(e.target.value)}
                 placeholder="Ej: Este mes superamos la meta gracias a la campaña de Día de la Madre. ROAS de Catálogo Dinámico fue 5.19x — recomendamos escalar +30% en junio."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm h-40 resize-y focus:outline-none focus:ring-2 focus:ring-[#0D1B2A]"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm h-40 resize-y focus:outline-none focus:ring-2 focus:ring-[#121314]"
                 disabled={busy}
               />
             </div>
@@ -611,7 +611,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
               <button
                 onClick={handleGenerate}
                 disabled={busy}
-                className="px-4 py-2 text-sm font-medium bg-[#0D1B2A] text-white rounded-xl hover:bg-[#1F2937] flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium bg-[#121314] text-white rounded-xl hover:bg-[#1F2937] flex items-center gap-2 disabled:opacity-50"
               >
                 {busy ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                 {busy ? 'Generando…' : 'Descargar PDF'}

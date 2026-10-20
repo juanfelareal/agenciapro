@@ -39,7 +39,7 @@ const ProjectBoard = () => {
         <p className="text-red-600">Proyecto no encontrado</p>
         <button
           onClick={() => navigate('/app/projects')}
-          className="mt-4 text-[#17181A] hover:underline"
+          className="mt-4 text-[#121314] hover:underline"
         >
           Volver a proyectos
         </button>
@@ -60,7 +60,7 @@ const ProjectBoard = () => {
         </button>
         <div className="flex flex-wrap justify-between items-start gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{project.name}</h1>
+            <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">{project.name}</h1>
             <p className="text-sm text-gray-500 mt-0.5">{project.description || 'Gestión de proyecto'}</p>
           </div>
           <div className="text-right">
@@ -78,7 +78,7 @@ const ProjectBoard = () => {
               onClick={() => setActiveView('table')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition ${
                 activeView === 'table'
-                  ? 'border-[#17181A] text-[#17181A]'
+                  ? 'border-[#121314] text-[#121314]'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -89,7 +89,7 @@ const ProjectBoard = () => {
               onClick={() => setActiveView('gantt')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition ${
                 activeView === 'gantt'
-                  ? 'border-[#17181A] text-[#17181A]'
+                  ? 'border-[#121314] text-[#121314]'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >

@@ -91,7 +91,7 @@ export default function PublicFormFill() {
   const renderField = (field) => {
     const value = formData[field.id] || '';
     const isMissing = missingFields.includes(field.id);
-    const base = 'w-full px-4 py-2.5 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] transition-colors';
+    const base = 'w-full px-4 py-2.5 bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#121314]/20 focus:border-[#121314] transition-colors';
     const border = isMissing ? 'border-red-400' : 'border-gray-200';
 
     switch (field.field_type) {
@@ -106,11 +106,11 @@ export default function PublicFormFill() {
           <div className="space-y-2">
             {parseOptions(field.options).map((option, idx) => (
               <label key={idx} className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${
-                value === option ? 'border-[#17181A] bg-[#17181A]/5' : isMissing ? 'border-red-400 bg-white' : 'border-gray-200 bg-white hover:border-gray-300'
+                value === option ? 'border-[#121314] bg-[#121314]/5' : isMissing ? 'border-red-400 bg-white' : 'border-gray-200 bg-white hover:border-gray-300'
               }`}>
                 <input type="radio" name={`field-${field.id}`} value={option} checked={value === option}
                   onChange={() => handleFieldChange(field.id, option)}
-                  className="w-4 h-4 text-[#17181A] border-gray-300" />
+                  className="w-4 h-4 text-[#121314] border-gray-300" />
                 <span className="text-gray-700">{option}</span>
               </label>
             ))}
@@ -121,11 +121,11 @@ export default function PublicFormFill() {
           <div className="flex gap-3">
             {['Sí', 'No'].map(option => (
               <label key={option} className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border cursor-pointer transition-colors font-medium ${
-                value === option ? 'border-[#17181A] bg-[#17181A]/5 text-[#17181A]' : isMissing ? 'border-red-400 bg-white text-gray-600' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                value === option ? 'border-[#121314] bg-[#121314]/5 text-[#121314]' : isMissing ? 'border-red-400 bg-white text-gray-600' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
               }`}>
                 <input type="radio" name={`field-${field.id}`} value={option} checked={value === option}
                   onChange={() => handleFieldChange(field.id, option)}
-                  className="w-4 h-4 text-[#17181A] border-gray-300" />
+                  className="w-4 h-4 text-[#121314] border-gray-300" />
                 {option}
               </label>
             ))}
@@ -182,7 +182,7 @@ export default function PublicFormFill() {
       <div className="min-h-screen app-mist flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <div className="w-12 h-12 bg-[#17181A] rounded-xl flex items-center justify-center mb-6">
+            <div className="w-12 h-12 bg-[#121314] rounded-xl flex items-center justify-center mb-6">
               <ClipboardList className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">{form.title}</h1>
@@ -203,14 +203,14 @@ export default function PublicFormFill() {
                     onKeyDown={e => { if (e.key === 'Enter' && respondentName.trim()) setStep('form'); }}
                     placeholder="Ingresa tu nombre"
                     autoFocus
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A] transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#121314]/20 focus:border-[#121314] transition-colors"
                   />
                 </div>
               </div>
               <button
                 onClick={() => setStep('form')}
                 disabled={!respondentName.trim()}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#17181A] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#121314] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continuar <ArrowRight className="w-4 h-4" />
               </button>
@@ -273,7 +273,7 @@ export default function PublicFormFill() {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-[#17181A] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-[#121314] text-white rounded-xl hover:bg-[#2a2a3e] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             {submitting ? 'Enviando...' : 'Enviar formulario'}

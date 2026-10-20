@@ -23,7 +23,7 @@ const MarginPill = ({ margin, estimated }) => {
 const SourceChip = ({ source, estimated }) => {
   if (estimated) return <span className="inline-flex rounded-full bg-amber-50 text-amber-700 px-1.5 py-[1px] text-[10px] font-semibold">Estimado</span>;
   return source === 'manual'
-    ? <span className="inline-flex rounded-full bg-[#17181A] text-[#D7F653] px-1.5 py-[1px] text-[10px] font-semibold">Manual</span>
+    ? <span className="inline-flex rounded-full bg-[#121314] text-[#44BF47] px-1.5 py-[1px] text-[10px] font-semibold">Manual</span>
     : <span className="inline-flex rounded-full bg-gray-100 text-gray-600 px-1.5 py-[1px] text-[10px] font-semibold">Tienda</span>;
 };
 
@@ -69,7 +69,7 @@ function CostCell({ product, onSave, onReset, defaultRate }) {
           onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
           disabled={busy}
         />
-        <button type="button" onClick={save} disabled={busy} className="p-1.5 rounded-lg bg-[#17181A] text-white" aria-label="Guardar">{busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
+        <button type="button" onClick={save} disabled={busy} className="p-1.5 rounded-lg bg-[#121314] text-white" aria-label="Guardar">{busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}</button>
         <button type="button" onClick={() => setEditing(false)} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Cancelar"><X className="w-3.5 h-3.5 text-gray-500" /></button>
       </div>
     );
@@ -78,7 +78,7 @@ function CostCell({ product, onSave, onReset, defaultRate }) {
   return (
     <div className="flex items-center justify-end gap-1">
       <button type="button" onClick={start} className="group inline-flex flex-col items-end gap-0.5 rounded-lg px-2 py-1 hover:bg-gray-50 transition text-right" title="Editar costo">
-        <span className={`inline-flex items-center gap-1.5 tabular-nums font-semibold text-[13px] ${hasCost ? 'text-[#17181A]' : 'text-amber-600'}`}>
+        <span className={`inline-flex items-center gap-1.5 tabular-nums font-semibold text-[13px] ${hasCost ? 'text-[#121314]' : 'text-amber-600'}`}>
           {hasCost ? fmtMoney(product.cost) : 'Sin costo'}
           <Pencil className="w-3 h-3 text-gray-300 group-hover:text-gray-500" />
         </span>
@@ -138,7 +138,7 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-1.5">
-            <h2 className="font-semibold text-sm text-[#17181A]">Productos y costo de producto</h2>
+            <h2 className="font-semibold text-sm text-[#121314]">Productos y costo de producto</h2>
             <Info text="Qué se vendió en el mes, cuánto costó cada unidad y cuánto dejó cada producto antes de ads y fijos." />
           </div>
           <p className="text-xs text-gray-400 mt-0.5 max-w-xl">
@@ -167,7 +167,7 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
             ) : (
               <span className="inline-flex items-center gap-1 align-middle">
                 <input type="number" min="0" max="95" className="input !py-0.5 !px-2 w-16 text-right tabular-nums" value={rateEdit} onChange={(e) => setRateEdit(e.target.value)} />%
-                <button type="button" className="p-1 rounded bg-[#17181A] text-white" onClick={async () => { await onSaveRate(Number(rateEdit) / 100); setRateEdit(null); }} aria-label="Guardar"><Check className="w-3 h-3" /></button>
+                <button type="button" className="p-1 rounded bg-[#121314] text-white" onClick={async () => { await onSaveRate(Number(rateEdit) / 100); setRateEdit(null); }} aria-label="Guardar"><Check className="w-3 h-3" /></button>
                 <button type="button" className="p-1 rounded hover:bg-amber-100" onClick={() => setRateEdit(null)} aria-label="Cancelar"><X className="w-3 h-3" /></button>
               </span>
             )}
@@ -203,8 +203,8 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
               <input className="input !pl-9 !py-2 w-full sm:w-52 text-sm" placeholder="Buscar producto o SKU" value={search} onChange={(e) => setSearch(e.target.value)} />
             </label>
             <div className="inline-flex items-center bg-gray-100 p-1 rounded-lg text-xs font-medium">
-              <button type="button" onClick={() => setOnlySold(true)} className={`px-3 py-1.5 rounded-md transition ${onlySold ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500'}`}>Vendidos este mes</button>
-              <button type="button" onClick={() => setOnlySold(false)} className={`px-3 py-1.5 rounded-md transition ${!onlySold ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500'}`}>Todo el catálogo</button>
+              <button type="button" onClick={() => setOnlySold(true)} className={`px-3 py-1.5 rounded-md transition ${onlySold ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500'}`}>Vendidos este mes</button>
+              <button type="button" onClick={() => setOnlySold(false)} className={`px-3 py-1.5 rounded-md transition ${!onlySold ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500'}`}>Todo el catálogo</button>
             </div>
             <button type="button" onClick={() => setOnlyMissing((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${onlyMissing ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
               <AlertTriangle className="w-3.5 h-3.5" /> Sin costo{onlyMissing ? ` (${visible.length})` : ''}
@@ -240,7 +240,7 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
                       <div className="flex items-center gap-3 min-w-0">
                         {p.image_url ? <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover bg-gray-100 shrink-0" loading="lazy" /> : <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><Package className="w-4 h-4 text-gray-300" /></div>}
                         <div className="min-w-0">
-                          <div className="font-medium text-[#17181A] truncate max-w-[280px]" title={p.title}>{p.title}</div>
+                          <div className="font-medium text-[#121314] truncate max-w-[280px]" title={p.title}>{p.title}</div>
                           <div className="text-[11px] text-gray-400 truncate">{meta(p) || (p.status && p.status !== 'active' ? p.status : '')}</div>
                         </div>
                       </div>
@@ -248,22 +248,22 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
                     <td className="py-2.5 px-3 text-right text-gray-500 tabular-nums">{p.price !== null ? fmtMoney(p.price) : '—'}</td>
                     <td className="py-2.5 px-3"><CostCell product={p} onSave={onSaveCost} onReset={onResetCost} defaultRate={defaultRate} /></td>
                     <td className="py-2.5 px-3 text-right tabular-nums">{fmtInt(p.units)}</td>
-                    <td className="py-2.5 px-3 text-right font-semibold text-[#17181A] tabular-nums">{fmtMoney(p.revenue)}</td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-[#121314] tabular-nums">{fmtMoney(p.revenue)}</td>
                     <td className="py-2.5 px-3 text-right text-gray-500 tabular-nums">{fmtMoney(p.cogs)}</td>
-                    <td className={`py-2.5 px-3 text-right tabular-nums font-medium ${p.gross_profit > 0 ? 'text-[#16a34a]' : p.gross_profit < 0 ? 'text-[#dc2626]' : 'text-gray-500'}`}>{fmtMoney(p.gross_profit)}</td>
+                    <td className={`py-2.5 px-3 text-right tabular-nums font-medium ${p.gross_profit > 0 ? 'text-[#1E7A30]' : p.gross_profit < 0 ? 'text-[#dc2626]' : 'text-gray-500'}`}>{fmtMoney(p.gross_profit)}</td>
                     <td className="py-2.5 pl-3 text-right"><MarginPill margin={p.margin_pct} estimated={p.cost_estimated} /></td>
                   </tr>
                 ))}
               </tbody>
               {visible.length > 1 && (
                 <tfoot>
-                  <tr className="font-semibold text-[#17181A] border-t-2 border-gray-200">
+                  <tr className="font-semibold text-[#121314] border-t-2 border-gray-200">
                     <td className="py-2.5 pr-3">Total ({visible.length})</td>
                     <td /><td />
                     <td className="py-2.5 px-3 text-right tabular-nums">{fmtInt(totals.units)}</td>
                     <td className="py-2.5 px-3 text-right tabular-nums">{fmtMoney(totals.revenue)}</td>
                     <td className="py-2.5 px-3 text-right tabular-nums text-gray-500">{fmtMoney(totals.cogs)}</td>
-                    <td className={`py-2.5 px-3 text-right tabular-nums ${totals.gross >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>{fmtMoney(totals.gross)}</td>
+                    <td className={`py-2.5 px-3 text-right tabular-nums ${totals.gross >= 0 ? 'text-[#1E7A30]' : 'text-[#dc2626]'}`}>{fmtMoney(totals.gross)}</td>
                     <td className="py-2.5 pl-3 text-right"><MarginPill margin={totals.revenue ? (totals.gross / totals.revenue) * 100 : null} /></td>
                   </tr>
                 </tfoot>
@@ -278,13 +278,13 @@ export default function ProductsTable({ data, onSaveCost, onResetCost, onSync, s
                 <div className="flex items-start gap-3">
                   {p.image_url ? <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover bg-gray-100 shrink-0" loading="lazy" /> : <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0"><Package className="w-4 h-4 text-gray-300" /></div>}
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-sm text-[#17181A] truncate">{p.title}</div>
+                    <div className="font-medium text-sm text-[#121314] truncate">{p.title}</div>
                     <div className="text-[11px] text-gray-400 truncate">{meta(p)}</div>
                   </div>
                   <MarginPill margin={p.margin_pct} estimated={p.cost_estimated} />
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-500 tabular-nums">
-                  <span>{fmtInt(p.units)} u · <span className="text-[#17181A] font-semibold">{fmtMoney(p.revenue)}</span> · utilidad <span className={p.gross_profit >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'}>{fmtMoney(p.gross_profit)}</span></span>
+                  <span>{fmtInt(p.units)} u · <span className="text-[#121314] font-semibold">{fmtMoney(p.revenue)}</span> · utilidad <span className={p.gross_profit >= 0 ? 'text-[#1E7A30]' : 'text-[#dc2626]'}>{fmtMoney(p.gross_profit)}</span></span>
                 </div>
                 <CostCell product={p} onSave={onSaveCost} onReset={onResetCost} defaultRate={defaultRate} />
               </div>

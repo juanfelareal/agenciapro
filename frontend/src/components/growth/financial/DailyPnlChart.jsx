@@ -3,7 +3,7 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianG
 import Info from './Info';
 import { fmtMoney, fmtMoneyShort, dayShort, dayLong, COLORS } from './format';
 
-const TICK = { fontSize: 11, fill: '#9CA3AF' };
+const TICK = { fontSize: 11, fill: '#7A7772' };
 
 const Row = ({ label, value, color, strong }) => (
   <div className="flex justify-between gap-4">
@@ -18,7 +18,7 @@ const DarkTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-[#17181A] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[220px] max-w-[80vw] space-y-1">
+    <div className="bg-[#121314] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[220px] max-w-[80vw] space-y-1">
       <div className="font-medium capitalize mb-1.5">{dayLong(d.date)}{d.orders ? ` · ${d.orders} pedidos` : ''}</div>
       <Row label="Ventas netas" value={d.revenue} color={COLORS.revenue} />
       <Row label="Costos" value={d.costs} color={COLORS.costs} />
@@ -47,7 +47,7 @@ export default function DailyPnlChart({ daily = [], height = 260 }) {
   return (
     <div className="glass-solid rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-1.5">
-        <h2 className="font-semibold text-sm text-[#17181A]">Ventas, costos y utilidad por día</h2>
+        <h2 className="font-semibold text-sm text-[#121314]">Ventas, costos y utilidad por día</h2>
         <Info text="Barras: ventas netas y costos totales del día (producto + ads + variables + la parte diaria de los fijos). Línea: utilidad del día." />
       </div>
       <p className="text-xs text-gray-400 mt-0.5">Un día en rojo es un día que costó más de lo que vendió.</p>
@@ -62,7 +62,7 @@ export default function DailyPnlChart({ daily = [], height = 260 }) {
                 <XAxis dataKey="label" tick={TICK} tickLine={false} axisLine={false} interval={dense ? 'preserveStartEnd' : 0} minTickGap={24} />
                 <YAxis tick={TICK} tickLine={false} axisLine={false} tickFormatter={fmtMoneyShort} width={56} />
                 <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(23,24,26,0.04)' }} />
-                <ReferenceLine y={0} stroke="#D1D5DB" />
+                <ReferenceLine y={0} stroke="#C9C6C0" />
                 <Bar dataKey="revenue" fill={COLORS.revenue} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />
                 <Bar dataKey="costs" fill={COLORS.costs} radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />
                 <Line

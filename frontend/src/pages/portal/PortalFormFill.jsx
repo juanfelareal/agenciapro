@@ -275,9 +275,9 @@ export default function PortalFormFill() {
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-[#17181A]">Formulario no encontrado</h2>
+        <h2 className="text-xl font-semibold text-[#121314]">Formulario no encontrado</h2>
         <p className="text-gray-500 mt-2 mb-4">Este formulario no existe o no tienes acceso.</p>
-        <Link to="/portal/forms" className="text-[#17181A] hover:underline">
+        <Link to="/portal/forms" className="text-[#121314] hover:underline">
           Volver a formularios
         </Link>
       </div>
@@ -289,7 +289,7 @@ export default function PortalFormFill() {
       {/* Back button */}
       <Link
         to="/portal/forms"
-        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#17181A] transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#121314] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Volver</span>
@@ -297,7 +297,7 @@ export default function PortalFormFill() {
 
       {/* Form header */}
       <div>
-        <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">
+        <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">
           {assignment.form_title}
         </h1>
         {assignment.form_description && (
@@ -342,7 +342,7 @@ export default function PortalFormFill() {
         >
           {/* Section header */}
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-[#17181A]">{section.title}</h2>
+            <h2 className="text-lg font-semibold text-[#121314]">{section.title}</h2>
             {section.description && (
               <p className="text-sm text-gray-500 mt-1">{section.description}</p>
             )}
@@ -401,7 +401,7 @@ export default function PortalFormFill() {
           <button
             onClick={handleSubmit}
             disabled={saving || submitting}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#17181A] text-white
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#121314] text-white
                      rounded-xl hover:bg-gray-800 transition-colors font-medium
                      disabled:opacity-50 disabled:cursor-not-allowed"
           >

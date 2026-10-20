@@ -32,7 +32,7 @@ function Section({ id, title, icon: Icon, iconBg, iconColor, defaultOpen = true,
           <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}>
             <Icon className={`w-4 h-4 ${iconColor}`} />
           </div>
-          <span className="font-semibold text-[#17181A]">{title}</span>
+          <span className="font-semibold text-[#121314]">{title}</span>
         </div>
         {open ? (
           <ChevronDown className="w-5 h-5 text-gray-400" />
@@ -62,7 +62,7 @@ function MetricInput({ label, value, onChange, prefix, suffix, type = 'number', 
           className={`
             w-full border border-gray-200 rounded-lg py-2 text-sm
             ${prefix ? 'pl-7' : 'pl-3'} ${suffix ? 'pr-8' : 'pr-3'}
-            focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-transparent
+            focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 focus:border-transparent
             ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}
           `}
         />
@@ -80,7 +80,7 @@ function CalculatedMetric({ label, value, suffix = '%' }) {
   return (
     <div className="bg-gray-50 rounded-lg px-4 py-2 text-center">
       <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className="text-lg font-semibold text-[#17181A]">
+      <div className="text-lg font-semibold text-[#121314]">
         {displayValue}{value !== null && !isNaN(value) ? suffix : ''}
       </div>
     </div>
@@ -248,7 +248,7 @@ export default function EmailMarketingForm({ clientId }) {
           <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center">
             <Mail className="w-4 h-4 text-pink-600" />
           </div>
-          <h2 className="text-lg font-semibold text-[#17181A]">Email Marketing</h2>
+          <h2 className="text-lg font-semibold text-[#121314]">Email Marketing</h2>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
@@ -256,7 +256,7 @@ export default function EmailMarketingForm({ clientId }) {
           <select
             value={month}
             onChange={(e) => setMonth(parseInt(e.target.value))}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500"
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
           >
             {MONTHS.slice(0, maxMonth).map((name, idx) => (
               <option key={idx} value={idx + 1}>{name}</option>
@@ -274,7 +274,7 @@ export default function EmailMarketingForm({ clientId }) {
                 setMonth(now.getMonth() + 1);
               }
             }}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500"
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
           >
             {yearOptions.map(y => (
               <option key={y} value={y}>{y}</option>
@@ -285,7 +285,7 @@ export default function EmailMarketingForm({ clientId }) {
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="flex items-center gap-2 bg-[#17181A] text-[#BFFF00] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#2a2b2e] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 bg-[#121314] text-[#44BF47] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Guardar

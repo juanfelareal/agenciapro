@@ -46,11 +46,11 @@ export default function PortalLogin() {
       <div className="min-h-screen app-mist flex flex-col items-center justify-center gap-5 animate-fade-in">
         <img src={splash.logo_url} alt={splash.nickname || splash.name} className="max-h-20 max-w-[240px] object-contain" />
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#17181A]">{splash.nickname || splash.name}</p>
+          <p className="text-lg font-semibold text-[#121314]">{splash.nickname || splash.name}</p>
           <p className="text-sm text-gray-500 mt-1">Entrando a tu portal…</p>
         </div>
         <div className="w-40 h-1 bg-gray-200 rounded-full overflow-hidden">
-          <div className="h-full bg-[#17181A] rounded-full animate-pulse" style={{ width: '70%' }} />
+          <div className="h-full bg-[#121314] rounded-full animate-pulse" style={{ width: '70%' }} />
         </div>
       </div>
     );
@@ -98,17 +98,17 @@ export default function PortalLogin() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#17181A] rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#121314] rounded-2xl mb-4">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Portal de Cliente</h1>
+          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Portal de Cliente</h1>
           <p className="text-gray-500 mt-2">
             Ingresa tu código de acceso para continuar
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-soft border border-gray-100/50 p-8">
+        <div className="bg-[#FBFAF8] rounded-3xl shadow-soft border border-[#121212]/[0.09] p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Code Input */}
             <div>
@@ -145,7 +145,7 @@ export default function PortalLogin() {
               type="submit"
               disabled={loading || code.length < 9}
               className="w-full flex items-center justify-center gap-2 py-4 px-6
-                       bg-[#17181A] text-white font-semibold rounded-xl
+                       bg-[#121314] text-white font-semibold rounded-xl
                        hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
                        transition-all duration-200"
             >

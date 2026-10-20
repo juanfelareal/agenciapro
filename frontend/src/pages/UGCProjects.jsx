@@ -244,7 +244,7 @@ export default function UGCProjects() {
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-white text-[#121314] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
               title="Vista Grid"
@@ -255,7 +255,7 @@ export default function UGCProjects() {
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === 'list'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-white text-[#121314] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
               title="Vista Lista"
@@ -267,7 +267,7 @@ export default function UGCProjects() {
           {/* New Project Button */}
           <button
             onClick={() => { setSaveError(''); setShowNewModal(true); }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
           >
             <Plus className="w-4 h-4" />
             Nuevo Proyecto
@@ -286,7 +286,7 @@ export default function UGCProjects() {
         </Link>
         <Link
           to="/app/ugc/projects"
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-[#17181A] text-[#17181A] -mb-px"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-[#121314] text-[#121314] -mb-px"
         >
           <FolderKanban className="w-4 h-4" />
           Proyectos
@@ -797,7 +797,7 @@ export default function UGCProjects() {
                 <button
                   type="submit"
                   disabled={saving || !newProject.client_id || !newProject.title || !newProject.package_id || videoCount <= 0}
-                  className="px-4 py-2 bg-[#17181A] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-[#121314] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Crear Proyecto

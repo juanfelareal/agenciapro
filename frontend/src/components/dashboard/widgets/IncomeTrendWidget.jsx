@@ -76,13 +76,13 @@ const IncomeTrendWidget = ({ widget, period }) => {
             <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
               <XAxis
                 dataKey="month"
-                tick={{ fontSize: 12, fill: '#64748b' }}
+                tick={{ fontSize: 12, fill: '#7A7772' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 tickFormatter={formatCurrency}
-                tick={{ fontSize: 11, fill: '#64748b' }}
+                tick={{ fontSize: 11, fill: '#7A7772' }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -98,10 +98,10 @@ const IncomeTrendWidget = ({ widget, period }) => {
               <Line
                 type="monotone"
                 dataKey="amount"
-                stroke="#22c55e"
+                stroke="#44BF47"
                 strokeWidth={2}
-                dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, fill: '#22c55e' }}
+                dot={{ fill: '#44BF47', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, fill: '#44BF47' }}
               />
             </LineChart>
           </ResponsiveContainer>

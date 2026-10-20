@@ -167,8 +167,8 @@ const ImageAttachZone = ({ uploads }) => {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={`rounded-xl border-2 border-dashed transition-colors p-4 ${
-          dragging ? 'border-[#17181A] bg-[#D7F653]/20' : 'border-gray-200 bg-white/50 hover:border-gray-300'
-        } focus:outline-none focus:border-[#17181A]`}
+          dragging ? 'border-[#121314] bg-[#44BF47]/12' : 'border-gray-200 bg-white/50 hover:border-gray-300'
+        } focus:outline-none focus:border-[#121314]`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
@@ -200,10 +200,10 @@ const ImageAttachZone = ({ uploads }) => {
                 <img src={it.preview} alt="" className={`w-full h-full object-cover ${it.done ? '' : 'opacity-50'}`} />
                 {!it.done && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/40">
-                    <Loader2 size={16} className="animate-spin text-[#17181A]" />
-                    <span className="text-[10px] font-semibold text-[#17181A]">{it.progress}%</span>
+                    <Loader2 size={16} className="animate-spin text-[#121314]" />
+                    <span className="text-[10px] font-semibold text-[#121314]">{it.progress}%</span>
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
-                      <div className="h-full bg-[#17181A] transition-all" style={{ width: `${it.progress}%` }} />
+                      <div className="h-full bg-[#121314] transition-all" style={{ width: `${it.progress}%` }} />
                     </div>
                   </div>
                 )}
@@ -211,7 +211,7 @@ const ImageAttachZone = ({ uploads }) => {
                   <button
                     type="button"
                     onClick={() => uploads.remove(it.key)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#17181A]/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#121314]/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Quitar"
                   >
                     <X size={12} />
@@ -296,7 +296,7 @@ const CategoryPill = ({ id }) => {
 
 const BrandPill = ({ item }) => (
   item.client_id ? (
-    <Pill className="bg-[#17181A] text-white border-[#17181A] max-w-[220px]" title={item.client_name || 'Marca'}>
+    <Pill className="bg-[#121314] text-white border-[#121314] max-w-[220px]" title={item.client_name || 'Marca'}>
       <Building2 size={11} className="shrink-0" /> <span className="truncate">{item.client_name || 'Marca'}</span>
     </Pill>
   ) : (
@@ -306,7 +306,7 @@ const BrandPill = ({ item }) => (
 
 const Avatar = ({ name, size = 'sm' }) => (
   <span
-    className={`inline-flex items-center justify-center rounded-full bg-[#17181A] text-[#D7F653] font-bold shrink-0 ${
+    className={`inline-flex items-center justify-center rounded-full bg-[#121314] text-[#44BF47] font-bold shrink-0 ${
       size === 'sm' ? 'w-6 h-6 text-[10px]' : 'w-8 h-8 text-xs'
     }`}
     title={name || 'Sin autor'}
@@ -326,19 +326,19 @@ const NewsCard = ({ item, onOpen, onLightbox, onAck }) => {
       tabIndex={0}
       onClick={() => onOpen(item)}
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(item); }}
-      className={`glass-card p-4 flex gap-3 cursor-pointer hover:bg-white/80 transition-colors ${
-        unread ? 'border-l-4 border-l-[#D7F653] ring-1 ring-[#D7F653]/60' : ''
+      className={`glass-card p-4 flex gap-3 cursor-pointer hover:bg-[#121212]/[0.03] transition-colors ${
+        unread ? 'border-l-4 border-l-[#44BF47] ring-1 ring-[#44BF47]/50' : ''
       }`}
     >
       <div className="w-3 pt-2 shrink-0 flex justify-center">
-        {unread && <span className="w-2.5 h-2.5 rounded-full bg-[#D7F653] ring-2 ring-[#17181A]/80" title="Sin leer" />}
+        {unread && <span className="w-2.5 h-2.5 rounded-full bg-[#44BF47] ring-2 ring-[#121314]/80" title="Sin leer" />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
           <BrandPill item={item} />
           <CategoryPill id={item.category} />
           {item.is_pinned && (
-            <Pill className="bg-[#D7F653]/60 text-[#3f4a10] border-[#c6e63c]" title="Fijada arriba"><Pin size={11} /> Fijada</Pill>
+            <Pill className="bg-[#44BF47]/15 text-[#1E7A30] border-[#44BF47]/40" title="Fijada arriba"><Pin size={11} /> Fijada</Pill>
           )}
           {item.edit_count > 0 && (
             <Pill className="bg-gray-100 text-gray-600 border-gray-200" title={`Editada ${item.edit_count} ${item.edit_count === 1 ? 'vez' : 'veces'}${item.last_edited_by_name ? ' · última por ' + item.last_edited_by_name : ''}`}>
@@ -351,7 +351,7 @@ const NewsCard = ({ item, onOpen, onLightbox, onAck }) => {
             </Pill>
           )}
         </div>
-        <h3 className={`text-[#17181A] leading-snug ${unread ? 'font-bold' : 'font-semibold'}`}>{item.title}</h3>
+        <h3 className={`text-[#121314] leading-snug ${unread ? 'font-bold' : 'font-semibold'}`}>{item.title}</h3>
         {item.body && <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-line">{item.body}</p>}
 
         {thumbs.length > 0 && (
@@ -361,7 +361,7 @@ const NewsCard = ({ item, onOpen, onLightbox, onAck }) => {
                 key={url + i}
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onLightbox(item.images, i); }}
-                className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#17181A] transition"
+                className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#121314] transition"
                 title="Ver imagen"
               >
                 <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -387,7 +387,7 @@ const NewsCard = ({ item, onOpen, onLightbox, onAck }) => {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onAck(item); }}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#17181A] text-[#D7F653] text-xs font-semibold hover:bg-black transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#121314] text-[#44BF47] text-xs font-semibold hover:bg-black transition-colors"
                 title="Confirmar que ya leíste esta novedad"
               >
                 <Check size={13} /> Enterado
@@ -411,7 +411,7 @@ const ClientSelect = ({ value, onChange, clients, loading, allowFilters = false,
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={loading}
-      className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-gray-200 bg-white/80 text-sm text-[#17181A] focus:outline-none focus:border-[#17181A] disabled:opacity-60"
+      className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl border border-gray-200 bg-white/80 text-sm text-[#121314] focus:outline-none focus:border-[#121314] disabled:opacity-60"
     >
       {allowFilters ? (
         <>
@@ -487,7 +487,7 @@ const NewsFormModal = ({ initial, clients, clientsLoading, onClose, onSaved }) =
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-[#17181A]">{isEdit ? 'Editar novedad' : 'Nueva novedad'}</h2>
+            <h2 className="text-lg font-bold text-[#121314]">{isEdit ? 'Editar novedad' : 'Nueva novedad'}</h2>
             <p className="text-xs text-gray-500">Cuéntale al equipo qué está pasando con la marca. Todos lo verán.</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><X size={18} /></button>
@@ -502,7 +502,7 @@ const NewsFormModal = ({ initial, clients, clientsLoading, onClose, onSaved }) =
               onChange={set('title')}
               maxLength={200}
               placeholder="Ej: Natnack lanza combo nuevo y sube el ticket promedio desde el lunes"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#17181A] focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] focus:outline-none focus:ring-2 focus:ring-[#121314]/20 focus:border-[#121314]"
             />
           </div>
 
@@ -513,7 +513,7 @@ const NewsFormModal = ({ initial, clients, clientsLoading, onClose, onSaved }) =
               onChange={set('body')}
               rows={6}
               placeholder="¿Qué pasó, desde cuándo aplica y qué tiene que hacer el equipo? Puedes pegar pantallazos aquí con Ctrl/Cmd+V."
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#17181A] resize-y focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] resize-y focus:outline-none focus:ring-2 focus:ring-[#121314]/20 focus:border-[#121314]"
             />
           </div>
 
@@ -540,7 +540,7 @@ const NewsFormModal = ({ initial, clients, clientsLoading, onClose, onSaved }) =
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, category: c.id }))}
                       className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
-                        active ? 'bg-[#17181A] text-[#D7F653] border-[#17181A]' : `${c.pill} hover:brightness-95`
+                        active ? 'bg-[#121314] text-[#44BF47] border-[#121314]' : `${c.pill} hover:brightness-95`
                       }`}
                     >
                       <Icon size={12} /> {c.label}
@@ -556,10 +556,10 @@ const NewsFormModal = ({ initial, clients, clientsLoading, onClose, onSaved }) =
               type="checkbox"
               checked={form.is_pinned}
               onChange={(e) => setForm((f) => ({ ...f, is_pinned: e.target.checked }))}
-              className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-[#17181A]"
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-[#121314]"
             />
             <span className="text-sm">
-              <span className="font-semibold text-[#17181A] inline-flex items-center gap-1"><Pin size={13} /> Fijar arriba del feed</span>
+              <span className="font-semibold text-[#121314] inline-flex items-center gap-1"><Pin size={13} /> Fijar arriba del feed</span>
               <span className="block text-xs text-gray-500">Para lo que todo el equipo debe tener presente estos días.</span>
             </span>
           </label>
@@ -579,7 +579,7 @@ const NewsFormModal = ({ initial, clients, clientsLoading, onClose, onSaved }) =
           <button
             type="submit"
             disabled={saving || uploads.busy}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
             {uploads.busy ? 'Subiendo pantallazos…' : isEdit ? 'Guardar cambios' : 'Publicar novedad'}
@@ -677,9 +677,9 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
               <BrandPill item={item} />
               <CategoryPill id={item.category} />
-              {item.is_pinned && <Pill className="bg-[#D7F653]/60 text-[#3f4a10] border-[#c6e63c]"><Pin size={11} /> Fijada</Pill>}
+              {item.is_pinned && <Pill className="bg-[#44BF47]/15 text-[#1E7A30] border-[#44BF47]/40"><Pin size={11} /> Fijada</Pill>}
             </div>
-            <h2 className="text-lg font-bold text-[#17181A] leading-snug">{item.title}</h2>
+            <h2 className="text-lg font-bold text-[#121314] leading-snug">{item.title}</h2>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {item.is_read ? (
@@ -691,7 +691,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
                 type="button"
                 onClick={acknowledge}
                 disabled={acking}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#17181A] text-[#D7F653] text-xs font-semibold hover:bg-black disabled:opacity-50 mr-1"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#121314] text-[#44BF47] text-xs font-semibold hover:bg-black disabled:opacity-50 mr-1"
                 title="Confirmar que ya leíste esta novedad"
               >
                 {acking ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Enterado
@@ -719,7 +719,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Avatar name={item.created_by_name} size="md" />
             <div className="leading-tight">
-              <div className="font-semibold text-[#17181A]">{item.created_by_name || 'Sin autor'}</div>
+              <div className="font-semibold text-[#121314]">{item.created_by_name || 'Sin autor'}</div>
               <div className="text-xs text-gray-500">
                 {formatFull(item.created_at)} · {timeAgo(item.created_at)}
                 {item.updated_at && item.updated_at !== item.created_at && <span> · editada {timeAgo(item.updated_at)}</span>}
@@ -729,7 +729,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
 
           {/* Cuerpo */}
           {item.body ? (
-            <p className="text-[15px] text-[#17181A] whitespace-pre-wrap leading-relaxed">{item.body}</p>
+            <p className="text-[15px] text-[#121314] whitespace-pre-wrap leading-relaxed">{item.body}</p>
           ) : (
             <p className="text-sm text-gray-400 italic">Sin detalle.</p>
           )}
@@ -742,7 +742,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
                   key={url + i}
                   type="button"
                   onClick={() => onLightbox(item.images, i)}
-                  className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#17181A] transition text-left"
+                  className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#121314] transition text-left"
                   title="Ampliar"
                 >
                   <img src={url} alt={`Imagen ${i + 1}`} className="w-full max-h-80 object-contain bg-white" loading="lazy" />
@@ -757,7 +757,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
 
           {/* Visto por */}
           <div className="border-t border-gray-100 pt-4">
-            <h3 className="text-sm font-bold text-[#17181A] mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[#121314] mb-3 flex items-center gap-2">
               <Eye size={15} /> Enterados
               <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{reads.length}</span>
             </h3>
@@ -771,7 +771,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
                   <li key={r.team_member_id} className="flex items-center gap-2.5 bg-white/70 border border-gray-100 rounded-xl px-3 py-2">
                     <Avatar name={r.name} size="md" />
                     <div className="min-w-0 leading-tight">
-                      <div className="text-sm font-semibold text-[#17181A] truncate">
+                      <div className="text-sm font-semibold text-[#121314] truncate">
                         {r.name || 'Miembro'}{r.team_member_id === currentUserId ? <span className="text-gray-400 font-normal"> (tú)</span> : null}
                       </div>
                       <div className="text-xs text-gray-500" title={formatFull(r.read_at)}>
@@ -788,7 +788,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
           {/* Historial de cambios */}
           {versions.length > 0 && (
             <div className="border-t border-gray-100 pt-4">
-              <h3 className="text-sm font-bold text-[#17181A] mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[#121314] mb-3 flex items-center gap-2">
                 <Pencil size={15} /> Historial de cambios
                 <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{versions.length}</span>
               </h3>
@@ -801,7 +801,7 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
                     <li key={v.id} className="bg-white/70 border border-gray-100 rounded-xl px-3 py-2">
                       <button type="button" onClick={() => setOpenVersion(open ? null : v.id)} className="w-full flex items-center justify-between gap-3 text-left">
                         <div className="min-w-0">
-                          <div className="text-sm text-[#17181A]"><span className="font-semibold">{v.edited_by_name || 'Alguien'}</span> cambió {changed || 'el contenido'}</div>
+                          <div className="text-sm text-[#121314]"><span className="font-semibold">{v.edited_by_name || 'Alguien'}</span> cambió {changed || 'el contenido'}</div>
                           <div className="text-xs text-gray-500" title={formatFull(v.edited_at)}>{formatFull(v.edited_at)} · versión {v.version}</div>
                         </div>
                         <ChevronDown size={16} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -809,8 +809,8 @@ const NewsDetailModal = ({ item, currentUserId, isAdmin, canModerate, onClose, o
                       {open && (
                         <div className="mt-2 pt-2 border-t border-gray-100 text-sm space-y-1.5">
                           <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Cómo estaba antes</div>
-                          <div><span className="text-gray-500">Título:</span> <span className="text-[#17181A]">{v.title}</span></div>
-                          <div><span className="text-gray-500">Marca:</span> <span className="text-[#17181A]">{v.client_name || 'General'}</span> · <span className="text-gray-500">Categoría:</span> <span className="text-[#17181A]">{v.category}</span></div>
+                          <div><span className="text-gray-500">Título:</span> <span className="text-[#121314]">{v.title}</span></div>
+                          <div><span className="text-gray-500">Marca:</span> <span className="text-[#121314]">{v.client_name || 'General'}</span> · <span className="text-gray-500">Categoría:</span> <span className="text-[#121314]">{v.category}</span></div>
                           {v.body && <div className="text-gray-700 whitespace-pre-line bg-gray-50 rounded-lg p-2">{v.body}</div>}
                           {v.images?.length > 0 && (
                             <div className="flex gap-2 flex-wrap">
@@ -1010,11 +1010,11 @@ const News = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#17181A] text-[#D7F653] flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-[#121314] text-[#44BF47] flex items-center justify-center shrink-0">
             <Megaphone size={22} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-[#17181A]">Novedades</h1>
+            <h1 className="text-2xl font-bold text-[#121314]">Novedades</h1>
             <p className="text-sm text-gray-500 mt-0.5">Lo que está pasando con las marcas, para todo el equipo</p>
           </div>
         </div>
@@ -1031,7 +1031,7 @@ const News = () => {
           <button
             type="button"
             onClick={() => { setEditing(null); setShowForm(true); }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
           >
             <Plus size={16} /> Nueva novedad
           </button>
@@ -1050,7 +1050,7 @@ const News = () => {
           <button
             type="button"
             onClick={() => setCategory('')}
-            className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${!category ? 'bg-[#17181A] text-[#D7F653] border-[#17181A]' : 'bg-white/70 text-gray-600 border-gray-200 hover:border-gray-400'}`}
+            className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${!category ? 'bg-[#121314] text-[#44BF47] border-[#121314]' : 'bg-white/70 text-gray-600 border-gray-200 hover:border-gray-400'}`}
           >
             Todo
           </button>
@@ -1062,7 +1062,7 @@ const News = () => {
                 key={c.id}
                 type="button"
                 onClick={() => setCategory(active ? '' : c.id)}
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${active ? 'bg-[#17181A] text-[#D7F653] border-[#17181A]' : `${c.pill} hover:brightness-95`}`}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${active ? 'bg-[#121314] text-[#44BF47] border-[#121314]' : `${c.pill} hover:brightness-95`}`}
               >
                 <Icon size={12} /> {c.label}
               </button>
@@ -1084,7 +1084,7 @@ const News = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar en título, detalle o marca…"
-              className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white/80 text-sm text-[#17181A] focus:outline-none focus:border-[#17181A]"
+              className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white/80 text-sm text-[#121314] focus:outline-none focus:border-[#121314]"
             />
             {search && (
               <button type="button" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"><X size={13} /></button>
@@ -1096,9 +1096,9 @@ const News = () => {
               role="switch"
               aria-checked={onlyUnread}
               onClick={() => setOnlyUnread((v) => !v)}
-              className={`relative inline-block w-10 h-6 shrink-0 rounded-full transition-colors ${onlyUnread ? 'bg-[#17181A]' : 'bg-gray-300'}`}
+              className={`relative inline-block w-10 h-6 shrink-0 rounded-full transition-colors ${onlyUnread ? 'bg-[#121314]' : 'bg-gray-300'}`}
             >
-              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full shadow transition-transform ${onlyUnread ? 'translate-x-4 bg-[#D7F653]' : 'translate-x-0 bg-white'}`} />
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full shadow transition-transform ${onlyUnread ? 'translate-x-4 bg-[#44BF47]' : 'translate-x-0 bg-white'}`} />
             </button>
             Solo no leídas
           </label>
@@ -1127,12 +1127,12 @@ const News = () => {
         </div>
       ) : items.length === 0 ? (
         <div className="glass-card p-10 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[#D7F653]/50 text-[#17181A] flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 rounded-2xl bg-[#44BF47]/15 text-[#1E7A30] flex items-center justify-center mx-auto mb-3">
             {onlyUnread && !category && !clientFilter && !debouncedSearch ? <CheckCheck size={26} /> : <Megaphone size={26} />}
           </div>
           {hasFilters ? (
             <>
-              <h3 className="font-semibold text-[#17181A]">
+              <h3 className="font-semibold text-[#121314]">
                 {onlyUnread && !category && !clientFilter && !debouncedSearch ? 'Estás al día' : 'Nada por aquí con esos filtros'}
               </h3>
               <p className="text-sm text-gray-500 mt-1">
@@ -1143,12 +1143,12 @@ const News = () => {
             </>
           ) : (
             <>
-              <h3 className="font-semibold text-[#17181A]">Todavía no hay novedades</h3>
+              <h3 className="font-semibold text-[#121314]">Todavía no hay novedades</h3>
               <p className="text-sm text-gray-500 mt-1">¿Pasó algo importante con una marca? Publícalo aquí para que todo el equipo se entere.</p>
               <button
                 type="button"
                 onClick={() => { setEditing(null); setShowForm(true); }}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E]"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F]"
               >
                 <Plus size={15} /> Publicar la primera
               </button>

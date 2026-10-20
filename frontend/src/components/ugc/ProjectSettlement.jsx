@@ -129,7 +129,7 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Guardar
                 </button>
               )}
-              <button onClick={settle} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#17181A] text-white hover:bg-black disabled:opacity-50">
+              <button onClick={settle} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-[#121314] text-white hover:bg-black disabled:opacity-50">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Liquidar proyecto
               </button>
             </>
@@ -246,7 +246,7 @@ export default function ProjectSettlement({ projectId, refreshKey }) {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-gray-500">Otros costos (envíos, edición, etc.)</span>
-                <button onClick={() => set({ extra_items: [...form.extra_items, { label: '', amount: '' }] })} className="text-xs text-gray-600 hover:text-[#17181A] inline-flex items-center gap-1">
+                <button onClick={() => set({ extra_items: [...form.extra_items, { label: '', amount: '' }] })} className="text-xs text-gray-600 hover:text-[#121314] inline-flex items-center gap-1">
                   <Plus className="w-3 h-3" /> Agregar
                 </button>
               </div>

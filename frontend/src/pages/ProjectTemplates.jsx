@@ -316,7 +316,7 @@ const ProjectTemplates = () => {
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-            <FileText size={20} className="text-[#17181A]" />
+            <FileText size={20} className="text-[#121314]" />
           </div>
           <div>
             <h3 className="font-semibold text-gray-800">{template.name}</h3>
@@ -344,7 +344,7 @@ const ProjectTemplates = () => {
       </div>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {template.category && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#17181A]/5 text-[#17181A]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#121314]/5 text-[#121314]">
             <Tag size={11} />
             {template.category}
           </span>
@@ -366,12 +366,12 @@ const ProjectTemplates = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Plantillas de Proyecto</h1>
+          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Plantillas de Proyecto</h1>
           <p className="text-sm text-gray-500 mt-0.5">Crea plantillas con tareas predefinidas para nuevos proyectos</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+          className="bg-[#121314] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
         >
           <Plus size={20} />
           Nueva Plantilla
@@ -384,7 +384,7 @@ const ProjectTemplates = () => {
           onClick={() => setActiveCategory('all')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             activeCategory === 'all'
-              ? 'bg-white text-[#17181A] shadow-sm'
+              ? 'bg-white text-[#121314] shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -401,7 +401,7 @@ const ProjectTemplates = () => {
               onClick={() => setActiveCategory(cat)}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeCategory === cat
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-white text-[#121314] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -426,7 +426,7 @@ const ProjectTemplates = () => {
             onClick={() => setActiveCategory('uncategorized')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               activeCategory === 'uncategorized'
-                ? 'bg-white text-[#17181A] shadow-sm'
+                ? 'bg-white text-[#121314] shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -443,7 +443,7 @@ const ProjectTemplates = () => {
           <div className="flex items-center gap-1 ml-1">
             <input
               type="text"
-              className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+              className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm w-36 focus:outline-none focus:ring-1 focus:ring-[#121314]"
               placeholder="Nueva categoría..."
               value={newCatInput}
               onChange={(e) => setNewCatInput(e.target.value)}
@@ -469,7 +469,7 @@ const ProjectTemplates = () => {
         ) : (
           <button
             onClick={() => setAddingCategory(true)}
-            className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-white rounded-lg transition-colors ml-1"
+            className="p-2 text-gray-400 hover:text-[#121314] hover:bg-white rounded-lg transition-colors ml-1"
             title="Agregar categoría"
           >
             <Plus size={16} />
@@ -491,7 +491,7 @@ const ProjectTemplates = () => {
           </p>
           <button
             onClick={handleNew}
-            className="bg-[#17181A] text-white px-4 py-2 rounded-lg hover:bg-[#26282C]"
+            className="bg-[#121314] text-white px-4 py-2 rounded-lg hover:bg-[#1C1D1F]"
           >
             Crear Plantilla
           </button>
@@ -575,7 +575,7 @@ const ProjectTemplates = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewCategory(true)}
-                        className="px-3 py-2 border rounded-lg text-sm text-[#17181A] hover:bg-gray-50 whitespace-nowrap"
+                        className="px-3 py-2 border rounded-lg text-sm text-[#121314] hover:bg-gray-50 whitespace-nowrap"
                       >
                         + Nueva
                       </button>
@@ -681,7 +681,7 @@ const ProjectTemplates = () => {
                     <button
                       type="button"
                       onClick={handleAddTask}
-                      className="bg-[#17181A] text-white px-4 py-2 rounded-lg hover:bg-[#26282C]"
+                      className="bg-[#121314] text-white px-4 py-2 rounded-lg hover:bg-[#1C1D1F]"
                     >
                       <Plus size={20} />
                     </button>
@@ -782,7 +782,7 @@ const ProjectTemplates = () => {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#26282C] disabled:bg-gray-400"
+                className="px-4 py-2 bg-[#121314] text-white rounded-lg hover:bg-[#1C1D1F] disabled:bg-gray-400"
               >
                 {saving ? 'Guardando...' : editingTemplate ? 'Guardar Cambios' : 'Crear Plantilla'}
               </button>

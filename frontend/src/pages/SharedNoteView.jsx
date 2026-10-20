@@ -395,7 +395,7 @@ const SharedNoteView = () => {
               ) : (
                 <button
                   onClick={handleStartEditing}
-                  className="px-3 py-1.5 text-sm bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 text-sm bg-[#121314] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors flex items-center gap-1"
                 >
                   <Edit3 size={14} />
                   Editar

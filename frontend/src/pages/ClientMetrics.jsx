@@ -522,7 +522,7 @@ function ClientMetrics() {
   if (!client) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-[#17181A]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#121314]" />
       </div>
     );
   }
@@ -539,7 +539,7 @@ function ClientMetrics() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-[#17181A] tracking-tight truncate">{client.nickname || client.company || client.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-[#121314] tracking-tight truncate">{client.nickname || client.company || client.name}</h1>
             <p className="text-sm text-gray-500 mt-0.5 truncate">{client.company || client.name}</p>
           </div>
         </div>
@@ -563,7 +563,7 @@ function ClientMetrics() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
             title="Sincronizar"
           >
             {syncing ? (
@@ -654,7 +654,7 @@ function ClientMetrics() {
               onClick={() => setCompareMode(!compareMode)}
               className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors border ${
                 compareMode
-                  ? 'bg-[#17181A] text-white border-[#17181A]'
+                  ? 'bg-[#121314] text-white border-[#121314]'
                   : 'text-gray-600 hover:bg-gray-100 border-gray-200'
               }`}
             >
@@ -667,9 +667,9 @@ function ClientMetrics() {
 
       {/* Compare period info */}
       {compareMode && (
-        <div className="bg-[#17181A]/5 border border-[#17181A]/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
-          <ArrowLeftRight className="w-4 h-4 text-[#17181A]" />
-          <span className="text-sm text-[#17181A]">
+        <div className="bg-[#121314]/5 border border-[#121314]/10 rounded-xl px-4 py-2.5 flex items-center gap-3">
+          <ArrowLeftRight className="w-4 h-4 text-[#121314]" />
+          <span className="text-sm text-[#121314]">
             Comparando con periodo anterior: <strong>{getPreviousPeriod().start}</strong> a <strong>{getPreviousPeriod().end}</strong>
           </span>
         </div>
@@ -680,7 +680,7 @@ function ClientMetrics() {
         <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
           <BarChart3 className="w-4 h-4 text-violet-600" />
         </div>
-        <h2 className="text-lg font-semibold text-[#17181A]">Métricas Combinadas</h2>
+        <h2 className="text-lg font-semibold text-[#121314]">Métricas Combinadas</h2>
       </div>
 
       {/* Revenue Metrics - 3 types — higher is better */}
@@ -1123,8 +1123,8 @@ function ClientMetrics() {
             title="Descuentos"
             value={metrics?.total_discounts}
             icon={Tag}
-            iconBgColor="bg-lime-100"
-            iconColor="text-lime-600"
+            iconBgColor="bg-[#44BF47]/12"
+            iconColor="text-[#1E7A30]"
             format="currency"
             loading={loading}
             change={compareMode ? calcChange(metrics?.total_discounts, compareMetrics?.total_discounts) : null}
@@ -1137,7 +1137,7 @@ function ClientMetrics() {
       {/* Top Products */}
       <div className="glass rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-[#121314] flex items-center gap-2">
             <Package className="w-5 h-5 text-green-500" />
             Productos Más Vendidos
           </h3>
@@ -1145,7 +1145,7 @@ function ClientMetrics() {
             <button
               onClick={loadTopProducts}
               disabled={topProductsLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
             >
               {topProductsLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1188,7 +1188,7 @@ function ClientMetrics() {
                   return (
                     <tr key={product.product_id || idx} className="border-b border-gray-50 hover:bg-gray-50/50">
                       <td className="py-3 px-3 text-gray-400 font-medium">{idx + 1}</td>
-                      <td className="py-3 px-3 font-medium text-[#17181A]">{product.title}</td>
+                      <td className="py-3 px-3 font-medium text-[#121314]">{product.title}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(product.quantity)}</td>
                       <td className="py-3 px-3 text-right font-medium">{fmtCurrency(product.revenue)}</td>
                       <td className="py-3 px-3 text-right">{fmtNumber(product.orders)}</td>
@@ -1233,12 +1233,12 @@ function ClientMetrics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             {/* 1. Venta vs Inversión */}
             <div className="glass rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-[#17181A] mb-4">Venta vs Inversión</h3>
+              <h3 className="text-sm font-semibold text-[#121314] mb-4">Venta vs Inversión</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <ComposedChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
                   <Tooltip
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                     formatter={(value, name) => [fmtFullCurr(value), name === 'venta' ? 'Venta Neta' : 'Inversión Ads']}
@@ -1246,14 +1246,14 @@ function ClientMetrics() {
                   />
                   <Legend formatter={(v) => v === 'venta' ? 'Venta Neta' : 'Inversión Ads'} />
                   <Bar dataKey="inversion" fill="#3B82F6" opacity={0.3} radius={[3, 3, 0, 0]} />
-                  <Line type="monotone" dataKey="venta" stroke="#22C55E" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="venta" stroke="#44BF47" strokeWidth={2} dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
 
             {/* 2. ROAS */}
             <div className="glass rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-[#17181A] mb-4">ROAS</h3>
+              <h3 className="text-sm font-semibold text-[#121314] mb-4">ROAS</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chartData}>
                   <defs>
@@ -1262,9 +1262,9 @@ function ClientMetrics() {
                       <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(1)}x`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(1)}x`} />
                   <Tooltip
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                     formatter={(value) => [`${Number(value).toFixed(2)}x`, 'ROAS']}
@@ -1277,12 +1277,12 @@ function ClientMetrics() {
 
             {/* 3. Costo por Compra (Meta+Shopify blend) */}
             <div className="glass rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-[#17181A] mb-4">Costo por Compra vs Costo por Pedido</h3>
+              <h3 className="text-sm font-semibold text-[#121314] mb-4">Costo por Compra vs Costo por Pedido</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
                   <Tooltip
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                     formatter={(value, name) => [fmtFullCurr(value), name === 'costoCompra' ? 'Costo/Compra (Meta)' : 'Costo/Pedido (Real)']}
@@ -1297,7 +1297,7 @@ function ClientMetrics() {
 
             {/* 4. CPM */}
             <div className="glass rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-[#17181A] mb-4">CPM</h3>
+              <h3 className="text-sm font-semibold text-[#121314] mb-4">CPM</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chartData}>
                   <defs>
@@ -1306,9 +1306,9 @@ function ClientMetrics() {
                       <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtCurr} />
                   <Tooltip
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                     formatter={(value) => [fmtFullCurr(value), 'CPM']}
@@ -1321,18 +1321,18 @@ function ClientMetrics() {
 
             {/* 6. Pedidos diarios */}
             <div className="glass rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-[#17181A] mb-4">Pedidos por Día</h3>
+              <h3 className="text-sm font-semibold text-[#121314] mb-4">Pedidos por Día</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                  <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                     formatter={(value) => [value, 'Pedidos']}
                     labelFormatter={fmtDate}
                   />
-                  <Bar dataKey="pedidos" fill="#22C55E" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pedidos" fill="#44BF47" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -1343,7 +1343,7 @@ function ClientMetrics() {
       {/* Ad-Level Performance */}
       <div className="glass rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-[#121314] flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-500" />
             Rendimiento por Anuncio
           </h3>
@@ -1351,7 +1351,7 @@ function ClientMetrics() {
             <button
               onClick={loadAds}
               disabled={adsLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
             >
               {adsLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1551,7 +1551,7 @@ function ClientMetrics() {
                                   />
                                   <button
                                     onClick={() => handleCreateValueAndAssign(ad.ad_id, cat.id)}
-                                    className="px-2 py-1 text-xs bg-[#17181A] text-white rounded-md hover:bg-[#26282C]"
+                                    className="px-2 py-1 text-xs bg-[#121314] text-white rounded-md hover:bg-[#1C1D1F]"
                                   >
                                     <Plus className="w-3 h-3" />
                                   </button>
@@ -1623,7 +1623,7 @@ function ClientMetrics() {
                   const adsWithHold = filteredAds.filter(a => a.hold_rate > 0);
                   const avgHoldRate = adsWithHold.length > 0 ? adsWithHold.reduce((s, a) => s + a.hold_rate, 0) / adsWithHold.length : 0;
                   return (
-                    <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#17181A]">
+                    <tr className="border-t-2 border-gray-200 bg-gray-50/80 font-semibold text-[#121314]">
                       <td className="py-3 px-3">Total</td>
                       <td className="py-3 px-3"></td>
                       {tagCategories.map(cat => <td key={cat.id} className="py-3 px-3"></td>)}
@@ -1662,7 +1662,7 @@ function ClientMetrics() {
       {ads !== null && ads.length > 0 && tagCategories.length > 0 && (
         <div className="glass rounded-xl p-6">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <h3 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-[#121314] flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-purple-500" />
               Análisis por Etiquetas
             </h3>
@@ -1696,7 +1696,7 @@ function ClientMetrics() {
               <div className="h-64 mb-6">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={tagAnalysis} layout="vertical" margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
                     <XAxis type="number" tick={{ fontSize: 12 }} />
                     <YAxis type="category" dataKey="label" tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 72 : 120} />
                     <Tooltip

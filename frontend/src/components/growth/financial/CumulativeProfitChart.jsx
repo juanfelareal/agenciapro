@@ -3,7 +3,7 @@ import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Cartesian
 import Info from './Info';
 import { fmtMoney, fmtMoneyShort, dayShort, dayLong, COLORS } from './format';
 
-const TICK = { fontSize: 11, fill: '#9CA3AF' };
+const TICK = { fontSize: 11, fill: '#7A7772' };
 
 const addDays = (iso, n) => {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -17,7 +17,7 @@ const DarkTooltip = ({ active, payload }) => {
   const projected = d.profit === null || d.profit === undefined;
   const v = projected ? d.projected : d.profit;
   return (
-    <div className="bg-[#17181A] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[210px] max-w-[80vw] space-y-1">
+    <div className="bg-[#121314] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[210px] max-w-[80vw] space-y-1">
       <div className="font-medium capitalize mb-1.5">{dayLong(d.date)}{projected ? ' · proyección' : ''}</div>
       <div className="flex justify-between gap-4"><span className="text-gray-300">Utilidad acumulada</span><span className="tabular-nums font-semibold" style={{ color: v >= 0 ? '#86EFAC' : '#FCA5A5' }}>{fmtMoney(v)}</span></div>
       {!projected && (
@@ -71,11 +71,11 @@ export default function CumulativeProfitChart({ data, height = 260 }) {
   return (
     <div className="glass-solid rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-1.5">
-        <h2 className="font-semibold text-sm text-[#17181A]">Utilidad acumulada del mes</h2>
+        <h2 className="font-semibold text-sm text-[#121314]">Utilidad acumulada del mes</h2>
         <Info text="Suma de la utilidad día a día. La línea gris es el punto de equilibrio: arriba de ella el mes ya es rentable. La parte punteada es la proyección al ritmo actual." />
       </div>
       <p className="text-xs text-gray-400 mt-0.5">
-        {last ? <>Hoy acumula <strong className={`tabular-nums ${last.net_profit >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>{fmtMoney(last.net_profit)}</strong>{data.is_current_month && data.projection ? <> · proyección a fin de mes <strong className="text-[#17181A] tabular-nums">{fmtMoney(data.projection.net_profit_eom)}</strong></> : null}</> : 'Sin datos'}
+        {last ? <>Hoy acumula <strong className={`tabular-nums ${last.net_profit >= 0 ? 'text-[#1E7A30]' : 'text-[#dc2626]'}`}>{fmtMoney(last.net_profit)}</strong>{data.is_current_month && data.projection ? <> · proyección a fin de mes <strong className="text-[#121314] tabular-nums">{fmtMoney(data.projection.net_profit_eom)}</strong></> : null}</> : 'Sin datos'}
       </p>
       {!hasData ? (
         <p className="text-sm text-gray-400 py-12 text-center">Sin datos en este mes.</p>
@@ -97,10 +97,10 @@ export default function CumulativeProfitChart({ data, height = 260 }) {
                 <CartesianGrid vertical={false} stroke="#F0F1F3" />
                 <XAxis dataKey="label" tick={TICK} tickLine={false} axisLine={false} interval={dense ? 'preserveStartEnd' : 0} minTickGap={24} />
                 <YAxis tick={TICK} tickLine={false} axisLine={false} tickFormatter={fmtMoneyShort} width={56} />
-                <Tooltip content={<DarkTooltip />} cursor={{ stroke: '#D1D5DB' }} />
-                <ReferenceLine y={0} stroke="#9CA3AF" strokeDasharray="4 3" label={{ value: 'Punto de equilibrio', position: 'insideTopLeft', fontSize: 10, fill: '#6B7280' }} />
+                <Tooltip content={<DarkTooltip />} cursor={{ stroke: '#C9C6C0' }} />
+                <ReferenceLine y={0} stroke="#C9C6C0" strokeDasharray="4 3" label={{ value: 'Punto de equilibrio', position: 'insideTopLeft', fontSize: 10, fill: '#7A7772' }} />
                 <Area type="monotone" dataKey="profit" stroke={`url(#${gradientId}Stroke)`} strokeWidth={2} fill={`url(#${gradientId})`} dot={false} activeDot={{ r: 5, fill: '#fff', stroke: COLORS.profit, strokeWidth: 3 }} isAnimationActive={false} connectNulls={false} />
-                <Line type="monotone" dataKey="projected" stroke="#9CA3AF" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: '#fff', stroke: '#9CA3AF', strokeWidth: 2 }} isAnimationActive={false} connectNulls={false} />
+                <Line type="monotone" dataKey="projected" stroke="#C9C6C0" strokeWidth={2} strokeDasharray="5 4" dot={false} activeDot={{ r: 4, fill: '#fff', stroke: '#C9C6C0', strokeWidth: 2 }} isAnimationActive={false} connectNulls={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

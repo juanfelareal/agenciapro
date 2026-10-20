@@ -39,8 +39,8 @@ export default function StatCard({
   label, value, raw, delta, sub, info, tone = 'neutral', invertDelta = false, size = 'md', className = '',
 }) {
   const color = tone === 'auto' && typeof raw === 'number'
-    ? (raw > 0 ? 'text-[#16a34a]' : raw < 0 ? 'text-[#dc2626]' : 'text-[#17181A]')
-    : 'text-[#17181A]';
+    ? (raw > 0 ? 'text-[#1E7A30]' : raw < 0 ? 'text-[#dc2626]' : 'text-[#121314]')
+    : 'text-[#121314]';
   const sizeCls = size === 'lg' ? 'text-[26px] sm:text-[30px]' : 'text-[20px] sm:text-[24px]';
   return (
     <div className={`flex flex-col px-3 py-3 lg:px-5 lg:py-2 min-w-0 ${className}`}>

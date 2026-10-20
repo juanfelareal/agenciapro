@@ -290,7 +290,7 @@ export default function GrowthDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-[#17181A]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#121314]" />
       </div>
     );
   }
@@ -327,7 +327,7 @@ export default function GrowthDashboard() {
                 setPeriod(getCurrentPeriod());
               }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                dateMode === 'month' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                dateMode === 'month' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Mes
@@ -338,7 +338,7 @@ export default function GrowthDashboard() {
                 setDateRange(getLast7Days());
               }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                dateMode === 'custom' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                dateMode === 'custom' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Personalizado
@@ -351,7 +351,7 @@ export default function GrowthDashboard() {
               <button onClick={() => changePeriod(-1)} className="p-1.5 hover:bg-gray-100 rounded transition-colors">
                 <ChevronLeft className="w-4 h-4 text-gray-500" />
               </button>
-              <span className="text-sm font-medium text-[#17181A] min-w-[96px] sm:min-w-[120px] text-center">{getPeriodLabel(period)}</span>
+              <span className="text-sm font-medium text-[#121314] min-w-[96px] sm:min-w-[120px] text-center">{getPeriodLabel(period)}</span>
               <button onClick={() => changePeriod(1)} className="p-1.5 hover:bg-gray-100 rounded transition-colors">
                 <ChevronRight className="w-4 h-4 text-gray-500" />
               </button>
@@ -385,7 +385,7 @@ export default function GrowthDashboard() {
                     const today = getColombiaDate();
                     setDateRange({ start: today, end: today });
                   }}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#121314] hover:bg-gray-100 rounded transition-colors"
                 >
                   Hoy
                 </button>
@@ -397,13 +397,13 @@ export default function GrowthDashboard() {
                     const yesterday = d.toISOString().split('T')[0];
                     setDateRange({ start: yesterday, end: yesterday });
                   }}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#121314] hover:bg-gray-100 rounded transition-colors"
                 >
                   Ayer
                 </button>
                 <button
                   onClick={() => setDateRange(getLast7Days())}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#121314] hover:bg-gray-100 rounded transition-colors"
                 >
                   7 días
                 </button>
@@ -414,7 +414,7 @@ export default function GrowthDashboard() {
                     d.setDate(d.getDate() - 14);
                     setDateRange({ start: d.toISOString().split('T')[0], end: today });
                   }}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#121314] hover:bg-gray-100 rounded transition-colors"
                 >
                   14 días
                 </button>
@@ -425,7 +425,7 @@ export default function GrowthDashboard() {
                     d.setDate(d.getDate() - 29);
                     setDateRange({ start: d.toISOString().split('T')[0], end: today });
                   }}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded transition-colors"
+                  className="px-2 py-1 text-xs text-gray-500 hover:text-[#121314] hover:bg-gray-100 rounded transition-colors"
                 >
                   30 días
                 </button>
@@ -443,7 +443,7 @@ export default function GrowthDashboard() {
           )}
           <button
             onClick={() => setShowAddClient(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors text-sm"
           >
             <Plus className="w-4 h-4" /> Agregar cliente
           </button>
@@ -483,7 +483,7 @@ export default function GrowthDashboard() {
           <Zap className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">No hay clientes Growth configurados</p>
           <p className="text-sm text-gray-400 mt-1">Agrega clientes para comenzar a hacer seguimiento</p>
-          <button onClick={() => setShowAddClient(true)} className="mt-4 px-4 py-2 bg-[#17181A] text-white rounded-xl text-sm">
+          <button onClick={() => setShowAddClient(true)} className="mt-4 px-4 py-2 bg-[#121314] text-white rounded-xl text-sm">
             <Plus className="w-4 h-4 inline mr-1" /> Agregar cliente
           </button>
         </div>
@@ -619,7 +619,7 @@ export default function GrowthDashboard() {
                           ) : (
                             <button
                               onClick={() => openCommissionModal(client)}
-                              className="text-gray-400 hover:text-[#17181A] transition-colors text-sm flex items-center gap-1"
+                              className="text-gray-400 hover:text-[#121314] transition-colors text-sm flex items-center gap-1"
                             >
                               <Settings2 className="w-3 h-3" />
                               Configurar
@@ -630,14 +630,14 @@ export default function GrowthDashboard() {
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => toggleClientExpanded(client.id)}
-                              className={`p-2 rounded-lg transition-colors ${isExpanded ? 'text-[#17181A] bg-gray-100' : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'}`}
+                              className={`p-2 rounded-lg transition-colors ${isExpanded ? 'text-[#121314] bg-gray-100' : 'text-gray-400 hover:text-[#121314] hover:bg-gray-100'}`}
                               title="Ver últimos 7 días"
                             >
                               <BarChart2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setLogbookClient({ id: client.id, name: client.nickname || client.name })}
-                              className="relative p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                              className="relative p-2 text-gray-400 hover:text-[#121314] hover:bg-gray-100 rounded-lg transition-colors"
                               title="Bitácora de la marca"
                             >
                               <BookOpen className="w-4 h-4" />
@@ -656,7 +656,7 @@ export default function GrowthDashboard() {
                             </button>
                             <button
                               onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
-                              className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-2 text-gray-400 hover:text-[#121314] hover:bg-gray-100 rounded-lg transition-colors"
                             >
                               <ChevronRight className="w-5 h-5" />
                             </button>
@@ -705,7 +705,7 @@ export default function GrowthDashboard() {
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4" onClick={() => setShowAddClient(false)}>
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-100">
-              <h3 className="font-semibold text-[#17181A]">Agregar cliente a Growth</h3>
+              <h3 className="font-semibold text-[#121314]">Agregar cliente a Growth</h3>
             </div>
             <div className="max-h-80 overflow-y-auto p-2">
               {availableClients.length === 0 ? (
@@ -747,7 +747,7 @@ export default function GrowthDashboard() {
                   <DollarSign className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-[#17181A]">Configurar comisión</h3>
+                  <h3 className="font-semibold text-[#121314]">Configurar comisión</h3>
                   <p className="text-sm text-gray-500">{commissionModal.clientName}</p>
                 </div>
               </div>
@@ -884,7 +884,7 @@ function KpiCard({ label, value, accent }) {
   return (
     <div className="glass-solid rounded-xl p-4">
       <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">{label}</p>
-      <p className={`text-2xl font-bold ${accent ? 'text-green-600' : 'text-[#17181A]'}`}>{value}</p>
+      <p className={`text-2xl font-bold ${accent ? 'text-green-600' : 'text-[#121314]'}`}>{value}</p>
     </div>
   );
 }
@@ -909,7 +909,7 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
           <ChevronLeft className="w-5 h-5 text-gray-500" />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-[#17181A]">{client.nickname || client.name}</h2>
+          <h2 className="text-xl font-bold text-[#121314]">{client.nickname || client.name}</h2>
           <p className="text-sm text-gray-400">{client.company} · {getPeriodLabel(period)}</p>
         </div>
       </div>
@@ -923,7 +923,7 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1 justify-center ${
-                activeTab === tab.key ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                activeTab === tab.key ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -990,7 +990,7 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">Meta del mes</p>
-              <p className="text-2xl font-bold text-[#17181A] mt-1">{formatCOP(meta)}</p>
+              <p className="text-2xl font-bold text-[#121314] mt-1">{formatCOP(meta)}</p>
             </div>
             <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${
               onTrack ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
@@ -1007,7 +1007,7 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-gray-500">Progreso actual</span>
-              <span className="text-sm font-bold text-[#17181A]">{metaCompletePct}%</span>
+              <span className="text-sm font-bold text-[#121314]">{metaCompletePct}%</span>
             </div>
             <div className="h-3 bg-gray-100 rounded-full overflow-hidden relative">
               <div
@@ -1035,7 +1035,7 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-gray-100">
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wider">Proyección</p>
-              <p className="text-lg font-bold text-[#17181A]">{formatCOP(projection)}</p>
+              <p className="text-lg font-bold text-[#121314]">{formatCOP(projection)}</p>
             </div>
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wider">vs Meta</p>
@@ -1058,7 +1058,7 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
           {kpis.map((kpi) => (
             <div key={kpi.label} className="glass-solid rounded-xl p-4 hover:border-green-200 transition-colors">
               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">{kpi.label}</p>
-              <p className={`text-xl font-bold ${kpi.color || 'text-[#17181A]'}`}>{kpi.value}</p>
+              <p className={`text-xl font-bold ${kpi.color || 'text-[#121314]'}`}>{kpi.value}</p>
             </div>
           ))}
         </div>
@@ -1101,7 +1101,7 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-3 border-t border-gray-100">
                     <div>
                       <p className="text-[10px] text-gray-400 uppercase tracking-wider">Meta base</p>
-                      <p className={`text-base font-bold ${emailPct >= 100 ? 'text-green-600' : 'text-[#17181A]'}`}>{emailMeta > 0 ? `${emailPct}%` : '—'}</p>
+                      <p className={`text-base font-bold ${emailPct >= 100 ? 'text-green-600' : 'text-[#121314]'}`}>{emailMeta > 0 ? `${emailPct}%` : '—'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-gray-400 uppercase tracking-wider">Faltante</p>
@@ -1155,8 +1155,8 @@ function ScenarioCard({ title, actual, conservador, base, optimista, format, ext
   return (
     <div className="glass-solid rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="font-semibold text-sm text-[#17181A]">{title}</p>
-        <span className="text-xs text-gray-400">Actual: <strong className="text-[#17181A]">{format(actual)}</strong></span>
+        <p className="font-semibold text-sm text-[#121314]">{title}</p>
+        <span className="text-xs text-gray-400">Actual: <strong className="text-[#121314]">{format(actual)}</strong></span>
       </div>
       <div className="space-y-3">
         {scenarios.map((s) => (
@@ -1167,7 +1167,7 @@ function ScenarioCard({ title, actual, conservador, base, optimista, format, ext
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden relative">
               <div className={`h-full rounded-full ${s.color}`} style={{ width: `${pct(s.val)}%` }} />
-              <div className="absolute top-0 h-full w-0.5 bg-[#17181A]" style={{ left: `${pct(actual)}%` }} />
+              <div className="absolute top-0 h-full w-0.5 bg-[#121314]" style={{ left: `${pct(actual)}%` }} />
             </div>
           </div>
         ))}
@@ -1221,11 +1221,11 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
   return (
     <div className="glass-solid rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="font-semibold text-sm text-[#17181A]">Escenarios pactados</p>
+        <p className="font-semibold text-sm text-[#121314]">Escenarios pactados</p>
         {editing ? (
           <div className="flex gap-2">
             <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-[#17181A] text-white rounded-lg"><Save className="w-3 h-3" /> Guardar</button>
+            <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-[#121314] text-white rounded-lg"><Save className="w-3 h-3" /> Guardar</button>
           </div>
         ) : (
           <button onClick={() => setEditing(true)} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Editar</button>
@@ -1348,7 +1348,7 @@ function PalancasTab({ clientId, period }) {
         <div className="glass-solid rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-gray-500">Progreso general del mes</span>
-            <span className="text-sm font-bold text-[#17181A]">
+            <span className="text-sm font-bold text-[#121314]">
               {summary.completed}/{summary.total_tasks} tareas ({summary.progress_pct}%)
             </span>
           </div>
@@ -1401,7 +1401,7 @@ function PalancasTab({ clientId, period }) {
                       <AreaIcon className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm text-[#17181A]">{area.area_name}</h3>
+                      <h3 className="font-semibold text-sm text-[#121314]">{area.area_name}</h3>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
                         {area.responsible && (
                           <span className="flex items-center gap-1">
@@ -1467,7 +1467,7 @@ function PalancasTab({ clientId, period }) {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-sm ${
-                                    task.status === 'done' ? 'text-gray-400 line-through' : 'text-[#17181A]'
+                                    task.status === 'done' ? 'text-gray-400 line-through' : 'text-[#121314]'
                                   }`}>
                                     {task.title}
                                   </p>
@@ -1547,7 +1547,7 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
         <div className="glass-solid rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">Progreso</span>
-            <span className="text-sm font-bold text-[#17181A]">{completedCount}/{milestones.length} ({progressPct}%)</span>
+            <span className="text-sm font-bold text-[#121314]">{completedCount}/{milestones.length} ({progressPct}%)</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
@@ -1562,7 +1562,7 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
               {statusIcons[ms.status]}
             </button>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${ms.status === 'done' ? 'line-through text-gray-400' : 'text-[#17181A]'}`}>{ms.nombre}</p>
+              <p className={`text-sm font-medium ${ms.status === 'done' ? 'line-through text-gray-400' : 'text-[#121314]'}`}>{ms.nombre}</p>
               {ms.meta && <p className="text-xs text-gray-400 mt-0.5">{ms.meta}</p>}
             </div>
             <span className={`text-[10px] px-2 py-1 rounded font-medium flex-shrink-0 ${
@@ -1589,11 +1589,11 @@ function RoadmapTab({ milestones, clientId, period, onRefresh }) {
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-lg">Agregar</button>
+            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#121314] text-white rounded-lg">Agregar</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#17181A] transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#121314] transition-colors">
           <Plus className="w-4 h-4" /> Agregar milestone
         </button>
       )}
@@ -1651,7 +1651,7 @@ function AlertasTab({ banderas, clientId, period, onRefresh }) {
                     {nivelLabels[b.nivel]}
                   </span>
                 </div>
-                <p className="font-medium text-sm text-[#17181A]">{b.titulo}</p>
+                <p className="font-medium text-sm text-[#121314]">{b.titulo}</p>
                 {b.descripcion && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{b.descripcion}</p>}
               </div>
               <button onClick={() => handleDelete(b.id)} className="p-1.5 text-gray-300 hover:text-red-500 rounded transition-colors flex-shrink-0">
@@ -1675,11 +1675,11 @@ function AlertasTab({ banderas, clientId, period, onRefresh }) {
           <textarea value={form.descripcion} onChange={(e) => setForm(f => ({ ...f, descripcion: e.target.value }))} placeholder="Descripción" rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <div className="flex gap-2">
             <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-lg">Agregar</button>
+            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[#121314] text-white rounded-lg">Agregar</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#17181A] transition-colors">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#121314] transition-colors">
           <Plus className="w-4 h-4" /> Agregar bandera
         </button>
       )}

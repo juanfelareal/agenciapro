@@ -60,7 +60,7 @@ export function CostModal({ type, item, onSave, onClose }) {
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
       <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-6 max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-semibold text-[#17181A]">{item ? 'Editar' : 'Agregar'} costo {isFixed ? 'fijo' : 'variable'}</h3>
+          <h3 className="text-base font-semibold text-[#121314]">{item ? 'Editar' : 'Agregar'} costo {isFixed ? 'fijo' : 'variable'}</h3>
           <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Cerrar"><X className="w-4 h-4 text-gray-500" /></button>
         </div>
         <form onSubmit={submit} className="space-y-4">
@@ -91,8 +91,8 @@ export function CostModal({ type, item, onSave, onClose }) {
             <>
               <Field label="Cómo se cobra">
                 <div className="inline-flex items-center bg-gray-100 p-1 rounded-lg text-xs font-medium w-full">
-                  <button type="button" onClick={() => setForm((f) => ({ ...f, kind: 'percent' }))} className={`flex-1 px-3 py-1.5 rounded-md transition ${form.kind === 'percent' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500'}`}>% de la venta</button>
-                  <button type="button" onClick={() => setForm((f) => ({ ...f, kind: 'per_order' }))} className={`flex-1 px-3 py-1.5 rounded-md transition ${form.kind === 'per_order' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500'}`}>$ por pedido</button>
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, kind: 'percent' }))} className={`flex-1 px-3 py-1.5 rounded-md transition ${form.kind === 'percent' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500'}`}>% de la venta</button>
+                  <button type="button" onClick={() => setForm((f) => ({ ...f, kind: 'per_order' }))} className={`flex-1 px-3 py-1.5 rounded-md transition ${form.kind === 'per_order' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500'}`}>$ por pedido</button>
                 </div>
               </Field>
               {form.kind === 'percent' ? (
@@ -132,11 +132,11 @@ const ItemRow = ({ color, title, subtitle, right, rightSub, onEdit, onDelete, in
   <div className={`flex items-center gap-3 py-2.5 group ${inactive ? 'opacity-50' : ''}`}>
     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
     <div className="flex-1 min-w-0">
-      <div className="text-[13px] font-medium text-[#17181A] truncate">{title}</div>
+      <div className="text-[13px] font-medium text-[#121314] truncate">{title}</div>
       <div className="text-[11px] text-gray-400 truncate">{subtitle}</div>
     </div>
     <div className="text-right shrink-0">
-      <div className="text-[13px] font-semibold text-[#17181A] tabular-nums">{right}</div>
+      <div className="text-[13px] font-semibold text-[#121314] tabular-nums">{right}</div>
       {rightSub && <div className="text-[11px] text-gray-400 tabular-nums">{rightSub}</div>}
     </div>
     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition">
@@ -172,7 +172,7 @@ export default function CostsPanel({ data, onAdd, onEdit, onDelete }) {
           <div>
             <div className="flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-gray-400" />
-              <h2 className="font-semibold text-sm text-[#17181A]">Costos fijos</h2>
+              <h2 className="font-semibold text-sm text-[#121314]">Costos fijos</h2>
               <Info text="Lo que la marca paga cada mes venda o no venda: fee de agencia, apps, nómina, arriendo. Se prorratean por día." />
             </div>
             <p className="text-xs text-gray-400 mt-0.5">Mensuales, sin IVA. Vigentes según su fecha de inicio y fin.</p>
@@ -180,9 +180,9 @@ export default function CostsPanel({ data, onAdd, onEdit, onDelete }) {
           <button type="button" onClick={() => onAdd('fixed')} className="btn-primary !py-2 !px-3 text-xs shrink-0"><Plus className="w-3.5 h-3.5" /> Agregar</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Al mes</div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(fixed.monthly_total)}</div></div>
-          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Por día</div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(fixed.per_day)}</div></div>
-          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium inline-flex items-center gap-1">Este mes <Info text={`Por día × los ${data?.days_elapsed || 0} días transcurridos. Es lo que se resta en el P&L.`} /></div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(fixed.prorated)}</div></div>
+          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Al mes</div><div className="text-base font-bold text-[#121314] tabular-nums mt-0.5">{fmtMoney(fixed.monthly_total)}</div></div>
+          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Por día</div><div className="text-base font-bold text-[#121314] tabular-nums mt-0.5">{fmtMoney(fixed.per_day)}</div></div>
+          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium inline-flex items-center gap-1">Este mes <Info text={`Por día × los ${data?.days_elapsed || 0} días transcurridos. Es lo que se resta en el P&L.`} /></div><div className="text-base font-bold text-[#121314] tabular-nums mt-0.5">{fmtMoney(fixed.prorated)}</div></div>
         </div>
         <div className="mt-3 divide-y divide-gray-100">
           {fixedAll.length ? fixedAll.map((fc) => (
@@ -208,7 +208,7 @@ export default function CostsPanel({ data, onAdd, onEdit, onDelete }) {
           <div>
             <div className="flex items-center gap-1.5">
               <Percent className="w-4 h-4 text-gray-400" />
-              <h2 className="font-semibold text-sm text-[#17181A]">Costos variables</h2>
+              <h2 className="font-semibold text-sm text-[#121314]">Costos variables</h2>
               <Info text="Costos que crecen con cada venta o pedido: pasarela de pagos, envío, empaque. Se calculan sobre la venta neta y los pedidos del mes." />
             </div>
             <p className="text-xs text-gray-400 mt-0.5">Ejemplos: 3,5 % de pasarela, envío $12.000 por pedido.</p>
@@ -216,8 +216,8 @@ export default function CostsPanel({ data, onAdd, onEdit, onDelete }) {
           <button type="button" onClick={() => onAdd('variable')} className="btn-primary !py-2 !px-3 text-xs shrink-0"><Plus className="w-3.5 h-3.5" /> Agregar</button>
         </div>
         <div className="grid grid-cols-2 gap-3 mt-4">
-          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Este mes</div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{fmtMoney(variable.total)}</div></div>
-          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Por pedido</div><div className="text-base font-bold text-[#17181A] tabular-nums mt-0.5">{orders ? fmtMoney((variable.total || 0) / orders) : '—'}</div></div>
+          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Este mes</div><div className="text-base font-bold text-[#121314] tabular-nums mt-0.5">{fmtMoney(variable.total)}</div></div>
+          <div className="rounded-xl bg-gray-50 px-3 py-2.5"><div className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Por pedido</div><div className="text-base font-bold text-[#121314] tabular-nums mt-0.5">{orders ? fmtMoney((variable.total || 0) / orders) : '—'}</div></div>
         </div>
         <div className="mt-3 divide-y divide-gray-100">
           {variable.items?.length ? variable.items.map((vc) => (
