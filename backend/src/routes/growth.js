@@ -949,6 +949,23 @@ router.get('/:clientId/palancas-dashboard', async (req, res) => {
   }
 });
 
+// ─── BE ROAS por marca (para la tabla del dashboard de Growth) ───
+router.get('/be-roas', async (req, res) => {
+  try {
+    const today = financials.todayColombia();
+    const start = /^\d{4}-\d{2}-\d{2}$/.test(req.query.start || '') ? req.query.start : `${today.slice(0, 7)}-01`;
+    const end = /^\d{4}-\d{2}-\d{2}$/.test(req.query.end || '') ? (req.query.end > today ? today : req.query.end) : today;
+    const rows = await db.all('SELECT id FROM clients WHERE organization_id = ? AND status != ?', [req.orgId, 'inactive']);
+    const hidden = new Set((req.hiddenClientIds || []).map(Number));
+    const ids = rows.map((r) => Number(r.id)).filter((id) => !hidden.has(id));
+    const data = await financials.beRoasForClients(req.orgId, ids, start, end);
+    res.json({ start, end, clients: data });
+  } catch (error) {
+    console.error('Error BE ROAS:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ─── Products Sync from Shopify ───
 
 router.post('/clients/:clientId/products/sync', async (req, res) => {

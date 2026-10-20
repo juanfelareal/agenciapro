@@ -654,6 +654,7 @@ export const clientMetricsAPI = {
 
 // Growth Dashboard API
 export const growthAPI = {
+  beRoas: (start, end) => api.get('/growth/be-roas', { params: { start, end } }),
   getClients: () => api.get('/growth/clients'),
   hideClient: (clientId, isHidden) => api.put(`/growth/clients/${clientId}/hide`, { is_hidden: isHidden }),
   setServiceType: (clientId, serviceType) => api.put(`/growth/clients/${clientId}/service-type`, { service_type: serviceType }),

@@ -150,13 +150,18 @@ export async function syncProducts(clientId, orgId, shopify = null) {
  * - Nunca sincronizado → espera hasta `waitMs` (el COGS depende de los costos).
  * - Más de 24 h → dispara en segundo plano y responde con lo que hay.
  */
+const PRODUCT_SYNC_ERRORS = new Map(); // clientId → { at, message } (p. ej. tienda sin permiso read_products)
+const PRODUCT_SYNC_RETRY_MS = 60 * 60 * 1000;
+
 export async function ensureProductsFresh(clientId, orgId, { waitMs = 10000 } = {}) {
   const state = await getProductsSyncState(clientId);
   const ageMs = state.last_synced_at ? Date.now() - new Date(state.last_synced_at).getTime() : Infinity;
   if (state.total > 0 && ageMs < PRODUCTS_STALE_MS) return { ...state, syncing: false };
+  const lastErr = PRODUCT_SYNC_ERRORS.get(clientId);
+  if (lastErr && Date.now() - lastErr.at < PRODUCT_SYNC_RETRY_MS) return { ...state, syncing: false, error: lastErr.message };
 
   const job = dedupe(`products:${clientId}`, () => syncProducts(clientId, orgId));
-  job.catch((e) => console.error(`[financials] sync productos cliente ${clientId}:`, e.message));
+  job.then(() => PRODUCT_SYNC_ERRORS.delete(clientId)).catch((e) => { PRODUCT_SYNC_ERRORS.set(clientId, { at: Date.now(), message: e.message }); console.error(`[financials] sync productos cliente ${clientId}:`, e.message); });
   if (state.total === 0) {
     const r = await waitUpTo(job, waitMs);
     if (r.done && !r.error) return { total: r.value.synced, last_synced_at: r.value.synced_at, syncing: false };
@@ -575,4 +580,70 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     cogs_message: cogsMessage,
     cogs_refreshing: !!cogsState.refreshing || !!productsState.syncing,
   };
+}
+
+
+// ─── BE ROAS por marca ───
+
+/**
+ * Break-even ROAS de varias marcas para un rango (liviano, sin tocar Shopify):
+ *   margen por pedido = ticket promedio − costo de producto por pedido − costos variables por pedido
+ *   BE ROAS = ticket promedio ÷ margen por pedido  (= 1 ÷ margen de contribución)
+ * Devuelve por cliente: revenue, orders, aov, cogs_per_order, variable_per_order, margin_per_order,
+ * contribution_ratio, be_roas, roas (venta ÷ pauta) y verdict: 'scale' | 'hold' | 'stop' | null.
+ */
+export async function beRoasForClients(orgId, clientIds, start, end) {
+  if (!clientIds.length) return {};
+  const { daysInMonth } = monthBounds(start.slice(0, 7));
+  const days = rangeDays(start, end).length;
+  const [metrics, sales, variableAll, settingsRows] = await Promise.all([
+    db.query(`
+      SELECT client_id,
+             COALESCE(SUM(shopify_net_revenue), 0) + COALESCE(SUM(whatsapp_revenue), 0) AS revenue,
+             COALESCE(SUM(shopify_revenue), 0) + COALESCE(SUM(whatsapp_revenue), 0) AS gross_revenue,
+             COALESCE(SUM(whatsapp_revenue), 0) AS whatsapp_revenue,
+             COALESCE(SUM(shopify_orders), 0) + COALESCE(SUM(whatsapp_orders), 0) AS orders,
+             COALESCE(SUM(fb_spend), 0) + COALESCE(SUM(ga_spend), 0) + COALESCE(SUM(tt_spend), 0) AS ad_spend
+      FROM client_daily_metrics WHERE client_id = ANY($1::int[]) AND metric_date >= $2 AND metric_date <= $3
+      GROUP BY client_id`, [clientIds, start, end]).then((r) => r.rows),
+    db.query(`
+      SELECT s.client_id, COALESCE(SUM(s.units), 0) AS units,
+             COALESCE(SUM(CASE WHEN p.cost IS NOT NULL THEN s.units * p.cost ELSE 0 END), 0) AS cogs_known,
+             COALESCE(SUM(CASE WHEN p.cost IS NULL THEN s.revenue ELSE 0 END), 0) AS revenue_without_cost
+      FROM client_product_daily_sales s
+      LEFT JOIN shopify_products p ON p.client_id = s.client_id AND p.shopify_variant_id = s.shopify_variant_id
+      WHERE s.client_id = ANY($1::int[]) AND s.date >= $2 AND s.date <= $3
+      GROUP BY s.client_id`, [clientIds, start, end]).then((r) => r.rows),
+    db.query(`SELECT client_id, category, name, percentage, applies_to, kind, amount, is_active FROM client_variable_costs WHERE client_id = ANY($1::int[]) AND organization_id = $2`, [clientIds, orgId]).then((r) => r.rows),
+    db.query(`SELECT client_id, default_cogs_rate FROM client_financial_settings WHERE client_id = ANY($1::int[])`, [clientIds]).then((r) => r.rows),
+  ]);
+  const mById = new Map(metrics.map((r) => [Number(r.client_id), r]));
+  const sById = new Map(sales.map((r) => [Number(r.client_id), r]));
+  const rateById = new Map(settingsRows.map((r) => [Number(r.client_id), r.default_cogs_rate === null || r.default_cogs_rate === undefined ? DEFAULT_COGS_RATE : Number(r.default_cogs_rate)]));
+  const out = {};
+  for (const id of clientIds) {
+    const m = mById.get(id) || {}; const sl = sById.get(id) || {};
+    const rate = rateById.get(id) ?? DEFAULT_COGS_RATE;
+    const revenue = num(m.revenue); const orders = num(m.orders); const adSpend = num(m.ad_spend);
+    const cogs = num(sl.cogs_known) + (num(sl.revenue_without_cost) + num(m.whatsapp_revenue)) * rate;
+    // Si no hay ventas por producto registradas, todo el costo de producto se estima con la tasa
+    const cogsFinal = (num(sl.cogs_known) === 0 && num(sl.revenue_without_cost) === 0) ? revenue * rate : cogs;
+    const items = variableAll.filter((v) => Number(v.client_id) === id && (v.is_active === null || v.is_active === undefined || Number(v.is_active) === 1 || v.is_active === true));
+    const variable = variableCostsFor(items, revenue, cogsFinal, orders, { units: num(sl.units), dayFraction: days / daysInMonth, grossRevenue: num(m.gross_revenue) });
+    const cr = revenue > 0 ? 1 - (cogsFinal + variable) / revenue : null;
+    const beRoas = cr && cr > 0 ? Math.round((1 / cr) * 100) / 100 : null;
+    const roas = adSpend > 0 ? Math.round((revenue / adSpend) * 100) / 100 : null;
+    let verdict = null;
+    if (beRoas && roas !== null) verdict = roas >= beRoas * 1.15 ? 'scale' : roas >= beRoas ? 'hold' : 'stop';
+    out[id] = {
+      revenue: round(revenue), orders, ad_spend: round(adSpend),
+      aov: orders > 0 ? round(revenue / orders) : null,
+      cogs_per_order: orders > 0 ? round(cogsFinal / orders) : null,
+      variable_per_order: orders > 0 ? round(variable / orders) : null,
+      margin_per_order: orders > 0 ? round((revenue - cogsFinal - variable) / orders) : null,
+      contribution_ratio: cr, be_roas: beRoas, roas, verdict,
+      cogs_estimated: num(sl.cogs_known) === 0,
+    };
+  }
+  return out;
 }

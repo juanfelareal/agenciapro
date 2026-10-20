@@ -93,6 +93,7 @@ export default function GrowthDashboard() {
   const [allClients, setAllClients] = useState([]);
   const [metricsData, setMetricsData] = useState({ clients: [] });
   const [currentMonthMetrics, setCurrentMonthMetrics] = useState({ clients: [] }); // Always current month, doesn't change with date filter
+  const [beRoas, setBeRoas] = useState({}); // BE ROAS del mes actual por cliente (clientId → {be_roas, roas, verdict})
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientGrowthData, setClientGrowthData] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
@@ -138,6 +139,7 @@ export default function GrowthDashboard() {
       setGrowthClients(gcRes.data || []);
       setMetricsData(metricsRes.data || { clients: [] });
       setCurrentMonthMetrics(currentMonthRes.data || { clients: [] });
+      growthAPI.beRoas(currentMonth.start, currentMonth.end).then((r) => setBeRoas(r.data?.clients || {})).catch(() => {});
       setAllClients((clientsRes.data || []).filter(c => c.status !== 'inactive'));
 
       // Expanded trend panels reload with the summary so both are read at the same moment
@@ -528,6 +530,12 @@ export default function GrowthDashboard() {
                       <span className="text-[10px] font-normal text-gray-400 normal-case">{getPeriodLabel(getCurrentPeriod())}</span>
                     </span>
                   </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" title="Break-even ROAS: ticket promedio ÷ (ticket promedio − costo de producto − variables por pedido). Si el ROAS del mes está por encima, la pauta deja plata y se puede escalar.">
+                    <span className="inline-flex flex-col items-end">
+                      <span>BE ROAS</span>
+                      <span className="text-[10px] font-normal text-gray-400 normal-case">escalar si ROAS ≥</span>
+                    </span>
+                  </th>
                   <th
                     onClick={() => handleSort('total_orders')}
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
@@ -578,6 +586,20 @@ export default function GrowthDashboard() {
                             return (
                               <span className={`font-medium ${roasMes >= 3 ? 'text-green-600' : roasMes >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
                                 {roasMes > 0 ? roasMes.toFixed(2) : '—'}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {(() => {
+                            const b = beRoas[client.id];
+                            if (!b || !b.be_roas) return <span className="text-gray-300">—</span>;
+                            const tone = b.verdict === 'scale' ? 'bg-green-100 text-green-700' : b.verdict === 'hold' ? 'bg-yellow-100 text-yellow-700' : b.verdict === 'stop' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500';
+                            const label = b.verdict === 'scale' ? 'Escalar' : b.verdict === 'hold' ? 'Sostener' : b.verdict === 'stop' ? 'No escalar' : 'Sin pauta';
+                            return (
+                              <span className="inline-flex flex-col items-end gap-0.5">
+                                <span className="font-medium text-gray-900">{b.be_roas.toFixed(2)}×{b.cogs_estimated ? <span className="text-gray-400" title="Costo de producto estimado (sin costos reales)">*</span> : null}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tone}`}>{label}</span>
                               </span>
                             );
                           })()}

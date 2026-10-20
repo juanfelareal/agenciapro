@@ -245,28 +245,73 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved 
         )}
       </div>
 
-      {/* ROAS de equilibrio */}
+      {/* BE ROAS (break-even ROAS) */}
       <div className="glass-solid rounded-2xl p-5">
         <div className="flex items-center gap-1.5 text-[12px] font-medium text-gray-500">
-          <Target className="w-3.5 h-3.5 text-[#17181A]" /> ROAS de equilibrio
-          <Info text="Calculado con el margen real de tus productos: de cada $100 vendidos, lo que queda después del costo de producto y los costos variables es lo que puede pagar la pauta." />
+          <Target className="w-3.5 h-3.5 text-[#17181A]" /> BE ROAS · ROAS de equilibrio
+          <Info text="Break-even ROAS: el ROAS a partir del cual la pauta deja plata. Se calcula con el ticket promedio y lo que cuesta cada pedido (producto + variables). Por encima de este número, escalas; por debajo, cada venta pagada pierde." />
         </div>
         {be.reachable && be.roas_min ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-              <div>
-                <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">ROAS mínimo <Info text="Con este ROAS la pauta empata: cada peso invertido trae justo lo necesario para cubrir producto y variables. Por debajo, cada venta pagada pierde plata." /></div>
-                <div className="text-2xl font-bold tabular-nums text-[#17181A]">{fmtX(be.roas_min)}</div>
-              </div>
-              <div>
-                <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">ROAS objetivo <Info text="El ROAS que necesitas al ritmo de inversión actual para cubrir además los costos fijos del mes, es decir, para no perder." /></div>
-                <div className="text-2xl font-bold tabular-nums text-[#17181A]">{fmtX(be.roas_target)}</div>
-              </div>
-              <div>
-                <div className="text-[11px] text-gray-400">{isCurrent ? 'ROAS actual' : 'ROAS del mes'}</div>
-                <div className={`text-2xl font-bold tabular-nums ${be.current_roas >= be.roas_target ? 'text-[#16a34a]' : be.current_roas >= be.roas_min ? 'text-[#F59E0B]' : 'text-[#dc2626]'}`}>{fmtX(be.current_roas)}</div>
-              </div>
-            </div>
+            {(() => {
+              const orders = Number(t.orders) || 0;
+              const aov = orders > 0 ? t.revenue / orders : null;
+              const cogsPo = orders > 0 ? t.cogs / orders : null;
+              const varPo = orders > 0 ? t.variable_costs / orders : null;
+              const marginPo = aov !== null ? aov - cogsPo - varPo : null;
+              const cur = Number(be.current_roas) || 0;
+              const verdict = !cur ? null : cur >= be.roas_min * 1.15 ? 'scale' : cur >= be.roas_min ? 'hold' : 'stop';
+              const vTone = verdict === 'scale' ? 'bg-[#16a34a] text-white' : verdict === 'hold' ? 'bg-[#F59E0B] text-white' : verdict === 'stop' ? 'bg-[#dc2626] text-white' : 'bg-gray-200 text-gray-600';
+              const vLabel = verdict === 'scale' ? 'Escalar' : verdict === 'hold' ? 'Sostener' : verdict === 'stop' ? 'No escalar' : 'Sin pauta';
+              return (
+                <>
+                  <div className="flex flex-wrap items-end justify-between gap-3 mt-3">
+                    <div>
+                      <div className="text-[11px] text-gray-400">BE ROAS de la marca</div>
+                      <div className="text-4xl font-bold tabular-nums tracking-tight text-[#17181A]">{fmtX(be.roas_min)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] text-gray-400">{isCurrent ? 'ROAS actual' : 'ROAS del mes'}</div>
+                      <div className={`text-3xl font-bold tabular-nums ${verdict === 'scale' ? 'text-[#16a34a]' : verdict === 'hold' ? 'text-[#F59E0B]' : verdict === 'stop' ? 'text-[#dc2626]' : 'text-gray-400'}`}>{fmtX(be.current_roas)}</div>
+                    </div>
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${vTone}`}>{vLabel}</span>
+                  </div>
+                  <p className="text-[12px] text-gray-600 mt-2">
+                    {verdict === 'scale' && <>Vas {fmtX(cur - be.roas_min)} por encima del BE ROAS: cada peso de pauta deja plata. Puedes subir inversión mientras el ROAS se mantenga sobre {fmtX(be.roas_min)}.</>}
+                    {verdict === 'hold' && <>Estás justo sobre el BE ROAS: la pauta empata o deja muy poco. Sostén la inversión y mejora creativos o margen antes de escalar.</>}
+                    {verdict === 'stop' && <>Estás {fmtX(be.roas_min - cur)} por debajo del BE ROAS: cada venta pagada pierde plata. No escales; primero sube el ROAS o el margen por pedido.</>}
+                    {!verdict && <>Este mes no hay inversión en pauta registrada.</>}
+                  </p>
+
+                  {aov !== null && (
+                    <div className="mt-3 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5 text-[12px] text-gray-600">
+                      <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1.5">Cómo sale el BE ROAS</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5">
+                        <div><div className="text-[10px] text-gray-400">Ticket promedio</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(aov)}</div></div>
+                        <div><div className="text-[10px] text-gray-400">− Producto / pedido</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(cogsPo)}</div></div>
+                        <div><div className="text-[10px] text-gray-400">− Variables / pedido</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(varPo)}</div></div>
+                        <div><div className="text-[10px] text-gray-400">= Margen / pedido</div><div className={`font-semibold tabular-nums ${marginPo > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>{fmtMoney(marginPo)}</div></div>
+                      </div>
+                      <div className="mt-2 text-[11px] text-gray-500">
+                        BE ROAS = {fmtMoney(aov)} ÷ {fmtMoney(marginPo)} = <strong className="text-[#17181A]">{fmtX(be.roas_min)}</strong>
+                        <span className="text-gray-400"> · margen de contribución {fmtPct(be.contribution_ratio, 0)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">ROAS objetivo (cubre fijos) <Info text="Al ritmo de inversión actual, el ROAS que necesitas para que además queden cubiertos los costos fijos del mes. Es el ROAS para no perder." /></div>
+                      <div className="text-xl font-bold tabular-nums text-[#17181A]">{fmtX(be.roas_target)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">Regla de escala <Info text="Verde: ROAS 15 % o más por encima del BE ROAS. Amarillo: entre el BE ROAS y ese colchón. Rojo: por debajo del BE ROAS." /></div>
+                      <div className="text-[13px] font-medium text-[#17181A] mt-1">Escalar desde <span className="tabular-nums">{fmtX(be.roas_min * 1.15)}</span></div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
             <ScenarioPlanner be={be} daysInMonth={data.days_in_month || 30} isCurrent={isCurrent} />
           </>
         ) : (
