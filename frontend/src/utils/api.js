@@ -710,6 +710,13 @@ export const growthAPI = {
   resetProductCost: (clientId, productId) => api.delete(`/growth/clients/${clientId}/products/${productId}/cost`),
   syncProducts: (clientId) => api.post(`/growth/clients/${clientId}/products/sync`),
   calculateCOGS: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/cogs/calculate`, { start_date: startDate, end_date: endDate }),
+  // Escenarios financieros ("¿qué pasa si…?"), privados o compartidos
+  scenarios: (clientId, params) => api.get(`/growth/clients/${clientId}/scenarios`, { params }),
+  createScenario: (clientId, data) => api.post(`/growth/clients/${clientId}/scenarios`, data),
+  updateScenario: (clientId, id, data) => api.put(`/growth/clients/${clientId}/scenarios/${id}`, data),
+  deleteScenario: (clientId, id) => api.delete(`/growth/clients/${clientId}/scenarios/${id}`),
+  evaluateScenario: (clientId, data) => api.post(`/growth/clients/${clientId}/scenarios/evaluate`, data),
+  compareScenarios: (clientId, ids, period) => api.get(`/growth/clients/${clientId}/scenarios/compare`, { params: { ids: (ids || []).join(','), period } }),
 };
 
 // Briefs API

@@ -17,6 +17,8 @@ import ProductsTable from '../components/growth/financial/ProductsTable';
 import CostsPanel, { CostModal } from '../components/growth/financial/CostsPanel';
 import InventoryTab from '../components/growth/financial/InventoryTab';
 import ReservesTab from '../components/growth/financial/ReservesTab';
+import ScenariosTab from '../components/growth/financial/ScenariosTab';
+import { teamScenariosApi } from '../components/growth/financial/scenariosApi';
 import { fmtMoney, fmtPct, fmtX, fmtInt, relDelta, currentPeriod, prevPeriod, sumDays, monthShort } from '../components/growth/financial/format';
 
 const POLL_MS = 5000;
@@ -58,8 +60,9 @@ export default function ClientFinancialDashboard() {
     clientsAPI.getById(clientId).then((r) => setClient(r.data)).catch(() => {});
   }, [clientId]);
 
-  // Laboratorio financiero: pestañas extra solo cuando el cliente lo tiene habilitado
+  // Pestañas: Resumen + Escenarios siempre; Inventario/Reservas solo con el laboratorio habilitado
   const [labTab, setLabTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'resumen');
+  const scenariosApi = useMemo(() => teamScenariosApi(clientId), [clientId]);
   const switchTab = (tab) => {
     setLabTab(tab);
     const url = new URL(window.location.href);
@@ -228,16 +231,16 @@ export default function ClientFinancialDashboard() {
     <div ref={pdfRef} className="space-y-4 sm:space-y-6 pb-10">
       <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} onExportPdf={handleExportPdf} exporting={exporting} />
 
-      {data.lab_enabled && (
-        <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
-          {[['resumen', 'Resumen'], ['inventario', 'Inventario'], ['reservas', 'Reservas']].map(([k, label]) => (
-            <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${labTab === k ? 'bg-[#17181A] text-[#D7F653]' : 'text-gray-500 hover:text-[#17181A]'}`}>{label}</button>
-          ))}
-          <span className="hidden sm:inline-flex items-center px-2 text-[10px] uppercase tracking-wide text-amber-700">Laboratorio</span>
-        </div>
-      )}
+      <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
+        {[['resumen', 'Resumen'], ['escenarios', 'Escenarios'], ...(data.lab_enabled ? [['inventario', 'Inventario'], ['reservas', 'Reservas']] : [])].map(([k, label]) => (
+          <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${labTab === k ? 'bg-[#17181A] text-[#D7F653]' : 'text-gray-500 hover:text-[#17181A]'}`}>{label}</button>
+        ))}
+        {data.lab_enabled && <span className="hidden sm:inline-flex items-center px-2 text-[10px] uppercase tracking-wide text-amber-700">Laboratorio</span>}
+      </div>
 
-      {data.lab_enabled && labTab === 'inventario' ? (
+      {labTab === 'escenarios' ? (
+        <ScenariosTab clientId={clientId} period={period} data={data} api={scenariosApi} />
+      ) : data.lab_enabled && labTab === 'inventario' ? (
         <InventoryTab clientId={clientId} />
       ) : data.lab_enabled && labTab === 'reservas' ? (
         <ReservesTab clientId={clientId} period={period} />
