@@ -138,6 +138,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
           shopify_net_revenue = ?,
           shopify_total_tax = ?,
           shopify_total_discounts = ?,
+          shopify_discounts_net = ?,
           shopify_sessions = ?,
           shopify_conversion_rate = ?,
           shopify_pending_orders = ?,
@@ -199,6 +200,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.shopify_net_revenue || 0,
       metrics.shopify_total_tax || 0,
       metrics.shopify_total_discounts || 0,
+      metrics.shopify_discounts_net || 0,
       metrics.shopify_sessions || 0,
       metrics.shopify_conversion_rate || 0,
       metrics.shopify_pending_orders || 0,
@@ -257,7 +259,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       INSERT INTO client_daily_metrics (
         client_id, metric_date,
         shopify_revenue, shopify_orders, shopify_aov, shopify_refunds, shopify_net_revenue,
-        shopify_total_tax, shopify_total_discounts, shopify_sessions, shopify_conversion_rate,
+        shopify_total_tax, shopify_total_discounts, shopify_discounts_net, shopify_sessions, shopify_conversion_rate,
         shopify_pending_orders, shopify_customers,
         shopify_all_orders_revenue, shopify_all_orders_count, shopify_shipping_collected,
         fb_spend, fb_impressions, fb_clicks, fb_ctr, fb_cpc, fb_cpm,
@@ -271,7 +273,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
         tt_spend, tt_impressions, tt_clicks, tt_ctr, tt_cpc, tt_cpm,
         tt_conversions, tt_revenue, tt_roas, tt_cost_per_conversion,
         total_revenue, overall_roas, cost_per_order, ad_spend_percentage
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       clientId, date,
       metrics.shopify_revenue || 0,
@@ -281,6 +283,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
       metrics.shopify_net_revenue || 0,
       metrics.shopify_total_tax || 0,
       metrics.shopify_total_discounts || 0,
+      metrics.shopify_discounts_net || 0,
       metrics.shopify_sessions || 0,
       metrics.shopify_conversion_rate || 0,
       metrics.shopify_pending_orders || 0,
@@ -396,7 +399,7 @@ export async function syncClientForDate(clientId, date) {
     return { success: false, error: 'Cliente no encontrado' };
   }
 
-  let shopifyMetrics = { revenue: 0, orders: 0, aov: 0, refunds: 0, netRevenue: 0, totalTax: 0, totalDiscounts: 0, sessions: 0, conversionRate: 0, pendingOrders: 0, allOrdersRevenue: 0, allOrderCount: 0, customers: 0 };
+  let shopifyMetrics = { revenue: 0, orders: 0, aov: 0, refunds: 0, netRevenue: 0, totalTax: 0, totalDiscounts: 0, totalDiscountsNet: 0, sessions: 0, conversionRate: 0, pendingOrders: 0, allOrdersRevenue: 0, allOrderCount: 0, customers: 0 };
   let fbMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerPurchase: 0, costPerLandingPageView: 0, landingPageViews: 0, video3SecViews: 0, videoThruplayViews: 0, hookRate: 0, holdRate: 0 };
   let googleMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerConversion: 0 };
   let tiktokMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerConversion: 0 };
@@ -521,6 +524,7 @@ export async function syncClientForDate(clientId, date) {
     shopify_net_revenue: shopifyMetrics.netRevenue,
     shopify_total_tax: shopifyMetrics.totalTax,
     shopify_total_discounts: shopifyMetrics.totalDiscounts,
+    shopify_discounts_net: shopifyMetrics.totalDiscountsNet ?? shopifyMetrics.totalDiscounts ?? 0,
     shopify_sessions: shopifyMetrics.sessions,
     shopify_conversion_rate: shopifyMetrics.conversionRate,
     shopify_pending_orders: shopifyMetrics.pendingOrders,
@@ -579,7 +583,7 @@ export async function syncClientForDate(clientId, date) {
     if (date < cutoff) {
       const prev = await db.prepare(`
         SELECT shopify_revenue, shopify_orders, shopify_aov, shopify_refunds, shopify_net_revenue,
-               shopify_total_tax, shopify_total_discounts, shopify_sessions, shopify_conversion_rate,
+               shopify_total_tax, shopify_total_discounts, shopify_discounts_net, shopify_sessions, shopify_conversion_rate,
                shopify_pending_orders, shopify_customers, shopify_all_orders_revenue, shopify_all_orders_count
         FROM client_daily_metrics WHERE client_id = ? AND metric_date = ?
       `).get(clientId, date);

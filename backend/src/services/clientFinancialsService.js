@@ -3,6 +3,7 @@
  *
  * Fórmulas (por día, luego se suman al mes):
  *   revenue        = shopify_net_revenue (venta neta confirmada)       [client_daily_metrics]
+ *   discounts      = shopify_discounts_net (descuentos sin IVA); gross_sales = revenue + discounts
  *   revenue_total  = shopify_all_orders_revenue (todos los pedidos)     [referencia]
  *   cogs           = Σ units × costo vigente del producto (manual > Shopify);
  *                    si el producto no tiene costo → revenue_línea × default_cogs_rate (estimado)
@@ -345,7 +346,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   const [metricRows, salesRows, productRows, orphanRows] = isFuture ? [[], [], [], []] : await Promise.all([
     db.all(`
       SELECT metric_date, shopify_net_revenue, shopify_revenue, shopify_all_orders_revenue, shopify_orders,
-             fb_spend, ga_spend, tt_spend, whatsapp_revenue, whatsapp_orders, fb_spend_whatsapp
+             shopify_discounts_net, fb_spend, ga_spend, tt_spend, whatsapp_revenue, whatsapp_orders, fb_spend_whatsapp
       FROM client_daily_metrics WHERE client_id = ? AND metric_date >= ? AND metric_date <= ?
     `, [clientId, start, effEnd]),
     db.all(`
@@ -399,6 +400,9 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     const revenue_confirmed = num(m.shopify_revenue) + revenue_whatsapp;
     const revenue_total = (num(m.shopify_all_orders_revenue) || num(m.shopify_revenue)) + revenue_whatsapp;
     const orders = num(m.shopify_orders) + num(m.whatsapp_orders);
+    // Descuentos (sin IVA) y venta bruta antes de descuentos; revenue sigue siendo la venta neta después de descuentos
+    const discounts = num(m.shopify_discounts_net);
+    const gross_sales = revenue + discounts;
     const cogs_known = num(s.cogs_known);
     const cogs_estimated = (num(s.revenue_without_cost) + revenue_whatsapp) * defaultRate;
     const cogs = cogs_known + cogs_estimated;
@@ -411,6 +415,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
     // Sin redondear: los totales y el acumulado se suman sobre estos valores y se redondean al final
     return {
       date, revenue, revenue_total, revenue_confirmed, orders, revenue_whatsapp,
+      discounts, gross_sales, discount_pct: ratio(discounts, gross_sales),
       ad_spend_whatsapp: Math.min(num(m.fb_spend_whatsapp), fb),
       units: num(s.units), cogs, cogs_estimated, gross_profit,
       ad_spend, ad_spend_by_source: { fb, ga, tt },
@@ -418,7 +423,7 @@ export async function computeFinancials({ clientId, orgId, period, light = false
       has_sales_data: salesByDate.has(date),
     };
   });
-  const MONEY_KEYS = ['revenue', 'revenue_total', 'revenue_confirmed', 'revenue_whatsapp', 'ad_spend_whatsapp', 'cogs', 'cogs_estimated', 'gross_profit', 'ad_spend', 'variable_costs', 'fixed_costs', 'net_profit'];
+  const MONEY_KEYS = ['revenue', 'revenue_total', 'revenue_confirmed', 'revenue_whatsapp', 'discounts', 'gross_sales', 'ad_spend_whatsapp', 'cogs', 'cogs_estimated', 'gross_profit', 'ad_spend', 'variable_costs', 'fixed_costs', 'net_profit'];
   const roundDay = (d) => ({
     ...d,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, round(d[k])])),
@@ -437,11 +442,13 @@ export async function computeFinancials({ clientId, orgId, period, light = false
   const t = {
     revenue: sum('revenue'), revenue_total: sum('revenue_total'), revenue_confirmed: sum('revenue_confirmed'), orders: sum('orders'), units: sum('units'),
     revenue_whatsapp: sum('revenue_whatsapp'), ad_spend_whatsapp: sum('ad_spend_whatsapp'),
+    discounts: sum('discounts'), gross_sales: sum('gross_sales'),
     cogs: sum('cogs'), cogs_estimated: sum('cogs_estimated'), gross_profit: sum('gross_profit'), ad_spend: sum('ad_spend'),
     ad_spend_by_source: { fb: daily.reduce((s, d) => s + d.ad_spend_by_source.fb, 0), ga: daily.reduce((s, d) => s + d.ad_spend_by_source.ga, 0), tt: daily.reduce((s, d) => s + d.ad_spend_by_source.tt, 0) },
     variable_costs: sum('variable_costs'), fixed_costs: sum('fixed_costs'), net_profit: sum('net_profit'),
   };
   t.aov = ratio(t.revenue, t.orders);
+  t.discount_pct = ratio(t.discounts, t.gross_sales); // qué parte de la venta bruta se fue en descuentos
   t.gross_margin = ratio(t.gross_profit, t.revenue);
   t.margin = ratio(t.net_profit, t.revenue);
   t.mer = ratio(t.revenue, t.ad_spend);

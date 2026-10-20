@@ -192,6 +192,7 @@ class WooCommerceIntegration {
       netRevenue: confirmedNetRevenue,
       totalTax,
       totalDiscounts,
+      totalDiscountsNet: totalDiscounts, // discount_total en Woo ya viene sin impuesto
       pendingOrders,
       allOrdersRevenue,
       allOrderCount,
