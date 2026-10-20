@@ -720,6 +720,10 @@ export const growthAPI = {
   deleteScenario: (clientId, id) => api.delete(`/growth/clients/${clientId}/scenarios/${id}`),
   evaluateScenario: (clientId, data) => api.post(`/growth/clients/${clientId}/scenarios/evaluate`, data),
   compareScenarios: (clientId, ids, period) => api.get(`/growth/clients/${clientId}/scenarios/compare`, { params: { ids: (ids || []).join(','), period } }),
+  // Libro de pedidos: cuándo compran / nuevos vs recurrentes
+  patterns: (clientId, days = 90) => api.get(`/growth/clients/${clientId}/patterns`, { params: { days } }),
+  customerMix: (clientId, start, end) => api.get(`/growth/clients/${clientId}/customer-mix`, { params: { start, end } }),
+  backfillOrders: (clientId, days = 180) => api.post(`/growth/clients/${clientId}/orders/backfill`, { days }),
 };
 
 // Briefs API

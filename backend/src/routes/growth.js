@@ -5,6 +5,7 @@ import * as lab from '../services/financialLab.js';
 import { buildFinancialsWorkbook, financialsExportFilename, getClientBrandName } from '../services/financialsExport.js';
 import { backfillDiscounts } from '../services/discountsBackfill.js';
 import * as scenarios from '../services/financialScenarios.js';
+import * as orderLedger from '../services/orderLedger.js';
 
 const router = express.Router();
 
@@ -1138,6 +1139,53 @@ router.delete('/clients/:clientId/scenarios/:id', requireScenarioClient, async (
     if (!ok) return res.status(404).json({ error: 'Escenario no encontrado' });
     res.json({ success: true });
   } catch (error) { scenarioError(res, error, 'Error deleting scenario:'); }
+});
+
+// ─── Cuándo compran / nuevos vs recurrentes (libro de pedidos client_orders) ───
+// Si el libro está vacío, el GET arranca el histórico en segundo plano y responde { building: true }.
+
+router.get('/clients/:clientId/patterns', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+    const state = await orderLedger.ensureLedger(Number(clientId), req.orgId);
+    if (!state.ready) return res.json({ building: state.building, empty: !state.building, no_store: Boolean(state.no_store) });
+    const data = await orderLedger.getPatterns(Number(clientId), req.orgId, { days: Number(req.query.days) || 90 });
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching purchase patterns:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/clients/:clientId/customer-mix', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+    const state = await orderLedger.ensureLedger(Number(clientId), req.orgId);
+    if (!state.ready) return res.json({ building: state.building, empty: !state.building, no_store: Boolean(state.no_store) });
+    const data = await orderLedger.getCustomerMix(Number(clientId), req.orgId, { start: req.query.start, end: req.query.end });
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching customer mix:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/clients/:clientId/orders/backfill', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+    const cred = await financials.getShopifyCredentials(clientId);
+    if (!cred) return res.status(400).json({ error: 'Sin tienda conectada (Shopify o WooCommerce)' });
+    const days = Math.max(7, Math.min(Number(req.body?.days) || 180, 730));
+    const already = orderLedger.isBackfilling(clientId);
+    orderLedger.startBackfill(Number(clientId), req.orgId, days);
+    res.json({ started: !already, building: true, days });
+  } catch (error) {
+    console.error('Error starting orders backfill:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;
