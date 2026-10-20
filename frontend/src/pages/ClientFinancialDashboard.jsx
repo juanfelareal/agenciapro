@@ -191,8 +191,10 @@ export default function ClientFinancialDashboard() {
         margin: [8, 8, 10, 8],
         filename: `Finanzas-${name}-${period}.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#F7F7F4', windowWidth: 1120, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        // Sin windowWidth: html2pdf centra su contenedor según el viewport real y, si el clon se renderiza
+        // con otro ancho, el recorte queda desplazado. Horizontal para conservar el layout de escritorio.
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#F7F7F4', scrollY: 0, scrollX: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
         pagebreak: { mode: ['css', 'legacy'], avoid: ['.glass-solid', 'tr', '.pdf-avoid-break'] },
       }).from(el).save();
     } catch (err) {

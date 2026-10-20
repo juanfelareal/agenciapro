@@ -750,7 +750,6 @@ body {
 
 /* Exportar dashboard financiero a PDF (html2pdf): sin blur ni sombras, sin controles, todo visible */
 .pdf-only { display: none; }
-.pdf-exporting { width: 1100px; max-width: none; }
 .pdf-exporting .pdf-only { display: inline; }
 .pdf-exporting .no-print { display: none !important; }
 .pdf-exporting .glass-solid,
