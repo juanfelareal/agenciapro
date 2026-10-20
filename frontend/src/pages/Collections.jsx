@@ -451,7 +451,7 @@ const Collections = () => {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#121314]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--ink)]"></div>
       </div>
     );
   }
@@ -461,17 +461,17 @@ const Collections = () => {
 
   const renderReminderModal = () => (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowReminderModal(false)}>
-      <div className={`bg-white rounded-2xl w-full flex flex-col ${reminderStep === 'preview' ? 'max-w-3xl max-h-[90vh]' : 'max-w-xl max-h-[90vh]'}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`bg-[var(--surface)] rounded-2xl w-full flex flex-col ${reminderStep === 'preview' ? 'max-w-3xl max-h-[90vh]' : 'max-w-xl max-h-[90vh]'}`} onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-3">
             {reminderStep === 'preview' && !reminderResult && (
-              <button onClick={() => setReminderStep('edit')} className="text-gray-400 hover:text-[#121314] transition-colors">
+              <button onClick={() => setReminderStep('edit')} className="text-gray-400 hover:text-[var(--ink)] transition-colors">
                 <ChevronLeft size={20} />
               </button>
             )}
-            <h3 className="text-lg font-bold text-[#121314]">
+            <h3 className="text-lg font-bold text-[var(--ink)]">
               {reminderResult ? (reminderResult.success ? 'Enviado' : 'Error') : reminderStep === 'edit' ? 'Enviar Estado de Cuenta' : 'Preview del Correo'}
             </h3>
           </div>
@@ -486,7 +486,7 @@ const Collections = () => {
             </div>
             {reminderResult.success && (
               <div className="flex justify-end mt-4 pb-4">
-                <button onClick={() => setShowReminderModal(false)} className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium">Cerrar</button>
+                <button onClick={() => setShowReminderModal(false)} className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium">Cerrar</button>
               </div>
             )}
           </div>
@@ -499,17 +499,17 @@ const Collections = () => {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Cliente</p>
-                  <p className="font-medium text-[#121314]">{selectedClient?.client_name}</p>
+                  <p className="font-medium text-[var(--ink)]">{selectedClient?.client_name}</p>
                 </div>
                 {reminderInvoiceIds ? (
                   <div className="text-right">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#44BF47]/15 text-[#1E7A30] border border-[#44BF47]/40">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent-deep)] border border-[rgb(var(--accent-rgb)/0.4)]">
                       <FileText size={12} /> Solo factura {reminderInvoiceLabel}
                     </span>
                     <button
                       type="button"
                       onClick={() => { setReminderInvoiceIds(null); setReminderInvoiceLabel(''); }}
-                      className="block text-xs text-gray-400 hover:text-[#121314] underline mt-1 ml-auto"
+                      className="block text-xs text-gray-400 hover:text-[var(--ink)] underline mt-1 ml-auto"
                     >
                       Incluir todas las facturas del cliente
                     </button>
@@ -526,14 +526,14 @@ const Collections = () => {
                   <button
                     type="button"
                     onClick={() => switchChannel('email')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${channel === 'email' ? 'bg-[#121314] text-[#44BF47] border-[#121314]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${channel === 'email' ? 'bg-[var(--dark)] text-[var(--accent)] border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-300'}`}
                   >
                     <Mail size={15} /> Correo
                   </button>
                   <button
                     type="button"
                     onClick={() => switchChannel('whatsapp')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${channel === 'whatsapp' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${channel === 'whatsapp' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-300'}`}
                   >
                     <MessageCircle size={15} /> WhatsApp
                   </button>
@@ -627,13 +627,13 @@ const Collections = () => {
                       })}
                       className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${
                         reminderData.selectedTemplate === tpl.id
-                          ? 'bg-[#121314] text-[#44BF47] border-[#121314]'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          ? 'bg-[var(--dark)] text-[var(--accent)] border-[var(--ink)]'
+                          : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <span className="block">{tpl.label}</span>
                       <span className={`block text-xs mt-0.5 ${
-                        reminderData.selectedTemplate === tpl.id ? 'text-[#44BF47]/70' : 'text-gray-400'
+                        reminderData.selectedTemplate === tpl.id ? 'text-[rgb(var(--accent-rgb)/0.7)]' : 'text-gray-400'
                       }`}>{tpl.description}</span>
                     </button>
                   ))}
@@ -662,7 +662,7 @@ const Collections = () => {
 
               <div className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-500">El correo sera enviado a nombre de:</p>
-                <p className="text-sm font-medium text-[#121314] mt-1">Estefania Hernandez - Administración y Cartera</p>
+                <p className="text-sm font-medium text-[var(--ink)] mt-1">Estefania Hernandez - Administración y Cartera</p>
               </div>
               </>)}
             </div>
@@ -687,7 +687,7 @@ const Collections = () => {
                 <button
                   onClick={loadPreview}
                   disabled={loadingPreview || !reminderData.email_to}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
                 >
                   <Eye size={16} />
                   {loadingPreview ? 'Cargando...' : 'Ver Preview'}
@@ -704,11 +704,11 @@ const Collections = () => {
             <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-gray-500">Para:</span>
-                <span className="font-medium text-[#121314]">{reminderData.email_to}</span>
+                <span className="font-medium text-[var(--ink)]">{reminderData.email_to}</span>
               </div>
               <div className="flex items-center gap-2 text-sm mt-1">
                 <span className="text-gray-500">Asunto:</span>
-                <span className="font-medium text-[#121314]">{previewSubject}</span>
+                <span className="font-medium text-[var(--ink)]">{previewSubject}</span>
               </div>
             </div>
 
@@ -734,7 +734,7 @@ const Collections = () => {
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                     scheduleMode
                       ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                      : 'bg-[var(--surface)] text-gray-500 border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <Clock size={15} />
@@ -762,7 +762,7 @@ const Collections = () => {
                 <button
                   onClick={sendReminder}
                   disabled={sendingReminder || (scheduleMode && !scheduleDate)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
                 >
                   {scheduleMode ? <Clock size={16} /> : <Send size={16} />}
                   {sendingReminder ? 'Procesando...' : scheduleMode ? 'Programar Envio' : 'Confirmar y Enviar'}
@@ -777,9 +777,9 @@ const Collections = () => {
 
   const renderNoteModal = () => (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowNoteModal(false)}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#121314]">Agregar Nota de Seguimiento</h3>
+          <h3 className="text-lg font-bold text-[var(--ink)]">Agregar Nota de Seguimiento</h3>
           <button onClick={() => setShowNoteModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <div className="space-y-4">
@@ -808,7 +808,7 @@ const Collections = () => {
           <button
             onClick={addNote}
             disabled={!noteData.note.trim()}
-            className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50"
           >
             Guardar Nota
           </button>
@@ -819,9 +819,9 @@ const Collections = () => {
 
   const renderMarkPaidModal = () => (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setMarkPaidInvoice(null)}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#121314]">Marcar como Pagada</h3>
+          <h3 className="text-lg font-bold text-[var(--ink)]">Marcar como Pagada</h3>
           <button onClick={() => setMarkPaidInvoice(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <p className="text-sm text-gray-600 mb-4">
@@ -874,7 +874,7 @@ const Collections = () => {
         {/* Back button */}
         <button
           onClick={() => { setView('overview'); setClientDetail(null); }}
-          className="flex items-center gap-2 text-gray-500 hover:text-[#121314] mb-6 transition-colors"
+          className="flex items-center gap-2 text-gray-500 hover:text-[var(--ink)] mb-6 transition-colors"
         >
           <ChevronLeft size={20} />
           <span className="text-sm font-medium">Volver a Cartera</span>
@@ -885,7 +885,7 @@ const Collections = () => {
         {/* Client Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#121314]">{client.company || client.name}</h1>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">{client.company || client.name}</h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
               {client.nit && <span>NIT: {client.nit}</span>}
               {client.email && <span>{client.email}</span>}
@@ -905,7 +905,7 @@ const Collections = () => {
             </button>
             <button
               onClick={() => openReminderModal(clientForActions)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
             >
               <Send size={16} />
               Enviar Estado de Cuenta
@@ -914,16 +914,16 @@ const Collections = () => {
         </div>
 
         {/* Total Card */}
-        <div className="bg-[#121314] rounded-2xl p-6 mb-6">
+        <div className="bg-[var(--dark)] rounded-2xl p-6 mb-6">
           <p className="text-white/60 text-sm uppercase tracking-wider">Saldo Pendiente Total</p>
-          <p className="text-[#44BF47] text-3xl font-extrabold mt-1">{formatCurrency(totalOwed)}</p>
+          <p className="text-[var(--accent)] text-3xl font-extrabold mt-1">{formatCurrency(totalOwed)}</p>
           <p className="text-white/50 text-sm mt-1">{clientInvoices.length} factura{clientInvoices.length !== 1 ? 's' : ''}</p>
         </div>
 
         {/* Invoices */}
         <div className="glass-card overflow-hidden mb-6">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-[#121314]">Facturas Pendientes</h2>
+            <h2 className="text-lg font-bold text-[var(--ink)]">Facturas Pendientes</h2>
             {loadingDetail && <RefreshCw size={16} className="animate-spin text-gray-400" />}
           </div>
           {clientInvoices.length === 0 ? (
@@ -949,12 +949,12 @@ const Collections = () => {
                     const bStyle = BUCKET_STYLES[inv.aging_bucket] || BUCKET_STYLES['0-30'];
                     const statusClass = (COLLECTION_STATUSES.find((s) => s.value === inv.collection_status) || COLLECTION_STATUSES[0]).className;
                     return (
-                      <tr key={inv.id} className={`hover:bg-[#121212]/[0.04] transition-colors ${savingInvoiceId === inv.id ? 'opacity-60' : ''}`}>
+                      <tr key={inv.id} className={`hover:bg-[rgb(var(--ink-rgb)/0.04)] transition-colors ${savingInvoiceId === inv.id ? 'opacity-60' : ''}`}>
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-[#121314]">{inv.invoice_number}</span>
+                            <span className="text-sm font-semibold text-[var(--ink)]">{inv.invoice_number}</span>
                             {inv.pdf_url && (
-                              <a href={inv.pdf_url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-[#121314]" title="Ver PDF (Siigo)"><FileText size={14} /></a>
+                              <a href={inv.pdf_url} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-[var(--ink)]" title="Ver PDF (Siigo)"><FileText size={14} /></a>
                             )}
                           </div>
                         </td>
@@ -967,7 +967,7 @@ const Collections = () => {
                             type="date"
                             value={inv.promise_date || ''}
                             onChange={(e) => updateInvoiceField(inv, { promise_date: e.target.value || null })}
-                            className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 w-[130px]"
+                            className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] w-[130px]"
                             title="Promesa de pago"
                           />
                         </td>
@@ -975,12 +975,12 @@ const Collections = () => {
                           <select
                             value={inv.collection_status || 'pending'}
                             onChange={(e) => updateInvoiceField(inv, { collection_status: e.target.value })}
-                            className={`px-2 py-1 rounded-lg text-xs font-medium border-0 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 cursor-pointer ${statusClass}`}
+                            className={`px-2 py-1 rounded-lg text-xs font-medium border-0 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] cursor-pointer ${statusClass}`}
                           >
                             {COLLECTION_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>
                         </td>
-                        <td className="px-3 py-3 text-sm font-semibold text-[#121314] text-right whitespace-nowrap">
+                        <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)] text-right whitespace-nowrap">
                           {formatCurrency(inv.pending_amount ?? inv.amount)}
                           {inv.siigo_total != null && Number(inv.pending_amount) < Number(inv.siigo_total) && (
                             <span className="block text-[10px] font-medium text-amber-600">pago parcial · total {formatCurrency(inv.siigo_total)}</span>
@@ -990,7 +990,7 @@ const Collections = () => {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => openReminderForInvoice({ ...inv, client_id: client.id, client_email: client.email, siigo_email: client.siigo_email, orbit_email: client.orbit_email, client_name: client.company || client.name })}
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#121314] text-[#44BF47] text-xs font-medium hover:bg-[#1C1D1F] transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[var(--dark)] text-[var(--accent)] text-xs font-medium hover:bg-[#1C1D1F] transition-colors"
                               title="Cobrar solo esta factura"
                             >
                               <Send size={12} /> Cobrar
@@ -1018,7 +1018,7 @@ const Collections = () => {
           {/* Notes */}
           <div className="glass-card overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#121314]">Notas de Seguimiento</h2>
+              <h2 className="text-lg font-bold text-[var(--ink)]">Notas de Seguimiento</h2>
             </div>
             <div className="p-6">
               {clientNotes.length === 0 ? (
@@ -1048,7 +1048,7 @@ const Collections = () => {
           {/* Reminder History */}
           <div className="glass-card overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-[#121314]">Recordatorios Enviados</h2>
+              <h2 className="text-lg font-bold text-[var(--ink)]">Recordatorios Enviados</h2>
             </div>
             <div className="p-6">
               {reminders.length === 0 ? (
@@ -1059,7 +1059,7 @@ const Collections = () => {
                     <div key={r.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-[#121314] truncate">{r.subject}</p>
+                          <p className="text-sm font-medium text-[var(--ink)] truncate">{r.subject}</p>
                           <p className="text-xs text-gray-500 mt-1 truncate">{r.channel === 'whatsapp' ? <span className="inline-flex items-center gap-1 text-emerald-700"><MessageCircle size={11} /> WhatsApp</span> : 'Para:'} {r.sent_to}</p>
                         </div>
                         <span className="text-xs text-gray-400 whitespace-nowrap">{formatDateTime(r.sent_at)}</span>
@@ -1089,7 +1089,7 @@ const Collections = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-[#121314]">Cartera</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Cartera</h1>
           <p className="text-sm text-gray-500 mt-1">Gestión de cobros y estados de cuenta</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1119,12 +1119,12 @@ const Collections = () => {
           <button
             onClick={() => setShowBulkModal(true)}
             disabled={debtors.length === 0}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
             title="Enviar el estado de cuenta a todos los clientes con saldo y email"
           >
             <Mail size={16} />
             Cobrar a todos
-            {debtorsWithEmail > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#44BF47] text-white text-[11px] font-bold">{debtorsWithEmail}</span>}
+            {debtorsWithEmail > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold">{debtorsWithEmail}</span>}
           </button>
         </div>
       </div>
@@ -1144,7 +1144,7 @@ const Collections = () => {
       />
 
       {/* Pestañas */}
-      <div className="flex items-center gap-1 mb-4 bg-white/50 border border-[#121212]/[0.09] rounded-xl p-1 w-fit max-w-full overflow-x-auto">
+      <div className="flex items-center gap-1 mb-4 bg-[rgb(var(--surface-rgb)/0.5)] border border-[rgb(var(--ink-rgb)/0.09)] rounded-xl p-1 w-fit max-w-full overflow-x-auto">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = activeTab === t.id;
@@ -1154,11 +1154,11 @@ const Collections = () => {
               key={t.id}
               type="button"
               onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#121314] text-white shadow-sm' : 'text-gray-600 hover:bg-[#121212]/[0.03]'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[var(--dark)] text-white shadow-sm' : 'text-gray-600 hover:bg-[rgb(var(--ink-rgb)/0.03)]'}`}
             >
-              <Icon size={15} className={active ? 'text-[#44BF47]' : ''} />
+              <Icon size={15} className={active ? 'text-[var(--accent)]' : ''} />
               {t.label}
-              {count !== null && <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>}
+              {count !== null && <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-[rgb(var(--surface-rgb)/0.15)] text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>}
             </button>
           );
         })}
@@ -1198,7 +1198,7 @@ const Collections = () => {
       {recentlyPaid.length > 0 && (
         <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-[#121314]">Pagos Recientes (30 dias)</h2>
+            <h2 className="text-lg font-bold text-[var(--ink)]">Pagos Recientes (30 dias)</h2>
           </div>
           <div className="divide-y divide-gray-50">
             {recentlyPaid.map((inv) => (
@@ -1222,9 +1222,9 @@ const Collections = () => {
       {/* History Modal */}
       {showHistory && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowHistory(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-[#121314]">Historial de Recordatorios</h3>
+              <h3 className="text-lg font-bold text-[var(--ink)]">Historial de Recordatorios</h3>
               <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
@@ -1236,12 +1236,12 @@ const Collections = () => {
                     <div key={r.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[#121314]">{r.client_name}</p>
+                          <p className="text-sm font-semibold text-[var(--ink)]">{r.client_name}</p>
                           <p className="text-xs text-gray-500 mt-1 truncate">{r.subject}</p>
                           <p className="text-xs text-gray-400 mt-0.5 truncate">{r.channel === 'whatsapp' ? <span className="inline-flex items-center gap-1 text-emerald-700"><MessageCircle size={11} /> WhatsApp</span> : 'Para:'} {r.sent_to}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-[#121314]">{formatCurrency(r.total_amount)}</p>
+                          <p className="text-sm font-bold text-[var(--ink)]">{formatCurrency(r.total_amount)}</p>
                           <p className="text-xs text-gray-400 mt-1">{formatDateTime(r.sent_at)}</p>
                         </div>
                       </div>
@@ -1255,14 +1255,14 @@ const Collections = () => {
       )}
       {showScheduled && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowScheduled(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-[#121314]">Correos Programados</h3>
+              <h3 className="text-lg font-bold text-[var(--ink)]">Correos Programados</h3>
               <div className="flex items-center gap-2">
                 <button
                   onClick={retryScheduled}
                   disabled={processingScheduled}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#121314] text-[#44BF47] text-xs font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--dark)] text-[var(--accent)] text-xs font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
                 >
                   <RefreshCw size={14} className={processingScheduled ? 'animate-spin' : ''} />
                   {processingScheduled ? 'Procesando...' : 'Reintentar fallidos'}
@@ -1279,7 +1279,7 @@ const Collections = () => {
                     <div key={s.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[#121314]">{s.client_name}</p>
+                          <p className="text-sm font-semibold text-[var(--ink)]">{s.client_name}</p>
                           <p className="text-xs text-gray-500 mt-1 truncate">Para: {s.email_to}</p>
                           <p className="text-xs text-gray-400 mt-0.5">Programado: {formatDateTime(s.scheduled_for)}</p>
                           {s.error_message && <p className="text-xs text-red-500 mt-1">Error: {s.error_message}</p>}

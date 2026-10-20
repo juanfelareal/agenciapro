@@ -398,7 +398,7 @@ const Automations = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Automatizaciones</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Automatizaciones</h1>
           <p className="text-sm text-gray-500 mt-0.5">Configura reglas para automatizar tu flujo de trabajo</p>
         </div>
         <button
@@ -412,7 +412,7 @@ const Automations = () => {
 
       {/* Automations List */}
       {automations.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="bg-[var(--surface)] rounded-lg shadow p-12 text-center">
           <Zap size={64} className="mx-auto text-gray-300 mb-4" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay automatizaciones</h3>
           <p className="text-gray-500 mb-6">
@@ -430,9 +430,9 @@ const Automations = () => {
           {automations.map((automation) => (
             <div
               key={automation.id}
-              className={`bg-white rounded-lg shadow p-5 border-l-4 transition-all ${
+              className={`bg-[var(--surface)] rounded-lg shadow p-5 border-l-4 transition-all ${
                 automation.is_active
-                  ? 'border-l-[#121314]'
+                  ? 'border-l-[var(--ink)]'
                   : 'border-l-gray-300 opacity-75'
               }`}
             >
@@ -441,7 +441,7 @@ const Automations = () => {
                   <div className="flex items-center gap-3 mb-2">
                     <Zap
                       size={20}
-                      className={automation.is_active ? 'text-[#121314]' : 'text-gray-400'}
+                      className={automation.is_active ? 'text-[var(--ink)]' : 'text-gray-400'}
                     />
                     <h3 className="text-lg font-semibold text-gray-800">
                       {automation.name}
@@ -511,7 +511,7 @@ const Automations = () => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <Settings size={24} />
@@ -631,7 +631,7 @@ const Automations = () => {
                 <input
                   type="checkbox"
                   id="is_active"
-                  className="w-5 h-5 rounded text-[#121314]"
+                  className="w-5 h-5 rounded text-[var(--ink)]"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 />

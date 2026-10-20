@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getBranding } from '../branding/applyBranding'; // [branding]
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
@@ -196,7 +197,7 @@ const StatusBadge = ({ status, onChange }) => {
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
           <div
-            className="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl py-1 min-w-[200px] overflow-y-auto"
+            className="fixed z-[9999] bg-[var(--surface)] border border-gray-200 rounded-xl shadow-xl py-1 min-w-[200px] overflow-y-auto"
             style={dropdownStyle}
           >
             {CREATOR_STATUSES.map(s => {
@@ -296,7 +297,7 @@ const AngleAssigner = ({ creatorId, assignedAngles, projectAngles, onToggle }) =
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
           <div
-            className="fixed z-[9999] bg-white border border-gray-200 rounded-xl shadow-xl py-2 min-w-[180px] overflow-y-auto"
+            className="fixed z-[9999] bg-[var(--surface)] border border-gray-200 rounded-xl shadow-xl py-2 min-w-[180px] overflow-y-auto"
             style={dropdownStyle}
           >
             <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -629,6 +630,7 @@ export default function UGCProjectDetail() {
     const totalPayment = contract.project_details?.total_payment || (videoCount * pricePerVideo);
     const currency = contract.project_details?.currency || 'COP';
 
+    const BRAND = getBranding().colors; // [branding] hex resueltos: la ventana de impresión no tiene las variables CSS
     const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -647,13 +649,13 @@ export default function UGCProjectDetail() {
     }
     .header {
       text-align: center;
-      border-bottom: 3px solid #44BF47;
+      border-bottom: 3px solid ${BRAND.accent};
       padding-bottom: 20px;
       margin-bottom: 30px;
     }
     .header h1 {
       font-size: 24px;
-      color: #1E7A30;
+      color: ${BRAND.accentDeep};
       margin-bottom: 5px;
     }
     .header p {
@@ -666,7 +668,7 @@ export default function UGCProjectDetail() {
     .section-title {
       font-size: 14px;
       font-weight: 600;
-      color: #1E7A30;
+      color: ${BRAND.accentDeep};
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 12px;
@@ -713,7 +715,7 @@ export default function UGCProjectDetail() {
     .total-value {
       font-size: 20px;
       font-weight: 700;
-      color: #1E7A30;
+      color: ${BRAND.accentDeep};
     }
     .signature-section {
       margin-top: 40px;
@@ -757,7 +759,7 @@ export default function UGCProjectDetail() {
 </head>
 <body>
   <div class="no-print" style="background:#f3f4f6; padding:10px 20px; margin:-40px -40px 30px; text-align:center;">
-    <button onclick="window.print()" style="background:#44BF47; color:white; border:none; padding:10px 30px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;">
+    <button onclick="window.print()" style="background:${BRAND.accent}; color:white; border:none; padding:10px 30px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;">
       Imprimir / Guardar PDF
     </button>
   </div>
@@ -1013,7 +1015,7 @@ export default function UGCProjectDetail() {
                     href={project.brief_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
                     Ver Brief
@@ -1032,7 +1034,7 @@ export default function UGCProjectDetail() {
             )}
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
             >
               <Plus className="w-4 h-4" />
               Agregar Creadores
@@ -1082,7 +1084,7 @@ export default function UGCProjectDetail() {
                 {angle.name}
                 <button
                   onClick={() => handleRemoveAngle(angle.id)}
-                  className="p-0.5 hover:bg-[#121212]/[0.04] rounded-full transition-colors"
+                  className="p-0.5 hover:bg-[rgb(var(--ink-rgb)/0.04)] rounded-full transition-colors"
                   title="Eliminar ángulo"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -1134,7 +1136,7 @@ export default function UGCProjectDetail() {
       </div>
 
       {/* Creators Table */}
-      <div className="flex-1 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="flex-1 bg-[var(--surface)] rounded-2xl border border-gray-200 overflow-hidden">
         {creators.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-500">
             <Users className="w-12 h-12 mb-3 opacity-40" />
@@ -1142,7 +1144,7 @@ export default function UGCProjectDetail() {
             <p className="text-sm mb-4">Agrega creadores a este proyecto para empezar</p>
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
             >
               <Plus className="w-4 h-4" />
               Agregar Creadores
@@ -1381,7 +1383,7 @@ export default function UGCProjectDetail() {
             </div>
             <DragOverlay>
               {activeCreator && (
-                <div className="bg-white border-2 border-green-500 rounded-lg shadow-lg p-3 flex items-center gap-3 opacity-90">
+                <div className="bg-[var(--surface)] border-2 border-green-500 rounded-lg shadow-lg p-3 flex items-center gap-3 opacity-90">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
                     {activeCreator.full_name?.charAt(0) || '?'}
                   </div>
@@ -1399,7 +1401,7 @@ export default function UGCProjectDetail() {
       {/* Add Creators Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Agregar Creadores</h2>
@@ -1500,7 +1502,7 @@ export default function UGCProjectDetail() {
                 <button
                   onClick={handleAddCreators}
                   disabled={saving || selectedCreators.length === 0}
-                  className="px-4 py-2 bg-[#121314] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Agregar
@@ -1514,7 +1516,7 @@ export default function UGCProjectDetail() {
       {/* Creator Details Edit Modal (videos, price, brief) */}
       {editingCreatorDetails && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Editar detalles del creador</h2>
@@ -1600,7 +1602,7 @@ export default function UGCProjectDetail() {
               <button
                 onClick={handleSaveCreatorDetails}
                 disabled={savingCreatorDetails}
-                className="px-4 py-2 bg-[#121314] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {savingCreatorDetails && <Loader2 className="w-4 h-4 animate-spin" />}
                 Guardar
@@ -1613,8 +1615,8 @@ export default function UGCProjectDetail() {
       {/* View Signed Contract Modal */}
       {viewingContract && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-[var(--surface)]">
               <div>
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-green-500" />

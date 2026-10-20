@@ -27,7 +27,7 @@ export default function Info({ text, className = '', align = 'center' }) {
       {open && (
         <span
           role="tooltip"
-          className={`absolute z-40 top-full mt-1.5 w-60 ${pos} bg-[#121314] text-white text-[11px] leading-relaxed font-normal normal-case tracking-normal text-left rounded-lg px-3 py-2 shadow-xl pointer-events-none`}
+          className={`absolute z-40 top-full mt-1.5 w-60 ${pos} bg-[var(--dark)] text-white text-[11px] leading-relaxed font-normal normal-case tracking-normal text-left rounded-lg px-3 py-2 shadow-xl pointer-events-none`}
         >
           {text}
         </span>

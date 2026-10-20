@@ -131,7 +131,7 @@ const GanttView = ({ projectId }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-[var(--surface)] rounded-lg shadow">
       {/* Gantt Controls */}
       <div className="p-4 border-b flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-800">Vista Gantt</h3>

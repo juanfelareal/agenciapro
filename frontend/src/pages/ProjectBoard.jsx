@@ -39,7 +39,7 @@ const ProjectBoard = () => {
         <p className="text-red-600">Proyecto no encontrado</p>
         <button
           onClick={() => navigate('/app/projects')}
-          className="mt-4 text-[#121314] hover:underline"
+          className="mt-4 text-[var(--ink)] hover:underline"
         >
           Volver a proyectos
         </button>
@@ -60,7 +60,7 @@ const ProjectBoard = () => {
         </button>
         <div className="flex flex-wrap justify-between items-start gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">{project.name}</h1>
+            <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">{project.name}</h1>
             <p className="text-sm text-gray-500 mt-0.5">{project.description || 'Gestión de proyecto'}</p>
           </div>
           <div className="text-right">
@@ -71,14 +71,14 @@ const ProjectBoard = () => {
       </div>
 
       {/* View Tabs */}
-      <div className="bg-white rounded-lg shadow mb-6">
+      <div className="bg-[var(--surface)] rounded-lg shadow mb-6">
         <div className="border-b border-gray-200">
           <nav className="flex gap-2 sm:gap-4 px-3 sm:px-6 overflow-x-auto">
             <button
               onClick={() => setActiveView('table')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition ${
                 activeView === 'table'
-                  ? 'border-[#121314] text-[#121314]'
+                  ? 'border-[var(--ink)] text-[var(--ink)]'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -89,7 +89,7 @@ const ProjectBoard = () => {
               onClick={() => setActiveView('gantt')}
               className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition ${
                 activeView === 'gantt'
-                  ? 'border-[#121314] text-[#121314]'
+                  ? 'border-[var(--ink)] text-[var(--ink)]'
                   : 'border-transparent text-gray-600 hover:text-gray-800'
               }`}
             >

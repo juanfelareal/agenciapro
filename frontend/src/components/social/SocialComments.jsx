@@ -132,7 +132,7 @@ const SocialComments = ({ account }) => {
 
   if (!account) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+      <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
         <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona una cuenta</h3>
         <p className="text-gray-500">
@@ -167,7 +167,7 @@ const SocialComments = ({ account }) => {
         </button>
 
         {/* Post preview */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-4">
           <div className="flex gap-4">
             {selectedPost.thumbnailUrl && (
               <img
@@ -193,7 +193,7 @@ const SocialComments = ({ account }) => {
         </div>
 
         {/* Comments list */}
-        <div className="bg-white rounded-xl border border-gray-200">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200">
           <div className="p-4 border-b border-gray-200">
             <h3 className="font-semibold text-gray-900">
               Comentarios ({comments.length})
@@ -367,7 +367,7 @@ const SocialComments = ({ account }) => {
       </div>
 
       {posts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
           <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Sin comentarios</h3>
           <p className="text-gray-500">
@@ -375,7 +375,7 @@ const SocialComments = ({ account }) => {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 divide-y divide-gray-100">
           {posts.map((post) => (
             <button
               key={post.id}

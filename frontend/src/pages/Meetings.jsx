@@ -63,12 +63,12 @@ export default function Meetings() {
     <div className="max-w-6xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#121314] flex items-center gap-2"><ClipboardList className="text-emerald-500" size={24} /> Reuniones → tareas</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)] flex items-center gap-2"><ClipboardList className="text-emerald-500" size={24} /> Reuniones → tareas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Pega la transcripción de Tactiq o envíala al WhatsApp de LA REAL. Orbit propone las tareas, tú confirmas.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={load} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[#121314] hover:bg-gray-50" title="Actualizar"><RefreshCw size={16} /></button>
-          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F]">
+          <button onClick={load} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[var(--ink)] hover:bg-gray-50" title="Actualizar"><RefreshCw size={16} /></button>
+          <button onClick={() => setShowNew(true)} className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F]">
             <Plus size={16} /> Pegar transcripción
           </button>
         </div>
@@ -114,9 +114,9 @@ function IntakeList({ list, loading, onOpen }) {
   if (loading) return <div className="py-16 text-center text-gray-400 text-sm"><Loader2 className="inline animate-spin mr-2" size={16} />Cargando…</div>;
   if (!list.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-14 text-center">
+      <div className="rounded-2xl border border-dashed border-gray-200 bg-[var(--surface)] px-6 py-14 text-center">
         <Sparkles className="mx-auto text-emerald-400 mb-3" size={28} />
-        <p className="text-[#121314] font-medium">Todavía no hay reuniones procesadas</p>
+        <p className="text-[var(--ink)] font-medium">Todavía no hay reuniones procesadas</p>
         <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
           Al terminar una reunión, envía el archivo .txt de Tactiq al WhatsApp de LA REAL o pégalo aquí. Orbit te devuelve las tareas con responsable, cliente y fecha para que las confirmes.
         </p>
@@ -124,13 +124,13 @@ function IntakeList({ list, loading, onOpen }) {
     );
   }
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+    <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
       {list.map((it) => {
         const st = STATUS[it.status] || STATUS.proposed;
         return (
           <button key={it.id} onClick={() => onOpen(it.id)} className="w-full text-left px-4 sm:px-5 py-4 hover:bg-gray-50 flex flex-wrap items-center gap-x-4 gap-y-1">
             <div className="flex-1 min-w-[200px]">
-              <div className="font-medium text-[#121314] flex items-center gap-2">
+              <div className="font-medium text-[var(--ink)] flex items-center gap-2">
                 {it.source === 'whatsapp' ? <MessageCircle size={14} className="text-emerald-500" /> : <ClipboardList size={14} className="text-gray-400" />}
                 {it.title || 'Reunión'}
               </div>
@@ -218,16 +218,16 @@ function IntakeDetail({ id, members, clients, onBack }) {
 
   if (!intake) return <div className="py-16 text-center text-gray-400 text-sm"><Loader2 className="inline animate-spin mr-2" size={16} />Cargando…</div>;
   const st = STATUS[intake.status] || STATUS.proposed;
-  const inputCls = 'w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 focus:border-[#44BF47] disabled:bg-gray-50 disabled:text-gray-500';
+  const inputCls = 'w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] focus:border-[var(--accent)] disabled:bg-gray-50 disabled:text-gray-500';
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="text-sm text-gray-500 hover:text-[#121314] flex items-center gap-1"><ChevronLeft size={16} /> Volver</button>
+      <button onClick={onBack} className="text-sm text-gray-500 hover:text-[var(--ink)] flex items-center gap-1"><ChevronLeft size={16} /> Volver</button>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+      <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-[#121314]">{intake.title || 'Reunión'}</h2>
+            <h2 className="text-lg font-bold text-[var(--ink)]">{intake.title || 'Reunión'}</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               {intake.meeting_date ? `Reunión ${fmtDate(intake.meeting_date)} · ` : ''}
               {intake.source === 'whatsapp' ? 'llegó por WhatsApp' : 'pegada en Orbit'} · {fmtDate(intake.created_at)}
@@ -244,9 +244,9 @@ function IntakeDetail({ id, members, clients, onBack }) {
         <div className={`rounded-xl px-4 py-2.5 text-sm border ${msg.type === 'ok' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{msg.text}</div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
-          <div className="font-medium text-[#121314]">{active.length} tarea{active.length === 1 ? '' : 's'} {editable ? 'propuesta' + (active.length === 1 ? '' : 's') : ''}</div>
+          <div className="font-medium text-[var(--ink)]">{active.length} tarea{active.length === 1 ? '' : 's'} {editable ? 'propuesta' + (active.length === 1 ? '' : 's') : ''}</div>
           {editable && (
             <button onClick={addTask} className="text-sm text-emerald-700 hover:text-emerald-900 flex items-center gap-1"><Plus size={14} /> Agregar tarea</button>
           )}
@@ -295,7 +295,7 @@ function IntakeDetail({ id, members, clients, onBack }) {
         {editable && (
           <div className="px-4 sm:px-5 py-4 border-t border-gray-100 bg-gray-50/60 space-y-3">
             <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3">
+              <div className="flex-1 flex items-center gap-2 bg-[var(--surface)] border border-gray-200 rounded-xl px-3">
                 <Wand2 size={15} className="text-gray-400 shrink-0" />
                 <input
                   className="flex-1 py-2 text-sm bg-transparent focus:outline-none"
@@ -304,14 +304,14 @@ function IntakeDetail({ id, members, clients, onBack }) {
                   onChange={(e) => setInstruction(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') correct(); }}
                 />
-                <button onClick={correct} disabled={busy || !instruction.trim()} className="text-sm font-medium text-[#121314] disabled:text-gray-300">{busy === 'correct' ? <Loader2 size={15} className="animate-spin" /> : 'Aplicar'}</button>
+                <button onClick={correct} disabled={busy || !instruction.trim()} className="text-sm font-medium text-[var(--ink)] disabled:text-gray-300">{busy === 'correct' ? <Loader2 size={15} className="animate-spin" /> : 'Aplicar'}</button>
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <button onClick={cancel} disabled={!!busy} className="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1"><X size={14} /> Descartar reunión</button>
               <div className="flex items-center gap-2">
-                {dirty && <button onClick={save} disabled={!!busy} className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-[#121314] hover:bg-gray-50">Guardar cambios</button>}
-                <button onClick={confirm} disabled={!!busy || active.length === 0} className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F] disabled:opacity-50">
+                {dirty && <button onClick={save} disabled={!!busy} className="px-4 py-2 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm font-medium text-[var(--ink)] hover:bg-gray-50">Guardar cambios</button>}
+                <button onClick={confirm} disabled={!!busy || active.length === 0} className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F] disabled:opacity-50">
                   {busy === 'confirm' ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Crear {active.length} tarea{active.length === 1 ? '' : 's'} en Orbit
                 </button>
               </div>
@@ -355,9 +355,9 @@ function NewIntakeModal({ onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-[#121314]">Nueva reunión</h3>
+          <h3 className="text-lg font-bold text-[var(--ink)]">Nueva reunión</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
         <div className="p-6 overflow-y-auto space-y-3">
@@ -379,7 +379,7 @@ function NewIntakeModal({ onClose, onCreated }) {
         </div>
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-gray-200 text-sm">Cancelar</button>
-          <button onClick={submit} disabled={busy || text.trim().length < 120} className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+          <button onClick={submit} disabled={busy || text.trim().length < 120} className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium flex items-center gap-2 disabled:opacity-50">
             {busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {busy ? 'Leyendo la reunión…' : 'Proponer tareas'}
           </button>
         </div>

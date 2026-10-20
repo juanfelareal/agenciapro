@@ -81,7 +81,7 @@ export default function PortalStructuredBriefs() {
                     <div
                       key={brief.id}
                       onClick={() => navigate(`/portal/briefs/${brief.id}`)}
-                      className="block bg-white border border-ink-100 rounded-2xl p-4 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer group"
+                      className="block bg-[var(--surface)] border border-ink-100 rounded-2xl p-4 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer group"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3 min-w-0">

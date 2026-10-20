@@ -167,7 +167,7 @@ const NoteCommentsSidebar = ({
             ? 'bg-amber-50 border-amber-300 shadow-md ring-1 ring-amber-200'
             : comment.is_resolved
               ? 'bg-slate-50 border-slate-200 opacity-60 hover:opacity-100'
-              : 'bg-white border-slate-200 hover:border-slate-300'
+              : 'bg-[var(--surface)] border-slate-200 hover:border-slate-300'
         }`}
       >
         {/* Main comment */}
@@ -233,7 +233,7 @@ const NoteCommentsSidebar = ({
               <button
                 onClick={() => handleReplySubmit(comment.id)}
                 disabled={!replyContent.trim() || (isPublicView && !authorName.trim())}
-                className="px-2 py-1.5 bg-[#121314] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2 py-1.5 bg-[var(--dark)] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send size={12} />
               </button>
@@ -297,7 +297,7 @@ const NoteCommentsSidebar = ({
   return (
     <div className="w-80 bg-slate-50 border-l border-slate-200 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-slate-200 bg-white">
+      <div className="p-4 border-b border-slate-200 bg-[var(--surface)]">
         <div className="flex items-center gap-2">
           <MessageSquare size={18} className="text-slate-600" />
           <h3 className="font-semibold text-slate-800">Comentarios</h3>
@@ -311,7 +311,7 @@ const NoteCommentsSidebar = ({
 
       {/* Comment form */}
       {allowComments && (
-        <div className="p-4 border-b border-slate-200 bg-white">
+        <div className="p-4 border-b border-slate-200 bg-[var(--surface)]">
           {isPublicView && (
             <input
               type="text"
@@ -342,7 +342,7 @@ const NoteCommentsSidebar = ({
             <button
               type="submit"
               disabled={!newComment.trim() || (isPublicView && !authorName.trim())}
-              className="px-3 bg-[#121314] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 bg-[var(--dark)] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send size={16} />
             </button>

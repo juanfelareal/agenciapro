@@ -2,8 +2,30 @@ import express from 'express';
 import crypto from 'crypto';
 import db from '../../config/database.js';
 import { clientAuthMiddleware } from '../../middleware/clientAuth.js';
+import { normalizeBranding } from '../../utils/branding.js'; // [branding]
 
 const router = express.Router();
+
+/**
+ * [branding] Agencia dueña del cliente: nombre, logo y marca (acento, tema…)
+ * para que el portal se vea con la identidad de la agencia.
+ */
+async function getAgencyForClient(clientId) {
+  try {
+    const org = await db.get(`
+      SELECT o.name, o.logo_url, o.branding
+      FROM clients c
+      JOIN organizations o ON o.id = c.organization_id
+      WHERE c.id = ?
+    `, [clientId]);
+    if (!org) return null;
+    const branding = normalizeBranding(org.branding, { logo_url: org.logo_url });
+    return { name: org.name, logo_url: branding.logo_url || org.logo_url || null, branding };
+  } catch (e) {
+    console.error('Portal agency branding lookup failed:', e.message);
+    return null;
+  }
+}
 
 /**
  * Generate a secure session token
@@ -63,6 +85,7 @@ router.post('/login', async (req, res) => {
 
     // Helper to default to true for backwards compatibility (new fields may be null)
     const toBool = (val, defaultVal = true) => val === null || val === undefined ? defaultVal : !!val;
+    const agency = await getAgencyForClient(invite.client_id); // [branding]
 
     res.json({
       token: sessionToken,
@@ -74,6 +97,7 @@ router.post('/login', async (req, res) => {
         email: invite.email,
         logo_url: invite.client_logo_url || null
       },
+      agency, // [branding] { name, logo_url, branding }
       permissions: {
         can_view_dashboard: toBool(settings.can_view_dashboard),
         can_view_projects: toBool(settings.can_view_projects),
@@ -143,6 +167,7 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
     // Helper to default to true for backwards compatibility (new fields may be null)
     const toBool = (val, defaultVal = true) => val === null || val === undefined ? defaultVal : !!val;
     const p = req.client.permissions;
+    const agency = await getAgencyForClient(req.client.id); // [branding]
 
     res.json({
       client: {
@@ -153,6 +178,7 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
         email: req.client.email,
         logo_url: req.client.logo_url || null
       },
+      agency, // [branding] { name, logo_url, branding }
       permissions: {
         can_view_dashboard: toBool(p.can_view_dashboard),
         can_view_projects: toBool(p.can_view_projects),

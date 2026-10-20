@@ -92,7 +92,7 @@ const SocialAnalytics = ({ account }) => {
 
   if (!account) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+      <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
         <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona una cuenta</h3>
         <p className="text-gray-500">
@@ -167,7 +167,7 @@ const SocialAnalytics = ({ account }) => {
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Followers */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-500">Seguidores</span>
             <Users className="w-5 h-5 text-blue-500" />
@@ -183,7 +183,7 @@ const SocialAnalytics = ({ account }) => {
         </div>
 
         {/* Reach */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-500">Alcance</span>
             <Eye className="w-5 h-5 text-purple-500" />
@@ -193,7 +193,7 @@ const SocialAnalytics = ({ account }) => {
         </div>
 
         {/* Impressions */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-500">Impresiones</span>
             <BarChart3 className="w-5 h-5 text-orange-500" />
@@ -203,7 +203,7 @@ const SocialAnalytics = ({ account }) => {
         </div>
 
         {/* Engagement Rate */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-500">Engagement</span>
             <Heart className="w-5 h-5 text-pink-500" />
@@ -215,7 +215,7 @@ const SocialAnalytics = ({ account }) => {
 
       {/* Daily Metrics Chart */}
       {daily && daily.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Metricas Diarias</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -252,7 +252,7 @@ const SocialAnalytics = ({ account }) => {
 
       {/* Best Times to Post */}
       {bestTimes && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="w-5 h-5 text-blue-500" />
             <h3 className="text-lg font-semibold text-gray-900">Mejores Horarios para Publicar</h3>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePortal } from '../../context/PortalContext';
+import { useBranding } from '../../branding/useBranding'; // [branding]
 import { KeyRound, ArrowRight, AlertCircle, Building2 } from 'lucide-react';
 
 export default function PortalLogin() {
@@ -9,6 +10,8 @@ export default function PortalLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, logout, isAuthenticated } = usePortal();
+  const { org: agency, logo: brandLogo } = useBranding(); // [branding] agencia cacheada (última sesión del portal)
+  const agencyLogo = brandLogo('light');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -46,11 +49,11 @@ export default function PortalLogin() {
       <div className="min-h-screen app-mist flex flex-col items-center justify-center gap-5 animate-fade-in">
         <img src={splash.logo_url} alt={splash.nickname || splash.name} className="max-h-20 max-w-[240px] object-contain" />
         <div className="text-center">
-          <p className="text-lg font-semibold text-[#121314]">{splash.nickname || splash.name}</p>
+          <p className="text-lg font-semibold text-[var(--ink)]">{splash.nickname || splash.name}</p>
           <p className="text-sm text-gray-500 mt-1">Entrando a tu portal…</p>
         </div>
         <div className="w-40 h-1 bg-gray-200 rounded-full overflow-hidden">
-          <div className="h-full bg-[#121314] rounded-full animate-pulse" style={{ width: '70%' }} />
+          <div className="h-full bg-[var(--dark)] rounded-full animate-pulse" style={{ width: '70%' }} />
         </div>
       </div>
     );
@@ -98,17 +101,24 @@ export default function PortalLogin() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#121314] rounded-2xl mb-4">
-            <Building2 className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Portal de Cliente</h1>
+          {/* [branding] Logo de la agencia si ya se conoce (sesión anterior en este dispositivo) */}
+          {agencyLogo ? (
+            <img src={agencyLogo} alt={agency?.name || 'Agencia'} className="mx-auto mb-4 h-14 max-w-[220px] object-contain" />
+          ) : (
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--dark)] rounded-2xl mb-4">
+              <Building2 className="w-8 h-8 text-white" />
+            </div>
+          )}
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">
+            {agency?.name ? `Portal de cliente de ${agency.name}` : 'Portal de Cliente'}
+          </h1>
           <p className="text-gray-500 mt-2">
             Ingresa tu código de acceso para continuar
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-[#FBFAF8] rounded-3xl shadow-soft border border-[#121212]/[0.09] p-8">
+        <div className="bg-[var(--surface)] rounded-3xl shadow-soft border border-[rgb(var(--ink-rgb)/0.09)] p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Code Input */}
             <div>
@@ -145,7 +155,7 @@ export default function PortalLogin() {
               type="submit"
               disabled={loading || code.length < 9}
               className="w-full flex items-center justify-center gap-2 py-4 px-6
-                       bg-[#121314] text-white font-semibold rounded-xl
+                       bg-[var(--dark)] text-white font-semibold rounded-xl
                        hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed
                        transition-all duration-200"
             >
@@ -171,7 +181,7 @@ export default function PortalLogin() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-400 mt-8">
-          Powered by AgenciaPro
+          Powered by Orbit
         </p>
       </div>
     </div>

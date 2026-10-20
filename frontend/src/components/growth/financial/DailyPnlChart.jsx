@@ -18,7 +18,7 @@ const DarkTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-[#121314] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[220px] max-w-[80vw] space-y-1">
+    <div className="bg-[var(--dark)] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[220px] max-w-[80vw] space-y-1">
       <div className="font-medium capitalize mb-1.5">{dayLong(d.date)}{d.orders ? ` · ${d.orders} pedidos` : ''}</div>
       <Row label="Ventas netas" value={d.revenue} color={COLORS.revenue} />
       <Row label="Costos" value={d.costs} color={COLORS.costs} />
@@ -47,7 +47,7 @@ export default function DailyPnlChart({ daily = [], height = 260 }) {
   return (
     <div className="glass-solid rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-1.5">
-        <h2 className="font-semibold text-sm text-[#121314]">Ventas, costos y utilidad por día</h2>
+        <h2 className="font-semibold text-sm text-[var(--ink)]">Ventas, costos y utilidad por día</h2>
         <Info text="Barras: ventas netas y costos totales del día (producto + ads + variables + la parte diaria de los fijos). Línea: utilidad del día." />
       </div>
       <p className="text-xs text-gray-400 mt-0.5">Un día en rojo es un día que costó más de lo que vendió.</p>

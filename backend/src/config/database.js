@@ -157,6 +157,9 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // [branding] Marca por organización (acento, tema, logos, pie de informes…). Contrato en utils/branding.js
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS branding JSONB DEFAULT '{}'`);
+
     // Clients table (CRM)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clients (

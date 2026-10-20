@@ -19,9 +19,9 @@ const fmtCOPFull = (v) => new Intl.NumberFormat('es-CO', {
 const fmtPct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 // Sales bars: one hue. The month in progress is lighter because it is incomplete.
-const BAR = '#44BF47';
+const BAR = 'var(--accent)';
 const BAR_CURRENT = '#86efac';
-const LINE = '#121314';
+const LINE = 'var(--ink)';
 
 /**
  * Builds the monthly series: revenue, ROAS and month-over-month growth.
@@ -46,7 +46,7 @@ const buildSeries = (months, currentPeriod) =>
 
 const GrowthLabel = ({ x, y, width, value }) => {
   if (value === null || value === undefined || Number.isNaN(value)) return null;
-  const color = value > 0 ? '#1E7A30' : value < 0 ? '#dc2626' : '#6b7280';
+  const color = value > 0 ? 'var(--accent-deep)' : value < 0 ? '#dc2626' : '#6b7280';
   return (
     <text x={x + width / 2} y={y - 6} textAnchor="middle" fontSize={11} fontWeight={600} fill={color}>
       {fmtPct(value)}
@@ -67,7 +67,7 @@ const TooltipBox = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
+    <div className="bg-[var(--surface)] border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
       <div className="font-medium text-gray-900 mb-1">
         {d.fullLabel}{d.isCurrent ? ' · En curso' : ''}
       </div>

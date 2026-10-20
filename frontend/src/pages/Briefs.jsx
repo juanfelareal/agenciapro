@@ -196,13 +196,13 @@ const Briefs = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Briefs</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Briefs</h1>
           <p className="text-sm text-gray-500 mt-0.5">Planes mensuales por cliente</p>
         </div>
         <div className="relative">
           <button
             onClick={() => setShowCreateMenu(!showCreateMenu)}
-            className="bg-[#121314] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
+            className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
           >
             <Plus size={20} />
             Nuevo Brief
@@ -211,7 +211,7 @@ const Briefs = () => {
           {showCreateMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowCreateMenu(false)} />
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-64 bg-[var(--surface)] rounded-xl shadow-xl border border-gray-100 z-20 overflow-hidden">
                 <button
                   onClick={() => {
                     setShowCreateMenu(false);
@@ -223,7 +223,7 @@ const Briefs = () => {
                     <Layers className="w-5 h-5 text-[#10B981]" />
                   </div>
                   <div>
-                    <p className="font-medium text-[#121314]">Estructurado</p>
+                    <p className="font-medium text-[var(--ink)]">Estructurado</p>
                     <p className="text-xs text-gray-500">Por áreas con tareas</p>
                   </div>
                 </button>
@@ -238,7 +238,7 @@ const Briefs = () => {
                     <FileCode className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="font-medium text-[#121314]">HTML</p>
+                    <p className="font-medium text-[var(--ink)]">HTML</p>
                     <p className="text-xs text-gray-500">Subir archivo HTML</p>
                   </div>
                 </button>
@@ -255,7 +255,7 @@ const Briefs = () => {
           <select
             value={filterClient}
             onChange={e => setFilterClient(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
           >
             <option value="all">Todos</option>
             {clients.map(c => (
@@ -268,7 +268,7 @@ const Briefs = () => {
           <select
             value={filterMonth}
             onChange={e => setFilterMonth(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
           >
             <option value="all">Todos</option>
             {MONTH_OPTIONS.map(m => (
@@ -281,7 +281,7 @@ const Briefs = () => {
           <select
             value={filterType}
             onChange={e => setFilterType(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]"
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
           >
             <option value="all">Todos</option>
             <option value="structured">Estructurado</option>
@@ -302,24 +302,24 @@ const Briefs = () => {
         Object.entries(grouped).map(([clientId, group]) => (
           <div key={clientId} className="glass-card overflow-hidden">
             <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
-              <h3 className="font-semibold text-[#121314]">{group.name}</h3>
+              <h3 className="font-semibold text-[var(--ink)]">{group.name}</h3>
             </div>
             <div className="divide-y divide-gray-50">
               {group.briefs.map(brief => (
                 <div key={`${brief.brief_type}-${brief.id}`} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      brief.brief_type === 'structured' ? 'bg-[#10B981]/10' : 'bg-[#121314]/5'
+                      brief.brief_type === 'structured' ? 'bg-[#10B981]/10' : 'bg-[rgb(var(--ink-rgb)/0.05)]'
                     }`}>
                       {brief.brief_type === 'structured' ? (
                         <Layers className="w-4 h-4 text-[#10B981]" />
                       ) : (
-                        <FileCode className="w-4 h-4 text-[#121314]" />
+                        <FileCode className="w-4 h-4 text-[var(--ink)]" />
                       )}
                     </div>
                     <div className="min-w-0">
                       <p
-                        className="font-medium text-[#121314] cursor-pointer hover:underline truncate"
+                        className="font-medium text-[var(--ink)] cursor-pointer hover:underline truncate"
                         onClick={() => {
                           if (brief.brief_type === 'structured') {
                             navigate(`/app/briefs/structured/${brief.id}`);
@@ -456,10 +456,10 @@ const Briefs = () => {
       {/* Preview Modal */}
       {previewBrief && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className={`bg-white shadow-xl flex flex-col ${fullscreen ? 'w-full h-full' : 'sm:rounded-2xl w-full max-w-5xl h-full sm:h-[85vh]'}`}>
+          <div className={`bg-[var(--surface)] shadow-xl flex flex-col ${fullscreen ? 'w-full h-full' : 'sm:rounded-2xl w-full max-w-5xl h-full sm:h-[85vh]'}`}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
               <div>
-                <h3 className="font-semibold text-[#121314]">{previewBrief.title}</h3>
+                <h3 className="font-semibold text-[var(--ink)]">{previewBrief.title}</h3>
                 <p className="text-xs text-gray-400">{clientName(previewBrief)}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -514,9 +514,9 @@ const Briefs = () => {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#121314]">
+              <h2 className="text-xl font-semibold text-[var(--ink)]">
                 {editingBrief ? 'Editar Brief' : 'Nuevo Brief'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
@@ -530,7 +530,7 @@ const Briefs = () => {
                   required
                   value={formData.client_id}
                   onChange={e => setFormData({ ...formData, client_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                 >
                   <option value="">Seleccionar cliente...</option>
                   {clients.map(c => (
@@ -548,7 +548,7 @@ const Briefs = () => {
                     value={formData.title}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Ej: Brief Campaña Navidad"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                   />
                 </div>
                 <div>
@@ -556,7 +556,7 @@ const Briefs = () => {
                   <select
                     value={formData.month}
                     onChange={e => setFormData({ ...formData, month: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                   >
                     <option value="">Sin asignar</option>
                     {MONTH_OPTIONS.map(m => (
@@ -569,7 +569,7 @@ const Briefs = () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Archivo HTML</label>
                 <div
-                  className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#121314]/30 transition-colors"
+                  className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-[rgb(var(--ink-rgb)/0.3)] transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <input
@@ -613,7 +613,7 @@ const Briefs = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
                 >
                   Guardar
                 </button>

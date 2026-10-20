@@ -8,7 +8,7 @@ export function LedgerCard({ title, info, right, children, className = '' }) {
     <div className={`glass-solid rounded-2xl p-5 sm:p-6 flex flex-col min-w-0 ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <h2 className="font-semibold text-sm text-[#121314]">{title}</h2>
+          <h2 className="font-semibold text-sm text-[var(--ink)]">{title}</h2>
           <Info text={info} />
         </div>
         {right}
@@ -27,7 +27,7 @@ export function PillGroup({ options, value, onChange, ariaLabel }) {
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`px-2.5 py-1 rounded-full transition ${value === o.value ? 'bg-[#121314] text-[#44BF47]' : 'text-gray-500 hover:text-[#121314]'}`}
+          className={`px-2.5 py-1 rounded-full transition ${value === o.value ? 'bg-[var(--dark)] text-[var(--accent)]' : 'text-gray-500 hover:text-[var(--ink)]'}`}
         >
           {o.label}
         </button>
@@ -49,9 +49,9 @@ export function LedgerBuilding({ exhausted = false, onRetry }) {
     <div className="flex flex-col items-center text-center py-10 px-4">
       <div className="relative">
         <Database className="w-7 h-7 text-gray-300" />
-        {!exhausted && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1E7A30] absolute -right-1.5 -bottom-1" />}
+        {!exhausted && <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent-deep)] absolute -right-1.5 -bottom-1" />}
       </div>
-      <p className="text-sm font-medium text-[#121314] mt-3">Construyendo el histórico de pedidos…</p>
+      <p className="text-sm font-medium text-[var(--ink)] mt-3">Construyendo el histórico de pedidos…</p>
       <p className="text-[12px] text-gray-500 mt-1 max-w-xs">
         Estamos trayendo los últimos 180 días de la tienda. Suele tardar un par de minutos; esta tarjeta se actualiza sola.
       </p>
@@ -66,7 +66,7 @@ export function LedgerEmpty({ noStore = false, onBackfill, backfilling = false, 
   return (
     <div className="flex flex-col items-center text-center py-10 px-4">
       {noStore ? <Store className="w-7 h-7 text-gray-300" /> : <Database className="w-7 h-7 text-gray-300" />}
-      <p className="text-sm font-medium text-[#121314] mt-3">{noStore ? 'Conecta la tienda para ver este análisis' : 'Todavía no hay pedidos en el histórico'}</p>
+      <p className="text-sm font-medium text-[var(--ink)] mt-3">{noStore ? 'Conecta la tienda para ver este análisis' : 'Todavía no hay pedidos en el histórico'}</p>
       <p className="text-[12px] text-gray-500 mt-1 max-w-xs">
         {text || (noStore
           ? 'Con Shopify o WooCommerce conectado leemos la fecha y hora de cada pedido y quién lo hizo.'

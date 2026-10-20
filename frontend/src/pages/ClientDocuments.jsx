@@ -139,7 +139,7 @@ export default function ClientDocuments() {
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">
             Documentos — {client?.company || client?.name}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -164,7 +164,7 @@ export default function ClientDocuments() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="bg-[#121314] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] disabled:bg-gray-400 transition-colors"
+            className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] disabled:bg-gray-400 transition-colors"
           >
             {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
             {uploading ? 'Subiendo...' : 'Subir Documento'}
@@ -178,7 +178,7 @@ export default function ClientDocuments() {
           <button
             onClick={() => setActiveFilter('all')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeFilter === 'all' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeFilter === 'all' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Todos
@@ -191,7 +191,7 @@ export default function ClientDocuments() {
               key={cat}
               onClick={() => setActiveFilter(cat)}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeFilter === cat ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                activeFilter === cat ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {cat}
@@ -211,7 +211,7 @@ export default function ClientDocuments() {
           <p className="text-gray-500 mb-4">Sube contratos, acuerdos u otros archivos del cliente</p>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-[#121314] text-white px-4 py-2 rounded-lg hover:bg-[#1C1D1F]"
+            className="bg-[var(--dark)] text-white px-4 py-2 rounded-lg hover:bg-[#1C1D1F]"
           >
             Subir primer documento
           </button>
@@ -226,7 +226,7 @@ export default function ClientDocuments() {
               return (
                 <div key={doc.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
                   <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Icon size={20} className="text-[#121314]" />
+                    <Icon size={20} className="text-[var(--ink)]" />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -255,7 +255,7 @@ export default function ClientDocuments() {
                       </div>
                     ) : (
                       <>
-                        <p className="font-medium text-[#121314] truncate">{doc.label}</p>
+                        <p className="font-medium text-[var(--ink)] truncate">{doc.label}</p>
                         <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
                           <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-500">{doc.category || 'General'}</span>
                           <span>{formatSize(doc.file_size)}</span>
@@ -280,7 +280,7 @@ export default function ClientDocuments() {
                       </a>
                       <button
                         onClick={() => handleEditStart(doc)}
-                        className="p-2 text-gray-400 hover:text-[#121314] hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 rounded-lg transition-colors"
                         title="Editar"
                       >
                         <Edit size={18} />

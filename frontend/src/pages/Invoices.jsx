@@ -823,7 +823,7 @@ const Invoices = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Facturas</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Facturas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de facturas e ingresos</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -831,7 +831,7 @@ const Invoices = () => {
             <button
               onClick={handleSyncFromSiigo}
               disabled={syncingSiigo}
-              className="border border-gray-200 text-[#121314] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="border border-gray-200 text-[var(--ink)] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <RefreshCw size={18} className={syncingSiigo ? 'animate-spin' : ''} />
               {syncingSiigo ? 'Sincronizando...' : 'Importar de Siigo'}
@@ -839,7 +839,7 @@ const Invoices = () => {
           )}
           <button
             onClick={handleNew}
-            className="bg-[#121314] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
+            className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
           >
             <Plus size={20} />
             Nueva Factura
@@ -861,11 +861,11 @@ const Invoices = () => {
       <div className="glass-card p-4">
         <div className="flex items-center gap-2 mb-3">
           <Filter size={18} className="text-gray-500" />
-          <span className="font-medium text-[#121314]">Filtros</span>
+          <span className="font-medium text-[var(--ink)]">Filtros</span>
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-[#121314]"
+              className="ml-auto flex items-center gap-1 text-sm text-gray-500 hover:text-[var(--ink)]"
             >
               <RotateCcw size={14} />
               Limpiar filtros
@@ -876,7 +876,7 @@ const Invoices = () => {
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Cliente</label>
             <select
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
               value={filters.client_id}
               onChange={(e) => setFilters({ ...filters, client_id: e.target.value })}
             >
@@ -891,7 +891,7 @@ const Invoices = () => {
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Estado</label>
             <select
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             >
@@ -905,7 +905,7 @@ const Invoices = () => {
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-1.5">Tipo</label>
             <select
-              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
               value={filters.invoice_type}
               onChange={(e) => setFilters({ ...filters, invoice_type: e.target.value })}
             >
@@ -940,7 +940,7 @@ const Invoices = () => {
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       isActive
-                        ? 'bg-[#121314] text-white'
+                        ? 'bg-[var(--dark)] text-white'
                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                   >
@@ -953,14 +953,14 @@ const Invoices = () => {
               <div className="flex items-center gap-2 mt-2">
                 <input
                   type="date"
-                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   value={filters.date_from}
                   onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
                 />
                 <span className="text-gray-400 text-xs">a</span>
                 <input
                   type="date"
-                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                  className="border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   value={filters.date_to}
                   onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
                 />
@@ -977,16 +977,16 @@ const Invoices = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#44BF47]/8 border border-[#44BF47]/30 rounded-2xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[rgb(var(--accent-rgb)/0.08)] border border-[rgb(var(--accent-rgb)/0.3)] rounded-2xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-[#1E7A30]" />
-            <span className="font-medium text-[#121314]">
+            <CheckSquare size={18} className="text-[var(--accent-deep)]" />
+            <span className="font-medium text-[var(--ink)]">
               {selectedIds.size} factura{selectedIds.size !== 1 ? 's' : ''} seleccionada{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-[#44BF47]/15" />
+          <div className="h-6 w-px bg-[rgb(var(--accent-rgb)/0.15)]" />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-[#121314]">Cambiar estado:</span>
+            <span className="text-sm text-[var(--ink)]">Cambiar estado:</span>
             <button
               onClick={() => handleBulkStatusChange('draft')}
               disabled={bulkUpdating}
@@ -1018,7 +1018,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#121314]">Tipo:</span>
+            <span className="text-sm text-[var(--ink)]">Tipo:</span>
             <button
               onClick={() => handleBulkTypeChange('con_iva')}
               disabled={bulkUpdating}
@@ -1036,7 +1036,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#121314]">Fecha:</span>
+            <span className="text-sm text-[var(--ink)]">Fecha:</span>
             <input
               type="date"
               value={bulkDateValue}
@@ -1053,7 +1053,7 @@ const Invoices = () => {
           </div>
           <div className="h-6 w-px bg-primary-200" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#121314]">Monto:</span>
+            <span className="text-sm text-[var(--ink)]">Monto:</span>
             <div className="flex items-center">
               <span className="text-gray-500 text-sm mr-1">$</span>
               <input
@@ -1094,7 +1094,7 @@ const Invoices = () => {
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-[#121314] hover:bg-gray-100 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-gray-100 rounded-lg"
           >
             Cancelar selección
           </button>
@@ -1107,13 +1107,13 @@ const Invoices = () => {
           <div className="glass-card p-6 text-center text-sm text-gray-400">No hay facturas</div>
         )}
         {filteredInvoices.map((invoice) => (
-          <div key={invoice.id} className={`glass-card p-4 ${selectedIds.has(invoice.id) ? 'ring-2 ring-[#44BF47]' : ''}`}>
+          <div key={invoice.id} className={`glass-card p-4 ${selectedIds.has(invoice.id) ? 'ring-2 ring-[var(--accent)]' : ''}`}>
             <div className="flex items-start gap-3">
-              <button onClick={() => toggleSelectOne(invoice.id)} className="mt-0.5 text-gray-400 hover:text-[#121314] flex-shrink-0">
-                {selectedIds.has(invoice.id) ? <CheckSquare size={18} className="text-[#121314]" /> : <Square size={18} />}
+              <button onClick={() => toggleSelectOne(invoice.id)} className="mt-0.5 text-gray-400 hover:text-[var(--ink)] flex-shrink-0">
+                {selectedIds.has(invoice.id) ? <CheckSquare size={18} className="text-[var(--ink)]" /> : <Square size={18} />}
               </button>
               <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(`/app/invoices/${invoice.id}`)}>
-                <p className="font-semibold text-[#121314] truncate flex items-center gap-2">
+                <p className="font-semibold text-[var(--ink)] truncate flex items-center gap-2">
                   {invoice.client_name}
                   {invoice.is_recurring === 1 && <Repeat size={12} className="text-indigo-600 flex-shrink-0" />}
                 </p>
@@ -1123,7 +1123,7 @@ const Invoices = () => {
                 </p>
               </div>
               <div className="text-right flex-shrink-0">
-                <p className="font-bold text-[#121314]">${invoice.amount?.toLocaleString('es-CO')}</p>
+                <p className="font-bold text-[var(--ink)]">${invoice.amount?.toLocaleString('es-CO')}</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); setStatusDropdownOpen(statusDropdownOpen === invoice.id ? null : invoice.id); }}
                   className={`mt-1 px-2 py-0.5 rounded-full text-[11px] ${statusColors[invoice.status]}`}
@@ -1133,7 +1133,7 @@ const Invoices = () => {
               </div>
             </div>
             {statusDropdownOpen === invoice.id && (
-              <div className="status-dropdown-container mt-2 bg-white border rounded-lg shadow-lg py-1">
+              <div className="status-dropdown-container mt-2 bg-[var(--surface)] border rounded-lg shadow-lg py-1">
                 {Object.entries(statusLabels).map(([key, label]) => (
                   <button
                     key={key}
@@ -1197,13 +1197,13 @@ const Invoices = () => {
               <th className="px-3 py-3 text-center relative">
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-[#121314]"
+                  className="text-gray-500 hover:text-[var(--ink)]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-[#121314]" />
+                    <CheckSquare size={18} className="text-[var(--ink)]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-[#121314]" />
+                    <MinusSquare size={18} className="text-[var(--ink)]" />
                   ) : (
                     <Square size={18} />
                   )}
@@ -1260,10 +1260,10 @@ const Invoices = () => {
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(invoice.id)}
-                    className="text-gray-400 hover:text-[#121314]"
+                    className="text-gray-400 hover:text-[var(--ink)]"
                   >
                     {selectedIds.has(invoice.id) ? (
-                      <CheckSquare size={18} className="text-[#121314]" />
+                      <CheckSquare size={18} className="text-[var(--ink)]" />
                     ) : (
                       <Square size={18} />
                     )}
@@ -1294,7 +1294,7 @@ const Invoices = () => {
                       ${invoice.amount?.toLocaleString('es-CO')}
                     </button>
                     {amountEditOpen === invoice.id && (
-                      <div className="absolute z-50 mt-1 left-0 bg-white border rounded-lg shadow-lg p-2">
+                      <div className="absolute z-50 mt-1 left-0 bg-[var(--surface)] border rounded-lg shadow-lg p-2">
                         <div className="flex items-center gap-2">
                           <span className="text-gray-500">$</span>
                           <input
@@ -1336,7 +1336,7 @@ const Invoices = () => {
                       {statusLabels[invoice.status]}
                     </button>
                     {statusDropdownOpen === invoice.id && (
-                      <div className="absolute z-50 mt-1 left-0 bg-white border rounded-lg shadow-lg py-1 min-w-[160px]">
+                      <div className="absolute z-50 mt-1 left-0 bg-[var(--surface)] border rounded-lg shadow-lg py-1 min-w-[160px]">
                         {Object.entries(statusLabels).map(([key, label]) => (
                           <button
                             key={key}
@@ -1371,7 +1371,7 @@ const Invoices = () => {
                       {invoice.issue_date}
                     </button>
                     {dateEditOpen === invoice.id && (
-                      <div className="absolute z-50 mt-1 left-0 bg-white border rounded-lg shadow-lg p-2">
+                      <div className="absolute z-50 mt-1 left-0 bg-[var(--surface)] border rounded-lg shadow-lg p-2">
                         <input
                           type="date"
                           defaultValue={invoice.issue_date}
@@ -1399,7 +1399,7 @@ const Invoices = () => {
                       {invoice.invoice_type === 'con_iva' ? '+IVA' : 'Sin IVA'}
                     </button>
                     {tipoDropdownOpen === invoice.id && (
-                      <div className="absolute z-50 mt-1 left-0 bg-white border rounded-lg shadow-lg py-1 min-w-[100px]">
+                      <div className="absolute z-50 mt-1 left-0 bg-[var(--surface)] border rounded-lg shadow-lg py-1 min-w-[100px]">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1577,9 +1577,9 @@ const Invoices = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
             <div className="flex justify-between items-center p-6 pb-4 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-[#121314]">
+              <h2 className="text-xl font-semibold text-[var(--ink)]">
                 {editingInvoice ? 'Editar Factura' : 'Nueva Factura'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1614,7 +1614,7 @@ const Invoices = () => {
                         type="button"
                         onClick={handleCreateClient}
                         disabled={creatingClient || !newClientName.trim()}
-                        className="px-3 py-2 bg-[#121314] text-white rounded-lg hover:bg-[#121314] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-2 bg-[var(--dark)] text-white rounded-lg hover:bg-[var(--dark)] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {creatingClient ? '...' : 'Crear'}
                       </button>
@@ -1657,7 +1657,7 @@ const Invoices = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewClient(true)}
-                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-[#121314] flex items-center gap-1"
+                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-[var(--ink)] flex items-center gap-1"
                         title="Crear nuevo cliente"
                       >
                         <Plus size={16} />
@@ -1790,11 +1790,11 @@ const Invoices = () => {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                             <div>
                               <span className="text-gray-500">Cliente:</span>
-                              <span className="ml-2 font-medium text-[#121314]">{selectedClient?.company || selectedClient?.name || '-'}</span>
+                              <span className="ml-2 font-medium text-[var(--ink)]">{selectedClient?.company || selectedClient?.name || '-'}</span>
                             </div>
                             <div>
                               <span className="text-gray-500">NIT / Cédula:</span>
-                              <span className="ml-2 font-medium text-[#121314]">{nitDisplay}</span>
+                              <span className="ml-2 font-medium text-[var(--ink)]">{nitDisplay}</span>
                             </div>
                             <div>
                               <span className="text-gray-500">Tipo persona:</span>
@@ -1816,15 +1816,15 @@ const Invoices = () => {
                           <div className="border-t border-gray-200 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                             <div>
                               <p className="text-gray-500 text-xs uppercase">Subtotal</p>
-                              <p className="font-bold text-[#121314]">${baseAmount.toLocaleString('es-CO')}</p>
+                              <p className="font-bold text-[var(--ink)]">${baseAmount.toLocaleString('es-CO')}</p>
                             </div>
                             <div>
                               <p className="text-gray-500 text-xs uppercase">IVA (19%)</p>
-                              <p className="font-bold text-[#121314]">{isWithIva ? `$${taxAmount.toLocaleString('es-CO')}` : '$0'}</p>
+                              <p className="font-bold text-[var(--ink)]">{isWithIva ? `$${taxAmount.toLocaleString('es-CO')}` : '$0'}</p>
                             </div>
                             <div>
                               <p className="text-gray-500 text-xs uppercase">Total</p>
-                              <p className="font-bold text-lg text-[#121314]">${total.toLocaleString('es-CO')}</p>
+                              <p className="font-bold text-lg text-[var(--ink)]">${total.toLocaleString('es-CO')}</p>
                             </div>
                           </div>
                         </div>
@@ -1849,7 +1849,7 @@ const Invoices = () => {
                           setFormData({ ...formData, is_recurring: isChecked, next_recurrence_date: '' });
                         }
                       }}
-                      className="w-4 h-4 text-[#121314] border-gray-300 rounded focus:ring-[#121314]"
+                      className="w-4 h-4 text-[var(--ink)] border-gray-300 rounded focus:ring-[var(--ink)]"
                     />
                     <Repeat size={16} className="text-gray-500" />
                     <span className="text-sm font-medium">Factura Recurrente</span>
@@ -1981,7 +1981,7 @@ const Invoices = () => {
                 )}
                 </div>
               </div>
-              <div className="flex justify-end gap-3 p-6 pt-4 border-t border-gray-100 bg-white rounded-b-2xl">
+              <div className="flex justify-end gap-3 p-6 pt-4 border-t border-gray-100 bg-[var(--surface)] rounded-b-2xl">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -1991,7 +1991,7 @@ const Invoices = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
                 >
                   Guardar
                 </button>
@@ -2004,8 +2004,8 @@ const Invoices = () => {
       {/* Siigo Confirmation Modal */}
       {siigoConfirmInvoice && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6 max-h-[90dvh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-[#121314] mb-4">Enviar a Siigo</h3>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md shadow-xl p-6 max-h-[90dvh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-[var(--ink)] mb-4">Enviar a Siigo</h3>
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Factura</span>
@@ -2089,14 +2089,14 @@ const Invoices = () => {
               </button>
               <button
                 onClick={() => confirmSendToSiigo(false)}
-                className="px-4 py-2 border-2 border-[#121314] text-[#121314] rounded-xl hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border-2 border-[var(--ink)] text-[var(--ink)] rounded-xl hover:bg-gray-50 transition-colors"
                 title="Se crea en Siigo como borrador para revisar antes de enviar a la DIAN"
               >
                 Borrador
               </button>
               <button
                 onClick={() => confirmSendToSiigo(true)}
-                className="px-4 py-2 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
+                className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
               >
                 Enviar a DIAN
               </button>
@@ -2145,8 +2145,8 @@ const Invoices = () => {
       {/* Email Modal */}
       {emailModalInvoice && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-6 max-h-[90dvh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-[#121314] mb-4 flex items-center gap-2">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md shadow-xl p-6 max-h-[90dvh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-[var(--ink)] mb-4 flex items-center gap-2">
               <Mail size={20} />
               Enviar factura electrónica
             </h3>
@@ -2171,7 +2171,7 @@ const Invoices = () => {
               <button
                 onClick={handleSendSiigoEmail}
                 disabled={sendingEmail || !emailValue}
-                className="px-4 py-2 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {sendingEmail ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
                 {sendingEmail ? 'Enviando...' : 'Enviar'}

@@ -44,6 +44,7 @@ import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
+import OrgBranding from './pages/OrgBranding'; // [branding]
 import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
 import ClientReports from './pages/ClientReports';
@@ -607,6 +608,7 @@ function App() {
                 <Route path="mejoras" element={<ProtectedRoute><OrbitFeedback /></ProtectedRoute>} />
                 <Route path="novedades" element={<ProtectedRoute><News /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="configuracion/marca" element={<OrgBranding />} /> {/* [branding] solo admin (lo valida la página) */}
               </Routes>
             </Layout>
           }

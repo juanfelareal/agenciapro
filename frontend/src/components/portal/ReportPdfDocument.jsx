@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import { Document, Page, View, Text, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { LA_REAL_LOGO_BASE64 } from '../../assets/laRealLogo';
 
@@ -80,7 +81,8 @@ const fmtDateShort = (d) => {
 };
 
 // ====== Styles ======
-const s = StyleSheet.create({
+// [branding] Los estilos dependen del acento de la agencia (por defecto el verde editorial de LA REAL)
+const createStyles = (accent) => StyleSheet.create({
   page: {
     backgroundColor: C.paper,
     paddingTop: '16mm',
@@ -109,7 +111,7 @@ const s = StyleSheet.create({
     fontSize: 7,
     fontWeight: 500,
     letterSpacing: 1.5,
-    color: C.accent,
+    color: accent,
   },
   pageMarker: {
     fontFamily: 'JetBrainsMono',
@@ -125,7 +127,7 @@ const s = StyleSheet.create({
     fontSize: 8,
     fontWeight: 500,
     letterSpacing: 2,
-    color: C.accent,
+    color: accent,
     marginBottom: 10,
   },
   coverTitle: {
@@ -160,13 +162,13 @@ const s = StyleSheet.create({
     fontSize: 7,
     fontWeight: 500,
     letterSpacing: 2,
-    color: C.accent,
+    color: accent,
     marginBottom: 8,
   },
   insightsBlock: {
     paddingLeft: 14,
     borderLeftWidth: 1.5,
-    borderLeftColor: C.accent,
+    borderLeftColor: accent,
     marginBottom: 28,
   },
   insightsText: {
@@ -190,14 +192,14 @@ const s = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: C.accent,
+    backgroundColor: accent,
     marginRight: 10,
   },
   sectionNum: {
     fontFamily: 'JetBrainsMono',
     fontSize: 9,
     fontWeight: 500,
-    color: C.accent,
+    color: accent,
     letterSpacing: 1.5,
     marginRight: 10,
   },
@@ -246,7 +248,7 @@ const s = StyleSheet.create({
     fontSize: 7,
     fontWeight: 500,
     letterSpacing: 1.2,
-    color: C.accent,
+    color: accent,
     marginBottom: 10,
   },
   // Tight line-height + explicit padding to prevent overlap with delta
@@ -444,13 +446,27 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
+const DEFAULT_STYLES = createStyles(C.accent);
+const stylesCache = new Map([[C.accent, DEFAULT_STYLES]]);
+const stylesFor = (accent) => {
+  if (!stylesCache.has(accent)) stylesCache.set(accent, createStyles(accent));
+  return stylesCache.get(accent);
+};
+// Los átomos leen los estilos (con el acento de la agencia) desde este contexto
+const StylesContext = createContext(DEFAULT_STYLES);
+const useStyles = () => useContext(StylesContext);
+
 
 // ====== Atoms ======
-const BrandStrip = () => (
+const BrandStrip = ({ brand }) => {
+  const s = useStyles();
+  return (
   <View style={s.brandStrip} fixed>
     <View style={s.brandLeft}>
-      <Image src={LA_REAL_LOGO_BASE64} style={s.brandMark} />
-      <Text style={s.brandLabel}>LA REAL · MARKETING REPORT</Text>
+      {brand?.logoUrl
+        ? <Image src={brand.logoUrl} style={s.brandMark} />
+        : (!brand?.name && <Image src={LA_REAL_LOGO_BASE64} style={s.brandMark} />)}
+      <Text style={s.brandLabel}>{(brand?.name || 'LA REAL').toUpperCase()} · MARKETING REPORT</Text>
     </View>
     <Text
       style={s.pageMarker}
@@ -459,9 +475,12 @@ const BrandStrip = () => (
       }
     />
   </View>
-);
+  );
+};
 
-const SectionHeader = ({ number, title, count }) => (
+const SectionHeader = ({ number, title, count }) => {
+  const s = useStyles();
+  return (
   <View style={s.sectionHeader}>
     <View style={s.sectionDot} />
     <Text style={s.sectionNum}>{String(number).padStart(2, '0')}</Text>
@@ -469,9 +488,12 @@ const SectionHeader = ({ number, title, count }) => (
     <Text style={s.sectionTitle}>{title.toUpperCase()}</Text>
     {count != null && <Text style={s.sectionCount}>{count}</Text>}
   </View>
-);
+  );
+};
 
-const KpiCell = ({ label, value, sub, change, inverted, last }) => (
+const KpiCell = ({ label, value, sub, change, inverted, last }) => {
+  const s = useStyles();
+  return (
   <View style={[s.kpiCell, last && { borderRightWidth: 0.5 }]}>
     <Text style={s.kpiLabel}>{label.toUpperCase()}</Text>
     <Text style={s.kpiValue}>{value}</Text>
@@ -485,28 +507,38 @@ const KpiCell = ({ label, value, sub, change, inverted, last }) => (
       </View>
     )}
   </View>
-);
+  );
+};
 
 // KPI rows never split mid-row across pages — they're small enough to always fit
-const KpiRow = ({ children }) => <View style={s.kpiRow} wrap={false}>{children}</View>;
+const KpiRow = ({ children }) => { const s = useStyles(); return <View style={s.kpiRow} wrap={false}>{children}</View>; };
 
-const Footer = ({ clientLabel }) => (
+const Footer = ({ clientLabel, brand }) => {
+  const s = useStyles();
+  return (
   <View style={s.footer} fixed>
     <View style={s.footerLeft}>
-      <Text style={s.footerBrand}>LA REAL MARKETING</Text>
+      <Text style={s.footerBrand}>{(brand?.name ? brand.name : 'LA REAL MARKETING').toUpperCase()}</Text>
       <Text style={s.footerNote}>Confidencial · {clientLabel}</Text>
     </View>
     <View style={s.footerRight}>
-      <Text style={s.footerUrl}>orbit.larealmarketing.com</Text>
+      <Text style={s.footerUrl}>{brand?.reportFooter || 'orbit.larealmarketing.com'}</Text>
       <Text style={s.footerNote}>
         {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
       </Text>
     </View>
   </View>
-);
+  );
+};
 
 // ====== Document ======
-export default function ReportPdfDocument({ client, period, insights, metrics, ads, emailCampaigns }) {
+/**
+ * `brand` (opcional, [branding]): { name, logoUrl, accentDeep, reportFooter } de la agencia.
+ * Sin `brand` el informe es el de LA REAL (logo y verde editorial).
+ */
+export default function ReportPdfDocument({ client, period, insights, metrics, ads, emailCampaigns, brand = null }) {
+  const accent = brand?.accentDeep || C.accent;
+  const s = stylesFor(accent);
   const fb = metrics?.facebook;
   const sh = metrics?.shopify;
   const blended = metrics?.blended;
@@ -585,11 +617,12 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
   );
 
   return (
+    <StylesContext.Provider value={s}>
     <Document>
       {/* Single Page — content flows naturally and react-pdf paginates.
           No forced page breaks, no orphaned white space. */}
       <Page size="A4" style={s.page}>
-        <BrandStrip />
+        <BrandStrip brand={brand} />
 
         {/* Editorial cover block */}
         <View>
@@ -810,8 +843,9 @@ export default function ReportPdfDocument({ client, period, insights, metrics, a
           </>
         )}
 
-        <Footer clientLabel={clientLabel} />
+        <Footer clientLabel={clientLabel} brand={brand} />
       </Page>
     </Document>
+    </StylesContext.Provider>
   );
 }

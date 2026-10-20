@@ -66,7 +66,7 @@ const TaskDescriptionEditor = ({ value, onChange, placeholder = 'Descripción...
   if (!editor) return null;
 
   return (
-    <div className="task-desc-editor border border-gray-200 rounded-xl overflow-hidden bg-white">
+    <div className="task-desc-editor border border-gray-200 rounded-xl overflow-hidden bg-[var(--surface)]">
       {/* Compact toolbar */}
       <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-gray-100 bg-gray-50/50">
         <button

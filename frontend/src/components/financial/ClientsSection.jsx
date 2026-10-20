@@ -70,7 +70,7 @@ const ClientsSection = ({ data, loading }) => {
           <div className="w-16 h-16 bg-teal-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-teal-500" />
           </div>
-          <h3 className="text-lg font-semibold text-[#121314] mb-2">Sin datos de clientes</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">Sin datos de clientes</h3>
           <p className="text-gray-500 max-w-md mx-auto">
             Crea facturas o sincroniza con Siigo para ver información de clientes.
           </p>
@@ -136,7 +136,7 @@ const ClientsSection = ({ data, loading }) => {
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-xs text-gray-400">{formatPercent(shareOfTotal)} del total</span>
-                        <span className="font-semibold text-[#121314]">{formatCurrency(client.revenue)}</span>
+                        <span className="font-semibold text-[var(--ink)]">{formatCurrency(client.revenue)}</span>
                       </div>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">

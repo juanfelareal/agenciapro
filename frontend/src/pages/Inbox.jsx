@@ -120,11 +120,11 @@ const Inbox = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#121314] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--dark)] flex items-center justify-center">
               <Bell size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Inbox</h1>
+              <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Inbox</h1>
               <p className="text-sm text-gray-500">
                 {totalUnread > 0
                   ? `${totalUnread} sin leer en total`
@@ -146,7 +146,7 @@ const Inbox = () => {
             {totalUnread > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-3 py-2 bg-[#121314] text-white text-sm rounded-lg hover:bg-[#2a2a44] transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-[var(--dark)] text-white text-sm rounded-lg hover:bg-[#2a2a44] transition-colors"
               >
                 <CheckCheck size={16} />
                 Marcar todas
@@ -167,7 +167,7 @@ const Inbox = () => {
               onClick={() => setActiveCategory(tab.id)}
               className={`relative inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 isActive
-                  ? `border-[#121314] text-[#121314]`
+                  ? `border-[var(--ink)] text-[var(--ink)]`
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -175,7 +175,7 @@ const Inbox = () => {
               <span>{tab.label}</span>
               {tab.count > 0 && (
                 <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  highlight ? 'bg-pink-500 text-white' : (isActive ? 'bg-[#121314] text-white' : 'bg-gray-200 text-gray-700')
+                  highlight ? 'bg-pink-500 text-white' : (isActive ? 'bg-[var(--dark)] text-white' : 'bg-gray-200 text-gray-700')
                 }`}>
                   {tab.count}
                 </span>
@@ -191,7 +191,7 @@ const Inbox = () => {
           <Loader2 className="w-6 h-6 text-gray-400 animate-spin mx-auto" />
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
+        <div className="text-center py-20 bg-[var(--surface)] rounded-xl border border-gray-100">
           <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
             <Bell className="w-6 h-6 text-gray-400" />
           </div>
@@ -209,7 +209,7 @@ const Inbox = () => {
               <div
                 key={n.id}
                 onClick={() => handleOpen(n)}
-                className={`group bg-white rounded-xl border transition-all cursor-pointer hover:border-gray-300 hover:shadow-sm ${
+                className={`group bg-[var(--surface)] rounded-xl border transition-all cursor-pointer hover:border-gray-300 hover:shadow-sm ${
                   !n.is_read
                     ? (isClientAction ? 'border-pink-200 bg-pink-50/30' : 'border-blue-200 bg-blue-50/30')
                     : 'border-gray-100'
@@ -238,7 +238,7 @@ const Inbox = () => {
                       {!n.is_read && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
-                          className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-[#121314] font-medium"
+                          className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-[var(--ink)] font-medium"
                         >
                           <Check size={12} />
                           Marcar leída

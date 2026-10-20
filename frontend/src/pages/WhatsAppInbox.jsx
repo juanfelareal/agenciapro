@@ -150,9 +150,9 @@ const WhatsAppInbox = () => {
     return (
       <div className="max-w-3xl mx-auto">
         <Header status={status} onRefresh={loadStatus} />
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+        <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 p-8 text-center">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4"><MessageCircle size={26} /></div>
-          <h2 className="text-lg font-bold text-[#121314]">WhatsApp aún no está conectado</h2>
+          <h2 className="text-lg font-bold text-[var(--ink)]">WhatsApp aún no está conectado</h2>
           <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
             Falta configurar las credenciales de Kapso en el backend (<code className="text-xs bg-gray-100 px-1 rounded">KAPSO_API_KEY</code> y <code className="text-xs bg-gray-100 px-1 rounded">KAPSO_PHONE_NUMBER_ID</code>).
             Cuando estén listas, aquí verás la bandeja del número de LA REAL.
@@ -173,7 +173,7 @@ const WhatsAppInbox = () => {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 bg-white rounded-2xl border border-gray-100 overflow-hidden grid grid-cols-1 md:grid-cols-[320px_1fr]">
+      <div className="flex-1 min-h-0 bg-[var(--surface)] rounded-2xl border border-gray-100 overflow-hidden grid grid-cols-1 md:grid-cols-[320px_1fr]">
         {/* ---- Conversations ---- */}
         <aside className={`border-r border-gray-100 flex flex-col min-h-0 ${activePhone ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-3 border-b border-gray-100">
@@ -183,7 +183,7 @@ const WhatsAppInbox = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre o número"
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
               />
             </div>
           </div>
@@ -200,14 +200,14 @@ const WhatsAppInbox = () => {
               <button
                 key={c.phone}
                 onClick={() => openConversation(c.phone)}
-                className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.phone === activePhone ? 'bg-[#44BF47]/12' : ''}`}
+                className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${c.phone === activePhone ? 'bg-[rgb(var(--accent-rgb)/0.12)]' : ''}`}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${c.client_id ? 'bg-[#121314] text-[#44BF47]' : 'bg-gray-100 text-gray-600'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${c.client_id ? 'bg-[var(--dark)] text-[var(--accent)]' : 'bg-gray-100 text-gray-600'}`}>
                   {c.display_name ? initials(c.display_name) : <Phone size={14} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-[#121314] truncate">{c.display_name || c.phone_formatted}</p>
+                    <p className="text-sm font-semibold text-[var(--ink)] truncate">{c.display_name || c.phone_formatted}</p>
                     <span className="text-[11px] text-gray-400 flex-shrink-0">{fmtTime(c.last_at)}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -231,19 +231,19 @@ const WhatsAppInbox = () => {
           {!activePhone ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
               <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4"><MessageCircle size={30} /></div>
-              <p className="text-sm font-medium text-[#121314]">Elige una conversación</p>
+              <p className="text-sm font-medium text-[var(--ink)]">Elige una conversación</p>
               <p className="text-xs text-gray-400 mt-1 max-w-xs">O inicia una nueva con un cliente o creador desde “Nuevo mensaje”.</p>
             </div>
           ) : (
             <>
               <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <button onClick={() => setActivePhone('')} className="md:hidden text-gray-400 hover:text-[#121314]"><X size={18} /></button>
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${thread.client ? 'bg-[#121314] text-[#44BF47]' : 'bg-gray-100 text-gray-600'}`}>
+                  <button onClick={() => setActivePhone('')} className="md:hidden text-gray-400 hover:text-[var(--ink)]"><X size={18} /></button>
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${thread.client ? 'bg-[var(--dark)] text-[var(--accent)]' : 'bg-gray-100 text-gray-600'}`}>
                     {activeName ? initials(activeName) : <Phone size={14} />}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#121314] truncate">{activeName}</p>
+                    <p className="text-sm font-semibold text-[var(--ink)] truncate">{activeName}</p>
                     <p className="text-[11px] text-gray-400 truncate">
                       {thread.phone_formatted || activePhone}
                       {thread.client ? ' · Cliente' : ''}
@@ -256,13 +256,13 @@ const WhatsAppInbox = () => {
                 </div>
                 <div className="flex items-center gap-1.5">
                   {!thread.client && (
-                    <button onClick={() => setShowLink(true)} title="Vincular a un cliente" className="p-2 rounded-lg text-gray-400 hover:text-[#121314] hover:bg-gray-100"><Link2 size={16} /></button>
+                    <button onClick={() => setShowLink(true)} title="Vincular a un cliente" className="p-2 rounded-lg text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100"><Link2 size={16} /></button>
                   )}
-                  <button onClick={() => setShowTemplates(true)} title="Enviar plantilla" className="p-2 rounded-lg text-gray-400 hover:text-[#121314] hover:bg-gray-100"><FileText size={16} /></button>
+                  <button onClick={() => setShowTemplates(true)} title="Enviar plantilla" className="p-2 rounded-lg text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100"><FileText size={16} /></button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-5 py-4 bg-[#F3F1ED]">
+              <div className="flex-1 overflow-y-auto px-5 py-4 bg-[var(--bg)]">
                 {loadingThread && thread.messages.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-10">Cargando...</p>
                 ) : thread.messages.length === 0 ? (
@@ -275,19 +275,19 @@ const WhatsAppInbox = () => {
                     <div key={m.id}>
                       {newDay && (
                         <div className="flex justify-center my-3">
-                          <span className="text-[11px] text-gray-500 bg-white border border-gray-100 rounded-full px-3 py-1 capitalize">{dayLabel(m.created_at)}</span>
+                          <span className="text-[11px] text-gray-500 bg-[var(--surface)] border border-gray-100 rounded-full px-3 py-1 capitalize">{dayLabel(m.created_at)}</span>
                         </div>
                       )}
                       <div className={`flex ${out ? 'justify-end' : 'justify-start'} mb-2`}>
-                        <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 shadow-sm ${out ? 'bg-[#121314] text-white rounded-br-md' : 'bg-white text-[#121314] rounded-bl-md border border-gray-100'}`}>
+                        <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 shadow-sm ${out ? 'bg-[var(--dark)] text-white rounded-br-md' : 'bg-[var(--surface)] text-[var(--ink)] rounded-bl-md border border-gray-100'}`}>
                           {m.message_type === 'template' && (
-                            <p className={`text-[10px] uppercase tracking-wide mb-1 ${out ? 'text-[#44BF47]' : 'text-gray-400'}`}>Plantilla · {m.template_name}</p>
+                            <p className={`text-[10px] uppercase tracking-wide mb-1 ${out ? 'text-[var(--accent)]' : 'text-gray-400'}`}>Plantilla · {m.template_name}</p>
                           )}
                           {m.context?.source === 'cartera' && (
-                            <p className={`text-[10px] uppercase tracking-wide mb-1 ${out ? 'text-[#44BF47]' : 'text-gray-400'}`}>Cartera</p>
+                            <p className={`text-[10px] uppercase tracking-wide mb-1 ${out ? 'text-[var(--accent)]' : 'text-gray-400'}`}>Cartera</p>
                           )}
                           <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
-                          {m.media_url && <a href={m.media_url} target="_blank" rel="noreferrer" className={`text-xs underline ${out ? 'text-[#44BF47]' : 'text-blue-600'}`}>Ver archivo</a>}
+                          {m.media_url && <a href={m.media_url} target="_blank" rel="noreferrer" className={`text-xs underline ${out ? 'text-[var(--accent)]' : 'text-blue-600'}`}>Ver archivo</a>}
                           <div className={`flex items-center justify-end gap-1.5 mt-1 text-[10px] ${out ? 'text-gray-400' : 'text-gray-400'}`} title={fmtFull(m.created_at)}>
                             {out && m.sent_by_name && <span className="truncate max-w-[120px]">{m.sent_by_name.split(' ')[0]}</span>}
                             <span>{new Date(m.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -317,12 +317,12 @@ const WhatsAppInbox = () => {
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     rows={Math.min(5, Math.max(1, draft.split('\n').length))}
                     placeholder="Escribe un mensaje… (Enter para enviar, Shift+Enter salto de línea)"
-                    className="flex-1 resize-none px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="flex-1 resize-none px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   />
                   <button
                     onClick={handleSend}
                     disabled={sending || !draft.trim()}
-                    className="h-[42px] px-4 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F] disabled:opacity-50"
+                    className="h-[42px] px-4 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F] disabled:opacity-50"
                   >
                     <Send size={16} /> {sending ? 'Enviando' : 'Enviar'}
                   </button>
@@ -361,7 +361,7 @@ const Header = ({ status, onRefresh, onNew }) => {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div>
-        <h1 className="text-2xl font-bold text-[#121314] flex items-center gap-2"><MessageCircle className="text-emerald-500" size={24} /> WhatsApp</h1>
+        <h1 className="text-2xl font-bold text-[var(--ink)] flex items-center gap-2"><MessageCircle className="text-emerald-500" size={24} /> WhatsApp</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           {status?.configured && n ? (
             <>
@@ -374,9 +374,9 @@ const Header = ({ status, onRefresh, onNew }) => {
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <button onClick={onRefresh} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[#121314] hover:bg-gray-50" title="Actualizar"><RefreshCw size={16} /></button>
+        <button onClick={onRefresh} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[var(--ink)] hover:bg-gray-50" title="Actualizar"><RefreshCw size={16} /></button>
         {onNew && (
-          <button onClick={onNew} className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F]">
+          <button onClick={onNew} className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium flex items-center gap-2 hover:bg-[#1C1D1F]">
             <Plus size={16} /> Nuevo mensaje
           </button>
         )}
@@ -388,9 +388,9 @@ const Header = ({ status, onRefresh, onNew }) => {
 // ---------- modals ----------
 const ModalShell = ({ title, onClose, children, wide }) => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-    <div className={`bg-white rounded-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} max-h-[90vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
+    <div className={`bg-[var(--surface)] rounded-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} max-h-[90vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <h3 className="text-lg font-bold text-[#121314]">{title}</h3>
+        <h3 className="text-lg font-bold text-[var(--ink)]">{title}</h3>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
       </div>
       <div className="p-6 overflow-y-auto">{children}</div>
@@ -411,27 +411,27 @@ const NewMessageModal = ({ onClose, onPick }) => {
     <ModalShell title="Nuevo mensaje" onClose={onClose}>
       <div className="relative mb-3">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente o creador…" className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40" />
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente o creador…" className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]" />
       </div>
       <div className="max-h-72 overflow-y-auto divide-y divide-gray-50 border border-gray-100 rounded-xl">
         {contacts.length === 0 ? <p className="p-4 text-sm text-gray-400 text-center">Sin contactos con teléfono</p> : contacts.map((c) => (
           <button key={`${c.kind}-${c.id}`} onClick={() => onPick(c)} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-[#121314] truncate">{c.name}</p>
+              <p className="text-sm font-medium text-[var(--ink)] truncate">{c.name}</p>
               <p className="text-xs text-gray-400">{c.phone_formatted}</p>
             </div>
-            <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${c.kind === 'client' ? 'bg-[#44BF47]/15 text-[#1E7A30]' : 'bg-gray-100 text-gray-500'}`}>{c.kind === 'client' ? 'Cliente' : 'Creador'}</span>
+            <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${c.kind === 'client' ? 'bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent-deep)]' : 'bg-gray-100 text-gray-500'}`}>{c.kind === 'client' ? 'Cliente' : 'Creador'}</span>
           </button>
         ))}
       </div>
       <div className="mt-4">
         <label className="block text-xs font-medium text-gray-500 mb-1">O escribe un número (con indicativo, ej. 57 300 123 4567)</label>
         <div className="flex gap-2">
-          <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="57 300 123 4567" className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40" />
+          <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="57 300 123 4567" className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]" />
           <button
             disabled={manualDigits.length < 8}
             onClick={() => onPick({ id: manualDigits, kind: 'manual', name: '', wa: manualDigits, phone_formatted: `+${manualDigits}` })}
-            className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium disabled:opacity-50"
           >Abrir</button>
         </div>
       </div>
@@ -473,8 +473,8 @@ const TemplateModal = ({ phone, clientId, contactName, onClose, onSent }) => {
         <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
           <div className="space-y-1.5 max-h-80 overflow-y-auto">
             {templates.map((t) => (
-              <button key={t.id || t.name} onClick={() => { setSelected(t); setValues({}); }} className={`w-full text-left px-3 py-2 rounded-xl border text-sm ${selected?.name === t.name ? 'border-[#121314] bg-[#44BF47]/12' : 'border-gray-200 hover:bg-gray-50'}`}>
-                <p className="font-medium text-[#121314] truncate">{t.name}</p>
+              <button key={t.id || t.name} onClick={() => { setSelected(t); setValues({}); }} className={`w-full text-left px-3 py-2 rounded-xl border text-sm ${selected?.name === t.name ? 'border-[var(--ink)] bg-[rgb(var(--accent-rgb)/0.12)]' : 'border-gray-200 hover:bg-gray-50'}`}>
+                <p className="font-medium text-[var(--ink)] truncate">{t.name}</p>
                 <p className="text-[11px] text-gray-400">{t.language} · {t.category}</p>
               </button>
             ))}
@@ -482,19 +482,19 @@ const TemplateModal = ({ phone, clientId, contactName, onClose, onSent }) => {
           <div>
             {!selected ? <p className="text-sm text-gray-400">Elige una plantilla para ver su contenido.</p> : (
               <>
-                <div className="bg-[#F3F1ED] rounded-xl p-3 text-sm text-[#121314] whitespace-pre-wrap border border-gray-100">{renderTemplate(selected.body, values)}</div>
+                <div className="bg-[var(--bg)] rounded-xl p-3 text-sm text-[var(--ink)] whitespace-pre-wrap border border-gray-100">{renderTemplate(selected.body, values)}</div>
                 {params.length > 0 && (
                   <div className="mt-3 space-y-2">
                     {params.map((k) => (
                       <div key={k}>
                         <label className="block text-xs font-medium text-gray-500 mb-1">{k}</label>
-                        <input value={values[k] || ''} onChange={(e) => setValues((v) => ({ ...v, [k]: e.target.value }))} className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40" />
+                        <input value={values[k] || ''} onChange={(e) => setValues((v) => ({ ...v, [k]: e.target.value }))} className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]" />
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="flex justify-end mt-4">
-                  <button onClick={send} disabled={sending || params.some((k) => !values[k])} className="px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+                  <button onClick={send} disabled={sending || params.some((k) => !values[k])} className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium flex items-center gap-2 disabled:opacity-50">
                     <Send size={15} /> {sending ? 'Enviando…' : 'Enviar plantilla'}
                   </button>
                 </div>
@@ -518,10 +518,10 @@ const LinkClientModal = ({ phone, onClose, onLinked }) => {
   };
   return (
     <ModalShell title="Vincular conversación a un cliente" onClose={onClose}>
-      <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente…" className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 mb-3 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40" />
+      <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente…" className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 mb-3 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]" />
       <div className="max-h-72 overflow-y-auto divide-y divide-gray-50 border border-gray-100 rounded-xl">
         {filtered.map((c) => (
-          <button key={c.id} disabled={saving} onClick={() => link(c.id)} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm text-[#121314]">{c.company || c.name}</button>
+          <button key={c.id} disabled={saving} onClick={() => link(c.id)} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-sm text-[var(--ink)]">{c.company || c.name}</button>
         ))}
         {filtered.length === 0 && <p className="p-4 text-sm text-gray-400 text-center">Sin resultados</p>}
       </div>

@@ -14,19 +14,19 @@ const OrbitLogo = ({
 }) => {
   const colors = {
     default: {
-      primary: '#121212',
-      accent: '#44BF47',
-      text: '#121212',
+      primary: 'var(--ink)',
+      accent: 'var(--accent)',
+      text: 'var(--ink)',
     },
     light: {
-      primary: '#FFFFFF',
-      accent: '#44BF47',
-      text: '#FFFFFF',
+      primary: 'var(--on-dark)',
+      accent: 'var(--accent)',
+      text: 'var(--on-dark)',
     },
     dark: {
-      primary: '#121212',
-      accent: '#44BF47',
-      text: '#121212',
+      primary: 'var(--ink)',
+      accent: 'var(--accent)',
+      text: 'var(--ink)',
     },
   };
 
@@ -111,7 +111,7 @@ const OrbitLogo = ({
 };
 
 // Simplified icon-only version for favicon/small uses
-export const OrbitIcon = ({ size = 32, color = '#121212', accent = '#44BF47' }) => (
+export const OrbitIcon = ({ size = 32, color = 'var(--ink)', accent = 'var(--accent)' }) => (
   <svg
     width={size}
     height={size}
@@ -166,8 +166,8 @@ export const OrbitIcon = ({ size = 32, color = '#121212', accent = '#44BF47' }) 
 // Animated version for hero sections
 export const OrbitLogoAnimated = ({ size = 48, variant = 'default' }) => {
   const colors = {
-    default: { primary: '#121212', accent: '#44BF47' },
-    light: { primary: '#FFFFFF', accent: '#44BF47' },
+    default: { primary: 'var(--ink)', accent: 'var(--accent)' },
+    light: { primary: 'var(--on-dark)', accent: 'var(--accent)' },
   };
   const color = colors[variant] || colors.default;
 

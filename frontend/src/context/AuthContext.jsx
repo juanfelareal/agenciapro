@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { teamAPI, authAPI, setAuthToken } from '../utils/api';
+import { applyBranding } from '../branding/applyBranding'; // [branding]
 
 const AuthContext = createContext();
 
@@ -21,6 +22,23 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // [branding] Tokens vivos de marca: cada vez que cambia la organización actual
+  // (login, /me, cambio de org, logout) se aplican sus variables CSS sin recargar.
+  useEffect(() => {
+    if (currentOrg) applyBranding(currentOrg.branding, { scope: 'app', org: currentOrg });
+    else if (!loading) applyBranding(null, { scope: 'app' });
+  }, [currentOrg, loading]);
+
+  // [branding] Lo llama la página de marca tras guardar: refresca currentOrg (y la cache)
+  const updateOrgBranding = (branding) => {
+    setCurrentOrg((org) => {
+      if (!org) return org;
+      const next = { ...org, branding, logo_url: branding?.logo_url ?? org.logo_url };
+      localStorage.setItem('currentOrg', JSON.stringify(next));
+      return next;
+    });
+  };
 
   const checkAuth = async () => {
     const token = localStorage.getItem('authToken');
@@ -189,6 +207,7 @@ export const AuthProvider = ({ children }) => {
         switchOrg,
         hasPermission,
         checkAuth,
+        updateOrgBranding, // [branding]
       }}
     >
       {children}

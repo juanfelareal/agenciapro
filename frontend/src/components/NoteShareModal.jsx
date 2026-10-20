@@ -150,7 +150,7 @@ const NoteShareModal = ({ isOpen, onClose, noteId, noteTitle }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
+      <div className="bg-[var(--surface)] rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <div className="flex items-center gap-2">
@@ -222,7 +222,7 @@ const NoteShareModal = ({ isOpen, onClose, noteId, noteTitle }) => {
             <button
               onClick={handleCreateShare}
               disabled={creating}
-              className="w-full py-2.5 bg-[#121314] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-[var(--dark)] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {creating ? (
                 <>
@@ -263,7 +263,7 @@ const NoteShareModal = ({ isOpen, onClose, noteId, noteTitle }) => {
               {activeShares.map((share) => (
                 <div
                   key={share.id}
-                  className="p-3 border border-slate-200 rounded-lg bg-white"
+                  className="p-3 border border-slate-200 rounded-lg bg-[var(--surface)]"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <code className="text-sm font-mono bg-slate-100 px-2 py-0.5 rounded">

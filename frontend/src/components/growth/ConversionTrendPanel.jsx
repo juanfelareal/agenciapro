@@ -9,7 +9,7 @@ import { growthAPI } from '../../utils/api';
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const MONTHS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-const GREEN = '#44BF47';
+const GREEN = 'var(--accent)';
 const GREEN_LIGHT = '#86efac';
 
 const fmtPct = (v) => (v === null || v === undefined || Number.isNaN(v) ? '—' : `${Number(v).toFixed(1)}%`);
@@ -35,7 +35,7 @@ const prevMonthKey = (key) => {
 };
 
 const DarkTooltip = ({ title, rows }) => (
-  <div className="bg-[#121314] text-white rounded-lg shadow-lg px-3 py-2 text-xs">
+  <div className="bg-[var(--dark)] text-white rounded-lg shadow-lg px-3 py-2 text-xs">
     <div className="font-medium mb-1">{title}</div>
     {rows.map(([label, value]) => (
       <div key={label} className="text-gray-300">
@@ -82,7 +82,7 @@ function MiniStat({ label, value, delta, deltaSuffix }) {
   return (
     <div className="bg-gray-50 rounded-lg px-3 py-2.5">
       <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">{label}</p>
-      <p className="text-lg font-bold text-[#121314] mt-0.5">{value}</p>
+      <p className="text-lg font-bold text-[var(--ink)] mt-0.5">{value}</p>
       {delta !== undefined && (
         <p className={`text-[11px] font-medium ${deltaColor}`}>{fmtDelta(delta)}{deltaSuffix ? ` ${deltaSuffix}` : ''}</p>
       )}
@@ -165,7 +165,7 @@ export default function ConversionTrendPanel({ clientId, period, months = 6 }) {
     <div className="glass-solid rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="font-semibold text-sm text-[#121314]">Tasa de conversión en el tiempo</p>
+          <p className="font-semibold text-sm text-[var(--ink)]">Tasa de conversión en el tiempo</p>
           <p className="text-xs text-gray-400 mt-0.5">Web (Shopify) y email · últimos {months} meses hasta {stats ? monthLong(data?.period || period).toLowerCase() : '…'}</p>
         </div>
       </div>

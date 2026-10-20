@@ -123,13 +123,13 @@ export default function MetaCampaignsPanel({ clientId, startDate, endDate, refre
           <div className="flex items-center gap-1 text-[11px]">
             <button
               onClick={() => setOnlyActive(true)}
-              className={`px-2 py-1 rounded-md transition-colors ${onlyActive ? 'bg-[#121314] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+              className={`px-2 py-1 rounded-md transition-colors ${onlyActive ? 'bg-[var(--dark)] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
             >
               Activas ({activeCount})
             </button>
             <button
               onClick={() => setOnlyActive(false)}
-              className={`px-2 py-1 rounded-md transition-colors ${!onlyActive ? 'bg-[#121314] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+              className={`px-2 py-1 rounded-md transition-colors ${!onlyActive ? 'bg-[var(--dark)] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
             >
               Todas ({campaigns.length})
             </button>

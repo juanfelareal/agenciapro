@@ -66,6 +66,7 @@ import zernioRoutes from './src/routes/zernio.js';
 // Client Portal
 import portalRoutes from './src/routes/portal/index.js';
 import portalAdminRoutes from './src/routes/portal-admin.js';
+import orgBrandingRoutes from './src/routes/org-branding.js'; // [branding]
 // Note sharing (public links)
 import noteShareRoutes from './src/routes/note-share.js';
 // Real-time Collaboration
@@ -277,6 +278,7 @@ app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
 app.use('/api/zernio', teamAuthMiddleware, zernioRoutes);
 // Portal admin (internal — needs team auth)
 app.use('/api/portal-admin', teamAuthMiddleware, portalAdminRoutes);
+app.use('/api/org/branding', teamAuthMiddleware, orgBrandingRoutes); // [branding]
 // Client Portal (public portal — uses its own clientAuthMiddleware)
 app.use('/api/portal', portalRoutes);
 // Note sharing (has both authenticated and public routes internally)

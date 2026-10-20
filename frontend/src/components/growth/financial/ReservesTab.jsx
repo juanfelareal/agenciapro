@@ -74,7 +74,7 @@ export default function ReservesTab({ clientId, period }) {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-[#121314] flex items-center gap-2"><PiggyBank className="w-4 h-4" /> Reservas para proveedores</h2>
+          <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2"><PiggyBank className="w-4 h-4" /> Reservas para proveedores</h2>
           <p className="text-xs text-gray-500">Lo que se va acumulando este mes para pagar transportadora, 3PL y otros que cobran después. Las tarifas también cuentan como costos variables en el P&L.</p>
         </div>
         <button type="button" onClick={() => setRuleForm({ provider: '', name: '', kind: 'per_order', amount: '', percentage: '' })} className="btn-primary text-sm inline-flex items-center gap-1.5"><Plus className="w-4 h-4" /> Nueva tarifa</button>
@@ -84,11 +84,11 @@ export default function ReservesTab({ clientId, period }) {
 
       {t && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-          <div className="glass-solid rounded-2xl p-4 ring-1 ring-sky-100"><p className="text-[11px] uppercase tracking-wide text-gray-500">Recaudado por envíos</p><p className="text-2xl font-bold text-[#121314] tabular-nums">{fmtMoney(data.base.shipping_collected)}</p><p className="text-xs text-gray-500 mt-1">{fmtMoney(data.base.shipping_per_order)} por pedido · lo que pagan los clientes de envío</p></div>
-          <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Acumulado del mes</p><p className="text-2xl font-bold text-[#121314] tabular-nums">{fmtMoney(t.accrued)}</p><p className="text-xs text-gray-500 mt-1">{data.days_elapsed} de {data.days_in_month} días · {fmtInt(data.base.orders)} pedidos · {fmtInt(data.base.units)} und.</p></div>
-          <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Proyección fin de mes</p><p className="text-2xl font-bold text-[#121314] tabular-nums">{fmtMoney(t.projected)}</p><p className="text-xs text-gray-500 mt-1">Al ritmo actual</p></div>
-          <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Ya pagado</p><p className="text-2xl font-bold text-[#121314] tabular-nums">{fmtMoney(t.paid)}</p><p className="text-xs text-gray-500 mt-1">{data.payments.length} pago{data.payments.length === 1 ? '' : 's'} registrados</p></div>
-          <div className={`glass-solid rounded-2xl p-4 ${t.pending > 0 ? 'ring-1 ring-amber-200' : ''}`}><p className="text-[11px] uppercase tracking-wide text-gray-500">Pendiente por guardar</p><p className={`text-2xl font-bold tabular-nums ${t.pending > 0 ? 'text-amber-700' : 'text-[#121314]'}`}>{fmtMoney(t.pending)}</p><p className="text-xs text-gray-500 mt-1">Acumulado menos pagado</p></div>
+          <div className="glass-solid rounded-2xl p-4 ring-1 ring-sky-100"><p className="text-[11px] uppercase tracking-wide text-gray-500">Recaudado por envíos</p><p className="text-2xl font-bold text-[var(--ink)] tabular-nums">{fmtMoney(data.base.shipping_collected)}</p><p className="text-xs text-gray-500 mt-1">{fmtMoney(data.base.shipping_per_order)} por pedido · lo que pagan los clientes de envío</p></div>
+          <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Acumulado del mes</p><p className="text-2xl font-bold text-[var(--ink)] tabular-nums">{fmtMoney(t.accrued)}</p><p className="text-xs text-gray-500 mt-1">{data.days_elapsed} de {data.days_in_month} días · {fmtInt(data.base.orders)} pedidos · {fmtInt(data.base.units)} und.</p></div>
+          <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Proyección fin de mes</p><p className="text-2xl font-bold text-[var(--ink)] tabular-nums">{fmtMoney(t.projected)}</p><p className="text-xs text-gray-500 mt-1">Al ritmo actual</p></div>
+          <div className="glass-solid rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-500">Ya pagado</p><p className="text-2xl font-bold text-[var(--ink)] tabular-nums">{fmtMoney(t.paid)}</p><p className="text-xs text-gray-500 mt-1">{data.payments.length} pago{data.payments.length === 1 ? '' : 's'} registrados</p></div>
+          <div className={`glass-solid rounded-2xl p-4 ${t.pending > 0 ? 'ring-1 ring-amber-200' : ''}`}><p className="text-[11px] uppercase tracking-wide text-gray-500">Pendiente por guardar</p><p className={`text-2xl font-bold tabular-nums ${t.pending > 0 ? 'text-amber-700' : 'text-[var(--ink)]'}`}>{fmtMoney(t.pending)}</p><p className="text-xs text-gray-500 mt-1">Acumulado menos pagado</p></div>
         </div>
       )}
 
@@ -107,14 +107,14 @@ export default function ReservesTab({ clientId, period }) {
               <div key={p.provider} className="glass-solid rounded-2xl p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[#121314] text-[#44BF47] flex items-center justify-center flex-shrink-0"><Icon className="w-4 h-4" /></div>
+                    <div className="w-9 h-9 rounded-xl bg-[var(--dark)] text-[var(--accent)] flex items-center justify-center flex-shrink-0"><Icon className="w-4 h-4" /></div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-[#121314] truncate">{p.provider}</p>
+                      <p className="font-semibold text-[var(--ink)] truncate">{p.provider}</p>
                       <p className="text-[11px] text-gray-500">{fmtMoney(p.per_day)} / día · proyección {fmtMoney(p.projected)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button type="button" onClick={() => renameProvider(p)} className="p-1.5 text-gray-400 hover:text-[#121314] rounded-lg" title="Cambiar nombre del proveedor"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button type="button" onClick={() => renameProvider(p)} className="p-1.5 text-gray-400 hover:text-[var(--ink)] rounded-lg" title="Cambiar nombre del proveedor"><Pencil className="w-3.5 h-3.5" /></button>
                     <button type="button" onClick={() => setPayForm({ provider: p.provider, amount: '', paid_at: todayISO(), notes: '' })} className="btn-ghost text-xs inline-flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Registrar pago</button>
                   </div>
                 </div>
@@ -138,7 +138,7 @@ export default function ReservesTab({ clientId, period }) {
                           <span className="min-w-0 truncate">{r.name} <span className="text-gray-400">· {ruleLabel(r)}</span>{!r.is_active && <span className="text-gray-400"> · inactiva</span>}</span>
                           <span className="flex items-center gap-1 flex-shrink-0">
                             <span className="tabular-nums text-gray-700">{fmtMoney(r.accrued)}</span>
-                            <button type="button" onClick={() => setRuleForm({ id: r.id, provider: p.provider, name: r.name, kind: r.kind, amount: r.amount ?? '', percentage: r.percentage ?? '' })} className="p-1 text-gray-400 hover:text-[#121314]" title="Editar"><Settings2 className="w-3.5 h-3.5" /></button>
+                            <button type="button" onClick={() => setRuleForm({ id: r.id, provider: p.provider, name: r.name, kind: r.kind, amount: r.amount ?? '', percentage: r.percentage ?? '' })} className="p-1 text-gray-400 hover:text-[var(--ink)]" title="Editar"><Settings2 className="w-3.5 h-3.5" /></button>
                             <button type="button" onClick={() => removeRule(r)} className="p-1 text-gray-400 hover:text-red-600" title="Quitar"><Trash2 className="w-3.5 h-3.5" /></button>
                           </span>
                         </li>
@@ -213,9 +213,9 @@ export default function ReservesTab({ clientId, period }) {
 
 const Modal = ({ title, onClose, children }) => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" onClick={onClose}>
-    <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="bg-[var(--surface)] rounded-2xl w-full max-w-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-        <h3 className="text-base font-bold text-[#121314]">{title}</h3>
+        <h3 className="text-base font-bold text-[var(--ink)]">{title}</h3>
         <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
       </div>
       <div className="p-5">{children}</div>

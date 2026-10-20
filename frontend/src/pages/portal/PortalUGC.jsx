@@ -237,14 +237,14 @@ export default function PortalUGC() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6">
+      <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 shadow-soft p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center">
               <Video className="w-6 h-6 text-violet-600" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-[#121314]">Creadores de Contenido</h1>
+              <h1 className="text-xl font-semibold text-[var(--ink)]">Creadores de Contenido</h1>
               <p className="text-sm text-gray-500">
                 {creators.length} {creators.length === 1 ? 'creador asignado' : 'creadores asignados'} · {assignments.length} {assignments.length === 1 ? 'asignación' : 'asignaciones'}
               </p>
@@ -266,7 +266,7 @@ export default function PortalUGC() {
           onClick={() => setActiveTab('creators')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             activeTab === 'creators'
-              ? 'bg-[#121314] text-white'
+              ? 'bg-[var(--dark)] text-white'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
@@ -279,7 +279,7 @@ export default function PortalUGC() {
           onClick={() => setActiveTab('assignments')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             activeTab === 'assignments'
-              ? 'bg-[#121314] text-white'
+              ? 'bg-[var(--dark)] text-white'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
@@ -294,7 +294,7 @@ export default function PortalUGC() {
       {activeTab === 'creators' && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {creators.length === 0 ? (
-            <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-gray-100">
+            <div className="col-span-full text-center py-12 bg-[var(--surface)] rounded-2xl border border-gray-100">
               <Video className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500">No hay creadores asignados aún</p>
             </div>
@@ -305,7 +305,7 @@ export default function PortalUGC() {
               return (
                 <div
                   key={creator.id}
-                  className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow"
+                  className="bg-[var(--surface)] rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start gap-4">
                     {creator.profile_photo_url ? (
@@ -320,7 +320,7 @@ export default function PortalUGC() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-[#121314] truncate">{creator.full_name}</h3>
+                      <h3 className="font-semibold text-[var(--ink)] truncate">{creator.full_name}</h3>
                       {industries.length > 0 && (
                         <p className="text-xs text-gray-400 mt-0.5">
                           {industries.slice(0, 2).join(', ')}
@@ -368,7 +368,7 @@ export default function PortalUGC() {
       )}
 
       {activeTab === 'assignments' && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 overflow-hidden">
           {assignments.length === 0 ? (
             <div className="text-center py-12">
               <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -417,7 +417,7 @@ export default function PortalUGC() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-[#121314] truncate">{assignment.creator_name}</h3>
+                          <h3 className="font-medium text-[var(--ink)] truncate">{assignment.creator_name}</h3>
                           <p className="text-xs text-gray-400 truncate">{assignment.title}</p>
                           {assignment.description && (
                             <p className="text-sm text-gray-400 mt-1 line-clamp-2">{assignment.description}</p>
@@ -511,7 +511,7 @@ export default function PortalUGC() {
       {shippingModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={closeShippingModal}>
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-[var(--surface)] rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -521,7 +521,7 @@ export default function PortalUGC() {
                   <Truck className="w-5 h-5 text-violet-600" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[#121314]">Datos de Envío</h2>
+                  <h2 className="font-semibold text-[var(--ink)]">Datos de Envío</h2>
                   <p className="text-sm text-gray-500">{shippingModal.creator_name}</p>
                 </div>
               </div>
@@ -573,7 +573,7 @@ export default function PortalUGC() {
 
                   {/* Shipping Label Preview */}
                   <div className="bg-gray-50 rounded-xl p-4 space-y-2 font-mono text-sm">
-                    <p className="font-semibold text-[#121314]">{shippingData.full_name}</p>
+                    <p className="font-semibold text-[var(--ink)]">{shippingData.full_name}</p>
                     {shippingData.cedula && (
                       <p className="text-gray-600">CC: {shippingData.cedula}</p>
                     )}
@@ -607,7 +607,7 @@ export default function PortalUGC() {
 
                   {/* Tracking Form */}
                   <div className="border-t border-gray-100 pt-5">
-                    <h3 className="font-medium text-[#121314] flex items-center gap-2 mb-4">
+                    <h3 className="font-medium text-[var(--ink)] flex items-center gap-2 mb-4">
                       <Truck className="w-4 h-4 text-gray-400" />
                       Información de Seguimiento
                     </h3>
@@ -645,7 +645,7 @@ export default function PortalUGC() {
                       <button
                         onClick={saveShipping}
                         disabled={savingShipping}
-                        className="w-full py-2.5 bg-[#121314] text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 bg-[var(--dark)] text-white rounded-lg font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {savingShipping ? (
                           <>

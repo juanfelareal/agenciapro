@@ -363,7 +363,7 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
     // Send welcome email if requested
     if (send_email && pin) {
       try {
-        const org = await db.get('SELECT name FROM organizations WHERE id = ?', [req.orgId]);
+        const org = await db.get('SELECT name, logo_url, branding FROM organizations WHERE id = ?', [req.orgId]); // [branding]
         const loginUrl = (process.env.FRONTEND_URL || 'https://orbit.larealmarketing.com') + '/login';
         await sendWelcomeEmail({
           to: emailLower,
@@ -372,6 +372,7 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
           pin,
           orgName: org?.name || 'La organización',
           loginUrl,
+          brand: org ? { ...(typeof org.branding === 'object' && org.branding ? org.branding : {}), logo_url: org.branding?.logo_url || org.logo_url || null } : null, // [branding]
         });
       } catch (emailError) {
         console.error('Error sending welcome email:', emailError);

@@ -17,7 +17,7 @@ const DarkTooltip = ({ active, payload }) => {
   const projected = d.profit === null || d.profit === undefined;
   const v = projected ? d.projected : d.profit;
   return (
-    <div className="bg-[#121314] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[210px] max-w-[80vw] space-y-1">
+    <div className="bg-[var(--dark)] text-white rounded-lg shadow-xl px-3 py-2.5 text-xs min-w-[210px] max-w-[80vw] space-y-1">
       <div className="font-medium capitalize mb-1.5">{dayLong(d.date)}{projected ? ' · proyección' : ''}</div>
       <div className="flex justify-between gap-4"><span className="text-gray-300">Utilidad acumulada</span><span className="tabular-nums font-semibold" style={{ color: v >= 0 ? '#86EFAC' : '#FCA5A5' }}>{fmtMoney(v)}</span></div>
       {!projected && (
@@ -71,11 +71,11 @@ export default function CumulativeProfitChart({ data, height = 260 }) {
   return (
     <div className="glass-solid rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-1.5">
-        <h2 className="font-semibold text-sm text-[#121314]">Utilidad acumulada del mes</h2>
+        <h2 className="font-semibold text-sm text-[var(--ink)]">Utilidad acumulada del mes</h2>
         <Info text="Suma de la utilidad día a día. La línea gris es el punto de equilibrio: arriba de ella el mes ya es rentable. La parte punteada es la proyección al ritmo actual." />
       </div>
       <p className="text-xs text-gray-400 mt-0.5">
-        {last ? <>Hoy acumula <strong className={`tabular-nums ${last.net_profit >= 0 ? 'text-[#1E7A30]' : 'text-[#dc2626]'}`}>{fmtMoney(last.net_profit)}</strong>{data.is_current_month && data.projection ? <> · proyección a fin de mes <strong className="text-[#121314] tabular-nums">{fmtMoney(data.projection.net_profit_eom)}</strong></> : null}</> : 'Sin datos'}
+        {last ? <>Hoy acumula <strong className={`tabular-nums ${last.net_profit >= 0 ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]'}`}>{fmtMoney(last.net_profit)}</strong>{data.is_current_month && data.projection ? <> · proyección a fin de mes <strong className="text-[var(--ink)] tabular-nums">{fmtMoney(data.projection.net_profit_eom)}</strong></> : null}</> : 'Sin datos'}
       </p>
       {!hasData ? (
         <p className="text-sm text-gray-400 py-12 text-center">Sin datos en este mes.</p>

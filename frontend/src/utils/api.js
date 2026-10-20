@@ -242,6 +242,16 @@ export const authAPI = {
   bootstrap: (email, pin, name) => api.post('/auth/bootstrap', { email, pin, name }),
 };
 
+// [branding] Marca de la organización (logo, acento, tema…). Contrato en src/branding/presets.js
+export const orgBrandingAPI = {
+  get: () => api.get('/org/branding'),
+  update: (patch) => api.put('/org/branding', patch),
+  reset: () => api.post('/org/branding/reset'),
+  // kind: 'logo' | 'logo_dark' | 'icon' · dataUrl: 'data:image/...;base64,...'
+  uploadLogo: (kind, dataUrl) => api.post('/org/branding/logo', { kind, data: dataUrl }),
+  removeLogo: (kind) => api.delete(`/org/branding/logo/${kind}`),
+};
+
 // Team API
 export const teamAPI = {
   getAll: (filters) => api.get('/team', { params: filters }),

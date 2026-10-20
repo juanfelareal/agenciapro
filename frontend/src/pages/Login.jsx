@@ -56,8 +56,8 @@ const Login = () => {
     <div className="min-h-screen app-mist flex items-center justify-center p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#44BF47]/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#44BF47]/6 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[rgb(var(--accent-rgb)/0.1)] rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[rgb(var(--accent-rgb)/0.06)] rounded-full blur-3xl"></div>
       </div>
 
       <div className="w-full max-w-md relative">
@@ -94,7 +94,7 @@ const Login = () => {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[#121314] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[var(--ink)] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                   placeholder="tu@email.com"
                   required
                   autoComplete="email"
@@ -116,7 +116,7 @@ const Login = () => {
                   id="pin"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[#121314] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-ink-200 rounded-xl text-[var(--ink)] placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
                   placeholder="Tu PIN de acceso"
                   required
                   autoComplete="current-password"
@@ -128,7 +128,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#121314] hover:bg-[#1C1D1F] text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-[#121314]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[var(--dark)] hover:bg-[#1C1D1F] text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-[rgb(var(--ink-rgb)/0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

@@ -31,8 +31,8 @@ function Notice({ notice, onClose }) {
   if (!notice) return null;
   const ok = notice.type === 'ok';
   return (
-    <div className={`fixed bottom-5 right-5 z-50 flex items-start gap-2 rounded-xl px-4 py-3 text-sm shadow-xl ${ok ? 'bg-[#121314] text-white' : 'bg-red-600 text-white'}`}>
-      {ok ? <CheckCircle2 className="w-4 h-4 mt-0.5 text-[#44BF47]" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}
+    <div className={`fixed bottom-5 right-5 z-50 flex items-start gap-2 rounded-xl px-4 py-3 text-sm shadow-xl ${ok ? 'bg-[var(--dark)] text-white' : 'bg-red-600 text-white'}`}>
+      {ok ? <CheckCircle2 className="w-4 h-4 mt-0.5 text-[var(--accent)]" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}
       <span className="max-w-xs">{notice.text}</span>
       <button type="button" onClick={onClose} className="ml-2 opacity-70 hover:opacity-100" aria-label="Cerrar"><X className="w-4 h-4" /></button>
     </div>
@@ -240,9 +240,9 @@ export default function ClientFinancialDashboard() {
     <div ref={pdfRef} className="space-y-4 sm:space-y-6 pb-10">
       <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} onExportPdf={handleExportPdf} exporting={exporting} onExportExcel={handleExportExcel} exportingExcel={exportingExcel} />
 
-      <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
+      <div className="no-print flex gap-1 bg-[rgb(var(--surface-rgb)/0.7)] border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
         {[['resumen', 'Resumen'], ...(data.scenarios_enabled ? [['escenarios', 'Escenarios']] : []), ...(data.lab_enabled ? [['inventario', 'Inventario'], ['reservas', 'Reservas']] : [])].map(([k, label]) => (
-          <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${labTab === k ? 'bg-[#121314] text-[#44BF47]' : 'text-gray-500 hover:text-[#121314]'}`}>{label}</button>
+          <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${labTab === k ? 'bg-[var(--dark)] text-[var(--accent)]' : 'text-gray-500 hover:text-[var(--ink)]'}`}>{label}</button>
         ))}
         {data.lab_enabled && <span className="hidden sm:inline-flex items-center px-2 text-[10px] uppercase tracking-wide text-amber-700">Laboratorio</span>}
       </div>
@@ -258,7 +258,7 @@ export default function ClientFinancialDashboard() {
       ) : !data.shopify?.connected && !hasAny ? (
         <div className="glass-solid rounded-2xl p-10 text-center max-w-xl mx-auto">
           <Store className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <h2 className="text-base font-semibold text-[#121314]">Conecta la tienda (Shopify o WooCommerce) para ver la utilidad real</h2>
+          <h2 className="text-base font-semibold text-[var(--ink)]">Conecta la tienda (Shopify o WooCommerce) para ver la utilidad real</h2>
           <p className="text-sm text-gray-500 mt-1">Con la tienda conectada traemos ventas, pedidos, productos y el costo de cada uno. Luego cargas los costos fijos y variables de la marca.</p>
           <button type="button" onClick={() => navigate(`/app/clients/${clientId}/plataformas`)} className="btn-primary text-sm mt-5">Conectar tienda</button>
         </div>
