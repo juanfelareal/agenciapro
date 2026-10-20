@@ -2,6 +2,7 @@ import 'dotenv/config';
 import pg from 'pg';
 import { ensureEmailTables } from './emailSchema.js'; // [email]
 import { allModulesOn, TRIAL_DAYS } from './planCatalog.js'; // [modules]
+import { normalizeWaNumber } from '../utils/kapsoClient.js'; // [briefings]
 const { Pool } = pg;
 
 // Debug: Log environment info at startup
@@ -908,7 +909,7 @@ export const initializeDatabase = async () => {
       )
     `);
 
-    // ============================================
+    // =====================================
     // FINANCIAL DASHBOARD TABLES
     // ============================================
 
@@ -4360,6 +4361,75 @@ export const initializeDatabase = async () => {
       )
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_billing_payments_org ON billing_payments(organization_id, created_at DESC)`);
+
+    // [briefings] Resúmenes de WhatsApp por organización: add-ons, número propio, destinatarios y dueños de marca
+    // Contrato de add-ons (mismo que services/plans.js): billing_cycle 'monthly' | 'annual';
+    // addons { hourly_reports, owner_reports, dedicated_number: bool, extra_users, extra_brands: int }
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'monthly'`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS addons JSONB DEFAULT '{}'`);
+    // Número propio de WhatsApp (add-on dedicated_number); NULL = número compartido de Orbit
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS kapso_phone_number_id TEXT`);
+    // Quién recibe los resúmenes del equipo (reemplaza la env WHATSAPP_BRIEFING_RECIPIENTS)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS whatsapp_briefing_recipients (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        team_member_id INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+        phone TEXT NOT NULL,
+        name TEXT,
+        kinds JSONB DEFAULT '["morning","tasks","noon","alerts"]',
+        enabled BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (organization_id, phone)
+      )
+    `);
+    // Reporte diario al dueño de cada marca (add-on owner_reports)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_owner_reports (
+        client_id INTEGER PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        phone TEXT NOT NULL,
+        name TEXT,
+        enabled BOOLEAN DEFAULT FALSE,
+        send_morning BOOLEAN DEFAULT TRUE,
+        send_noon BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_owner_reports_org ON client_owner_reports(organization_id, enabled)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_whatsapp_pending_briefings_phone ON whatsapp_pending_briefings(organization_id, phone, delivered_at)`);
+    // Siembra única desde la env legada (solo para la org por defecto del número). Si la env no existe pero
+    // Kapso está configurado, se conserva el destinatario histórico por defecto para no cortar los reportes.
+    try {
+      const legacy = process.env.WHATSAPP_BRIEFING_RECIPIENTS || (process.env.KAPSO_API_KEY ? '573043148428' : '');
+      const seedOrg = Number(process.env.KAPSO_ORGANIZATION_ID || 1);
+      if (legacy.trim()) {
+        const claimed = await pool.query(
+          `INSERT INTO whatsapp_briefing_runs (kind, run_key) VALUES ('seed:recipients', $1) ON CONFLICT DO NOTHING RETURNING kind`,
+          [String(seedOrg)]
+        );
+        if (claimed.rowCount > 0) {
+          const phones = legacy.split(',').map((p) => normalizeWaNumber(p.trim())).filter((p) => p.length >= 8);
+          const names = (process.env.WHATSAPP_BRIEFING_NAMES || 'Juanfe').split(',').map((n) => n.trim());
+          for (let i = 0; i < phones.length; i += 1) {
+            const member = await pool.query(
+              `SELECT id, name FROM team_members WHERE organization_id = $1 AND phone IS NOT NULL AND RIGHT(REGEXP_REPLACE(phone, '\\D', '', 'g'), 10) = $2 LIMIT 1`,
+              [seedOrg, phones[i].slice(-10)]
+            );
+            await pool.query(
+              `INSERT INTO whatsapp_briefing_recipients (organization_id, team_member_id, phone, name, kinds, enabled)
+               VALUES ($1, $2, $3, $4, '["morning","tasks","noon","alerts"]'::jsonb, TRUE)
+               ON CONFLICT (organization_id, phone) DO NOTHING`,
+              [seedOrg, member.rows[0]?.id || null, phones[i], names[i] || member.rows[0]?.name || names[0] || null]
+            );
+          }
+          console.log(`  📲 [briefings] destinatarios sembrados desde env para la org ${seedOrg}: ${phones.length}`);
+        }
+      }
+    } catch (e) {
+      console.error('  ⚠️  [briefings] siembra de destinatarios:', e.message);
+    }
 
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {

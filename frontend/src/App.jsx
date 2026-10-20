@@ -48,6 +48,7 @@ import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
 import OrgBranding from './pages/OrgBranding'; // [branding]
+import WhatsappReports from './pages/WhatsappReports'; // [briefings]
 import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
 import ClientReports from './pages/ClientReports';
@@ -624,6 +625,7 @@ function App() {
                 <Route path="suscripcion" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
                 <Route path="plataforma" element={<ProtectedRoute><Platform /></ProtectedRoute>} />
                 <Route path="configuracion/marca" element={<OrgBranding />} /> {/* [branding] solo admin (lo valida la página) */}
+                <Route path="configuracion/whatsapp" element={<ProtectedRoute><WhatsappReports /></ProtectedRoute>} /> {/* [briefings] */}
               </Routes>
             </Layout>
           }

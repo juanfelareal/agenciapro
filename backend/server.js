@@ -415,19 +415,22 @@ cron.schedule('*/5 * * * *', async () => {
 
 console.log('✅ Metrics sync cron job scheduled (every 5 minutes, Colombia time)');
 
-// Resúmenes de Orbit por WhatsApp (Kapso): 06:00 rendimiento de ayer + tareas, 12:00 ventas de hoy, alertas cada hora 10–21
+// Resúmenes de Orbit por WhatsApp (Kapso), por organización: 06:00 rendimiento de ayer + tareas (+ reporte al dueño de
+// cada marca), 12:00 ventas de hoy (+ dueños), alertas cada hora 10:05–21:05 y, para orgs con el add-on
+// `hourly_reports`, ventas de hoy cada hora 10:00–21:00 (a las 12:00 reemplaza al noon para esos destinatarios).
 const briefingJob = (kind) => async () => {
   try {
     const r = await runWhatsAppBriefing(kind);
-    if (r) console.log(`📲 WhatsApp briefing ${kind}:`, JSON.stringify(r).slice(0, 300));
+    if (r && !r.skipped && r.orgs?.length) console.log(`📲 WhatsApp briefing ${kind}:`, JSON.stringify(r).slice(0, 400));
   } catch (error) {
     console.error(`❌ WhatsApp briefing ${kind}:`, error.message);
   }
 };
 cron.schedule('0 6 * * *', async () => { await briefingJob('morning')(); await briefingJob('tasks')(); }, { scheduled: true, timezone: 'America/Bogota' });
 cron.schedule('0 12 * * *', briefingJob('noon'), { scheduled: true, timezone: 'America/Bogota' });
+cron.schedule('0 10-21 * * *', briefingJob('hourly'), { scheduled: true, timezone: 'America/Bogota' });
 cron.schedule('5 10-21 * * *', briefingJob('alerts'), { scheduled: true, timezone: 'America/Bogota' });
-console.log('✅ WhatsApp briefings scheduled (06:00 morning+tasks, 12:00 noon, alerts hourly 10-21, Colombia time)');
+console.log('✅ WhatsApp briefings scheduled per org (06:00 morning+tasks+owners, 12:00 noon+owners, hourly 10-21 add-on, alerts hourly 10-21, Colombia time)');
 
 // Setup cron job for weekly AI insights
 // Runs every Monday at 7:00 AM

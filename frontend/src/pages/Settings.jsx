@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // [modules] Link
 import { useAuth } from '../context/AuthContext';
 import { teamAPI } from '../utils/api';
-import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2, Puzzle, Sparkles, ChevronRight } from 'lucide-react'; // [modules]
+import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2, Puzzle, Sparkles, ChevronRight, MessageCircle } from 'lucide-react'; // [modules] [briefings]
 import OnboardingSettingsCard from '../components/onboarding/OnboardingSettingsCard'; // [onboarding]
 
 const Settings = () => {
@@ -393,6 +393,17 @@ const Settings = () => {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[#121314]">Módulos</p>
               <p className="text-xs text-gray-500">Elige qué partes de Orbit ve tu equipo.</p>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </Link>
+          {/* [briefings] Reportes por WhatsApp: destinatarios, dueños de marca y número */}
+          <Link to="/app/configuracion/whatsapp" className="flex items-center gap-3 p-4 hover:bg-[#121212]/[0.03] transition-colors">
+            <div className="w-10 h-10 rounded-xl bg-[#121314] flex items-center justify-center flex-shrink-0">
+              <MessageCircle size={20} className="text-[#44BF47]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#121314]">Reportes por WhatsApp</p>
+              <p className="text-xs text-gray-500">Quién recibe los resúmenes, reporte al dueño de cada marca y número.</p>
             </div>
             <ChevronRight size={18} className="text-gray-400" />
           </Link>
