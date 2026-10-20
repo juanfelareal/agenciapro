@@ -114,9 +114,9 @@ const PLANS = [
   {
     name: 'Starter',
     for: 'Agencias que arrancan a ordenar la operación',
-    price: '{{PRECIO_STARTER}}',
+    price: '$249.000',
     features: [
-      'Hasta {{MARCAS_STARTER}} marcas conectadas',
+      'Hasta 3 marcas conectadas',
       'Clientes, CRM, proyectos y tareas',
       'Métricas en vivo (Shopify / Woo + pauta)',
       'Portal del cliente',
@@ -127,11 +127,11 @@ const PLANS = [
   {
     name: 'Growth',
     for: 'Agencias que venden resultados por marca',
-    price: '{{PRECIO_GROWTH}}',
+    price: '$489.000',
     featured: true,
     badge: 'Recomendado',
     features: [
-      'Hasta {{MARCAS_GROWTH}} marcas conectadas',
+      'Hasta 10 marcas conectadas',
       'Todo lo de Starter',
       'Finanzas por marca: P&L diario, BE ROAS y escenarios',
       'Reuniones → tareas por WhatsApp',
@@ -144,7 +144,7 @@ const PLANS = [
   {
     name: 'Agencia',
     for: 'Operaciones con varios equipos y muchas marcas',
-    price: '{{PRECIO_AGENCIA}}',
+    price: '$990.000',
     features: [
       'Marcas ilimitadas',
       'Todo lo de Growth',
