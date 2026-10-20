@@ -371,6 +371,9 @@ const Landing = () => {
                 <a href={DEMO_MAIL} className="lp-btn lp-btn--primary lp-btn--lg">
                   Agenda una demo <ArrowRight aria-hidden="true" />
                 </a>
+                <Link to="/register" className="lp-btn lp-btn--green lp-btn--lg">
+                  Crear mi cuenta
+                </Link>
                 <a href="#producto" className="lp-btn lp-btn--ghost lp-btn--lg" onClick={(e) => goTo(e, '#producto')}>
                   Ver cómo funciona
                 </a>
@@ -585,8 +588,11 @@ const Landing = () => {
                       <li key={f}><Check aria-hidden="true" /><span>{withPlaceholders(f)}</span></li>
                     ))}
                   </ul>
-                  <a href={DEMO_MAIL} className={`lp-btn ${plan.featured ? 'lp-btn--green' : 'lp-btn--ghost'}`}>
-                    {plan.cta} <ArrowRight aria-hidden="true" />
+                  <Link to={`/register?plan=${plan.name.toLowerCase()}`} className={`lp-btn ${plan.featured ? 'lp-btn--green' : 'lp-btn--primary'}`}>
+                    Empieza 14 días gratis <ArrowRight aria-hidden="true" />
+                  </Link>
+                  <a href={DEMO_MAIL} className="lp-btn lp-btn--ghost">
+                    {plan.cta}
                   </a>
                 </article>
               ))}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { teamAPI } from '../utils/api';
 import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2 } from 'lucide-react';
+import OnboardingSettingsCard from '../components/onboarding/OnboardingSettingsCard'; // [onboarding]
 
 const Settings = () => {
   const { user, currentOrg, logout, checkAuth, isAdmin } = useAuth();
@@ -455,6 +456,9 @@ const Settings = () => {
           </button>
         </form>
       </div>
+
+      {/* [onboarding] Ver el tour otra vez / mostrar primeros pasos */}
+      <OnboardingSettingsCard />
 
       {/* Danger Zone Card */}
       <div className="bg-white rounded-2xl border border-red-200 p-6">

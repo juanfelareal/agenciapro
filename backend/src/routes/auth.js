@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import db from '../config/database.js';
 import { teamAuthMiddleware } from '../middleware/teamAuth.js';
+// [onboarding] registro autoservicio: plan, trial, módulos y marca iniciales
+import { ensureOnboardingColumns, buildInitialSettings, normalizePlan, trialEndsAt } from '../services/orgOnboarding.js';
 
 const router = express.Router();
 
@@ -571,7 +573,7 @@ router.post('/restore-all-sessions', async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, pin, org_name, logo_base64, onboarding } = req.body;
+    const { name, email, pin, org_name, logo_base64, onboarding, plan, branding, modules, agency_type, team_size } = req.body; // [onboarding]
 
     if (!name || !email || !pin || !org_name) {
       return res.status(400).json({ error: 'Nombre, email, PIN y nombre de organizacion son requeridos' });
@@ -593,20 +595,15 @@ router.post('/register', async (req, res) => {
       logoUrl = logo_base64;
     }
 
-    // Build settings with onboarding data
+    // [onboarding] Build settings (onboarding + módulos + marca) y plan elegido con trial de 14 días
     let settings = null;
-    if (onboarding && typeof onboarding === 'object') {
-      settings = JSON.stringify({
-        onboarding: {
-          business_type: onboarding.business_type || null,
-          team_size: onboarding.team_size || null,
-          goals: onboarding.goals || [],
-          alternatives: onboarding.alternatives || [],
-          how_found_us: onboarding.how_found_us || null,
-          completed_at: new Date().toISOString()
-        }
-      });
+    if ((onboarding && typeof onboarding === 'object') || plan || modules || branding || agency_type) {
+      settings = JSON.stringify(buildInitialSettings({ onboarding, modules, branding, agencyType: agency_type, teamSize: team_size }));
     }
+    const planSelected = normalizePlan(plan);
+    const orgPlan = planSelected ? 'trial' : 'free';
+    const orgTrialEndsAt = planSelected ? trialEndsAt().toISOString() : null;
+    await ensureOnboardingColumns();
 
     const emailLower = email.toLowerCase().trim();
 
@@ -636,10 +633,10 @@ router.post('/register', async (req, res) => {
 
     // Create organization with optional logo and settings
     const orgResult = await db.run(`
-      INSERT INTO organizations (name, slug, plan, logo_url, settings)
-      VALUES (?, ?, 'free', ?, ?)
+      INSERT INTO organizations (name, slug, plan, logo_url, settings, plan_selected, trial_ends_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       RETURNING id
-    `, [org_name, slug, logoUrl, settings]);
+    `, [org_name, slug, orgPlan, logoUrl, settings, planSelected, orgTrialEndsAt]); // [onboarding]
     const orgId = orgResult.lastInsertRowid;
 
     // Create admin membership
@@ -679,7 +676,10 @@ router.post('/register', async (req, res) => {
         id: orgId,
         name: org_name,
         slug: slug,
-        logo_url: logoUrl
+        logo_url: logoUrl,
+        plan: orgPlan, // [onboarding]
+        plan_selected: planSelected,
+        trial_ends_at: orgTrialEndsAt
       },
       organizations: [{
         id: orgId,
