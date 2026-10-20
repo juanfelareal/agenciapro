@@ -172,6 +172,16 @@ const Settings = () => {
         <p className="text-sm text-gray-500 mt-0.5">Configura tu perfil y preferencias</p>
       </div>
 
+      {/* [email] Plantillas de correo con la marca de la org (solo admins) */}
+      {isAdmin && (
+        <button
+          onClick={() => navigate('/app/configuracion/correos')}
+          className="text-sm text-gray-500 hover:text-[#17181A] underline underline-offset-4 decoration-gray-300"
+        >
+          Ver plantillas de correo
+        </button>
+      )}
+
       {/* Profile Info Card */}
       <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-5">

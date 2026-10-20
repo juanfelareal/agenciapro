@@ -3,8 +3,11 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import db from '../config/database.js';
 import { teamAuthMiddleware } from '../middleware/teamAuth.js';
+import authRecoveryRouter from './auth-recovery.js'; // [email]
+import { sendTemplate } from '../services/email.js'; // [email]
 
 const router = express.Router();
+router.use(authRecoveryRouter); // [email] POST /forgot-pin y /reset-pin con código (antes del handler legado)
 
 /**
  * Generate a secure session token
@@ -662,6 +665,14 @@ router.post('/register', async (req, res) => {
       SELECT id, name, email, role, position, permissions
       FROM team_members WHERE user_id = ? AND organization_id = ?
     `, [userId, orgId]);
+
+    // [email] Bienvenida a la agencia recién registrada (no bloqueante)
+    sendTemplate({
+      orgId,
+      to: emailLower,
+      template: 'trial-welcome',
+      data: { adminName: name, appUrl: (process.env.FRONTEND_URL || 'https://orbit.larealmarketing.com').replace(/\/$/, '') + '/app' },
+    }).catch((e) => console.error('[register] trial-welcome email error:', e.message));
 
     res.status(201).json({
       token: sessionToken,
