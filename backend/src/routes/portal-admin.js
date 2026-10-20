@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import db from '../config/database.js';
+import { sendTemplate, APP_URL } from '../services/email.js'; // [email]
 
 const router = express.Router();
 
@@ -186,18 +187,28 @@ router.post('/clients/:id/invite', async (req, res) => {
   try {
     const orgId = req.orgId;
     const { id } = req.params;
-    const { created_by } = req.body || {};
+    const { created_by, send_email } = req.body || {}; // [email] send_email opcional
 
     // Check client exists and belongs to org
-    const client = await db.get('SELECT id, name FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
+    const client = await db.get('SELECT id, name, email FROM clients WHERE id = ? AND organization_id = ?', [id, orgId]);
     if (!client) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
+    // [email] Al enviar por correo, reutiliza la invitación activa si ya existe
+    let inviteCode = null;
+    let reused = false;
+    if (send_email) {
+      const active = await db.get(
+        `SELECT token FROM client_access_tokens WHERE client_id = ? AND token_type = 'invite' AND status = 'active' ORDER BY created_at DESC LIMIT 1`,
+        [id]
+      );
+      if (active?.token) { inviteCode = active.token; reused = true; }
+    }
+
     // Generate unique invite code
-    let inviteCode;
     let attempts = 0;
-    do {
+    if (!reused) do {
       inviteCode = generateInviteCode();
       const existing = await db.get('SELECT id FROM client_access_tokens WHERE token = ?', [inviteCode]);
       if (!existing) break;
@@ -209,15 +220,30 @@ router.post('/clients/:id/invite', async (req, res) => {
     }
 
     // Create invite token (permanent, no expiration)
-    await db.run(`
-      INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, created_by)
-      VALUES (?, ?, 'invite', 'active', NULL, ?)
-    `, [id, inviteCode, created_by || null]);
+    if (!reused) {
+      await db.run(`
+        INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, created_by)
+        VALUES (?, ?, 'invite', 'active', NULL, ?)
+      `, [id, inviteCode, created_by || null]);
+    }
+
+    // [email] Enviar portal-invite al correo del cliente con la marca de la agencia
+    let emailResult = null;
+    if (send_email) {
+      if (!client.email) return res.status(400).json({ error: 'El cliente no tiene correo registrado', invite_code: inviteCode });
+      emailResult = await sendTemplate({
+        orgId,
+        to: client.email,
+        template: 'portal-invite',
+        data: { clientName: client.name, inviteCode, portalUrl: `${APP_URL()}/portal/login?code=${inviteCode}` },
+      });
+    }
 
     res.json({
       invite_code: inviteCode,
       client_name: client.name,
-      portal_url: `/portal/login?code=${inviteCode}`
+      portal_url: `/portal/login?code=${inviteCode}`,
+      ...(emailResult ? { email: emailResult, sent_to: client.email } : {}),
     });
   } catch (error) {
     console.error('Error generating invite:', error);

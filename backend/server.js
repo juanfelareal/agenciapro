@@ -74,6 +74,9 @@ import { setupCollaboration } from './src/services/collaborationService.js';
 import { generateAllWeeklyInsights } from './src/services/insightService.js';
 // Scheduled collection reminders
 import { processScheduledReminders } from './src/services/scheduledReminders.js';
+import orgEmailsRoutes from './src/routes/org-emails.js'; // [email]
+import { requireAdmin } from './src/middleware/teamAuth.js'; // [email]
+import { sendTrialEndingEmails } from './src/services/trialEmails.js'; // [email]
 // Dashboard Share (public links for dashboards)
 import dashboardShareRoutes from './src/routes/dashboard-share.js';
 // CRM
@@ -277,6 +280,8 @@ app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
 app.use('/api/zernio', teamAuthMiddleware, zernioRoutes);
 // Portal admin (internal — needs team auth)
 app.use('/api/portal-admin', teamAuthMiddleware, portalAdminRoutes);
+// [email] Vista previa de plantillas de correo con la marca de la org (solo admins)
+app.use('/api/org/emails', teamAuthMiddleware, requireAdmin, orgEmailsRoutes);
 // Client Portal (public portal — uses its own clientAuthMiddleware)
 app.use('/api/portal', portalRoutes);
 // Note sharing (has both authenticated and public routes internally)
@@ -454,6 +459,13 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 console.log('✅ Scheduled reminders cron job running (every 2 hours Colombia time)');
+
+// [email] Aviso de fin de prueba (3 días antes), diario 9:00 Colombia
+cron.schedule('0 9 * * *', async () => {
+  console.log('⏰ Checking trial-ending emails...');
+  await sendTrialEndingEmails();
+}, { scheduled: true, timezone: 'America/Bogota' });
+console.log('✅ Trial-ending email cron scheduled (daily at 9:00 AM Colombia time)');
 
 // Setup cron jobs for Siigo automatic sync
 // Runs 5 times daily: 7AM, 10AM, 1PM, 4PM, 7PM Colombia time

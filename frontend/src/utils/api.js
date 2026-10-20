@@ -240,6 +240,9 @@ export const authAPI = {
   selectOrg: (orgId) => api.post('/auth/select-org', { org_id: orgId }),
   register: (data) => api.post('/auth/register', data),
   bootstrap: (email, pin, name) => api.post('/auth/bootstrap', { email, pin, name }),
+  // [email] Recuperación de PIN por código
+  forgotPin: (email) => api.post('/auth/forgot-pin', { email }),
+  resetPinWithCode: (email, code, new_pin) => api.post('/auth/reset-pin', { email, code, new_pin }),
 };
 
 // Team API
@@ -259,6 +262,16 @@ export const teamAPI = {
   setPin: (memberId, pin) => api.post(`/team/${memberId}/set-pin`, { pin }),
   changePin: (currentPin, newPin) => api.post('/team/change-pin', { currentPin, newPin }),
   leaveOrg: () => api.post('/team/leave-org'),
+  // [email] Invitaciones por enlace
+  resendInvite: (memberId) => api.post(`/team/${memberId}/invite`),
+  getInvite: (token) => api.get(`/team/invitations/${token}`),
+  acceptInvite: (token, pin) => api.post(`/team/invitations/${token}/accept`, { pin }),
+};
+
+// [email] Plantillas de correo con la marca de la org (admin)
+export const orgEmailsAPI = {
+  listTemplates: () => api.get('/org/emails/templates'),
+  preview: (template) => api.get(`/org/emails/preview/${template}`, { params: { format: 'json' } }),
 };
 
 // Add auth token to requests
@@ -863,6 +876,11 @@ export const portalAdminAPI = {
   },
   generateInvite: async (clientId) => {
     const response = await api.post(`/portal-admin/clients/${clientId}/invite`);
+    return response.data;
+  },
+  // [email] Genera (o reutiliza) la invitación y la envía al correo del cliente
+  sendInviteEmail: async (clientId) => {
+    const response = await api.post(`/portal-admin/clients/${clientId}/invite`, { send_email: true });
     return response.data;
   },
   getAccess: async (clientId) => {

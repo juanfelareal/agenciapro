@@ -2,9 +2,12 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import db from '../config/database.js';
 import { teamAuthMiddleware, requireAdmin } from '../middleware/teamAuth.js';
-import { sendWelcomeEmail } from '../utils/emailHelper.js';
+// [email] el welcome email ahora sale por services/email.js (plantilla team-invite)
+import teamInvitesRouter, { createTeamInviteAndSend } from './team-invites.js'; // [email]
+import { sendTemplate } from '../services/email.js'; // [email]
 
 const router = express.Router();
+router.use(teamInvitesRouter); // [email] POST /:id/invite, GET|POST /invitations/:token
 
 // ========================================
 // LEGACY AUTH ENDPOINTS (redirect to /api/auth)
@@ -362,20 +365,25 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
 
     // Send welcome email if requested
     if (send_email && pin) {
+      // [email] Plantilla team-invite con la marca de la org (PIN definido por el admin)
       try {
-        const org = await db.get('SELECT name FROM organizations WHERE id = ?', [req.orgId]);
         const loginUrl = (process.env.FRONTEND_URL || 'https://orbit.larealmarketing.com') + '/login';
-        await sendWelcomeEmail({
+        await sendTemplate({
+          orgId: req.orgId,
           to: emailLower,
-          memberName: name,
-          email: emailLower,
-          pin,
-          orgName: org?.name || 'La organización',
-          loginUrl,
+          template: 'team-invite',
+          data: { memberName: name, email: emailLower, pin, loginUrl, invitedBy: req.teamMember?.name },
         });
       } catch (emailError) {
         console.error('Error sending welcome email:', emailError);
         // Don't fail the member creation, just log the error
+      }
+    } else if (send_email && !pin) {
+      // [email] Sin PIN: invitación por enlace para que la persona defina el suyo
+      try {
+        await createTeamInviteAndSend({ memberId: member.id, orgId: req.orgId, invitedById: req.teamMember?.id, invitedByName: req.teamMember?.name });
+      } catch (emailError) {
+        console.error('Error sending team invite:', emailError);
       }
     }
 

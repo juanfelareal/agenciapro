@@ -124,6 +124,13 @@ const Login = () => {
               </div>
             </div>
 
+            {/* [email] Recuperar PIN */}
+            <div className="flex justify-end -mt-2">
+              <Link to="/recuperar-pin" className="text-sm text-ink-500 hover:text-ink-900 transition-colors">
+                ¿Olvidaste tu PIN?
+              </Link>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"

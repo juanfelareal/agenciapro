@@ -5,6 +5,9 @@ import Login from './pages/Login';
 import Landing from './pages/Landing';
 import SelectOrganization from './pages/SelectOrganization';
 import Register from './pages/Register';
+import ForgotPin from './pages/ForgotPin'; // [email]
+import AcceptInvite from './pages/AcceptInvite'; // [email]
+import EmailTemplatesPreview from './pages/EmailTemplatesPreview'; // [email]
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Projects from './pages/Projects';
@@ -102,6 +105,9 @@ function App() {
 
         {/* Register page - no layout */}
         <Route path="/register" element={<Register />} />
+        {/* [email] Recuperar PIN e invitación al equipo por enlace */}
+        <Route path="/recuperar-pin" element={<ForgotPin />} />
+        <Route path="/invitacion/:token" element={<AcceptInvite />} />
 
         {/* Landing page - no layout */}
         <Route path="/landing" element={<Landing />} />
@@ -607,6 +613,7 @@ function App() {
                 <Route path="mejoras" element={<ProtectedRoute><OrbitFeedback /></ProtectedRoute>} />
                 <Route path="novedades" element={<ProtectedRoute><News /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="configuracion/correos" element={<EmailTemplatesPreview />} /> {/* [email] */}
               </Routes>
             </Layout>
           }

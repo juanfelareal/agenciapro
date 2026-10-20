@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import pg from 'pg';
+import { ensureEmailTables } from './emailSchema.js'; // [email]
 const { Pool } = pg;
 
 // Debug: Log environment info at startup
@@ -4174,6 +4175,9 @@ export const initializeDatabase = async () => {
         END $$;
       `);
     }
+
+    // [email] Tablas de correos transaccionales (email_log, pin_reset_codes, team_invites)
+    await ensureEmailTables(pool);
 
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {

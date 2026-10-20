@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { compressLogoToDataURL } from '../utils/avatar';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle, Mail, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle, Mail, MailPlus, Image as ImageIcon } from 'lucide-react';
 import ClientPortfolio from './ClientPortfolio';
 
 const Clients = () => {
@@ -595,6 +595,22 @@ const Clients = () => {
     }
   };
 
+  // [email] Enviar invitación al portal por correo (marca de la agencia)
+  const [sendingInviteId, setSendingInviteId] = useState(null);
+  const handleSendPortalInvite = async (client) => {
+    if (!client.email) { window.alert('Este cliente no tiene correo registrado.'); return; }
+    if (!window.confirm(`¿Enviar el acceso al portal a ${client.email}?`)) return;
+    setSendingInviteId(client.id);
+    try {
+      const res = await portalAdminAPI.sendInviteEmail(client.id);
+      window.alert(res?.email?.ok ? `Invitación enviada a ${res.sent_to}` : (res?.email?.error || 'No se pudo enviar el correo'));
+    } catch (error) {
+      window.alert(error.response?.data?.error || 'No se pudo enviar la invitación');
+    } finally {
+      setSendingInviteId(null);
+    }
+  };
+
   const handleOpenDashboard = async (client) => {
     // Open a blank tab synchronously to avoid popup blockers, then redirect once the link is ready
     const newTab = window.open('about:blank', '_blank');
@@ -805,6 +821,9 @@ const Clients = () => {
               <button onClick={() => handleQuickCopyPortalLink(client)} className={`p-2 rounded-lg hover:bg-gray-100 ${copiedPortalId === client.id ? 'text-green-600' : 'text-gray-500'}`} title="Copiar link del portal">
                 {copiedPortalId === client.id ? <Check size={18} /> : <Link2 size={18} />}
               </button>
+              <button onClick={() => handleSendPortalInvite(client)} disabled={sendingInviteId === client.id} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Enviar acceso al portal por correo">{/* [email] */}
+                {sendingInviteId === client.id ? <Loader2 size={18} className="animate-spin" /> : <MailPlus size={18} />}
+              </button>
               <button onClick={() => navigate(`/app/clients/${client.id}/plataformas`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Plataformas"><Settings size={18} /></button>
               <button onClick={() => handleSyncToSiigo(client)} disabled={syncingSiigoId === client.id} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Sincronizar a Siigo">
                 {syncingSiigoId === client.id ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -955,6 +974,14 @@ const Clients = () => {
                     title={copiedPortalId === client.id ? 'Link copiado!' : 'Copiar link del portal'}
                   >
                     {copiedPortalId === client.id ? <Check size={16} /> : <Link2 size={16} />}
+                  </button>
+                  <button
+                    onClick={() => handleSendPortalInvite(client)}
+                    disabled={sendingInviteId === client.id}
+                    className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1 rounded mr-0.5 transition-colors"
+                    title="Enviar acceso al portal por correo"
+                  >{/* [email] */}
+                    {sendingInviteId === client.id ? <Loader2 size={16} className="animate-spin" /> : <MailPlus size={16} />}
                   </button>
                   <button
                     onClick={() => handleOpenDashboard(client)}

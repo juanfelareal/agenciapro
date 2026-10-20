@@ -256,6 +256,21 @@ const Team = () => {
     return members.filter(m => !editingMember || m.id !== editingMember.id);
   };
 
+  // [email] Reenviar invitación por enlace
+  const [invitingId, setInvitingId] = useState(null);
+  const handleResendInvite = async (member) => {
+    if (!window.confirm(`¿Enviar invitación a ${member.email}? Recibirá un enlace para definir su PIN.`)) return;
+    setInvitingId(member.id);
+    try {
+      const res = await teamAPI.resendInvite(member.id);
+      window.alert(res.data?.message || 'Invitación enviada');
+    } catch (error) {
+      window.alert(error.response?.data?.error || 'No se pudo enviar la invitación');
+    } finally {
+      setInvitingId(null);
+    }
+  };
+
   // PIN Management
   const openPinModal = (member) => {
     setPinMember(member);
@@ -372,6 +387,16 @@ const Team = () => {
                   title="Establecer PIN de acceso"
                 >
                   <Key size={14} />
+                </button>
+              )}
+              {isAdmin && ( // [email] Reenviar invitación por enlace (define su PIN)
+                <button
+                  onClick={() => handleResendInvite(member)}
+                  disabled={invitingId === member.id}
+                  className={`px-3 py-2 border border-gray-100 rounded-xl transition-colors ${invitingId === member.id ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-50'}`}
+                  title="Reenviar invitación por correo"
+                >
+                  <Mail size={14} />
                 </button>
               )}
               <button
