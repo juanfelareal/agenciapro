@@ -4,6 +4,7 @@ import db from '../config/database.js';
 import { invalidateVisibilityCache } from '../middleware/clientVisibility.js';
 import axios from 'axios';
 import { createRecurringInvoice } from '../utils/recurringInvoices.js';
+import { checkLimit } from '../services/plans.js'; // [modules]
 
 const router = express.Router();
 
@@ -207,6 +208,9 @@ router.post('/', async (req, res) => {
     if (!company) {
       return res.status(400).json({ error: 'Company name is required' });
     }
+
+    const brandLimit = await checkLimit(req.orgId, 'brands'); // [modules] límite de marcas del plan
+    if (!brandLimit.allowed) return res.status(402).json(brandLimit.payload); // [modules]
 
     // Validate recurring billing fields
     if (is_recurring) {

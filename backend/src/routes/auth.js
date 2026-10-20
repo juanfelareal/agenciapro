@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import db from '../config/database.js';
 import { teamAuthMiddleware } from '../middleware/teamAuth.js';
+import { isPlatformAdminEmail, TRIAL_DAYS } from '../config/planCatalog.js'; // [modules]
+import { checkLimit } from '../services/plans.js'; // [modules]
 
 const router = express.Router();
 
@@ -482,10 +484,12 @@ router.get('/me', teamAuthMiddleware, async (req, res) => {
         position: req.teamMember.position,
         permissions: req.teamMember.permissions,
         avatar_url: req.user?.avatar_url || null,
-        phone: (await db.get('SELECT phone FROM team_members WHERE id = ?', [req.teamMember.id]))?.phone || null
+        phone: (await db.get('SELECT phone FROM team_members WHERE id = ?', [req.teamMember.id]))?.phone || null,
+        is_platform_admin: isPlatformAdminEmail(req.user?.email || req.teamMember.email) // [modules]
       },
       current_org: req.currentOrg || null,
-      organizations
+      organizations,
+      is_platform_admin: isPlatformAdminEmail(req.user?.email || req.teamMember.email) // [modules]
     });
   } catch (error) {
     console.error('Error getting user info:', error);
@@ -636,10 +640,10 @@ router.post('/register', async (req, res) => {
 
     // Create organization with optional logo and settings
     const orgResult = await db.run(`
-      INSERT INTO organizations (name, slug, plan, logo_url, settings)
-      VALUES (?, ?, 'free', ?, ?)
+      INSERT INTO organizations (name, slug, plan, logo_url, settings, plan_status, trial_ends_at)
+      VALUES (?, ?, 'trial', ?, ?, 'trial', CURRENT_TIMESTAMP + (? || ' days')::interval)
       RETURNING id
-    `, [org_name, slug, logoUrl, settings]);
+    `, [org_name, slug, logoUrl, settings, String(TRIAL_DAYS)]); // [modules] prueba de 14 días
     const orgId = orgResult.lastInsertRowid;
 
     // Create admin membership
@@ -735,6 +739,9 @@ router.post('/invite', teamAuthMiddleware, async (req, res) => {
     if (existingMembership) {
       return res.status(400).json({ error: 'Este usuario ya es miembro de esta organización' });
     }
+
+    const userLimit = await checkLimit(req.orgId, 'users'); // [modules]
+    if (!userLimit.allowed) return res.status(402).json(userLimit.payload); // [modules]
 
     // Create membership (no PIN — user sets it on first login)
     const result = await db.run(`

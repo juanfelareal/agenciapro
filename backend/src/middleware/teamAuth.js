@@ -1,5 +1,6 @@
 import db from '../config/database.js';
 import { applyClientVisibility } from './clientVisibility.js';
+import { trialGate } from './trialGate.js'; // [modules]
 
 /**
  * Middleware to authenticate team member requests (multi-tenant).
@@ -100,7 +101,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
 
       req.tokenId = newToken.token_id;
 
-      return applyClientVisibility(req, res, next);
+      return applyClientVisibility(req, res, () => trialGate(req, res, next)); // [modules] prueba vencida → 402 en escrituras
     }
 
     // --- Fallback to legacy team_session_tokens ---
@@ -166,7 +167,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
 
     req.tokenId = null; // no user_session_token id in legacy mode
 
-    return applyClientVisibility(req, res, next);
+    return applyClientVisibility(req, res, () => trialGate(req, res, next)); // [modules] prueba vencida → 402 en escrituras
   } catch (error) {
     console.error('Team auth error:', error);
     res.status(500).json({ error: 'Error de autenticación' });

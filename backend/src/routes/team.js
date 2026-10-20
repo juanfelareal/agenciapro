@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import db from '../config/database.js';
 import { teamAuthMiddleware, requireAdmin } from '../middleware/teamAuth.js';
 import { sendWelcomeEmail } from '../utils/emailHelper.js';
+import { checkLimit } from '../services/plans.js'; // [modules]
 
 const router = express.Router();
 
@@ -305,6 +306,9 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
+
+    const userLimit = await checkLimit(req.orgId, 'users'); // [modules] límite de usuarios del plan
+    if (!userLimit.allowed) return res.status(402).json(userLimit.payload); // [modules]
 
     const emailLower = email.toLowerCase().trim();
 

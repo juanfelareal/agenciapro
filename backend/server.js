@@ -13,6 +13,10 @@ import { processRecurringInvoices } from './src/utils/recurringInvoices.js';
 
 // Import auth middleware
 import { teamAuthMiddleware } from './src/middleware/teamAuth.js';
+// [modules] Módulos por organización, planes y panel de plataforma
+import { requireModule } from './src/middleware/requireModule.js';
+import orgRoutes from './src/routes/org.js';
+import platformRoutes from './src/routes/platform.js';
 
 // Import routes
 import authRoutes from './src/routes/auth.js';
@@ -206,14 +210,17 @@ app.use('/api/auth', authRoutes);
 
 // Team routes (handles its own auth internally for legacy compat)
 app.use('/api/team', teamRoutes);
+// [modules] Plan/módulos de la org actual y panel de plataforma (LA REAL)
+app.use('/api/org', teamAuthMiddleware, orgRoutes);
+app.use('/api/platform', teamAuthMiddleware, platformRoutes);
 
 // All internal routes — protected by teamAuthMiddleware
 app.use('/api/clients', teamAuthMiddleware, clientRoutes);
 app.use('/api/projects', teamAuthMiddleware, projectRoutes);
 app.use('/api/project-stages', teamAuthMiddleware, projectStagesRoutes);
 app.use('/api/tasks', teamAuthMiddleware, taskRoutes);
-app.use('/api/invoices', teamAuthMiddleware, invoiceRoutes);
-app.use('/api/expenses', teamAuthMiddleware, expenseRoutes);
+app.use('/api/invoices', teamAuthMiddleware, requireModule('invoices'), invoiceRoutes); // [modules]
+app.use('/api/expenses', teamAuthMiddleware, requireModule('expenses'), expenseRoutes); // [modules]
 app.use('/api/dashboard', teamAuthMiddleware, dashboardRoutes);
 app.use('/api/sales-goals', teamAuthMiddleware, salesGoalsRoutes);
 // Monday.com style routes
@@ -222,12 +229,12 @@ app.use('/api/task-dependencies', teamAuthMiddleware, taskDependencyRoutes);
 app.use('/api/task-comments', teamAuthMiddleware, taskCommentRoutes);
 app.use('/api/task-files', teamAuthMiddleware, taskFileRoutes);
 app.use('/api/notifications', teamAuthMiddleware, notificationRoutes);
-app.use('/api/commissions', teamAuthMiddleware, commissionRoutes);
+app.use('/api/commissions', teamAuthMiddleware, requireModule('comisiones'), commissionRoutes); // [modules]
 // ClickUp-style routes
 app.use('/api/subtasks', teamAuthMiddleware, subtaskRoutes);
 app.use('/api/tags', teamAuthMiddleware, tagRoutes);
 app.use('/api/search', teamAuthMiddleware, searchRoutes);
-app.use('/api/automations', teamAuthMiddleware, automationRoutes);
+app.use('/api/automations', teamAuthMiddleware, requireModule('automatizaciones'), automationRoutes); // [modules]
 app.use('/api/reports', teamAuthMiddleware, reportRoutes);
 // Notes (Bloc de notas)
 app.use('/api/notes', teamAuthMiddleware, noteRoutes);
@@ -236,7 +243,7 @@ app.use('/api/note-folders', teamAuthMiddleware, noteFolderRoutes);
 // Platform integrations (Facebook Ads & Shopify metrics)
 app.use('/api/platform-credentials', teamAuthMiddleware, platformCredentialsRoutes);
 app.use('/api/client-metrics', teamAuthMiddleware, clientMetricsRoutes);
-app.use('/api/growth', teamAuthMiddleware, growthRoutes);
+app.use('/api/growth', teamAuthMiddleware, requireModule('finanzas'), growthRoutes); // [modules]
 // Facebook OAuth: callback must be public (redirect from Facebook has no auth token)
 // The callback route uses state parameter for verification instead
 app.use('/api/oauth/facebook', (req, res, next) => {
@@ -267,12 +274,12 @@ app.use('/api/oauth/woocommerce', (req, res, next) => {
 // PDF Analysis (RUT extraction with Claude AI)
 app.use('/api/pdf', teamAuthMiddleware, pdfAnalysisRoutes);
 // SOPs (Standard Operating Procedures)
-app.use('/api/sops', teamAuthMiddleware, sopsRoutes);
+app.use('/api/sops', teamAuthMiddleware, requireModule('sops'), sopsRoutes); // [modules]
 // Project Templates
 app.use('/api/project-templates', teamAuthMiddleware, projectTemplatesRoutes);
 // Time Tracking
 // Siigo Integration
-app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
+app.use('/api/siigo', teamAuthMiddleware, requireModule('siigo'), siigoRoutes); // [modules]
 // Zernio Integration (Social Media Management)
 app.use('/api/zernio', teamAuthMiddleware, zernioRoutes);
 // Portal admin (internal — needs team auth)
@@ -288,7 +295,7 @@ app.use('/api/crm', crmRoutes);
 // Screen Studio video proxy (no auth needed — public share links)
 app.use('/api/screenstudio', screenstudioRoutes);
 // Forms (Formularios)
-app.use('/api/forms', teamAuthMiddleware, formRoutes);
+app.use('/api/forms', teamAuthMiddleware, requireModule('formularios'), formRoutes); // [modules]
 // Form sharing (public — no auth needed)
 app.use('/api/form-share', formShareRoutes);
 // Invoice PDF public viewer (token-verified, no auth needed)
@@ -301,7 +308,7 @@ app.use('/api/client-logbook', teamAuthMiddleware, clientLogbookRoutes);
 app.use('/api/orbit-feedback', teamAuthMiddleware, orbitFeedbackRoutes);
 app.use('/api/news', teamAuthMiddleware, newsRoutes);
 // WhatsApp (Kapso): bandeja, envío y plantillas
-app.use('/api/whatsapp', teamAuthMiddleware, whatsappRoutes);
+app.use('/api/whatsapp', teamAuthMiddleware, requireModule('whatsapp'), whatsappRoutes); // [modules] (el webhook va aparte, sin auth)
 // Ventas por WhatsApp (canal reportado) + campañas por canal
 app.use('/api/whatsapp-sales', teamAuthMiddleware, whatsappSalesRoutes);
 // Client Documents
@@ -310,7 +317,7 @@ app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);
 import clientReportsRoutes from './src/routes/client-reports.js';
 app.use('/api/client-reports', teamAuthMiddleware, clientReportsRoutes);
 import emailMarketingRoutes from './src/routes/email-marketing.js';
-app.use('/api/email-marketing', teamAuthMiddleware, emailMarketingRoutes);
+app.use('/api/email-marketing', teamAuthMiddleware, requireModule('email_marketing'), emailMarketingRoutes); // [modules]
 // Ad Creative Tagging
 app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 // Chat
@@ -329,13 +336,13 @@ app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
 // UGC (User Generated Content) - Creator Management
 app.use('/api/ugc', ugcPublicRoutes);  // Public registration FIRST (no auth)
 app.use('/api/ugc/contracts', ugcContractsPublicRoutes);  // Public contract signing (no auth)
-app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);  // Authenticated routes after
+app.use('/api/ugc', teamAuthMiddleware, requireModule('ugc'), ugcRoutes);  // Authenticated routes after // [modules]
 
 // Document Signing (NDA, Contracts)
 app.use('/api/document-templates', teamAuthMiddleware, documentTemplatesRoutes);
 
 // Payroll (Nómina - Aleluya integration)
-app.use('/api/payroll', teamAuthMiddleware, payrollRoutes);
+app.use('/api/payroll', teamAuthMiddleware, requireModule('payroll'), payrollRoutes); // [modules]
 
 // Bank Statements (Extractos Bancolombia CSV)
 app.use('/api/bank-statements', teamAuthMiddleware, bankStatementsRoutes);

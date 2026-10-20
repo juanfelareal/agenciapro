@@ -97,6 +97,21 @@ api.interceptors.response.use(
   }
 );
 
+// [modules] 402 del plan (límite alcanzado / prueba vencida) → aviso global en Layout (UpgradeToast)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const d = error?.response?.data;
+    const fromOrgPages = String(error?.config?.url || '').startsWith('/org/');
+    if (error?.response?.status === 402 && d && !fromOrgPages && (d.limit_reached || d.upgrade || d.trial_expired)) {
+      window.dispatchEvent(new CustomEvent('orbit:upgrade-needed', {
+        detail: { message: d.error, trial_expired: !!d.trial_expired, limit_reached: !!d.limit_reached, required_plan: d.required_plan || null },
+      }));
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Clients API
 export const clientsAPI = {
   getAll: (status) => api.get('/clients', { params: { status } }),

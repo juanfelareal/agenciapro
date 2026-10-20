@@ -33,8 +33,11 @@ import {
   Lightbulb,
   Menu,
   X,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useOrgPlan } from '../hooks/useOrgPlan'; // [modules]
+import { PlanChip, TrialBanner, UpgradeToast } from './plan/PlanWidgets'; // [modules]
 import { orbitFeedbackAPI, newsAPI, whatsappAPI, tasksAPI } from '../utils/api';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
@@ -47,6 +50,7 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, currentOrg, hasPermission, logout } = useAuth();
+  const { isModuleEnabled, isPlatformAdmin } = useOrgPlan(); // [modules] módulos de la org = capa sobre los permisos
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Móvil: el sidebar es un drawer (cerrado por defecto) y nunca se muestra colapsado
   const isMobile = useIsMobile();
@@ -152,49 +156,53 @@ const Layout = ({ children }) => {
   };
 
   // Items principales (sin submenú)
+  // [modules] `module` = clave del módulo de la organización; si está apagado, el ítem se oculta aunque haya permiso
   const mainNavigation = [
-    { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard' },
-    { name: 'Novedades', path: '/app/novedades', icon: Megaphone, permission: null, badge: 'news' },
-    { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients' },
-    { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm' },
-    { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients' },
-    { name: 'WhatsApp', path: '/app/whatsapp', icon: MessageCircle, permission: 'clients', badge: 'whatsapp' },
-    { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc' },
-    { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos' },
-    { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
-    { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
-    { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks', badge: 'tasks' },
-    { name: 'Reuniones', path: '/app/reuniones', icon: ClipboardList, permission: 'tasks' },
+    { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard', module: 'dashboard' },
+    { name: 'Novedades', path: '/app/novedades', icon: Megaphone, permission: null, badge: 'news', module: 'novedades' },
+    { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients', module: 'clients' },
+    { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm', module: 'crm' },
+    { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients', module: 'email_marketing' },
+    { name: 'WhatsApp', path: '/app/whatsapp', icon: MessageCircle, permission: 'clients', badge: 'whatsapp', module: 'whatsapp' },
+    { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc', module: 'ugc' },
+    { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos', module: 'documentos' },
+    { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects', module: 'projects' },
+    { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas', module: 'plantillas' },
+    { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks', badge: 'tasks', module: 'tasks' },
+    { name: 'Reuniones', path: '/app/reuniones', icon: ClipboardList, permission: 'tasks', module: 'reuniones' },
   ];
 
   // Submenú de Finanzas
   const finanzasSubItems = [
-    { name: 'Dashboard', path: '/app/finanzas-dashboard', icon: BarChart3, permission: 'invoices' },
-    { name: 'Facturas', path: '/app/invoices', icon: FileText, permission: 'invoices' },
-    { name: 'Cartera', path: '/app/cartera', icon: Receipt, permission: 'invoices' },
-    { name: 'Gastos', path: '/app/expenses', icon: CreditCard, permission: 'expenses' },
-    { name: 'Comisiones', path: '/app/comisiones', icon: Percent, permission: 'comisiones' },
-    { name: 'Siigo', path: '/app/siigo', icon: Link2, permission: 'siigo' },
+    { name: 'Dashboard', path: '/app/finanzas-dashboard', icon: BarChart3, permission: 'invoices', module: 'finanzas' },
+    { name: 'Facturas', path: '/app/invoices', icon: FileText, permission: 'invoices', module: 'invoices' },
+    { name: 'Cartera', path: '/app/cartera', icon: Receipt, permission: 'invoices', module: 'invoices' },
+    { name: 'Gastos', path: '/app/expenses', icon: CreditCard, permission: 'expenses', module: 'expenses' },
+    { name: 'Comisiones', path: '/app/comisiones', icon: Percent, permission: 'comisiones', module: 'comisiones' },
+    { name: 'Siigo', path: '/app/siigo', icon: Link2, permission: 'siigo', module: 'siigo' },
   ];
 
   // Items después de Finanzas
   const bottomNavigation = [
-    { name: 'Métricas', path: '/app/metricas', icon: BarChart3, permission: 'metricas' },
-    { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes' },
-    { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
-    { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
+    { name: 'Métricas', path: '/app/metricas', icon: BarChart3, permission: 'metricas', module: 'metricas' },
+    { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes', module: 'reportes' },
+    { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas', module: 'notas' },
+    { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios', module: 'formularios' },
     { name: 'Anuncios', path: '/app/anuncios', icon: Megaphone, permission: null },
     // Chat interno oculto del sidebar (2026-07-03): ~10 mensajes/mes — el equipo vive en WhatsApp.
     // La ruta /app/chat sigue funcionando por URL directa y los datos quedan intactos.
-    { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
+    { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops', module: 'sops' },
     { name: 'Briefs', path: '/app/briefs', icon: FileCode2, permission: null },
-    { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
+    { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team', module: 'team' },
+    // [modules] Panel de plataforma: solo platform admins (LA REAL)
+    ...(isPlatformAdmin ? [{ name: 'Plataforma', path: '/app/plataforma', icon: Building2, permission: null }] : []),
   ];
 
-  // Filtrar por permisos
-  const filteredMain = mainNavigation.filter((item) => !item.permission || hasPermission(item.permission));
-  const filteredFinanzas = finanzasSubItems.filter((item) => hasPermission(item.permission));
-  const filteredBottom = bottomNavigation.filter((item) => !item.permission || hasPermission(item.permission));
+  // Filtrar por permisos y por módulos de la organización [modules]
+  const visible = (item) => (!item.permission || hasPermission(item.permission)) && (!item.module || isModuleEnabled(item.module));
+  const filteredMain = mainNavigation.filter(visible);
+  const filteredFinanzas = finanzasSubItems.filter((item) => hasPermission(item.permission) && (!item.module || isModuleEnabled(item.module)));
+  const filteredBottom = bottomNavigation.filter(visible);
 
   const isActive = (path) => {
     if (path === '/app') {
@@ -452,6 +460,11 @@ const Layout = ({ children }) => {
 
             {/* Bottom navigation items */}
             {filteredBottom.map(renderNavItem)}
+
+            {/* [modules] Chip de plan: "Prueba · 9 días" o nombre del plan → Suscripción */}
+            <div className="pt-2">
+              <PlanChip collapsed={collapsedUI} active={isActive('/app/suscripcion')} />
+            </div>
           </div>
         </nav>
 
@@ -538,6 +551,9 @@ const Layout = ({ children }) => {
           collapsedUI ? 'md:ml-[104px]' : 'md:ml-[252px]'
         }`}
       >
+        {/* [modules] Banda: prueba terminada / pago pendiente / cancelado */}
+        <TrialBanner />
+
         {/* Top Header Bar - Clean white.
             Altura h-16 para que coincida con el header del sidebar (también h-16);
             así las dos border-b se alinean en la misma línea horizontal. */}
@@ -595,6 +611,9 @@ const Layout = ({ children }) => {
           <div className="page-container animate-fade-in">{children}</div>
         </main>
       </div>
+
+      {/* [modules] Aviso global de 402 (límite del plan / prueba vencida) */}
+      <UpgradeToast />
     </div>
   );
 };
