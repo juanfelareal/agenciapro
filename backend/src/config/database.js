@@ -4012,8 +4012,9 @@ export const initializeDatabase = async () => {
         true,
         true,
         1,
-        1
+        (SELECT id FROM team_members WHERE organization_id = 1 ORDER BY id LIMIT 1)
       WHERE EXISTS (SELECT 1 FROM organizations WHERE id = 1)
+        AND EXISTS (SELECT 1 FROM team_members WHERE organization_id = 1)
         AND NOT EXISTS (SELECT 1 FROM document_templates WHERE organization_id = 1 AND category = 'nda')
     `, [
       `<div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; color: #1a1a1a;">
