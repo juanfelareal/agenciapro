@@ -36,3 +36,4 @@ coverage/
 .vercel
 .env*.local
 backend/database.sqlite
+dist-prod
