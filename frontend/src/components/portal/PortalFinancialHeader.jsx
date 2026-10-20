@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Store, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Package, FileDown, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Store, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Package, FileDown, Lock, FileSpreadsheet } from 'lucide-react';
 import { monthLabel, prevPeriod, nextPeriod, currentPeriod, fmtRelative, fmtPct } from '../growth/financial/format';
 
 const Pill = ({ tone = 'neutral', icon, children, onClick, title }) => {
@@ -27,7 +27,7 @@ const Pill = ({ tone = 'neutral', icon, children, onClick, title }) => {
  * Encabezado del dashboard financiero en el portal del cliente: "Finanzas de {marca}", selector de mes,
  * "Día X de Y", pills de estado de datos y aviso de solo lectura. Sin botón "volver" (el portal tiene su menú).
  */
-export default function PortalFinancialHeader({ client, period, onPeriodChange, data, onSync, syncing, onExportPdf, exporting, readOnly }) {
+export default function PortalFinancialHeader({ client, period, onPeriodChange, data, onSync, syncing, onExportPdf, exporting, onExportExcel, exportingExcel, readOnly }) {
   const name = client?.nickname || client?.company || client?.name || 'tu marca';
   const isCurrent = period === currentPeriod();
   const days = data?.days_elapsed || 0;
@@ -78,6 +78,18 @@ export default function PortalFinancialHeader({ client, period, onPeriodChange, 
               >
                 {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{exporting ? 'Generando…' : 'Exportar PDF'}</span>
+              </button>
+            )}
+            {onExportExcel && (
+              <button
+                type="button"
+                onClick={onExportExcel}
+                disabled={exportingExcel || !data}
+                className="no-print mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-medium text-[#17181A] hover:bg-gray-50 disabled:opacity-50 shrink-0"
+                title="Descargar en Excel (resumen, diario, productos y costos)"
+              >
+                {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{exportingExcel ? 'Generando…' : 'Exportar Excel'}</span>
               </button>
             )}
             <span className="pdf-only text-sm font-semibold text-[#17181A] capitalize">{monthLabel(period)}</span>

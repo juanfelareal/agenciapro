@@ -454,6 +454,19 @@ export const portalFinancialsAPI = {
 
   getObjective: async (period) => (await portalApi.get('/financials/objective', { params: { period } })).data,
   saveObjective: async (data) => (await portalApi.post('/financials/objective', data)).data,
+  // Escenarios (los privados solo los ve la marca)
+  scenarios: async (params) => (await portalApi.get('/financials/scenarios', { params })).data,
+  createScenario: async (body) => (await portalApi.post('/financials/scenarios', body)).data,
+  updateScenario: async (id, body) => (await portalApi.put(`/financials/scenarios/${id}`, body)).data,
+  deleteScenario: async (id) => (await portalApi.delete(`/financials/scenarios/${id}`)).data,
+  evaluateScenario: async (body) => (await portalApi.post('/financials/scenarios/evaluate', body)).data,
+  compareScenarios: async (ids, period) => (await portalApi.get('/financials/scenarios/compare', { params: { ids: (ids || []).join(','), period } })).data,
+  // Cuándo compran / nuevos vs recurrentes
+  patterns: async (days = 90) => (await portalApi.get('/financials/patterns', { params: { days } })).data,
+  customerMix: async (start, end) => (await portalApi.get('/financials/customer-mix', { params: { start, end } })).data,
+  backfillOrders: async (days = 180) => (await portalApi.post('/financials/orders/backfill', { days })).data,
+  // Excel
+  exportExcel: (period) => portalApi.get('/financials/export.xlsx', { params: { period }, responseType: 'blob' }),
 };
 
 export default portalApi;

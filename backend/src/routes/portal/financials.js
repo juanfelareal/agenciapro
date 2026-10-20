@@ -15,6 +15,9 @@ import db from '../../config/database.js';
 import { clientAuthMiddleware } from '../../middleware/clientAuth.js';
 import * as financials from '../../services/clientFinancialsService.js';
 import * as edits from '../../services/clientFinancialsEdits.js';
+import * as scenarios from '../../services/financialScenarios.js';
+import * as orderLedger from '../../services/orderLedger.js';
+import { buildFinancialsWorkbook, financialsExportFilename, getClientBrandName } from '../../services/financialsExport.js';
 
 const router = express.Router();
 
@@ -87,6 +90,94 @@ router.post('/products/sync', async (req, res) => {
 });
 
 // ─── Escritura (solo con financials_editable) ───
+
+// ─── Escenarios del cliente (owner_type 'client'): los privados solo los ve la marca, nunca la agencia ───
+const scenarioOwner = (req) => ({ owner_type: 'client', owner_id: Number(req.client.id) });
+const scenarioPeriod = (v, fallback) => (/^\d{4}-\d{2}$/.test(v || '') ? v : fallback);
+
+router.get('/scenarios', async (req, res) => {
+  try {
+    const withResults = String(req.query.light || '') !== '1';
+    res.json(await scenarios.listScenarios({ clientId: Number(req.client.id), orgId: req.orgId, owner: scenarioOwner(req), period: scenarioPeriod(req.query.period, periodFrom(req.query.period)), withResults }));
+  } catch (error) { sendError(res, error, 'listing scenarios'); }
+});
+router.get('/scenarios/compare', async (req, res) => {
+  try {
+    const ids = String(req.query.ids || '').split(',').map((x) => Number(x)).filter(Boolean);
+    res.json(await scenarios.compareScenarios({ clientId: Number(req.client.id), orgId: req.orgId, owner: scenarioOwner(req), ids, period: scenarioPeriod(req.query.period, periodFrom(req.query.period)) }));
+  } catch (error) { sendError(res, error, 'comparing scenarios'); }
+});
+router.post('/scenarios/evaluate', async (req, res) => {
+  try {
+    const { period, params } = req.body || {};
+    res.json(await scenarios.evaluateScenario({ clientId: Number(req.client.id), orgId: req.orgId, period: scenarioPeriod(period, periodFrom(req.query.period)), params: params || {} }));
+  } catch (error) { sendError(res, error, 'evaluating scenario'); }
+});
+router.post('/scenarios', async (req, res) => {
+  try {
+    const { name, description, visibility, params, period } = req.body || {};
+    const s = await scenarios.createScenario({ clientId: Number(req.client.id), orgId: req.orgId, owner: scenarioOwner(req), name, description, visibility: visibility || 'private', params, period });
+    res.status(201).json(s);
+  } catch (error) { sendError(res, error, 'creating scenario'); }
+});
+router.put('/scenarios/:id', async (req, res) => {
+  try {
+    const { name, description, visibility, params, period } = req.body || {};
+    const s = await scenarios.updateScenario({ clientId: Number(req.client.id), orgId: req.orgId, id: Number(req.params.id), owner: scenarioOwner(req), name, description, visibility, params, period });
+    if (!s) return res.status(404).json({ error: 'Escenario no encontrado' });
+    res.json(s);
+  } catch (error) { sendError(res, error, 'updating scenario'); }
+});
+router.delete('/scenarios/:id', async (req, res) => {
+  try {
+    const ok = await scenarios.deleteScenario({ clientId: Number(req.client.id), orgId: req.orgId, id: Number(req.params.id), owner: scenarioOwner(req) });
+    if (!ok) return res.status(404).json({ error: 'Escenario no encontrado' });
+    res.json({ success: true });
+  } catch (error) { sendError(res, error, 'deleting scenario'); }
+});
+
+// ─── Cuándo compran / nuevos vs recurrentes (libro de pedidos) ───
+const ledgerState = async (req, res) => {
+  const state = await orderLedger.ensureLedger(Number(req.client.id), req.orgId);
+  if (!state.ready) { res.json({ building: state.building, empty: !state.building, no_store: Boolean(state.no_store) }); return false; }
+  return true;
+};
+router.get('/patterns', async (req, res) => {
+  try {
+    if (!(await ledgerState(req, res))) return;
+    res.json(await orderLedger.getPatterns(Number(req.client.id), req.orgId, { days: Number(req.query.days) || 90 }));
+  } catch (error) { sendError(res, error, 'fetching purchase patterns'); }
+});
+router.get('/customer-mix', async (req, res) => {
+  try {
+    if (!(await ledgerState(req, res))) return;
+    res.json(await orderLedger.getCustomerMix(Number(req.client.id), req.orgId, { start: req.query.start, end: req.query.end }));
+  } catch (error) { sendError(res, error, 'fetching customer mix'); }
+});
+router.post('/orders/backfill', async (req, res) => {
+  try {
+    const cred = await financials.getShopifyCredentials(req.client.id);
+    if (!cred) return res.status(400).json({ error: 'Sin tienda conectada' });
+    const days = Math.max(7, Math.min(Number(req.body?.days) || 180, 730));
+    const already = orderLedger.isBackfilling(req.client.id);
+    orderLedger.startBackfill(Number(req.client.id), req.orgId, days);
+    res.json({ started: !already, building: true, days });
+  } catch (error) { sendError(res, error, 'starting orders backfill'); }
+});
+
+// ─── Exportar a Excel ───
+router.get('/export.xlsx', async (req, res) => {
+  try {
+    const period = periodFrom(req.query.period);
+    const brand = await getClientBrandName(Number(req.client.id), req.orgId);
+    const buffer = await buildFinancialsWorkbook({ clientId: Number(req.client.id), orgId: req.orgId, period, brand });
+    const filename = financialsExportFilename(brand, period);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(buffer);
+  } catch (error) { sendError(res, error, 'exporting financials to Excel'); }
+});
 
 router.use(requireEditable);
 

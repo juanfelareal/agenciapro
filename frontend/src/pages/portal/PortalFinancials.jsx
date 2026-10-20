@@ -20,6 +20,8 @@ import MoneyFlow from '../../components/growth/financial/MoneyFlow';
 import DailyPnlChart from '../../components/growth/financial/DailyPnlChart';
 import CumulativeProfitChart from '../../components/growth/financial/CumulativeProfitChart';
 import ProductsTable from '../../components/growth/financial/ProductsTable';
+import PurchasePatterns from '../../components/growth/financial/PurchasePatterns';
+import CustomerMix from '../../components/growth/financial/CustomerMix';
 import CostsPanel, { CostModal } from '../../components/growth/financial/CostsPanel';
 import { fmtMoney, fmtPct, fmtX, fmtInt, relDelta, currentPeriod, prevPeriod, sumDays, monthShort } from '../../components/growth/financial/format';
 
@@ -113,6 +115,35 @@ export default function PortalFinancials() {
       return { data: res };
     },
   }), [readOnly, notify]);
+  // Escenarios: la marca crea los suyos (privados por defecto) y ve los compartidos por LA REAL
+  const scenariosAdapter = useMemo(() => ({
+    list: (params) => portalFinancialsAPI.scenarios(params),
+    create: (body) => portalFinancialsAPI.createScenario(body),
+    update: (id, body) => portalFinancialsAPI.updateScenario(id, body),
+    remove: (id) => portalFinancialsAPI.deleteScenario(id),
+    evaluate: (body) => portalFinancialsAPI.evaluateScenario(body),
+    compare: (ids, period) => portalFinancialsAPI.compareScenarios(ids, period),
+  }), []);
+  const ledgerAdapter = useMemo(() => ({
+    patterns: (_cid, days) => portalFinancialsAPI.patterns(days),
+    customerMix: (_cid, start, end) => portalFinancialsAPI.customerMix(start, end),
+    backfill: (_cid, days) => portalFinancialsAPI.backfillOrders(days),
+  }), []);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const handleExportExcel = async () => {
+    if (exportingExcel) return;
+    setExportingExcel(true);
+    try {
+      const res = await portalFinancialsAPI.exportExcel(period);
+      const name = (client?.nickname || client?.company || client?.name || 'marca').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a'); a.href = url; a.download = `Finanzas-${name}-${period}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('Error exportando Excel', err);
+      notify('error', 'No pudimos generar el Excel.');
+    } finally { setExportingExcel(false); }
+  };
 
   // ─── Handlers ───
   const guardEdit = () => { if (readOnly) { notify('error', READ_ONLY_MSG); return false; } return true; };
@@ -204,8 +235,8 @@ export default function PortalFinancials() {
         margin: [8, 8, 10, 8],
         filename: `Finanzas-${name}-${period}.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#F7F7F4', windowWidth: 1120, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#F7F7F4', scrollY: 0, scrollX: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
         pagebreak: { mode: ['css', 'legacy'], avoid: ['.glass-solid', 'tr', '.pdf-avoid-break'] },
       }).from(el).save();
     } catch (err) {
@@ -245,7 +276,7 @@ export default function PortalFinancials() {
     <div ref={pdfRef} className="space-y-4 sm:space-y-6 pb-10 min-w-0">
       <PortalFinancialHeader
         client={client} period={period} onPeriodChange={setPeriod} data={data}
-        onSync={handleSync} syncing={syncing} onExportPdf={handleExportPdf} exporting={exporting} readOnly={readOnly}
+        onSync={handleSync} syncing={syncing} onExportPdf={handleExportPdf} exporting={exporting} readOnly={readOnly} onExportExcel={handleExportExcel} exportingExcel={exportingExcel}
       />
 
       {hasScenariosTab && (
@@ -257,7 +288,7 @@ export default function PortalFinancials() {
       )}
 
       {hasScenariosTab && tab === 'escenarios' ? (
-        <PortalScenariosSlot clientId={clientId} period={period} data={data} api={portalAdapter} readOnly={readOnly} portal />
+        <PortalScenariosSlot clientId={clientId} period={period} data={data} api={scenariosAdapter} readOnly={readOnly} portal />
       ) : data.is_future ? (
         <div className="glass-solid rounded-2xl p-10 text-center text-sm text-gray-500">Ese mes todavía no ha empezado.</div>
       ) : !data.shopify?.connected && !hasAny ? (
@@ -316,6 +347,11 @@ export default function PortalFinancials() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
             <DailyPnlChart daily={data.daily} />
             <CumulativeProfitChart data={data} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <PurchasePatterns clientId={clientId} period={period} api={ledgerAdapter} />
+            <CustomerMix clientId={clientId} period={period} api={ledgerAdapter} />
           </div>
 
           <ProductsTable data={data} onSaveCost={handleSaveCost} onResetCost={handleResetCost} onSync={handleSync} syncing={syncing} onSaveRate={handleSaveRate} />
