@@ -92,7 +92,7 @@ function ClientPlatformSettings() {
   const [savingWhatsappSales, setSavingWhatsappSales] = useState(false);
   const [savingUgc, setSavingUgc] = useState(false);
   // Finanzas en el portal del cliente (ver dashboard financiero / editar costos y metas)
-  const [portalFinancials, setPortalFinancials] = useState({ can_view_financials: false, financials_editable: false });
+  const [portalFinancials, setPortalFinancials] = useState({ can_view_financials: false, financials_editable: false, scenarios_enabled: false });
   const [savingPortalFinancials, setSavingPortalFinancials] = useState(null); // clave que se está guardando
 
 
@@ -186,6 +186,7 @@ function ClientPlatformSettings() {
         setPortalFinancials({
           can_view_financials: !!portalRes.settings?.can_view_financials,
           financials_editable: !!portalRes.settings?.financials_editable,
+          scenarios_enabled: !!portalRes.settings?.scenarios_enabled,
         });
       } catch (e) {
         // Settings may not exist yet
@@ -1645,6 +1646,12 @@ function ClientPlatformSettings() {
               label: 'El cliente puede editar costos y metas',
               help: 'Permite que la marca cargue y edite sus costos fijos, costos variables, el costo unitario de sus productos y la meta de venta del mes. Si está apagado, el dashboard es de solo lectura.',
               disabled: !portalFinancials.can_view_financials,
+            },
+            {
+              key: 'scenarios_enabled',
+              label: 'Escenarios financieros',
+              help: 'Activa la pestaña "Escenarios" (¿y si invierto más? ¿y si pago envío?) en el dashboard financiero del equipo y en el portal de la marca. Está en prueba: por ahora solo para clientes seleccionados.',
+              disabled: false,
             },
           ].map((opt) => {
             const on = !!portalFinancials[opt.key];

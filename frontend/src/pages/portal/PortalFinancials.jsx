@@ -260,7 +260,7 @@ export default function PortalFinancials() {
         onSync={handleSync} syncing={syncing} onExportPdf={handleExportPdf} exporting={exporting} readOnly={readOnly} onExportExcel={handleExportExcel} exportingExcel={exportingExcel}
       />
 
-      {hasScenariosTab && (
+      {hasScenariosTab && data.scenarios_enabled && (
         <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
           {[['resumen', 'Resumen'], ['escenarios', 'Escenarios']].map(([k, label]) => (
             <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${tab === k ? 'bg-[#17181A] text-[#D7F653]' : 'text-gray-500 hover:text-[#17181A]'}`}>{label}</button>
@@ -268,7 +268,7 @@ export default function PortalFinancials() {
         </div>
       )}
 
-      {hasScenariosTab && tab === 'escenarios' ? (
+      {hasScenariosTab && data.scenarios_enabled && tab === 'escenarios' ? (
         <PortalScenariosSlot clientId={clientId} period={period} data={data} api={scenariosAdapter} readOnly={readOnly} portal />
       ) : data.is_future ? (
         <div className="glass-solid rounded-2xl p-10 text-center text-sm text-gray-500">Ese mes todavía no ha empezado.</div>

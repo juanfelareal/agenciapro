@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
     const light = req.query.light === '1' || req.query.light === 'true';
     const data = await financials.computeFinancials({ clientId: Number(req.client.id), orgId: req.orgId, period, light });
     // El laboratorio financiero es interno del equipo; el portal nunca lo muestra.
-    res.json({ ...data, lab_enabled: false, editable: isOn(req.client.permissions.financials_editable) });
+    res.json({ ...data, lab_enabled: false, editable: isOn(req.client.permissions.financials_editable), scenarios_enabled: isOn(req.client.permissions.scenarios_enabled) });
   } catch (error) {
     sendError(res, error, 'computing financials');
   }
@@ -93,6 +93,11 @@ router.post('/products/sync', async (req, res) => {
 
 // ─── Escenarios del cliente (owner_type 'client'): los privados solo los ve la marca, nunca la agencia ───
 const scenarioOwner = (req) => ({ owner_type: 'client', owner_id: Number(req.client.id) });
+const requireScenarios = (req, res, next) => {
+  if (!isOn(req.client?.permissions?.scenarios_enabled)) return res.status(403).json({ error: 'Los escenarios financieros no están habilitados para tu marca todavía.', scenarios_disabled: true });
+  next();
+};
+router.use('/scenarios', requireScenarios);
 const scenarioPeriod = (v, fallback) => (/^\d{4}-\d{2}$/.test(v || '') ? v : fallback);
 
 router.get('/scenarios', async (req, res) => {

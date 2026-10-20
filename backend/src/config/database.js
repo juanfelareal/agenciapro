@@ -2511,6 +2511,8 @@ export const initializeDatabase = async () => {
     // Finanzas en el portal del cliente: ver su dashboard financiero y editar costos/metas (apagado por defecto)
     await pool.query(`ALTER TABLE client_portal_settings ADD COLUMN IF NOT EXISTS can_view_financials INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE client_portal_settings ADD COLUMN IF NOT EXISTS financials_editable INTEGER DEFAULT 0`);
+    // Escenarios financieros (pestaña Escenarios, equipo y portal): por ahora solo para clientes seleccionados
+    await pool.query(`ALTER TABLE client_portal_settings ADD COLUMN IF NOT EXISTS scenarios_enabled INTEGER DEFAULT 0`);
     // Canal WhatsApp en las métricas diarias: ventas reportadas y pauta de campañas de WhatsApp
     await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS whatsapp_revenue REAL DEFAULT 0`);
     await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS whatsapp_orders INTEGER DEFAULT 0`);

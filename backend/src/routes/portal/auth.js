@@ -91,7 +91,8 @@ router.post('/login', async (req, res) => {
         can_view_team: toBool(settings.can_view_team, false), // Team defaults to false
         can_download_files: toBool(settings.can_download_files),
         can_view_financials: toBool(settings.can_view_financials, false),
-        financials_editable: toBool(settings.financials_editable, false)
+        financials_editable: toBool(settings.financials_editable, false),
+        scenarios_enabled: toBool(settings.scenarios_enabled, false)
       },
       welcome_message: settings.welcome_message
     });
@@ -169,7 +170,8 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
         can_view_team: toBool(p.can_view_team, false),
         can_download_files: toBool(p.can_download_files),
         can_view_financials: toBool(p.can_view_financials, false),
-        financials_editable: toBool(p.financials_editable, false)
+        financials_editable: toBool(p.financials_editable, false),
+        scenarios_enabled: toBool(p.scenarios_enabled, false)
       },
       welcome_message: settings?.welcome_message || null
     });

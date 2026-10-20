@@ -241,13 +241,13 @@ export default function ClientFinancialDashboard() {
       <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} onExportPdf={handleExportPdf} exporting={exporting} onExportExcel={handleExportExcel} exportingExcel={exportingExcel} />
 
       <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
-        {[['resumen', 'Resumen'], ['escenarios', 'Escenarios'], ...(data.lab_enabled ? [['inventario', 'Inventario'], ['reservas', 'Reservas']] : [])].map(([k, label]) => (
+        {[['resumen', 'Resumen'], ...(data.scenarios_enabled ? [['escenarios', 'Escenarios']] : []), ...(data.lab_enabled ? [['inventario', 'Inventario'], ['reservas', 'Reservas']] : [])].map(([k, label]) => (
           <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${labTab === k ? 'bg-[#17181A] text-[#D7F653]' : 'text-gray-500 hover:text-[#17181A]'}`}>{label}</button>
         ))}
         {data.lab_enabled && <span className="hidden sm:inline-flex items-center px-2 text-[10px] uppercase tracking-wide text-amber-700">Laboratorio</span>}
       </div>
 
-      {labTab === 'escenarios' ? (
+      {labTab === 'escenarios' && data.scenarios_enabled ? (
         <ScenariosTab clientId={clientId} period={period} data={data} api={scenariosApi} />
       ) : data.lab_enabled && labTab === 'inventario' ? (
         <InventoryTab clientId={clientId} />

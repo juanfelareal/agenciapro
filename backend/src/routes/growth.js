@@ -717,7 +717,8 @@ router.get('/clients/:clientId/financials', async (req, res) => {
     if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
 
     const data = await financials.computeFinancials({ clientId: Number(clientId), orgId: req.orgId, period, light });
-    res.json(data);
+    const flags = await db.get('SELECT scenarios_enabled FROM client_portal_settings WHERE client_id = ?', [clientId]);
+    res.json({ ...data, scenarios_enabled: Number(flags?.scenarios_enabled) === 1 });
   } catch (error) {
     console.error('Error getting financials:', error);
     res.status(500).json({ error: error.message });
@@ -952,6 +953,9 @@ const requireScenarioClient = async (req, res, next) => {
   try {
     if (!(await verifyClient(req.params.clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
     if (!req.teamMember?.id) return res.status(401).json({ error: 'Sesión de equipo requerida' });
+    // Los escenarios se habilitan por cliente (Plataformas → Finanzas en el portal → Escenarios financieros)
+    const flags = await db.get('SELECT scenarios_enabled FROM client_portal_settings WHERE client_id = ?', [req.params.clientId]);
+    if (Number(flags?.scenarios_enabled) !== 1) return res.status(403).json({ error: 'Los escenarios financieros no están habilitados para este cliente', scenarios_disabled: true });
     next();
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
