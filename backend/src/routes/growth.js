@@ -117,6 +117,23 @@ router.get('/clients/:clientId/commission', async (req, res) => {
 });
 
 // Get growth clients with metrics summary
+// ─── BE ROAS por marca (para la tabla del dashboard de Growth) ───
+router.get('/be-roas', async (req, res) => {
+  try {
+    const today = financials.todayColombia();
+    const start = /^\d{4}-\d{2}-\d{2}$/.test(req.query.start || '') ? req.query.start : `${today.slice(0, 7)}-01`;
+    const end = /^\d{4}-\d{2}-\d{2}$/.test(req.query.end || '') ? (req.query.end > today ? today : req.query.end) : today;
+    const rows = await db.all('SELECT id FROM clients WHERE organization_id = ? AND status != ?', [req.orgId, 'inactive']);
+    const hidden = new Set((req.hiddenClientIds || []).map(Number));
+    const ids = rows.map((r) => Number(r.id)).filter((id) => !hidden.has(id));
+    const data = await financials.beRoasForClients(req.orgId, ids, start, end);
+    res.json({ start, end, clients: data });
+  } catch (error) {
+    console.error('Error BE ROAS:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/clients', async (req, res) => {
   try {
     const clients = await db.all(`
@@ -945,23 +962,6 @@ router.get('/:clientId/palancas-dashboard', async (req, res) => {
     res.json({ areas, summary, has_brief: true });
   } catch (error) {
     console.error('Error getting palancas dashboard:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ─── BE ROAS por marca (para la tabla del dashboard de Growth) ───
-router.get('/be-roas', async (req, res) => {
-  try {
-    const today = financials.todayColombia();
-    const start = /^\d{4}-\d{2}-\d{2}$/.test(req.query.start || '') ? req.query.start : `${today.slice(0, 7)}-01`;
-    const end = /^\d{4}-\d{2}-\d{2}$/.test(req.query.end || '') ? (req.query.end > today ? today : req.query.end) : today;
-    const rows = await db.all('SELECT id FROM clients WHERE organization_id = ? AND status != ?', [req.orgId, 'inactive']);
-    const hidden = new Set((req.hiddenClientIds || []).map(Number));
-    const ids = rows.map((r) => Number(r.id)).filter((id) => !hidden.has(id));
-    const data = await financials.beRoasForClients(req.orgId, ids, start, end);
-    res.json({ start, end, clients: data });
-  } catch (error) {
-    console.error('Error BE ROAS:', error);
     res.status(500).json({ error: error.message });
   }
 });
