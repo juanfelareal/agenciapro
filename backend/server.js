@@ -131,6 +131,8 @@ import portalDocumentsRoutes from './src/routes/portal/documents.js';
 import payrollRoutes from './src/routes/payroll.js';
 // Bank Statements (Extractos Bancolombia CSV)
 import bankStatementsRoutes from './src/routes/bank-statements.js';
+// [onboarding] Onboarding de la organización (checklist, tour, módulos/marca mínimos)
+import orgOnboardingRoutes from './src/routes/org-onboarding.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -351,6 +353,9 @@ app.use('/api/payroll', teamAuthMiddleware, requireModule('payroll'), payrollRou
 
 // Bank Statements (Extractos Bancolombia CSV)
 app.use('/api/bank-statements', teamAuthMiddleware, bankStatementsRoutes);
+
+// [onboarding] /api/org/onboarding*, /api/org/modules, /api/org/branding
+app.use('/api/org', teamAuthMiddleware, orgOnboardingRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

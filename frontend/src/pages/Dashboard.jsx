@@ -4,6 +4,7 @@ import { Calendar, Settings, Plus, RotateCcw, Check, X } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 import WidgetGrid from '../components/dashboard/WidgetGrid';
 import WidgetPicker from '../components/dashboard/WidgetPicker';
+import GettingStarted from '../components/onboarding/GettingStarted'; // [onboarding]
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -114,6 +115,8 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* [onboarding] Primeros pasos: solo se muestra si la org tiene onboarding incompleto */}
+      <GettingStarted />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

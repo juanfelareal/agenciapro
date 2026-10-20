@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // [modules] Link
 import { useAuth } from '../context/AuthContext';
 import { teamAPI } from '../utils/api';
-import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2, Puzzle, Sparkles, ChevronRight } from 'lucide-react'; // [modules] Puzzle, Sparkles, ChevronRight
+import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2, Puzzle, Sparkles, ChevronRight } from 'lucide-react'; // [modules]
+import OnboardingSettingsCard from '../components/onboarding/OnboardingSettingsCard'; // [onboarding]
 
 const Settings = () => {
   const { user, currentOrg, logout, checkAuth, isAdmin } = useAuth();
@@ -491,6 +492,9 @@ const Settings = () => {
           </button>
         </form>
       </div>
+
+      {/* [onboarding] Ver el tour otra vez / mostrar primeros pasos */}
+      <OnboardingSettingsCard />
 
       {/* Danger Zone Card */}
       <div className="bg-white rounded-2xl border border-red-200 p-6">

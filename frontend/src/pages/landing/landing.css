@@ -601,6 +601,9 @@
 .lp-plan__list li svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--lp-green-deep); }
 .lp-plan--featured .lp-plan__list li svg { color: var(--lp-green); }
 .lp-plan .lp-btn { margin-top: 26px; width: 100%; }
+.lp-plan .lp-btn + .lp-btn { margin-top: 10px; }
+.lp-plan--featured .lp-btn--ghost { border-color: rgba(243, 241, 237, 0.28); color: var(--lp-on-dark); }
+.lp-plan--featured .lp-btn--ghost:hover { border-color: var(--lp-on-dark); }
 .lp-plans__note { margin-top: 22px; font-size: 13.5px; color: var(--lp-muted); text-align: center; max-width: 640px; margin-left: auto; margin-right: auto; }
 .lp-placeholder { background: rgba(214, 150, 20, 0.14); outline: 1px dashed rgba(214, 150, 20, 0.7); outline-offset: 2px; border-radius: 4px; padding: 0 4px; }
 .lp-plan--featured .lp-placeholder { background: rgba(214, 150, 20, 0.22); }

@@ -44,6 +44,8 @@ import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
 import OrbitLogo from './OrbitLogo';
 import useIsMobile from '../hooks/useIsMobile';
+import Tour from './onboarding/Tour';
+import { TOUR_MENU_EVENT } from './onboarding/onboardingApi';
 
 
 const Layout = ({ children }) => {
@@ -56,6 +58,12 @@ const Layout = ({ children }) => {
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
   const collapsedUI = sidebarCollapsed && !isMobile;
+  // [onboarding] El tour abre/cierra el drawer en móvil para enfocar ítems del menú
+  useEffect(() => {
+    const onTourMenu = (e) => setMobileOpen(!!e.detail?.open);
+    window.addEventListener(TOUR_MENU_EVENT, onTourMenu);
+    return () => window.removeEventListener(TOUR_MENU_EVENT, onTourMenu);
+  }, []);
   const [finanzasExpanded, setFinanzasExpanded] = useState(false);
   // Chat oculto del sidebar — sin polling de no-leídos (módulo en pausa)
   const chatUnreadCount = 0;
@@ -249,6 +257,7 @@ const Layout = ({ children }) => {
               : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]')
         }`}
         title={collapsedUI ? item.name : ''}
+        data-tour={item.path === '/app' ? 'dashboard' : item.path.replace('/app/', '')} /* [onboarding] */
       >
         <Icon size={20} className="flex-shrink-0" />
         {!collapsedUI && <span className="truncate flex-1">{item.name}</span>}
@@ -381,6 +390,7 @@ const Layout = ({ children }) => {
               <div>
                 <button
                   onClick={() => setFinanzasExpanded(!finanzasExpanded)}
+                  data-tour="finanzas"
                   className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     isFinanzasActive
                       ? 'bg-[#121314] text-[#44BF47]'
@@ -508,6 +518,7 @@ const Layout = ({ children }) => {
                 : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
             }`}
             title={collapsedUI ? 'Mi Cuenta' : ''}
+            data-tour="settings"
           >
             <Settings size={20} className="flex-shrink-0" />
             {!collapsedUI && <span>Mi Cuenta</span>}
@@ -578,7 +589,7 @@ const Layout = ({ children }) => {
             )}
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <GlobalSearch />
+            <div data-tour="search" className="flex"><GlobalSearch /></div>
             <NotificationBell />
 
             {/* User Avatar */}
@@ -614,6 +625,7 @@ const Layout = ({ children }) => {
 
       {/* [modules] Aviso global de 402 (límite del plan / prueba vencida) */}
       <UpgradeToast />
+      <Tour />{/* [onboarding] tour guiado (?tour=1 / primera vez / Mi Cuenta) */}
     </div>
   );
 };

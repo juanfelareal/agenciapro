@@ -7,6 +7,8 @@ import authRecoveryRouter from './auth-recovery.js'; // [email]
 import { sendTemplate } from '../services/email.js'; // [email]
 import { isPlatformAdminEmail, TRIAL_DAYS } from '../config/planCatalog.js'; // [modules]
 import { checkLimit } from '../services/plans.js'; // [modules]
+// [onboarding] registro autoservicio: plan, trial, módulos y marca iniciales
+import { ensureOnboardingColumns, buildInitialSettings, normalizePlan, trialEndsAt } from '../services/orgOnboarding.js';
 
 const router = express.Router();
 router.use(authRecoveryRouter); // [email] POST /forgot-pin y /reset-pin con código (antes del handler legado)
@@ -583,7 +585,7 @@ router.post('/restore-all-sessions', async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, pin, org_name, logo_base64, onboarding } = req.body;
+    const { name, email, pin, org_name, logo_base64, onboarding, plan, branding, modules, agency_type, team_size } = req.body; // [onboarding]
 
     if (!name || !email || !pin || !org_name) {
       return res.status(400).json({ error: 'Nombre, email, PIN y nombre de organizacion son requeridos' });
@@ -605,20 +607,15 @@ router.post('/register', async (req, res) => {
       logoUrl = logo_base64;
     }
 
-    // Build settings with onboarding data
+    // [onboarding] Build settings (onboarding + módulos + marca) y plan elegido con trial de 14 días
     let settings = null;
-    if (onboarding && typeof onboarding === 'object') {
-      settings = JSON.stringify({
-        onboarding: {
-          business_type: onboarding.business_type || null,
-          team_size: onboarding.team_size || null,
-          goals: onboarding.goals || [],
-          alternatives: onboarding.alternatives || [],
-          how_found_us: onboarding.how_found_us || null,
-          completed_at: new Date().toISOString()
-        }
-      });
+    if ((onboarding && typeof onboarding === 'object') || plan || modules || branding || agency_type) {
+      settings = JSON.stringify(buildInitialSettings({ onboarding, modules, branding, agencyType: agency_type, teamSize: team_size }));
     }
+    const planSelected = normalizePlan(plan);
+    // [modules][onboarding] toda organización nueva arranca en prueba de 14 días (plan Growth si no eligió)
+    const orgTrialEndsAt = trialEndsAt().toISOString();
+    await ensureOnboardingColumns();
 
     const emailLower = email.toLowerCase().trim();
 
@@ -650,12 +647,12 @@ router.post('/register', async (req, res) => {
     // Toda organización nueva arranca VACÍA y aislada (ningún seed copia datos de
     // otra org; los defaults estructurales —etapas de proyecto, etc.— se crean por
     // org en initializeDatabase) y en plan 'trial' con 14 días de prueba.
-    const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
     const orgResult = await db.run(`
-      INSERT INTO organizations (name, slug, plan, logo_url, settings, plan_status, trial_ends_at)
-      VALUES (?, ?, 'trial', ?, ?, 'trial', CURRENT_TIMESTAMP + (? || ' days')::interval)
+      INSERT INTO organizations (name, slug, plan, logo_url, settings, plan_selected, trial_ends_at, plan_status)
+      VALUES (?, ?, 'trial', ?, ?, ?, ?, 'trial')
       RETURNING id
-    `, [org_name, slug, logoUrl, settings, String(TRIAL_DAYS)]); // [modules] prueba de 14 días
+    `, [org_name, slug, logoUrl, settings, planSelected || 'growth', orgTrialEndsAt]); // [onboarding][modules] prueba de 14 días
+
     const orgId = orgResult.lastInsertRowid;
 
     // Create admin membership
@@ -704,8 +701,9 @@ router.post('/register', async (req, res) => {
         name: org_name,
         slug: slug,
         logo_url: logoUrl,
-        plan: 'trial',
-        trial_ends_at: trialEndsAt.toISOString()
+        plan: 'trial', // [onboarding]
+        plan_selected: planSelected || 'growth',
+        trial_ends_at: orgTrialEndsAt
       },
       organizations: [{
         id: orgId,
