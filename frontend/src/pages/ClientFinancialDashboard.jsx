@@ -176,34 +176,14 @@ export default function ClientFinancialDashboard() {
   // ─── Render ───
   const back = () => navigate('/app/metricas');
 
-  // Exportar el dashboard a PDF (html2pdf: captura el DOM con el layout de escritorio)
+  // Exportar PDF: abre el informe imprimible (texto vectorial, saltos de página controlados) en una
+  // pestaña nueva; el navegador ofrece "Guardar como PDF". Reemplaza la captura con html2pdf.
   const pdfRef = useRef(null);
   const [exporting, setExporting] = useState(false);
-  const handleExportPdf = async () => {
-    const el = pdfRef.current;
-    if (!el || exporting) return;
+  const handleExportPdf = () => {
     setExporting(true);
-    el.classList.add('pdf-exporting');
-    try {
-      const { default: html2pdf } = await import('html2pdf.js');
-      const name = (client?.nickname || client?.company || client?.name || 'cliente').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
-      await html2pdf().set({
-        margin: [8, 8, 10, 8],
-        filename: `Finanzas-${name}-${period}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        // Sin windowWidth: html2pdf centra su contenedor según el viewport real y, si el clon se renderiza
-        // con otro ancho, el recorte queda desplazado. Horizontal para conservar el layout de escritorio.
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#F7F7F4', scrollY: 0, scrollX: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['.glass-solid', 'tr', '.pdf-avoid-break'] },
-      }).from(el).save();
-    } catch (err) {
-      console.error('Error exportando PDF', err);
-      notify('error', 'No pudimos generar el PDF.');
-    } finally {
-      el.classList.remove('pdf-exporting');
-      setExporting(false);
-    }
+    window.open(`/print/finanzas/${clientId}?period=${period}`, '_blank', 'noopener');
+    setTimeout(() => setExporting(false), 800);
   };
 
   // Exportar a Excel (.xlsx): el backend arma el libro y lo descargamos como blob

@@ -38,6 +38,8 @@ import OrbitFeedback from './pages/OrbitFeedback';
 import News from './pages/News';
 import WhatsAppInbox from './pages/WhatsAppInbox';
 import Meetings from './pages/Meetings';
+import FinancialReportPage from './pages/FinancialReportPage';
+import PortalFinancialReportPage from './pages/portal/PortalFinancialReportPage';
 import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
@@ -117,8 +119,13 @@ function App() {
         {/* UGC Registration - public, no auth required */}
         <Route path="/ugc/register/:token" element={<UGCRegister />} />
 
+        {/* Informe financiero imprimible (equipo) - sin layout */}
+        <Route path="/print/finanzas/:clientId" element={<ProtectedRoute permission="metricas"><FinancialReportPage /></ProtectedRoute>} />
+
         {/* Portal Login - no layout but needs PortalProvider */}
         <Route path="/portal/login" element={<PortalProvider><PortalLogin /></PortalProvider>} />
+        {/* Informe financiero imprimible (portal del cliente) - sin layout */}
+        <Route path="/portal/imprimir/finanzas" element={<PortalProvider><PortalProtectedRoute permission="can_view_financials"><PortalFinancialReportPage /></PortalProtectedRoute></PortalProvider>} />
 
         {/* Portal routes with PortalLayout */}
         <Route path="/portal" element={<PortalLayout />}>
