@@ -173,7 +173,7 @@ const Calendar = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Calendario</h1>
+          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Calendario</h1>
           <p className="text-sm text-gray-500 mt-0.5">Vista de tareas por fecha</p>
         </div>
         <div className="flex items-center gap-2">
@@ -183,7 +183,7 @@ const Calendar = () => {
               onClick={() => setView('month')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'month'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-white text-[#121314] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -194,7 +194,7 @@ const Calendar = () => {
               onClick={() => setView('week')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'week'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-white text-[#121314] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -222,7 +222,7 @@ const Calendar = () => {
           </button>
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-sm font-medium text-[#17181A] hover:bg-gray-50 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-[#121314] hover:bg-gray-50 rounded-lg transition-colors"
           >
             Hoy
           </button>
@@ -330,7 +330,7 @@ const Calendar = () => {
               return (
                 <div key={day.toISOString()} className={`p-3 ${isCurrentDay ? 'bg-gray-50' : ''}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[#17181A] text-[#D7F653]' : 'bg-gray-100 text-gray-700'}`}>
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[#121314] text-[#44BF47]' : 'bg-gray-100 text-gray-700'}`}>
                       {format(day, 'd')}
                     </span>
                     <span className="text-sm font-medium text-gray-700 capitalize">{format(day, 'EEEE', { locale: es })}</span>
@@ -443,7 +443,7 @@ const Calendar = () => {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setSelectedTask(null)}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-[#17181A] transition-colors"
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-[#121314] transition-colors"
               >
                 Cerrar
               </button>

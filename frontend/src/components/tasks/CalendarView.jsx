@@ -271,7 +271,7 @@ export default function CalendarView({
                         e.stopPropagation();
                         setExpandedDay({ day, tasks: dayTasks });
                       }}
-                      className="w-full text-xs text-gray-600 hover:text-[#17181A] hover:bg-gray-100 rounded py-0.5 text-center font-medium transition-colors"
+                      className="w-full text-xs text-gray-600 hover:text-[#121314] hover:bg-gray-100 rounded py-0.5 text-center font-medium transition-colors"
                     >
                       +{dayTasks.length - (view === 'week' ? 10 : 3)} más
                     </button>
@@ -296,7 +296,7 @@ export default function CalendarView({
               return (
                 <div key={day.toISOString()} className={`p-3 ${isCurrentDay ? 'bg-gray-50' : ''}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[#17181A] text-[#D7F653]' : 'bg-gray-100 text-gray-700'}`}>
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[#121314] text-[#44BF47]' : 'bg-gray-100 text-gray-700'}`}>
                       {format(day, 'd')}
                     </span>
                     <span className="text-sm font-medium text-gray-700 capitalize">{format(day, 'EEEE', { locale: es })}</span>
@@ -386,7 +386,7 @@ export default function CalendarView({
                 <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
                   {format(expandedDay.day, "EEEE", { locale: es })}
                 </p>
-                <h3 className="text-lg font-semibold text-[#17181A]">
+                <h3 className="text-lg font-semibold text-[#121314]">
                   {format(expandedDay.day, "d 'de' MMMM, yyyy", { locale: es })}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -416,7 +416,7 @@ export default function CalendarView({
                       className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${priorityDots[task.priority]}`}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[#17181A]">{task.title}</p>
+                      <p className="text-sm font-medium text-[#121314]">{task.title}</p>
                       {task.project_id && (
                         <p className="text-xs text-gray-500 truncate mt-0.5">
                           {getProjectName(task.project_id)}

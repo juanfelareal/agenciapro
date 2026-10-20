@@ -409,10 +409,10 @@ export default function UGCProjectDetail() {
 
   // Sales angles management
   const [newAngleName, setNewAngleName] = useState('');
-  const [newAngleColor, setNewAngleColor] = useState('#16a34a');
+  const [newAngleColor, setNewAngleColor] = useState('#1E7A30');
   const [addingAngle, setAddingAngle] = useState(false);
   const angleColors = [
-    { name: 'Verde', value: '#16a34a' },
+    { name: 'Verde', value: '#1E7A30' },
     { name: 'Azul', value: '#2563eb' },
     { name: 'Morado', value: '#9333ea' },
     { name: 'Naranja', value: '#ea580c' },
@@ -647,13 +647,13 @@ export default function UGCProjectDetail() {
     }
     .header {
       text-align: center;
-      border-bottom: 3px solid #16a34a;
+      border-bottom: 3px solid #44BF47;
       padding-bottom: 20px;
       margin-bottom: 30px;
     }
     .header h1 {
       font-size: 24px;
-      color: #16a34a;
+      color: #1E7A30;
       margin-bottom: 5px;
     }
     .header p {
@@ -666,7 +666,7 @@ export default function UGCProjectDetail() {
     .section-title {
       font-size: 14px;
       font-weight: 600;
-      color: #16a34a;
+      color: #1E7A30;
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 12px;
@@ -713,7 +713,7 @@ export default function UGCProjectDetail() {
     .total-value {
       font-size: 20px;
       font-weight: 700;
-      color: #16a34a;
+      color: #1E7A30;
     }
     .signature-section {
       margin-top: 40px;
@@ -757,7 +757,7 @@ export default function UGCProjectDetail() {
 </head>
 <body>
   <div class="no-print" style="background:#f3f4f6; padding:10px 20px; margin:-40px -40px 30px; text-align:center;">
-    <button onclick="window.print()" style="background:#16a34a; color:white; border:none; padding:10px 30px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;">
+    <button onclick="window.print()" style="background:#44BF47; color:white; border:none; padding:10px 30px; border-radius:8px; font-weight:600; cursor:pointer; font-size:14px;">
       Imprimir / Guardar PDF
     </button>
   </div>
@@ -1032,7 +1032,7 @@ export default function UGCProjectDetail() {
             )}
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
             >
               <Plus className="w-4 h-4" />
               Agregar Creadores
@@ -1082,7 +1082,7 @@ export default function UGCProjectDetail() {
                 {angle.name}
                 <button
                   onClick={() => handleRemoveAngle(angle.id)}
-                  className="p-0.5 hover:bg-white/50 rounded-full transition-colors"
+                  className="p-0.5 hover:bg-[#121212]/[0.04] rounded-full transition-colors"
                   title="Eliminar ángulo"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -1142,7 +1142,7 @@ export default function UGCProjectDetail() {
             <p className="text-sm mb-4">Agrega creadores a este proyecto para empezar</p>
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
             >
               <Plus className="w-4 h-4" />
               Agregar Creadores
@@ -1500,7 +1500,7 @@ export default function UGCProjectDetail() {
                 <button
                   onClick={handleAddCreators}
                   disabled={saving || selectedCreators.length === 0}
-                  className="px-4 py-2 bg-[#17181A] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-[#121314] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Agregar
@@ -1600,7 +1600,7 @@ export default function UGCProjectDetail() {
               <button
                 onClick={handleSaveCreatorDetails}
                 disabled={savingCreatorDetails}
-                className="px-4 py-2 bg-[#17181A] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-[#121314] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {savingCreatorDetails && <Loader2 className="w-4 h-4 animate-spin" />}
                 Guardar

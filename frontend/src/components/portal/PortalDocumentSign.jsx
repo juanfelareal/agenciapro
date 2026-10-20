@@ -38,7 +38,7 @@ export default function PortalDocumentSign() {
     if (canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      ctx.strokeStyle = '#1a1a1a';
+      ctx.strokeStyle = '#121212';
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';

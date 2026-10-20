@@ -15,7 +15,7 @@ const todayISO = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Ameri
 const Stat = ({ label, value, sub, tone = 'default' }) => (
   <div className={`rounded-xl border p-3 ${tone === 'wa' ? 'border-emerald-200 bg-emerald-50/60' : tone === 'web' ? 'border-sky-200 bg-sky-50/60' : 'border-gray-200 bg-white'}`}>
     <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
-    <p className="text-lg sm:text-xl font-bold text-[#17181A] tabular-nums break-words mt-0.5">{value}</p>
+    <p className="text-lg sm:text-xl font-bold text-[#121314] tabular-nums break-words mt-0.5">{value}</p>
     {sub && <p className="text-[11px] text-gray-500 mt-0.5">{sub}</p>}
   </div>
 );
@@ -58,7 +58,7 @@ export default function WhatsappChannelPanel({ clientId, startDate, endDate, onC
             <MessageCircle className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-[#17181A]">Canales de venta: Web y WhatsApp</h2>
+            <h2 className="text-lg font-semibold text-[#121314]">Canales de venta: Web y WhatsApp</h2>
             <p className="text-xs text-gray-500">Ventas de la tienda + ventas cerradas por WhatsApp, con la pauta separada por canal</p>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function WhatsappChannelPanel({ clientId, startDate, endDate, onC
           <button onClick={() => setShowCampaigns(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50">
             <SlidersHorizontal className="w-4 h-4" /> Campañas por canal
           </button>
-          <button onClick={() => setShowSales(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#26282C]">
+          <button onClick={() => setShowSales(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F]">
             <Plus className="w-4 h-4" /> Registrar ventas WhatsApp
           </button>
         </div>
@@ -114,7 +114,7 @@ const Modal = ({ title, subtitle, onClose, children, wide }) => createPortal(
     <div className={`bg-white rounded-2xl shadow-2xl w-full ${wide ? 'max-w-3xl' : 'max-w-2xl'} max-h-[90dvh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100 flex-shrink-0">
         <div>
-          <h3 className="text-lg font-bold text-[#17181A]">{title}</h3>
+          <h3 className="text-lg font-bold text-[#121314]">{title}</h3>
           {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 flex-shrink-0"><X size={20} /></button>
@@ -210,7 +210,7 @@ function SalesModal({ clientId, startDate, endDate, sales, onClose, onChanged })
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
         {msg ? <p className={`text-sm ${msg.ok ? 'text-emerald-700' : 'text-red-600'}`}>{msg.text}</p> : <span />}
-        <button onClick={save} disabled={saving || (mode === 'day' ? !revenue : !bulk.revenue)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium disabled:opacity-50">
+        <button onClick={save} disabled={saving || (mode === 'day' ? !revenue : !bulk.revenue)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium disabled:opacity-50">
           <Check className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}
         </button>
       </div>
@@ -296,7 +296,7 @@ function CampaignsModal({ clientId, startDate, endDate, onClose, onChanged }) {
                 <div key={c.campaign_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 truncate" title={c.campaign_name}>{c.campaign_name}</p>
-                    <p className="text-[11px] text-gray-400">{money(c.spend)} · {c.objective || '—'}{c.messaging_conversations ? ` · ${c.messaging_conversations} conversaciones` : ''} · <span className={c.is_override ? 'text-[#17181A]' : ''}>{c.is_override ? 'manual' : `auto (${c.reason})`}</span></p>
+                    <p className="text-[11px] text-gray-400">{money(c.spend)} · {c.objective || '—'}{c.messaging_conversations ? ` · ${c.messaging_conversations} conversaciones` : ''} · <span className={c.is_override ? 'text-[#121314]' : ''}>{c.is_override ? 'manual' : `auto (${c.reason})`}</span></p>
                   </div>
                   <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
                     {[{ k: 'web', label: 'Web', Icon: Globe }, { k: 'whatsapp', label: 'WhatsApp', Icon: MessageCircle }].map((opt) => (
@@ -319,7 +319,7 @@ function CampaignsModal({ clientId, startDate, endDate, onClose, onChanged }) {
           )}
           <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
             <p className="text-xs text-gray-500">Las fechas futuras se calculan solas en cada sincronización. Para aplicar cambios a este periodo, recalcula.</p>
-            <button onClick={recalculate} disabled={recalc} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium disabled:opacity-50">
+            <button onClick={recalculate} disabled={recalc} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium disabled:opacity-50">
               <RefreshCw className={`w-4 h-4 ${recalc ? 'animate-spin' : ''}`} /> Recalcular periodo
             </button>
           </div>

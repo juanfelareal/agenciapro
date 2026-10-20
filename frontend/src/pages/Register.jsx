@@ -240,8 +240,8 @@ const Register = () => {
   };
 
   // Input class helper
-  const inputClass = 'w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#17181A] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all';
-  const selectClass = 'w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#17181A] focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all appearance-none';
+  const inputClass = 'w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#121314] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all';
+  const selectClass = 'w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#121314] focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all appearance-none';
 
   return (
     <div className="min-h-screen app-mist flex items-center justify-center p-4">
@@ -257,7 +257,7 @@ const Register = () => {
           <div className="flex justify-center mb-3">
             <OrbitLogo size={48} />
           </div>
-          <h1 className="text-2xl font-bold text-[#17181A]">Crea tu organizacion</h1>
+          <h1 className="text-2xl font-bold text-[#121314]">Crea tu organizacion</h1>
           <p className="text-gray-500 mt-1">Registrate gratis y empieza a gestionar tu equipo</p>
         </div>
 
@@ -271,14 +271,14 @@ const Register = () => {
                     i < step
                       ? 'bg-green-500 text-white'
                       : i === step
-                      ? 'bg-[#17181A] text-white'
+                      ? 'bg-[#121314] text-white'
                       : 'bg-gray-200 text-gray-400'
                   }`}
                 >
                   {i < step ? <Check size={16} /> : i + 1}
                 </div>
                 <span className={`text-xs mt-1.5 font-medium ${
-                  i <= step ? 'text-[#17181A]' : 'text-gray-400'
+                  i <= step ? 'text-[#121314]' : 'text-gray-400'
                 }`}>
                   {s.label}
                 </span>
@@ -359,7 +359,7 @@ const Register = () => {
 
               <button
                 onClick={nextStep}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#17181A] hover:bg-[#2A2A3E] text-white font-medium rounded-xl transition-all duration-200"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#121314] hover:bg-[#1C1D1F] text-white font-medium rounded-xl transition-all duration-200"
               >
                 <span>Siguiente</span>
                 <ChevronRight className="w-5 h-5" />
@@ -467,7 +467,7 @@ const Register = () => {
                 </button>
                 <button
                   onClick={nextStep}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#17181A] hover:bg-[#2A2A3E] text-white font-medium rounded-xl transition-all duration-200"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#121314] hover:bg-[#1C1D1F] text-white font-medium rounded-xl transition-all duration-200"
                 >
                   <span>Siguiente</span>
                   <ChevronRight className="w-5 h-5" />
@@ -561,7 +561,7 @@ const Register = () => {
                 <button
                   onClick={() => handleSubmit(false)}
                   disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#17181A] hover:bg-[#2A2A3E] text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#121314] hover:bg-[#1C1D1F] text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
                 >
                   {loading ? (
                     <>

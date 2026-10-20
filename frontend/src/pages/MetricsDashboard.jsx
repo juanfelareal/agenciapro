@@ -179,7 +179,7 @@ function MetricsDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Métricas</h1>
+          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Métricas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Resumen de todos los clientes</p>
           {data.last_sync_at && (
             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
@@ -194,7 +194,7 @@ function MetricsDashboard() {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 w-full sm:w-auto"
         >
           {syncing ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Sincronizando...</>
@@ -209,7 +209,7 @@ function MetricsDashboard() {
         <button
           onClick={() => handleTabChange('general')}
           className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'general' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            activeTab === 'general' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
           }`}
         >
           General
@@ -217,7 +217,7 @@ function MetricsDashboard() {
         <button
           onClick={() => handleTabChange('growth')}
           className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'growth' ? 'bg-white text-[#17181A] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            activeTab === 'growth' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
           }`}
         >
           <Rocket className="w-4 h-4" />
@@ -257,10 +257,10 @@ function MetricsDashboard() {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <MetricCard title="Venta Total" value={visibleTotals.display_revenue} icon={DollarSign} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="currency" loading={loading} />
-            <MetricCard title="Inversion Publicidad" value={visibleTotals.total_ad_spend} icon={MousePointerClick} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="currency" loading={loading} />
-            <MetricCard title="ROAS" value={visibleTotals.roas} icon={TrendingUp} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="decimal" loading={loading} />
-            <MetricCard title="Pedidos" value={visibleTotals.total_orders} icon={ShoppingCart} iconBgColor="bg-[#17181A]" iconColor="text-[#D7F653]" format="integer" loading={loading} />
+            <MetricCard title="Venta Total" value={visibleTotals.display_revenue} icon={DollarSign} iconBgColor="bg-[#121314]" iconColor="text-[#44BF47]" format="currency" loading={loading} />
+            <MetricCard title="Inversion Publicidad" value={visibleTotals.total_ad_spend} icon={MousePointerClick} iconBgColor="bg-[#121314]" iconColor="text-[#44BF47]" format="currency" loading={loading} />
+            <MetricCard title="ROAS" value={visibleTotals.roas} icon={TrendingUp} iconBgColor="bg-[#121314]" iconColor="text-[#44BF47]" format="decimal" loading={loading} />
+            <MetricCard title="Pedidos" value={visibleTotals.total_orders} icon={ShoppingCart} iconBgColor="bg-[#121314]" iconColor="text-[#44BF47]" format="integer" loading={loading} />
           </div>
 
           {/* Clients Table */}
@@ -280,7 +280,7 @@ function MetricsDashboard() {
 
             {loading ? (
               <div className="p-8 text-center">
-                <Loader2 className="w-8 h-8 animate-spin text-[#17181A] mx-auto mb-2" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#121314] mx-auto mb-2" />
                 <p className="text-gray-500">Cargando métricas...</p>
               </div>
             ) : visibleClients.length === 0 ? (
@@ -328,14 +328,14 @@ function MetricsDashboard() {
                     <div className="flex items-center gap-1 mt-3 -ml-1">
                       <button
                         onClick={() => setExpandedClients(prev => ({ ...prev, [client.client_id]: !prev[client.client_id] }))}
-                        className={`p-2 rounded-lg transition-colors ${expandedClients[client.client_id] ? 'text-[#17181A] bg-gray-100' : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'}`}
+                        className={`p-2 rounded-lg transition-colors ${expandedClients[client.client_id] ? 'text-[#121314] bg-gray-100' : 'text-gray-400 hover:text-[#121314] hover:bg-gray-100'}`}
                         title="Ver últimos 7 días y tendencia"
                       >
                         <BarChart2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setLogbookClient({ id: client.client_id, name: client.nickname || client.company || client.client_name })}
-                        className="relative p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                        className="relative p-2 text-gray-400 hover:text-[#121314] hover:bg-gray-100 rounded-lg transition-colors"
                         title="Bitácora de la marca"
                       >
                         <BookOpen className="w-4 h-4" />
@@ -355,7 +355,7 @@ function MetricsDashboard() {
                       >
                         {client.is_hidden_from_metrics ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
-                      <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="ml-auto flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#17181A] bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                      <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="ml-auto flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#121314] bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
                         Detalle <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -445,14 +445,14 @@ function MetricsDashboard() {
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => setExpandedClients(prev => ({ ...prev, [client.client_id]: !prev[client.client_id] }))}
-                              className={`p-2 rounded-lg transition-colors ${expandedClients[client.client_id] ? 'text-[#17181A] bg-gray-100' : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'}`}
+                              className={`p-2 rounded-lg transition-colors ${expandedClients[client.client_id] ? 'text-[#121314] bg-gray-100' : 'text-gray-400 hover:text-[#121314] hover:bg-gray-100'}`}
                               title="Ver últimos 7 días y tendencia"
                             >
                               <BarChart2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setLogbookClient({ id: client.client_id, name: client.nickname || client.company || client.client_name })}
-                              className="relative p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+                              className="relative p-2 text-gray-400 hover:text-[#121314] hover:bg-gray-100 rounded-lg transition-colors"
                               title="Bitácora de la marca"
                             >
                               <BookOpen className="w-4 h-4" />
@@ -462,7 +462,7 @@ function MetricsDashboard() {
                                 </span>
                               )}
                             </button>
-                            <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="p-2 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors" title="Ver detalle">
+                            <button onClick={() => navigate(`/app/metricas/cliente/${client.client_id}`)} className="p-2 text-gray-400 hover:text-[#121314] hover:bg-gray-100 rounded-lg transition-colors" title="Ver detalle">
                               <ChevronRight className="w-5 h-5" />
                             </button>
                             <button onClick={() => navigate(`/app/clients/${client.client_id}/plataformas`)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Configurar plataformas">

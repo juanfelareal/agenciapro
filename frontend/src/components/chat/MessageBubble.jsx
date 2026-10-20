@@ -204,7 +204,7 @@ const MessageBubble = ({ message, isOwn, showSender, apiBase = '' }) => {
         <div
           className={`px-3 py-2 rounded-2xl ${
             isOwn
-              ? 'bg-[#17181A] text-white rounded-br-md'
+              ? 'bg-[#121314] text-white rounded-br-md'
               : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
           }`}
         >

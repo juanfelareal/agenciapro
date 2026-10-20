@@ -145,8 +145,8 @@ const MonthlySalesGoalWidget = () => {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#7A7772' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#7A7772' }} axisLine={false} tickLine={false} />
               <Tooltip
                 formatter={(value, name) => [formatCurrencyFull(value), name]}
                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }}
@@ -303,7 +303,7 @@ const MonthlySalesGoalWidget = () => {
               <button
                 onClick={handleSaveGoals}
                 disabled={savingGoals}
-                className="px-4 py-2 text-sm font-medium bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] flex items-center gap-2"
               >
                 <Save size={16} />
                 {savingGoals ? 'Guardando…' : 'Guardar metas'}

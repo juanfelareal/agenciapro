@@ -86,7 +86,7 @@ export default function PortalInvoices() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Mis Facturas</h1>
+        <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Mis Facturas</h1>
         <p className="text-sm text-gray-500 mt-0.5">Historial de facturación y pagos</p>
       </div>
 
@@ -95,9 +95,9 @@ export default function PortalInvoices() {
         <div className="glass-card p-5">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#17181A]" />
+              <FileText className="w-5 h-5 text-[#121314]" />
             </div>
-            <span className="text-xl font-bold text-[#17181A]">{formatCurrency(summary.total)}</span>
+            <span className="text-xl font-bold text-[#121314]">{formatCurrency(summary.total)}</span>
           </div>
           <p className="mt-3 text-sm text-gray-500">Total Facturado</p>
         </div>
@@ -188,12 +188,12 @@ export default function PortalInvoices() {
                 {filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <span className="font-mono font-medium text-[#17181A]">
+                      <span className="font-mono font-medium text-[#121314]">
                         {invoice.invoice_number || `#${invoice.id}`}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-[#17181A] line-clamp-1">{invoice.concept || 'Sin concepto'}</p>
+                      <p className="text-[#121314] line-clamp-1">{invoice.concept || 'Sin concepto'}</p>
                       {invoice.project_name && (
                         <p className="text-sm text-gray-500">{invoice.project_name}</p>
                       )}
@@ -207,7 +207,7 @@ export default function PortalInvoices() {
                           })
                         : '-'}
                     </td>
-                    <td className="px-6 py-4 font-semibold text-[#17181A]">
+                    <td className="px-6 py-4 font-semibold text-[#121314]">
                       {formatCurrency(invoice.total)}
                     </td>
                     <td className="px-6 py-4">
@@ -225,7 +225,7 @@ export default function PortalInvoices() {
               <div key={invoice.id} className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="font-mono font-medium text-[#17181A]">
+                    <p className="font-mono font-medium text-[#121314]">
                       {invoice.invoice_number || `#${invoice.id}`}
                     </p>
                     <p className="text-sm text-gray-500 mt-0.5">
@@ -241,7 +241,7 @@ export default function PortalInvoices() {
                   {getStatusBadge(invoice.status)}
                 </div>
                 <p className="text-gray-700 mb-2">{invoice.concept || 'Sin concepto'}</p>
-                <p className="text-lg font-bold text-[#17181A]">{formatCurrency(invoice.total)}</p>
+                <p className="text-lg font-bold text-[#121314]">{formatCurrency(invoice.total)}</p>
               </div>
             ))}
           </div>
@@ -251,7 +251,7 @@ export default function PortalInvoices() {
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-[#17181A] mb-2">No hay facturas</h3>
+          <h3 className="text-lg font-semibold text-[#121314] mb-2">No hay facturas</h3>
           <p className="text-gray-500">
             {search || statusFilter !== 'all'
               ? 'No se encontraron facturas con los filtros aplicados.'

@@ -124,7 +124,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
             <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
               <Rocket className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-[#17181A] mb-4">
+            <h2 className="text-3xl font-bold text-[#121314] mb-4">
               ¡Bienvenido al programa UGC!
             </h2>
             <p className="text-lg text-gray-600 mb-6 leading-relaxed">
@@ -161,7 +161,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
                 <MetaLogo />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-[#17181A]">Conexión con Meta</h2>
+                <h2 className="text-2xl font-bold text-[#121314]">Conexión con Meta</h2>
                 <p className="text-gray-500">Paso 1 de 2 conexiones</p>
               </div>
             </div>
@@ -176,7 +176,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h3 className="font-semibold text-[#17181A] mb-4">Pasos para agregarnos:</h3>
+              <h3 className="font-semibold text-[#121314] mb-4">Pasos para agregarnos:</h3>
 
               <ol className="space-y-4">
                 <li className="flex gap-4">
@@ -245,7 +245,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
                 <ShoppingBag className="w-7 h-7" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-[#17181A]">Conexión con Shopify</h2>
+                <h2 className="text-2xl font-bold text-[#121314]">Conexión con Shopify</h2>
                 <p className="text-gray-500">Paso 2 de 2 conexiones</p>
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h3 className="font-semibold text-[#17181A] mb-4">Pasos para darnos acceso:</h3>
+              <h3 className="font-semibold text-[#121314] mb-4">Pasos para darnos acceso:</h3>
 
               <ol className="space-y-4">
                 {shopifySteps.map((item) => (
@@ -305,7 +305,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
               <div className="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Video className="w-8 h-8 text-violet-600" />
               </div>
-              <h2 className="text-2xl font-bold text-[#17181A] mb-2">Tu plataforma UGC</h2>
+              <h2 className="text-2xl font-bold text-[#121314] mb-2">Tu plataforma UGC</h2>
               <p className="text-gray-500">
                 Desde aquí podrás ver todo lo relacionado con el contenido UGC de tu marca
               </p>
@@ -319,7 +319,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
                     <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center mb-3">
                       <Icon className="w-5 h-5 text-violet-600" />
                     </div>
-                    <h3 className="font-semibold text-[#17181A] mb-1">{feature.title}</h3>
+                    <h3 className="font-semibold text-[#121314] mb-1">{feature.title}</h3>
                     <p className="text-sm text-gray-500">{feature.description}</p>
                   </div>
                 );
@@ -328,7 +328,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
 
             {/* FAQs */}
             <div className="bg-gray-50 rounded-2xl p-6">
-              <h3 className="font-semibold text-[#17181A] mb-4">Preguntas frecuentes</h3>
+              <h3 className="font-semibold text-[#121314] mb-4">Preguntas frecuentes</h3>
               <div className="space-y-2">
                 {faqs.map((faq, i) => (
                   <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -420,7 +420,7 @@ export default function PortalUGCOnboarding({ onComplete }) {
           {activeStep < steps.length - 1 ? (
             <button
               onClick={() => setActiveStep(activeStep + 1)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors font-medium"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors font-medium"
             >
               Siguiente
               <ArrowRight className="w-4 h-4" />

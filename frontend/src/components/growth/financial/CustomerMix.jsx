@@ -25,12 +25,12 @@ function Column({ icon, title, bucket, accent }) {
         </span>
         <span className="truncate">{title}</span>
       </div>
-      <div className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-none tabular-nums text-[#17181A] mt-2">{fmtInt(b.customers)}</div>
+      <div className="text-[22px] sm:text-[26px] font-bold tracking-tight leading-none tabular-nums text-[#121314] mt-2">{fmtInt(b.customers)}</div>
       <div className="text-[11px] text-gray-400 mt-1">clientes</div>
       <dl className="mt-3 space-y-1.5 text-[12px]">
-        <div className="flex justify-between gap-2"><dt className="text-gray-500">Pedidos</dt><dd className="tabular-nums font-medium text-[#17181A]">{fmtInt(b.orders)}</dd></div>
-        <div className="flex justify-between gap-2"><dt className="text-gray-500">Venta neta</dt><dd className="tabular-nums font-medium text-[#17181A]">{fmtMoney(b.revenue)}</dd></div>
-        <div className="flex justify-between gap-2"><dt className="text-gray-500">Ticket</dt><dd className="tabular-nums font-medium text-[#17181A]">{fmtMoney(b.aov)}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="text-gray-500">Pedidos</dt><dd className="tabular-nums font-medium text-[#121314]">{fmtInt(b.orders)}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="text-gray-500">Venta neta</dt><dd className="tabular-nums font-medium text-[#121314]">{fmtMoney(b.revenue)}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="text-gray-500">Ticket</dt><dd className="tabular-nums font-medium text-[#121314]">{fmtMoney(b.aov)}</dd></div>
       </dl>
     </div>
   );
@@ -43,7 +43,7 @@ function Metric({ label, value, sub, info }) {
         <span className="truncate">{label}</span>
         <Info text={info} />
       </div>
-      <div className="text-[18px] sm:text-[20px] font-bold tracking-tight leading-none tabular-nums text-[#17181A] mt-1.5">{value}</div>
+      <div className="text-[18px] sm:text-[20px] font-bold tracking-tight leading-none tabular-nums text-[#121314] mt-1.5">{value}</div>
       {sub && <div className="text-[10px] text-gray-400 mt-1 leading-snug">{sub}</div>}
     </div>
   );
@@ -90,18 +90,18 @@ export default function CustomerMix({ clientId, period, api }) {
     body = (
       <>
         <div className="grid grid-cols-2 gap-4 sm:gap-6 mt-4">
-          <Column icon={UserPlus} title="Clientes nuevos" bucket={data.new} accent={{ bg: '#17181A', fg: '#D7F653' }} />
-          <Column icon={Repeat} title="Recurrentes" bucket={data.returning} accent={{ bg: '#E7F9C9', fg: '#17181A' }} />
+          <Column icon={UserPlus} title="Clientes nuevos" bucket={data.new} accent={{ bg: '#121314', fg: '#44BF47' }} />
+          <Column icon={Repeat} title="Recurrentes" bucket={data.returning} accent={{ bg: '#E3F3E4', fg: '#1E7A30' }} />
         </div>
 
         <div className="mt-5">
           <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100" role="img" aria-label={`Nuevos ${fmtPct(newShare, 0)} de la venta, recurrentes ${fmtPct(retShare, 0)}`}>
-            <div className="h-full bg-[#17181A] transition-[width] duration-500" style={{ width: `${Math.round(newShare * 100)}%` }} />
-            <div className="h-full bg-[#D7F653] transition-[width] duration-500" style={{ width: `${Math.round(retShare * 100)}%` }} />
+            <div className="h-full bg-[#121314] transition-[width] duration-500" style={{ width: `${Math.round(newShare * 100)}%` }} />
+            <div className="h-full bg-[#44BF47] transition-[width] duration-500" style={{ width: `${Math.round(retShare * 100)}%` }} />
           </div>
           <div className="flex justify-between text-[11px] text-gray-500 mt-1.5 tabular-nums">
-            <span><span className="inline-block w-2 h-2 rounded-[2px] bg-[#17181A] mr-1.5 align-middle" />Nuevos {fmtPct(newShare, 0)} de la venta</span>
-            <span>Recurrentes {fmtPct(retShare, 0)}<span className="inline-block w-2 h-2 rounded-[2px] bg-[#D7F653] ml-1.5 align-middle" /></span>
+            <span><span className="inline-block w-2 h-2 rounded-[2px] bg-[#121314] mr-1.5 align-middle" />Nuevos {fmtPct(newShare, 0)} de la venta</span>
+            <span>Recurrentes {fmtPct(retShare, 0)}<span className="inline-block w-2 h-2 rounded-[2px] bg-[#44BF47] ml-1.5 align-middle" /></span>
           </div>
         </div>
 

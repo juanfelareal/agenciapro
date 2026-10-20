@@ -167,7 +167,7 @@ const FinancialDashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">
+          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">
             Dashboard Financiero
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -213,7 +213,7 @@ const FinancialDashboard = () => {
           <div className="relative">
             <button
               onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-              className="flex items-center gap-2 px-4 py-2.5 glass rounded-xl text-sm font-medium text-[#17181A] hover:bg-white/80 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 glass rounded-xl text-sm font-medium text-[#121314] hover:bg-[#121212]/[0.03] transition-colors"
             >
               <Calendar className="w-4 h-4 text-gray-500" />
               <span>{formatPeriodLabel()}</span>
@@ -242,7 +242,7 @@ const FinancialDashboard = () => {
                         onClick={() => setPeriod(p.key)}
                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                           period === p.key
-                            ? 'bg-[#17181A] text-[#D7F653]'
+                            ? 'bg-[#121314] text-[#44BF47]'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -285,7 +285,7 @@ const FinancialDashboard = () => {
                 <div className="p-3 border-t border-gray-100">
                   <button
                     onClick={() => setShowPeriodDropdown(false)}
-                    className="w-full px-3 py-2 bg-[#17181A] text-white text-sm font-medium rounded-lg hover:bg-[#26282C] transition-colors"
+                    className="w-full px-3 py-2 bg-[#121314] text-white text-sm font-medium rounded-lg hover:bg-[#1C1D1F] transition-colors"
                   >
                     Aplicar
                   </button>
@@ -308,8 +308,8 @@ const FinancialDashboard = () => {
               onClick={() => setActiveSection(section.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-[#17181A] text-[#D7F653] shadow-sm'
-                  : 'text-gray-600 hover:text-[#17181A] hover:bg-white/60'
+                  ? 'bg-[#121314] text-[#44BF47] shadow-sm'
+                  : 'text-gray-600 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
               }`}
             >
               <Icon className="w-4 h-4" />

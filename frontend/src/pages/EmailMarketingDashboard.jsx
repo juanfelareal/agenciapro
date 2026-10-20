@@ -28,7 +28,7 @@ function MetricCard({ title, value, icon: Icon, format = 'number', subtitle, tre
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-gray-500 font-medium">{title}</p>
-          <p className="text-2xl font-bold text-[#17181A] mt-1 truncate">{formatted}</p>
+          <p className="text-2xl font-bold text-[#121314] mt-1 truncate">{formatted}</p>
           {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
         </div>
         <div className={`p-2.5 rounded-xl ${iconBg}`}>
@@ -68,13 +68,13 @@ function ClientRow({ client, onClick }) {
             {(client.nickname || client.client_name || '?')[0].toUpperCase()}
           </div>
           <div>
-            <p className="font-medium text-[#17181A]">{client.nickname || client.client_name}</p>
+            <p className="font-medium text-[#121314]">{client.nickname || client.client_name}</p>
             {client.nickname && <p className="text-xs text-gray-400">{client.client_name}</p>}
           </div>
         </div>
       </td>
       <td className="py-3 px-3 text-right">
-        <span className="font-semibold text-[#17181A]">{hasData ? fmtCurrency(totalRevenue) : '—'}</span>
+        <span className="font-semibold text-[#121314]">{hasData ? fmtCurrency(totalRevenue) : '—'}</span>
         {hasData && totalRevenue > 0 && (
           <p className="text-[10px] text-gray-400 mt-0.5">
             C: {fmtCurrency(client.campaigns_revenue)} · F: {fmtCurrency(client.flows_revenue)}
@@ -103,7 +103,7 @@ function ClientRow({ client, onClick }) {
       <td className="py-3 px-3 text-right">
         {hasData && (client.coupon_orders || 0) > 0 ? (
           <>
-            <span className="font-medium text-[#17181A]">{fmtCurrency(client.coupon_revenue)}</span>
+            <span className="font-medium text-[#121314]">{fmtCurrency(client.coupon_revenue)}</span>
             <p className="text-[10px] text-gray-400 mt-0.5">{fmtInt(client.coupon_orders)} pedidos · desc. {fmtCurrency(client.coupon_discount_total)}</p>
           </>
         ) : '—'}
@@ -208,7 +208,7 @@ export default function EmailMarketingDashboard() {
             <Mail size={24} className="text-purple-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Email Marketing</h1>
+            <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Email Marketing</h1>
             <p className="text-sm text-gray-500">Panorama general de todos los clientes</p>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function EmailMarketingDashboard() {
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="px-3 py-1.5 font-medium text-[#17181A] min-w-[110px] sm:min-w-[140px] text-center">
+          <span className="px-3 py-1.5 font-medium text-[#121314] min-w-[110px] sm:min-w-[140px] text-center">
             {MONTHS[month - 1]} {year}
           </span>
           <button
@@ -317,7 +317,7 @@ export default function EmailMarketingDashboard() {
       <div className="glass-card overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-[#17181A]">Clientes</h2>
+            <h2 className="font-semibold text-[#121314]">Clientes</h2>
             <p className="text-xs text-gray-500 mt-0.5">
               {clientsWithData.length} con datos · {clientsWithoutData.length} sin registrar
             </p>
@@ -385,7 +385,7 @@ export default function EmailMarketingDashboard() {
         <div className="glass-card p-4">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={18} className="text-gray-400" />
-            <h3 className="font-semibold text-[#17181A]">Tendencia de Ingresos</h3>
+            <h3 className="font-semibold text-[#121314]">Tendencia de Ingresos</h3>
           </div>
           <div className="flex items-end gap-2 h-32">
             {data.history.map((h, i) => {

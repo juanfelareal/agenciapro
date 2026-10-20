@@ -502,12 +502,12 @@ function ClientPreviewModal({ preview, clients, clientId, onClientChange, onClos
   const html = renderForClient(preview.content, client);
   const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>body{margin:0;padding:8px;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;color:#1a1a1a;line-height:1.6}img{max-width:100%}table{border-collapse:collapse}</style>
+    <style>body{margin:0;padding:8px;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;color:#121212;line-height:1.6}img{max-width:100%}table{border-collapse:collapse}</style>
     </head><body>${html}</body></html>`;
   const signerName = client ? (client.name || '') : '';
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-6" onClick={onClose}>
-      <div className="bg-[#F5F5F3] rounded-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[#F3F1ED] rounded-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-white border-b border-ink-200">
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-ink-500" />

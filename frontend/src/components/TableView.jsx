@@ -194,7 +194,7 @@ const TableView = ({ projectId }) => {
                   {task.assignees.slice(0, 3).map((a) => (
                     <span
                       key={a.id}
-                      className="w-5 h-5 rounded-full bg-[#17181A] text-[#D7F653] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
+                      className="w-5 h-5 rounded-full bg-[#121314] text-[#44BF47] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
                       title={a.name}
                     >
                       {a.name.charAt(0).toUpperCase()}

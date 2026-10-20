@@ -38,7 +38,7 @@ export function ListTagButton({ listIds, onOpen, className = '' }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onOpen(e.currentTarget.getBoundingClientRect()); }}
-      className={`p-1 rounded-full transition-colors ${active ? 'text-[#17181A]' : 'text-gray-300 hover:text-gray-600'} ${className}`}
+      className={`p-1 rounded-full transition-colors ${active ? 'text-[#121314]' : 'text-gray-300 hover:text-gray-600'} ${className}`}
       title="Listas"
     >
       <Bookmark className="w-4 h-4" fill={active ? 'currentColor' : 'none'} />
@@ -99,7 +99,7 @@ export function CreatorListPicker({ anchorRect, lists, listIds, onToggle, onCrea
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between px-2 py-1">
-        <span className="text-xs font-semibold text-[#17181A]">Agregar a lista</span>
+        <span className="text-xs font-semibold text-[#121314]">Agregar a lista</span>
         <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded"><X className="w-3.5 h-3.5" /></button>
       </div>
       <div className="max-h-56 overflow-y-auto">
@@ -130,14 +130,14 @@ export function CreatorListPicker({ anchorRect, lists, listIds, onToggle, onCrea
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nueva lista…"
-          className="flex-1 min-w-0 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+          className="flex-1 min-w-0 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
         />
-        <button type="submit" disabled={creating || !newName.trim()} className="p-1.5 rounded-lg bg-[#17181A] text-white disabled:opacity-40" title="Crear lista">
+        <button type="submit" disabled={creating || !newName.trim()} className="p-1.5 rounded-lg bg-[#121314] text-white disabled:opacity-40" title="Crear lista">
           {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
         </button>
       </form>
       {onManage && (
-        <button onClick={() => { onClose(); onManage(); }} className="w-full mt-1 px-2 py-1.5 text-[11px] text-gray-500 hover:text-[#17181A] text-left">
+        <button onClick={() => { onClose(); onManage(); }} className="w-full mt-1 px-2 py-1.5 text-[11px] text-gray-500 hover:text-[#121314] text-left">
           Administrar listas…
         </button>
       )}
@@ -153,7 +153,7 @@ export function ListBar({ lists, activeListId, onSelect, onManage, onDelete }) {
       <div className="flex items-center gap-2 mb-4 text-xs text-gray-400">
         <Bookmark className="w-3.5 h-3.5" />
         <span>Crea listas personalizadas (ej. "Favoritos mujeres", "Fitness") para agrupar creadores.</span>
-        <button onClick={onManage} className="text-[#17181A] font-medium hover:underline">Crear lista</button>
+        <button onClick={onManage} className="text-[#121314] font-medium hover:underline">Crear lista</button>
       </div>
     );
   }
@@ -161,7 +161,7 @@ export function ListBar({ lists, activeListId, onSelect, onManage, onDelete }) {
     <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
       <button
         onClick={() => onSelect(null)}
-        className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-colors ${!activeListId ? 'bg-[#17181A] text-white border-[#17181A]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+        className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-colors ${!activeListId ? 'bg-[#121314] text-white border-[#121314]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
       >
         Todos
       </button>
@@ -181,7 +181,7 @@ export function ListBar({ lists, activeListId, onSelect, onManage, onDelete }) {
           </button>
         );
       })}
-      <button onClick={onManage} className="shrink-0 p-1.5 text-gray-400 hover:text-[#17181A] rounded-full hover:bg-gray-100" title="Administrar listas">
+      <button onClick={onManage} className="shrink-0 p-1.5 text-gray-400 hover:text-[#121314] rounded-full hover:bg-gray-100" title="Administrar listas">
         <Pencil className="w-3.5 h-3.5" />
       </button>
       {activeListId && onDelete && (
@@ -242,7 +242,7 @@ export function ManageListsModal({ lists, onClose, onChanged }) {
   const ColorPicker = ({ value, onChange }) => (
     <div className="flex items-center gap-1">
       {LIST_COLORS.map(c => (
-        <button key={c} type="button" onClick={() => onChange(c)} className="w-5 h-5 rounded-full border-2" style={{ backgroundColor: c, borderColor: value === c ? '#17181A' : 'transparent' }} title={c} />
+        <button key={c} type="button" onClick={() => onChange(c)} className="w-5 h-5 rounded-full border-2" style={{ backgroundColor: c, borderColor: value === c ? '#121314' : 'transparent' }} title={c} />
       ))}
     </div>
   );
@@ -251,7 +251,7 @@ export function ManageListsModal({ lists, onClose, onChanged }) {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[#17181A] flex items-center gap-2"><Bookmark className="w-4 h-4" /> Listas de creadores</h2>
+          <h2 className="text-base font-semibold text-[#121314] flex items-center gap-2"><Bookmark className="w-4 h-4" /> Listas de creadores</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
 
@@ -260,8 +260,8 @@ export function ManageListsModal({ lists, onClose, onChanged }) {
             <p className="text-xs font-medium text-gray-600">Nueva lista</p>
             <div className="flex items-center gap-2">
               <input value={form.emoji} onChange={(e) => setForm(f => ({ ...f, emoji: e.target.value.slice(0, 2) }))} placeholder="😀" className="w-12 px-2 py-2 text-sm text-center border border-gray-200 rounded-lg bg-white" />
-              <input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder='Ej. "Favoritos mujeres", "Fitness"' className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#D7F653]" />
-              <button type="submit" disabled={saving || !form.name.trim()} className="px-3 py-2 text-sm font-medium rounded-lg bg-[#17181A] text-white disabled:opacity-40 inline-flex items-center gap-1">
+              <input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder='Ej. "Favoritos mujeres", "Fitness"' className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40" />
+              <button type="submit" disabled={saving || !form.name.trim()} className="px-3 py-2 text-sm font-medium rounded-lg bg-[#121314] text-white disabled:opacity-40 inline-flex items-center gap-1">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Crear
               </button>
             </div>
@@ -279,7 +279,7 @@ export function ManageListsModal({ lists, onClose, onChanged }) {
                       <div className="flex items-center gap-2">
                         <input value={editing.emoji || ''} onChange={(e) => setEditing(ed => ({ ...ed, emoji: e.target.value.slice(0, 2) }))} className="w-12 px-2 py-1.5 text-sm text-center border border-gray-200 rounded-lg" />
                         <input value={editing.name} onChange={(e) => setEditing(ed => ({ ...ed, name: e.target.value }))} className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg" autoFocus />
-                        <button onClick={saveEdit} disabled={saving} className="p-1.5 rounded-lg bg-[#17181A] text-white"><Check className="w-4 h-4" /></button>
+                        <button onClick={saveEdit} disabled={saving} className="p-1.5 rounded-lg bg-[#121314] text-white"><Check className="w-4 h-4" /></button>
                         <button onClick={() => setEditing(null)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"><X className="w-4 h-4" /></button>
                       </div>
                       <ColorPicker value={editing.color} onChange={(c) => setEditing(ed => ({ ...ed, color: c }))} />
@@ -289,7 +289,7 @@ export function ManageListsModal({ lists, onClose, onChanged }) {
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
                       <span className="text-sm text-gray-800 flex-1 truncate">{listLabel(l)}</span>
                       <span className="text-xs text-gray-400">{l.member_count} {l.member_count === 1 ? 'creador' : 'creadores'}</span>
-                      <button onClick={() => setEditing({ id: l.id, name: l.name, emoji: l.emoji || '', color: l.color })} className="p-1.5 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg" title="Editar"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setEditing({ id: l.id, name: l.name, emoji: l.emoji || '', color: l.color })} className="p-1.5 text-gray-400 hover:text-[#121314] hover:bg-gray-100 rounded-lg" title="Editar"><Pencil className="w-3.5 h-3.5" /></button>
                       <button onClick={() => remove(l)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Eliminar"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   )}

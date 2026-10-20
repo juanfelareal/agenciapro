@@ -107,13 +107,13 @@ export const currentPeriod = () => new Date().toLocaleDateString('en-CA', { time
 
 /** Paleta: Orbit (carbón + lima) con verde utilidad / rojo pérdida y colores por plataforma. */
 export const COLORS = {
-  ink: '#17181A',
+  ink: '#121314',
   muted: '#6B7280',
-  profit: '#16a34a',
+  profit: '#44BF47',
   loss: '#dc2626',
-  lime: '#D7F653',
+  lime: '#44BF47',
   // Barras del P&L diario
-  revenue: '#17181A',
+  revenue: '#121314',
   costs: '#9AA3AD',
   // Desglose "a dónde se fue la plata"
   cogs: '#64748B',
@@ -133,7 +133,7 @@ export const AD_SOURCES = [
 ];
 
 /** Color estable por categoría de costo (misma categoría → mismo color). */
-const CATEGORY_COLORS = ['#2563EB', '#0D9488', '#D97706', '#7C3AED', '#DB2777', '#64748B', '#16a34a', '#EA580C'];
+const CATEGORY_COLORS = ['#2563EB', '#0D9488', '#D97706', '#7C3AED', '#DB2777', '#64748B', '#44BF47', '#EA580C'];
 export const categoryColor = (name = '') => {
   let h = 0;
   for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;

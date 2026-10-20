@@ -845,7 +845,7 @@ function ClientPlatformSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-[#17181A]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#121314]" />
       </div>
     );
   }
@@ -861,7 +861,7 @@ function ClientPlatformSettings() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Configurar Plataformas</h1>
+          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Configurar Plataformas</h1>
           <p className="text-sm text-gray-500 mt-0.5">{client?.company || client?.name}</p>
         </div>
       </div>
@@ -1265,7 +1265,7 @@ function ClientPlatformSettings() {
                     <button
                       onClick={saveShopifyCredentials}
                       disabled={savingCredentials || !shopifyApiKey.trim() || !shopifyApiSecret.trim()}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#26282C] transition-colors disabled:opacity-50 text-sm"
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#121314] text-white rounded-lg hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 text-sm"
                     >
                       {savingCredentials ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       Guardar Credenciales
@@ -1468,16 +1468,16 @@ function ClientPlatformSettings() {
                 onClick={() => setPortalRevenueMetric(option.value)}
                 className={`p-4 rounded-lg border-2 text-left transition-all ${
                   portalRevenueMetric === option.value
-                    ? 'border-[#17181A] bg-[#17181A]/5'
+                    ? 'border-[#121314] bg-[#121314]/5'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    portalRevenueMetric === option.value ? 'border-[#17181A]' : 'border-gray-300'
+                    portalRevenueMetric === option.value ? 'border-[#121314]' : 'border-gray-300'
                   }`}>
                     {portalRevenueMetric === option.value && (
-                      <div className="w-2 h-2 rounded-full bg-[#17181A]" />
+                      <div className="w-2 h-2 rounded-full bg-[#121314]" />
                     )}
                   </div>
                   <span className="font-medium text-sm text-gray-900">{option.label}</span>
@@ -1490,7 +1490,7 @@ function ClientPlatformSettings() {
             <button
               onClick={() => saveRevenueMetric(portalRevenueMetric)}
               disabled={savingRevenueMetric}
-              className="px-5 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {savingRevenueMetric ? 'Guardando...' : 'Guardar'}
             </button>
@@ -1516,8 +1516,8 @@ function ClientPlatformSettings() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {privacy.members.map((m) => (
-                <label key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${privacy.selected.includes(m.id) ? 'border-[#17181A] bg-[#17181A]/5' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <input type="checkbox" checked={privacy.selected.includes(m.id)} onChange={() => togglePrivacyMember(m.id)} className="w-4 h-4 accent-[#17181A]" />
+                <label key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${privacy.selected.includes(m.id) ? 'border-[#121314] bg-[#121314]/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <input type="checkbox" checked={privacy.selected.includes(m.id)} onChange={() => togglePrivacyMember(m.id)} className="w-4 h-4 accent-[#121314]" />
                   <span className="text-sm text-gray-900 truncate">{m.name}{m.id === privacy.memberId ? ' (tú)' : ''}</span>
                 </label>
               ))}
@@ -1526,7 +1526,7 @@ function ClientPlatformSettings() {
               {privacy.selected.length > 0 && (
                 <button onClick={() => savePrivacy(true)} disabled={privacy.saving} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Hacer visible para todos</button>
               )}
-              <button onClick={() => savePrivacy(false)} disabled={privacy.saving || privacy.selected.length === 0} className="px-5 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2">
+              <button onClick={() => savePrivacy(false)} disabled={privacy.saving || privacy.selected.length === 0} className="px-5 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2">
                 <Lock className="w-4 h-4" /> {privacy.saving ? 'Guardando...' : 'Guardar como privado'}
               </button>
             </div>
@@ -1549,8 +1549,8 @@ function ClientPlatformSettings() {
           <button
             onClick={toggleWhatsappSales}
             disabled={savingWhatsappSales}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D7F653] focus:ring-offset-2 flex-shrink-0 ${
-              whatsappSalesEnabled ? 'bg-[#17181A]' : 'bg-gray-300'
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 focus:ring-offset-2 flex-shrink-0 ${
+              whatsappSalesEnabled ? 'bg-[#121314]' : 'bg-gray-300'
             } ${savingWhatsappSales ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${whatsappSalesEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -1591,8 +1591,8 @@ function ClientPlatformSettings() {
           <button
             onClick={toggleUgcVisibility}
             disabled={savingUgc}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D7F653] focus:ring-offset-2 ${
-              canViewUgc ? 'bg-[#17181A]' : 'bg-gray-300'
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 focus:ring-offset-2 ${
+              canViewUgc ? 'bg-[#121314]' : 'bg-gray-300'
             } ${savingUgc ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
           >
             <span
@@ -1625,8 +1625,8 @@ function ClientPlatformSettings() {
       {/* Finanzas en el portal del cliente */}
       <div className="glass rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-10 h-10 bg-lime-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Wallet className="w-5 h-5 text-lime-700" />
+          <div className="w-10 h-10 bg-[#44BF47]/12 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Wallet className="w-5 h-5 text-[#1E7A30]" />
           </div>
           <div className="min-w-0">
             <h2 className="font-semibold text-gray-900">Finanzas en el portal</h2>
@@ -1670,7 +1670,7 @@ function ClientPlatformSettings() {
                   onClick={() => togglePortalFinancials(opt.key)}
                   disabled={saving || opt.disabled}
                   aria-label={opt.label}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D7F653] focus:ring-offset-2 flex-shrink-0 mt-0.5 ${on ? 'bg-[#17181A]' : 'bg-gray-300'} ${saving ? 'opacity-50 cursor-wait' : opt.disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 focus:ring-offset-2 flex-shrink-0 mt-0.5 ${on ? 'bg-[#121314]' : 'bg-gray-300'} ${saving ? 'opacity-50 cursor-wait' : opt.disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>

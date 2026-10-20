@@ -320,7 +320,7 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#17181A] text-white flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[#121314] text-white flex items-center justify-center shrink-0">
               <BookOpen className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -334,7 +334,7 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setShowForm(v => !v); if (!showForm) { setForm(emptyForm()); setEditingId(null); } }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-[#17181A] text-white hover:bg-black transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-[#121314] text-white hover:bg-black transition-colors"
             >
               <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva entrada</span><span className="sm:hidden">Nueva</span>
             </button>
@@ -402,11 +402,11 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => setTypeFilter('all')} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === 'all' ? 'bg-[#17181A] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                <button onClick={() => setTypeFilter('all')} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === 'all' ? 'bg-[#121314] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   Todas ({byMonth.length})
                 </button>
                 {ENTRY_TYPES.filter(t => byMonth.some(e => e.entry_type === t.value)).map(t => (
-                  <button key={t.value} onClick={() => setTypeFilter(t.value)} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === t.value ? 'bg-[#17181A] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  <button key={t.value} onClick={() => setTypeFilter(t.value)} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === t.value ? 'bg-[#121314] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                     {t.label} ({byMonth.filter(e => e.entry_type === t.value).length})
                   </button>
                 ))}
@@ -533,7 +533,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
             <button
               type="button" key={p.value}
               onClick={() => setForm(f => ({ ...f, platforms: on ? f.platforms.filter(x => x !== p.value) : [...f.platforms, p.value] }))}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${on ? 'bg-[#17181A] text-white border-[#17181A]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${on ? 'bg-[#121314] text-white border-[#121314]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
             >
               {p.label}
             </button>
@@ -549,7 +549,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
             <button
               type="button"
               onClick={() => setForm(f => ({ ...f, actions: [...f.actions, { description: '', assignee_id: '', due_date: '' }] }))}
-              className="text-xs text-gray-600 hover:text-[#17181A] inline-flex items-center gap-1"
+              className="text-xs text-gray-600 hover:text-[#121314] inline-flex items-center gap-1"
             >
               <Plus className="w-3 h-3" /> Agregar acción
             </button>
@@ -573,7 +573,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
         </label>
         <div className="flex items-center gap-2">
           <button type="button" onClick={onCancel} className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-          <button type="submit" disabled={saving || !form.title.trim()} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#17181A] text-white hover:bg-black disabled:opacity-50">
+          <button type="submit" disabled={saving || !form.title.trim()} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#121314] text-white hover:bg-black disabled:opacity-50">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />} {isEdit ? 'Guardar cambios' : 'Guardar entrada'}
           </button>
         </div>
@@ -664,7 +664,7 @@ function EntryCard({ entry, team, draft, setDraft, onPin, onDelete, onEdit, onTo
           <span className="text-[11px] font-medium text-gray-500">
             Acciones {entry.actions.length > 0 && <span className="text-gray-400">· {entry.actions.length - pending}/{entry.actions.length} hechas</span>}
           </span>
-          <button onClick={() => setAddingAction(v => !v)} className="text-[11px] text-gray-500 hover:text-[#17181A] inline-flex items-center gap-1">
+          <button onClick={() => setAddingAction(v => !v)} className="text-[11px] text-gray-500 hover:text-[#121314] inline-flex items-center gap-1">
             {addingAction ? <ChevronUp className="w-3 h-3" /> : <Plus className="w-3 h-3" />} {addingAction ? 'Cerrar' : 'Agregar acción'}
           </button>
         </div>
@@ -696,7 +696,7 @@ function EntryCard({ entry, team, draft, setDraft, onPin, onDelete, onEdit, onTo
           <div className="mt-2">
             <ActionEditor value={d} team={team} onChange={setDraft} onRemove={() => { setAddingAction(false); setDraft({ description: '', assignee_id: '', due_date: '' }); }} />
             <div className="flex justify-end mt-2">
-              <button onClick={() => { onAddAction(entry); setAddingAction(false); }} disabled={!d.description?.trim()} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#17181A] text-white hover:bg-black disabled:opacity-50">
+              <button onClick={() => { onAddAction(entry); setAddingAction(false); }} disabled={!d.description?.trim()} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#121314] text-white hover:bg-black disabled:opacity-50">
                 Guardar acción
               </button>
             </div>

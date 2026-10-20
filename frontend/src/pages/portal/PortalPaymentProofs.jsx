@@ -179,7 +179,7 @@ export default function PortalPaymentProofs() {
                   <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-colors ${
                     uploadingFor === inv.id
                       ? 'bg-ink-100 text-ink-400 cursor-wait'
-                      : 'bg-[#17181A] text-white hover:bg-[#26282C]'
+                      : 'bg-[#121314] text-white hover:bg-[#1C1D1F]'
                   }`}>
                     {uploadingFor === inv.id ? (
                       <Loader2 size={16} className="animate-spin" />

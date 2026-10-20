@@ -34,12 +34,12 @@ const C = {
   inkLight: '#9A9285',
   inkMute: '#6B6357',
   inkSoft: '#3F3A33',
-  ink: '#1A1A1A',
+  ink: '#121212',
   // One refined accent — deep editorial green, used sparingly
   accent: '#0F5132',
   accentSoft: '#D7E4DC',
   // Brand navy reserved for headers & rules
-  brand: '#0D1B2A',
+  brand: '#121314',
   // Delta signals
   pos: '#15803D',
   neg: '#B91C1C',

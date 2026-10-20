@@ -158,9 +158,9 @@ export default function PortalTaskDetail() {
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-[#17181A]">Tarea no encontrada</h2>
+        <h2 className="text-xl font-semibold text-[#121314]">Tarea no encontrada</h2>
         <p className="text-gray-500 mt-2 mb-4">Esta tarea no existe o no tienes acceso.</p>
-        <Link to="/portal/projects" className="text-[#17181A] hover:underline">
+        <Link to="/portal/projects" className="text-[#121314] hover:underline">
           Volver a proyectos
         </Link>
       </div>
@@ -175,7 +175,7 @@ export default function PortalTaskDetail() {
       {/* Back Link */}
       <Link
         to={task.project_id ? `/portal/projects/${task.project_id}` : '/portal/projects'}
-        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#17181A] transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#121314] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>{task.project_name ? `Volver a ${task.project_name}` : 'Volver al proyecto'}</span>
@@ -194,7 +194,7 @@ export default function PortalTaskDetail() {
             )}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">{task.title}</h1>
+            <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">{task.title}</h1>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               {getStatusBadge(task.status)}
               <span className="text-gray-500 flex items-center gap-1.5">
@@ -210,11 +210,11 @@ export default function PortalTaskDetail() {
           {task.assigned_to_name && (
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                <User className="w-5 h-5 text-[#17181A]" />
+                <User className="w-5 h-5 text-[#121314]" />
               </div>
               <div>
                 <p className="text-xs text-gray-500">Asignado a</p>
-                <p className="font-medium text-[#17181A]">{task.assigned_to_name}</p>
+                <p className="font-medium text-[#121314]">{task.assigned_to_name}</p>
               </div>
             </div>
           )}
@@ -225,7 +225,7 @@ export default function PortalTaskDetail() {
               </div>
               <div>
                 <p className="text-xs text-gray-500">Fecha límite</p>
-                <p className="font-medium text-[#17181A]">
+                <p className="font-medium text-[#121314]">
                   {new Date(task.due_date).toLocaleDateString('es-CO', {
                     month: 'short',
                     day: 'numeric',
@@ -288,7 +288,7 @@ export default function PortalTaskDetail() {
           <div className="glass-card overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
               <Paperclip className="w-5 h-5 text-gray-400" />
-              <h2 className="font-semibold text-[#17181A]">Entregable</h2>
+              <h2 className="font-semibold text-[#121314]">Entregable</h2>
               <span className="text-sm text-gray-500">{allDeliverables.length}</span>
             </div>
             <div className="p-6 space-y-6">
@@ -313,7 +313,7 @@ export default function PortalTaskDetail() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{embed.label}</p>
-                        <p className="text-base font-semibold text-[#17181A]" title={customTitle || embed.label}>
+                        <p className="text-base font-semibold text-[#121314]" title={customTitle || embed.label}>
                           {customTitle || embed.label}
                         </p>
                         {f.description && (
@@ -324,7 +324,7 @@ export default function PortalTaskDetail() {
                         href={f.file_path}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-[#121314] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                         Abrir
@@ -370,13 +370,13 @@ export default function PortalTaskDetail() {
                         href={f.file_path}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-[#17181A] transition-colors"
+                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-[#121314] transition-colors"
                       >
                         <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
                           <ExternalLink className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-[#17181A] truncate">{embed.label}</p>
+                          <p className="text-sm font-medium text-[#121314] truncate">{embed.label}</p>
                           <p className="text-xs text-gray-500 truncate">{f.file_path}</p>
                         </div>
                       </a>
@@ -475,7 +475,7 @@ export default function PortalTaskDetail() {
         <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
             <MessageSquare className="w-5 h-5 text-gray-400" />
-            <h2 className="font-semibold text-[#17181A]">Comentarios</h2>
+            <h2 className="font-semibold text-[#121314]">Comentarios</h2>
             <span className="text-sm text-gray-500">({comments.length})</span>
           </div>
 
@@ -486,15 +486,15 @@ export default function PortalTaskDetail() {
                 <div key={comment.id} className="px-6 py-4">
                   <div className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      comment.is_client_comment ? 'bg-gray-100 text-[#17181A]' : 'bg-gray-100 text-gray-600'
+                      comment.is_client_comment ? 'bg-gray-100 text-[#121314]' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {(comment.author_name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-[#17181A]">{comment.author_name}</span>
+                        <span className="font-medium text-[#121314]">{comment.author_name}</span>
                         {comment.is_client_comment && (
-                          <span className="text-xs bg-gray-100 text-[#17181A] px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-gray-100 text-[#121314] px-2 py-0.5 rounded-full">
                             Cliente
                           </span>
                         )}
@@ -533,7 +533,7 @@ export default function PortalTaskDetail() {
               <button
                 type="submit"
                 disabled={!newComment.trim() || submitting}
-                className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-gray-800
+                className="px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-gray-800
                          disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? (
@@ -551,7 +551,7 @@ export default function PortalTaskDetail() {
       {showApprovalModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-[#17181A] mb-2">
+            <h3 className="text-xl font-bold text-[#121314] mb-2">
               {approvalAction === 'approved' ? 'Aprobar Tarea' :
                approvalAction === 'rejected' ? 'Rechazar Tarea' :
                'Solicitar Cambios'}
