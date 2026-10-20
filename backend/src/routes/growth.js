@@ -2,6 +2,8 @@ import express from 'express';
 import db from '../config/database.js';
 import * as financials from '../services/clientFinancialsService.js';
 import * as lab from '../services/financialLab.js';
+import { buildFinancialsWorkbook, financialsExportFilename, getClientBrandName } from '../services/financialsExport.js';
+import { backfillDiscounts } from '../services/discountsBackfill.js';
 
 const router = express.Router();
 
@@ -1024,5 +1026,45 @@ router.post('/clients/:clientId/cogs/calculate', async (req, res) => {
   }
 });
 
+
+// ─── Exportar el dashboard financiero a Excel (.xlsx) ───
+
+router.get('/clients/:clientId/financials/export.xlsx', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const period = /^\d{4}-\d{2}$/.test(req.query.period || '') ? req.query.period : getCurrentPeriod();
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+
+    const brand = await getClientBrandName(Number(clientId), req.orgId);
+    const buffer = await buildFinancialsWorkbook({ clientId: Number(clientId), orgId: req.orgId, period, brand });
+    const filename = financialsExportFilename(brand, period);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting financials to Excel:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Rellenar descuentos (sin IVA) de un rango: solo la columna shopify_discounts_net ───
+
+router.post('/clients/:clientId/discounts/backfill', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { start_date, end_date } = req.body || {};
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start_date || '') || !/^\d{4}-\d{2}-\d{2}$/.test(end_date || '') || start_date > end_date) {
+      return res.status(400).json({ error: 'start_date y end_date (YYYY-MM-DD) son requeridos' });
+    }
+    if (!(await verifyClient(clientId, req.orgId))) return res.status(404).json({ error: 'Client not found' });
+
+    const result = await backfillDiscounts(Number(clientId), start_date, end_date);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('Error backfilling discounts:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

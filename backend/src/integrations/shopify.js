@@ -135,6 +135,8 @@ class ShopifyIntegration {
     let totalShippingTax = 0;   // Tax on shipping lines only (needed to separate product tax)
     let shippingCollected = 0;  // Envío cobrado al cliente en pedidos pagados
     let totalDiscounts = 0;
+    let totalDiscountsNet = 0;      // Descuentos de pedidos pagados SIN IVA (con precios IVA incluido, total_discounts trae el IVA)
+    let discountsPendingRate = 0;   // Descuentos cuyo pedido no permite calcular su propia tasa: se usa la proporción global del día
     let confirmedOrderCount = 0;
     let pendingOrders = 0;
     let allOrderCount = 0;
@@ -174,15 +176,34 @@ class ShopifyIntegration {
         if (customerId) uniqueCustomers.add(customerId);
 
         // Calculate shipping tax (needed to separate product tax from total tax)
+        let orderShippingTax = 0;
         if (order.shipping_lines) {
           order.shipping_lines.forEach(sl => {
             shippingCollected += parseFloat(sl.discounted_price ?? sl.price) || 0;
             if (sl.tax_lines) {
               sl.tax_lines.forEach(tl => {
-                totalShippingTax += parseFloat(tl.price) || 0;
+                orderShippingTax += parseFloat(tl.price) || 0;
               });
             }
           });
+        }
+        totalShippingTax += orderShippingTax;
+
+        // Descuentos sin IVA. Si la tienda tiene precios con IVA incluido, total_discounts incluye el IVA:
+        // se divide por (1 + tasa), con tasa = impuesto de productos ÷ (subtotal − impuesto de productos) del pedido.
+        const orderDiscounts = parseFloat(order.total_discounts) || 0;
+        if (orderDiscounts > 0) {
+          if (order.taxes_included) {
+            const orderProductTax = (parseFloat(order.total_tax) || 0) - orderShippingTax;
+            const orderBase = orderSubtotal - orderProductTax;
+            if (orderProductTax >= 0 && orderBase > 0) {
+              totalDiscountsNet += orderDiscounts / (1 + orderProductTax / orderBase);
+            } else {
+              discountsPendingRate += orderDiscounts;
+            }
+          } else {
+            totalDiscountsNet += orderDiscounts;
+          }
         }
 
         // Calculate refunds
@@ -208,6 +229,13 @@ class ShopifyIntegration {
       : confirmedSubtotal - totalRefunds;
     const aov = confirmedOrderCount > 0 ? confirmedRevenue / confirmedOrderCount : 0;
 
+    // Descuentos que no pudieron netearse por pedido: proporción global del día (impuesto de productos / base sin IVA)
+    if (discountsPendingRate > 0) {
+      const base = confirmedSubtotal - productTax;
+      const globalRate = taxIncludedInPrice && base > 0 && productTax > 0 ? productTax / base : 0;
+      totalDiscountsNet += discountsPendingRate / (1 + globalRate);
+    }
+
     return {
       revenue: confirmedRevenue,           // "Venta total confirmada" = total_price of paid orders (backwards compat)
       orders: confirmedOrderCount,         // Pedidos confirmados (backwards compat)
@@ -215,7 +243,8 @@ class ShopifyIntegration {
       refunds: totalRefunds,
       netRevenue: confirmedNetRevenue,     // "Venta neta confirmada" = subtotal - refunds of paid orders
       totalTax,
-      totalDiscounts,
+      totalDiscounts,                      // Descuentos tal como los reporta la tienda (con IVA si los precios lo incluyen)
+      totalDiscountsNet,                   // Descuentos sin IVA (venta bruta sin IVA = netRevenue + totalDiscountsNet)
       pendingOrders,                       // Pedidos sin pagar
       allOrdersRevenue,                    // "Venta total" = ALL non-cancelled (including pending)
       allOrderCount,                       // Total pedidos (including pending)

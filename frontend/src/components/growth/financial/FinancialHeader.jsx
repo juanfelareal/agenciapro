@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Store, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Package, FileDown } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Store, RefreshCw, CheckCircle2, AlertTriangle, Loader2, Package, FileDown, FileSpreadsheet } from 'lucide-react';
 import { monthLabel, prevPeriod, nextPeriod, currentPeriod, fmtRelative, fmtPct } from './format';
 
 const Pill = ({ tone = 'neutral', icon, children, onClick, title }) => {
@@ -27,7 +27,7 @@ const Pill = ({ tone = 'neutral', icon, children, onClick, title }) => {
  * Encabezado: marca, selector de mes, "Día X de Y" y pills de estado de datos
  * (Shopify, productos sincronizados, costo de producto).
  */
-export default function FinancialHeader({ client, period, onPeriodChange, data, onSync, syncing, onBack, onExportPdf, exporting }) {
+export default function FinancialHeader({ client, period, onPeriodChange, data, onSync, syncing, onBack, onExportPdf, exporting, onExportExcel, exportingExcel }) {
   const name = client?.nickname || client?.company || client?.name || 'Cliente';
   const isCurrent = period === currentPeriod();
   const days = data?.days_elapsed || 0;
@@ -77,6 +77,18 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
               >
                 {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{exporting ? 'Generando…' : 'Exportar PDF'}</span>
+              </button>
+            )}
+            {onExportExcel && (
+              <button
+                type="button"
+                onClick={onExportExcel}
+                disabled={exportingExcel || !data}
+                className="no-print mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-medium text-[#17181A] hover:bg-gray-50 disabled:opacity-50"
+                title="Descargar los datos del mes en Excel (.xlsx)"
+              >
+                {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{exportingExcel ? 'Generando…' : 'Exportar Excel'}</span>
               </button>
             )}
             <span className="pdf-only text-sm font-semibold text-[#17181A] capitalize">{monthLabel(period)}</span>

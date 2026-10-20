@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Target } from 'lucide-react';
 import Info from './Info';
 import { DeltaPill } from './StatCard';
+import DiscountsLine from './DiscountsLine';
 import { fmtMoney, fmtPct, relDelta, monthShort, prevPeriod } from './format';
 
 /**
@@ -70,6 +71,7 @@ export default function ProfitHero({ data, prev }) {
               </div>
             </div>
           </div>
+          <DiscountsLine totals={t} />
         </div>
 
         <div className="rounded-2xl bg-[#17181A] text-white p-5 flex flex-col">

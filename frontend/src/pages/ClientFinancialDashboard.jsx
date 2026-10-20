@@ -198,6 +198,30 @@ export default function ClientFinancialDashboard() {
     }
   };
 
+  // Exportar a Excel (.xlsx): el backend arma el libro y lo descargamos como blob
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const handleExportExcel = async () => {
+    if (exportingExcel) return;
+    setExportingExcel(true);
+    try {
+      const res = await growthAPI.exportFinancialsExcel(clientId, period);
+      const name = (client?.nickname || client?.company || client?.name || 'cliente').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Finanzas-${name}-${period}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('Error exportando Excel', err);
+      notify('error', 'No pudimos generar el Excel.');
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -226,7 +250,7 @@ export default function ClientFinancialDashboard() {
 
   return (
     <div ref={pdfRef} className="space-y-4 sm:space-y-6 pb-10">
-      <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} onExportPdf={handleExportPdf} exporting={exporting} />
+      <FinancialHeader client={client} period={period} onPeriodChange={setPeriod} data={data} onSync={handleSync} syncing={syncing} onBack={back} onExportPdf={handleExportPdf} exporting={exporting} onExportExcel={handleExportExcel} exportingExcel={exportingExcel} />
 
       {data.lab_enabled && (
         <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">

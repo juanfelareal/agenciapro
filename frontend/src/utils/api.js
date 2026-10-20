@@ -710,6 +710,9 @@ export const growthAPI = {
   resetProductCost: (clientId, productId) => api.delete(`/growth/clients/${clientId}/products/${productId}/cost`),
   syncProducts: (clientId) => api.post(`/growth/clients/${clientId}/products/sync`),
   calculateCOGS: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/cogs/calculate`, { start_date: startDate, end_date: endDate }),
+  // Exportar dashboard financiero a Excel (.xlsx)
+  exportFinancialsExcel: (clientId, period) => api.get(`/growth/clients/${clientId}/financials/export.xlsx`, { params: { period }, responseType: 'blob' }),
+  backfillDiscounts: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/discounts/backfill`, { start_date: startDate, end_date: endDate }),
 };
 
 // Briefs API
