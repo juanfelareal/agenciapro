@@ -73,6 +73,7 @@ router.put('/:id', async (req, res) => {
     `).run(name, color || '#6366F1', req.params.id, req.orgId);
 
     const category = await db.prepare('SELECT * FROM note_categories WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!category) return res.status(404).json({ error: 'Category not found' });
     res.json(category);
   } catch (error) {
     if (error.message.includes('UNIQUE constraint')) {

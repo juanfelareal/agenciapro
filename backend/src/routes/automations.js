@@ -1,5 +1,24 @@
 import express from 'express';
 import db from '../config/database.js';
+import { findRowInOrg } from '../utils/tenant.js';
+
+/**
+ * action_params / trigger_conditions pueden traer ids de miembros (user_id, assigned_to) o de
+ * etiquetas (tag_id). Deben pertenecer a la organización: si no, 404 (no revelar existencia).
+ * Devuelve null si todo está bien o un mensaje de error.
+ */
+async function validateAutomationRefs(orgId, actionParams, triggerConditions) {
+  const memberIds = [actionParams?.user_id, triggerConditions?.assigned_to].filter(Boolean);
+  for (const id of memberIds) {
+    const m = await findRowInOrg(db, 'team_members', id, orgId, { columns: 'id' });
+    if (!m) return 'Team member not found';
+  }
+  if (actionParams?.tag_id) {
+    const t = await findRowInOrg(db, 'tags', actionParams.tag_id, orgId, { columns: 'id' });
+    if (!t) return 'Tag not found';
+  }
+  return null;
+}
 
 const router = express.Router();
 
@@ -77,6 +96,10 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Verify referenced members/tags belong to this organization
+    const refError = await validateAutomationRefs(req.orgId, action_params, trigger_conditions);
+    if (refError) return res.status(404).json({ error: refError });
+
     const result = await db.prepare(`
       INSERT INTO automations (project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -103,6 +126,12 @@ router.put('/:id', async (req, res) => {
   try {
     const { project_id, name, trigger_type, trigger_conditions, action_type, action_params, is_active } = req.body;
 
+    // Verify automation belongs to this organization
+    const existing = await db.prepare('SELECT id FROM automations WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Automation not found' });
+    }
+
     // Verify project belongs to this organization if provided
     if (project_id) {
       const project = await db.prepare('SELECT id FROM projects WHERE id = ? AND organization_id = ?').get(project_id, req.orgId);
@@ -110,6 +139,10 @@ router.put('/:id', async (req, res) => {
         return res.status(404).json({ error: 'Project not found' });
       }
     }
+
+    // Verify referenced members/tags belong to this organization
+    const refError = await validateAutomationRefs(req.orgId, action_params, trigger_conditions);
+    if (refError) return res.status(404).json({ error: refError });
 
     await db.prepare(`
       UPDATE automations

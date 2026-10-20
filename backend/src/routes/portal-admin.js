@@ -49,9 +49,9 @@ router.get('/clients/:id/settings', async (req, res) => {
     if (!settings) {
       // Create default settings
       await db.run(`
-        INSERT INTO client_portal_settings (client_id)
-        VALUES (?)
-      `, [id]);
+        INSERT INTO client_portal_settings (client_id, organization_id)
+        VALUES (?, ?)
+      `, [id, orgId]);
       settings = await db.get('SELECT * FROM client_portal_settings WHERE client_id = ?', [id]);
     }
 
@@ -153,8 +153,8 @@ router.put('/clients/:id/settings', async (req, res) => {
           can_view_forms, can_view_ugc, can_view_documents,
           can_approve_tasks, can_comment_tasks, can_view_team, can_download_files,
           welcome_message, portal_revenue_metric, dashboard_template, whatsapp_sales_enabled,
-          can_view_financials, financials_editable, scenarios_enabled
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          can_view_financials, financials_editable, scenarios_enabled, organization_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         id,
         toInt(can_view_dashboard) ?? 1, toInt(can_view_projects) ?? 1, toInt(can_view_tasks) ?? 1, toInt(can_view_invoices) ?? 1,
@@ -162,7 +162,7 @@ router.put('/clients/:id/settings', async (req, res) => {
         toInt(can_view_forms) ?? 1, toInt(can_view_ugc) ?? 0, toInt(can_view_documents) ?? 1,
         toInt(can_approve_tasks) ?? 1, toInt(can_comment_tasks) ?? 1, toInt(can_view_team) ?? 0, toInt(can_download_files) ?? 1,
         welcome_message ?? null, portal_revenue_metric || 'confirmed', dashboard_template || null, toInt(whatsapp_sales_enabled) ?? 0,
-        toInt(can_view_financials) ?? 0, toInt(financials_editable) ?? 0, toInt(scenarios_enabled) ?? 0
+        toInt(can_view_financials) ?? 0, toInt(financials_editable) ?? 0, toInt(scenarios_enabled) ?? 0, orgId
       ]);
     }
 
@@ -209,10 +209,16 @@ router.post('/clients/:id/invite', async (req, res) => {
     }
 
     // Create invite token (permanent, no expiration)
+    // created_by: solo un miembro de ESTA organización (por defecto quien hace la petición)
+    let createdBy = req.teamMember?.id || null;
+    if (created_by) {
+      const m = await db.get('SELECT id FROM team_members WHERE id = ? AND organization_id = ?', [created_by, orgId]);
+      if (m) createdBy = m.id;
+    }
     await db.run(`
-      INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, created_by)
-      VALUES (?, ?, 'invite', 'active', NULL, ?)
-    `, [id, inviteCode, created_by || null]);
+      INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, created_by, organization_id)
+      VALUES (?, ?, 'invite', 'active', NULL, ?, ?)
+    `, [id, inviteCode, createdBy, orgId]);
 
     res.json({
       invite_code: inviteCode,
@@ -349,6 +355,8 @@ router.get('/clients/:id/activity', async (req, res) => {
 // GET /priorities/:clientId
 router.get('/priorities/:clientId', async (req, res) => {
   try {
+    const client = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [req.params.clientId, req.orgId]);
+    if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
     const priorities = await db.all(
       'SELECT * FROM client_priorities WHERE client_id = ? AND organization_id = ? ORDER BY position, id',
       [req.params.clientId, req.orgId]
@@ -365,6 +373,8 @@ router.put('/priorities/:clientId', async (req, res) => {
   try {
     const { items } = req.body; // [{ title, position }]
     const clientId = req.params.clientId;
+    const client = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [clientId, req.orgId]);
+    if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
 
     await db.run('DELETE FROM client_priorities WHERE client_id = ? AND organization_id = ?', [clientId, req.orgId]);
 
@@ -446,6 +456,9 @@ router.post('/commercial-dates', async (req, res) => {
     let created = 0;
 
     for (const clientId of client_ids) {
+      // Solo clientes de ESTA organización
+      const owned = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [clientId, req.orgId]);
+      if (!owned) continue;
       // Check for existing duplicate
       const existing = await db.get(
         'SELECT id FROM client_commercial_dates WHERE client_id = $1 AND title = $2 AND date = $3::date AND organization_id = $4',
@@ -486,6 +499,9 @@ router.put('/commercial-dates/group', async (req, res) => {
     // Insert new entries
     let created = 0;
     for (const clientId of client_ids) {
+      // Solo clientes de ESTA organización
+      const owned = await db.get('SELECT id FROM clients WHERE id = ? AND organization_id = ?', [clientId, req.orgId]);
+      if (!owned) continue;
       try {
         await db.query(
           'INSERT INTO client_commercial_dates (client_id, title, date, organization_id) VALUES ($1, $2, $3, $4)',
@@ -593,7 +609,7 @@ router.post('/dashboard-templates', async (req, res) => {
       VALUES (?, ?, ?, ?, ?::jsonb, ?, ?)
     `, [name, slug, description || null, icon || '📊', JSON.stringify(settings), is_default || false, req.orgId]);
 
-    const template = await db.get('SELECT * FROM dashboard_templates WHERE id = ?', [result.lastID]);
+    const template = await db.get('SELECT * FROM dashboard_templates WHERE id = ? AND organization_id = ?', [result.lastInsertRowid, req.orgId]);
     res.status(201).json(template);
   } catch (error) {
     console.error('Error creating dashboard template:', error);
@@ -735,8 +751,8 @@ router.post('/clients/:id/apply-template', async (req, res) => {
         INSERT INTO client_portal_settings (
           client_id, can_view_dashboard, can_view_projects, can_view_tasks, can_view_invoices,
           can_view_payment_proofs, can_view_metrics, can_view_reports, can_view_calls,
-          can_view_forms, can_view_ugc, can_view_documents, dashboard_template
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          can_view_forms, can_view_ugc, can_view_documents, dashboard_template, organization_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         clientId,
         toInt(settings.can_view_dashboard),
@@ -750,7 +766,8 @@ router.post('/clients/:id/apply-template', async (req, res) => {
         toInt(settings.can_view_forms),
         toInt(settings.can_view_ugc),
         toInt(settings.can_view_documents),
-        template_slug
+        template_slug,
+        req.orgId
       ]);
     }
 

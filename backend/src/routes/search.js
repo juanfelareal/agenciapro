@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
         t.status, t.priority, p.name as project_name
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
-      WHERE p.organization_id = ? AND (t.title LIKE ? OR t.description LIKE ?)
+      WHERE t.organization_id = ? AND (t.title LIKE ? OR t.description LIKE ?)
       LIMIT ?
     `).all(orgId, searchTerm, searchTerm, resultLimit);
 
@@ -135,13 +135,13 @@ router.get('/quick', async (req, res) => {
 
     // Combined search with UNION ALL
     const results = await db.prepare(`
-      SELECT t.id, t.title as name, 'task' as type, t.status FROM tasks t JOIN projects p ON t.project_id = p.id WHERE p.organization_id = ? AND t.title LIKE ? LIMIT ?
+      (SELECT t.id, t.title as name, 'task' as type, t.status FROM tasks t WHERE t.organization_id = ? AND t.title LIKE ? LIMIT ?)
       UNION ALL
-      SELECT id, name, 'project' as type, status FROM projects WHERE organization_id = ? AND name LIKE ? LIMIT ?
+      (SELECT id, name, 'project' as type, status FROM projects WHERE organization_id = ? AND name LIKE ? LIMIT ?)
       UNION ALL
-      SELECT id, COALESCE(company, name) as name, 'client' as type, status FROM clients WHERE organization_id = ? AND (name LIKE ? OR company LIKE ?) LIMIT ?
+      (SELECT id, COALESCE(company, name) as name, 'client' as type, status FROM clients WHERE organization_id = ? AND (name LIKE ? OR company LIKE ?) LIMIT ?)
       UNION ALL
-      SELECT id, name, 'team' as type, status FROM team_members WHERE organization_id = ? AND name LIKE ? LIMIT ?
+      (SELECT id, name, 'team' as type, status FROM team_members WHERE organization_id = ? AND name LIKE ? LIMIT ?)
     `).all(
       orgId, searchTerm, resultLimit,
       orgId, searchTerm, resultLimit,

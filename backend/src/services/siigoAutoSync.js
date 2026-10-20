@@ -245,7 +245,7 @@ export async function refreshOpenInvoiceBalances(orgId, { dryRun = false, onProg
       const total = Number(s.total ?? inv.amount);
       const balance = Number(s.balance ?? 0);
       if (!dryRun) {
-        await db.prepare(`UPDATE invoices SET siigo_total = ?, siigo_balance = ?, siigo_balance_synced_at = CURRENT_TIMESTAMP WHERE id = ?`).run(total, balance, inv.id);
+        await db.prepare(`UPDATE invoices SET siigo_total = ?, siigo_balance = ?, siigo_balance_synced_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?`).run(total, balance, inv.id, orgId);
       }
       if (balance <= 0) {
         results.markedPaid++;
@@ -299,7 +299,7 @@ export async function syncClientContactsFromSiigo(orgId, { onlyOpen = false } = 
       const emails = [...new Set((cust.contacts || []).map((k) => (k.email || '').trim().toLowerCase()).filter((e) => e.includes('@')))].slice(0, 3);
       const contact = cust.contacts?.[0] ? `${cust.contacts[0].first_name || ''} ${cust.contacts[0].last_name || ''}`.trim() : null;
       const joined = emails.join(',') || null;
-      await db.prepare(`UPDATE clients SET siigo_email = ?, siigo_contact_name = ?, siigo_email_synced_at = CURRENT_TIMESTAMP WHERE id = ?`).run(joined, contact, c.id);
+      await db.prepare(`UPDATE clients SET siigo_email = ?, siigo_contact_name = ?, siigo_email_synced_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?`).run(joined, contact, c.id, orgId);
       if (joined && joined !== c.siigo_email) results.updated++;
     } catch (err) {
       results.errors.push({ clientId: c.id, error: err.message });

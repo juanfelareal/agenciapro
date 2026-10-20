@@ -5,6 +5,7 @@ import { generatePdfToken } from './invoice-pdf.js';
 import { startSyncJob, getSyncJob } from '../services/siigoAutoSync.js';
 import { isKapsoConfigured, getApprovedTemplate, normalizeWaNumber, formatWaNumber } from '../utils/kapsoClient.js';
 import { sendTextAndRecord, sendTemplateAndRecord } from '../services/whatsappService.js';
+import { assertClientInOrg, assertInvoiceInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
@@ -670,6 +671,7 @@ router.post('/send-bulk', async (req, res) => {
 router.get('/client/:clientId', async (req, res) => {
   try {
     const { clientId } = req.params;
+    await assertClientInOrg(db, clientId, req.orgId, 'id');
 
     const rows = await db.all(`
       SELECT i.*, p.name as project_name,
@@ -705,7 +707,7 @@ router.get('/client/:clientId', async (req, res) => {
 
     res.json({ client, invoices, reminders });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
@@ -966,15 +968,18 @@ router.post('/notes', async (req, res) => {
       return res.status(400).json({ error: 'client_id y note son requeridos' });
     }
 
+    // Multi-tenant: el cliente debe ser de esta organización
+    await assertClientInOrg(db, client_id, req.orgId, 'id');
+
     const result = await db.run(`
       INSERT INTO collection_notes (client_id, note, follow_up_date, created_by, organization_id)
       VALUES (?, ?, ?, ?, ?)
     `, [client_id, note, follow_up_date || null, req.teamMember?.id || null, req.orgId]);
 
-    const created = await db.get('SELECT * FROM collection_notes WHERE id = ?', [result.lastInsertRowid]);
+    const created = await db.get('SELECT * FROM collection_notes WHERE id = ? AND organization_id = ?', [result.lastInsertRowid, req.orgId]);
     res.status(201).json(created);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -1004,6 +1009,9 @@ router.post('/mark-paid', async (req, res) => {
 
     const today = paid_date || new Date().toISOString().split('T')[0];
 
+    // Multi-tenant: la factura debe ser de esta organización (antes de escribir historial)
+    const current = await assertInvoiceInOrg(db, invoice_id, req.orgId, 'id, status');
+
     await db.run(`
       UPDATE invoices SET status = 'paid', paid_date = ?, payment_proof = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
@@ -1011,12 +1019,12 @@ router.post('/mark-paid', async (req, res) => {
 
     await db.run(`
       INSERT INTO invoice_status_history (invoice_id, from_status, to_status, changed_by)
-      VALUES (?, 'invoiced', 'paid', ?)
-    `, [invoice_id, req.teamMember?.id || null]);
+      VALUES (?, ?, 'paid', ?)
+    `, [invoice_id, current.status || 'invoiced', req.teamMember?.id || null]);
 
     res.json({ message: 'Factura marcada como pagada' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -1049,6 +1057,9 @@ router.post('/schedule-reminder', async (req, res) => {
       return res.status(400).json({ error: 'La fecha programada debe ser en el futuro' });
     }
 
+    // Multi-tenant: el cliente debe ser de esta organización
+    await assertClientInOrg(db, client_id, req.orgId, 'id');
+
     const result = await db.run(`
       INSERT INTO scheduled_reminders (client_id, email_to, subject, custom_message, closing_message, invoice_ids, scheduled_for, created_by, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -1066,7 +1077,7 @@ router.post('/schedule-reminder', async (req, res) => {
 
     res.status(201).json({ message: 'Recordatorio programado exitosamente', id: result.lastInsertRowid, scheduled_for });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -1105,7 +1116,7 @@ router.delete('/scheduled/:id', async (req, res) => {
     if (!reminder) return res.status(404).json({ error: 'Recordatorio no encontrado' });
     if (reminder.status !== 'pending') return res.status(400).json({ error: 'Solo se pueden cancelar recordatorios pendientes' });
 
-    await db.run('DELETE FROM scheduled_reminders WHERE id = ?', [id]);
+    await db.run('DELETE FROM scheduled_reminders WHERE id = ? AND organization_id = ?', [id, req.orgId]);
     res.json({ message: 'Recordatorio cancelado' });
   } catch (error) {
     res.status(500).json({ error: error.message });

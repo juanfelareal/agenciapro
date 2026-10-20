@@ -57,8 +57,8 @@ router.get('/:id', async (req, res) => {
       SELECT tm.*, pt.role as project_role
       FROM team_members tm
       JOIN project_team pt ON tm.id = pt.team_member_id
-      WHERE pt.project_id = ?
-    `, [req.params.id]);
+      WHERE pt.project_id = ? AND tm.organization_id = ?
+    `, [req.params.id, req.orgId]);
 
     project.team = team;
     res.json(project);
@@ -84,7 +84,7 @@ router.post('/', async (req, res) => {
         [client_id, req.orgId]
       );
       if (!client) {
-        return res.status(400).json({ error: 'Client not found in your organization' });
+        return res.status(404).json({ error: 'Client not found' });
       }
     }
 
@@ -94,7 +94,7 @@ router.post('/', async (req, res) => {
         [stage_id, req.orgId]
       );
       if (!stage) {
-        return res.status(400).json({ error: 'Stage not found in your organization' });
+        return res.status(404).json({ error: 'Stage not found' });
       }
     }
 
@@ -103,7 +103,7 @@ router.post('/', async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [name, description || null, client_id || null, start_date || null, end_date || null, stage_id || null, req.orgId]);
 
-    const project = await db.get('SELECT * FROM projects WHERE id = ?', [result.lastInsertRowid]);
+    const project = await db.get('SELECT * FROM projects WHERE id = ? AND organization_id = ?', [result.lastInsertRowid, req.orgId]);
     res.status(201).json(project);
   } catch (error) {
     console.error('Error creating project:', error);
@@ -132,7 +132,7 @@ router.put('/:id', async (req, res) => {
         [client_id, req.orgId]
       );
       if (!client) {
-        return res.status(400).json({ error: 'Client not found in your organization' });
+        return res.status(404).json({ error: 'Client not found' });
       }
     }
 
@@ -142,7 +142,7 @@ router.put('/:id', async (req, res) => {
         [stage_id, req.orgId]
       );
       if (!stage) {
-        return res.status(400).json({ error: 'Stage not found in your organization' });
+        return res.status(404).json({ error: 'Stage not found' });
       }
     }
 
@@ -155,7 +155,7 @@ router.put('/:id', async (req, res) => {
       WHERE id = ? AND organization_id = ?
     `, [name, description || null, client_id || null, start_date || null, end_date || null, stage_id || null, req.params.id, req.orgId]);
 
-    const project = await db.get('SELECT * FROM projects WHERE id = ?', [req.params.id]);
+    const project = await db.get('SELECT * FROM projects WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
     res.json(project);
   } catch (error) {
     console.error('Error updating project:', error);
@@ -183,7 +183,7 @@ router.post('/:id/team', async (req, res) => {
       [team_member_id, req.orgId]
     );
     if (!member) {
-      return res.status(400).json({ error: 'Team member not found in your organization' });
+      return res.status(404).json({ error: 'Team member not found' });
     }
 
     await db.run(`
@@ -226,6 +226,15 @@ router.delete('/:id', async (req, res) => {
   try {
     const moveTasksTo = req.query.move_tasks_to;
 
+    // Verify the project to delete belongs to this org BEFORE touching its tasks
+    const existing = await db.get(
+      'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
+      [req.params.id, req.orgId]
+    );
+    if (!existing) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
     if (moveTasksTo) {
       if (String(moveTasksTo) === String(req.params.id)) {
         return res.status(400).json({ error: 'Cannot move tasks to the same project being deleted' });
@@ -235,11 +244,11 @@ router.delete('/:id', async (req, res) => {
         [moveTasksTo, req.orgId]
       );
       if (!target) {
-        return res.status(400).json({ error: 'Target project not found' });
+        return res.status(404).json({ error: 'Target project not found' });
       }
       await db.run(
-        'UPDATE tasks SET project_id = ? WHERE project_id = ?',
-        [moveTasksTo, req.params.id]
+        'UPDATE tasks SET project_id = ? WHERE project_id = ? AND organization_id = ?',
+        [moveTasksTo, req.params.id, req.orgId]
       );
     }
 

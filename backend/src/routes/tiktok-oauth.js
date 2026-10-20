@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../config/database.js';
+import crypto from 'crypto';
 import { exchangeTikTokAuthCode, listTikTokAdvertisers } from '../integrations/tiktokAds.js';
 
 const router = Router();
@@ -32,7 +33,8 @@ router.get('/url', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    const state = `${client_id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // Estado aleatorio (CSRF + identificador de sesión no adivinable); la org y el cliente quedan en memoria
+    const state = crypto.randomBytes(24).toString('hex');
     oauthSessions.set(state, { clientId: client_id, orgId, createdAt: Date.now() });
 
     // Clean up old sessions (older than 10 minutes)
@@ -84,7 +86,7 @@ router.get('/callback', async (req, res) => {
       return sendError('TikTok no devolvió un access_token.');
     }
 
-    const sessionId = `tt_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const sessionId = `tt_${crypto.randomBytes(24).toString('hex')}`;
     oauthSessions.set(sessionId, {
       accessToken,
       clientId,
@@ -124,6 +126,10 @@ router.get('/advertisers', async (req, res) => {
     const session = oauthSessions.get(session_id);
     if (!session) {
       return res.status(401).json({ error: 'Sesión expirada. Por favor reconecta con TikTok.' });
+    }
+    // La sesión OAuth pertenece a la organización que la inició
+    if (Number(session.orgId) !== Number(orgId)) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
     }
 
     const { accessToken, clientId } = session;
@@ -170,6 +176,10 @@ router.post('/link-accounts', async (req, res) => {
     if (!session) {
       return res.status(401).json({ error: 'Sesión expirada. Por favor reconecta con TikTok.' });
     }
+    // La sesión OAuth debe pertenecer a esta organización y a este mismo cliente
+    if (Number(session.orgId) !== Number(orgId) || Number(session.clientId) !== Number(client_id)) {
+      return res.status(404).json({ error: 'Sesión no encontrada para este cliente' });
+    }
 
     const { accessToken } = session;
 
@@ -180,8 +190,8 @@ router.post('/link-accounts', async (req, res) => {
 
     const insertStmt = db.prepare(`
       INSERT INTO client_tiktok_credentials
-        (client_id, access_token, advertiser_id, advertiser_name, status)
-      VALUES (?, ?, ?, ?, 'active')
+        (client_id, organization_id, access_token, advertiser_id, advertiser_name, status)
+      VALUES (?, ?, ?, ?, ?, 'active')
       ON CONFLICT(client_id, advertiser_id)
       DO UPDATE SET
         access_token = excluded.access_token,
@@ -197,7 +207,7 @@ router.post('/link-accounts', async (req, res) => {
       if (!advertiserId) continue;
       const name = acc.name || 'Anunciante de TikTok';
       try {
-        await insertStmt.run(client_id, accessToken, advertiserId, name);
+        await insertStmt.run(client_id, orgId, accessToken, advertiserId, name);
         results.push({ advertiserId, success: true });
       } catch (err) {
         results.push({ advertiserId, success: false, error: err.message });

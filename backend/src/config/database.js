@@ -1392,7 +1392,9 @@ export const initializeDatabase = async () => {
     await pool.query(`
       DO $$
       BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='linked_form_id') THEN
+        -- En una base nueva la tabla forms se crea mas abajo: la FK se agrega en la siguiente pasada
+        IF to_regclass('forms') IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='linked_form_id') THEN
           ALTER TABLE tasks ADD COLUMN linked_form_id INTEGER REFERENCES forms(id) ON DELETE SET NULL;
         END IF;
       END $$;
@@ -1518,6 +1520,11 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Plan / periodo de prueba de la organización (multi-tenant SaaS).
+    // `plan` arranca en 'trial' para orgs nuevas (ver POST /api/auth/register);
+    // `trial_ends_at` = fecha fin de la prueba (now + 14 días al registrarse).
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP`);
+
     // Add organization_id to root tables (if not exists)
     const rootTablesForOrgId = [
       // Core business entities
@@ -1567,31 +1574,144 @@ export const initializeDatabase = async () => {
     }
 
     // ========================================
-    // BACKFILL: Assign organization_id to orphaned rows
+    // UNIQUE por organización (idempotente; replica el paso 6 de la migración
+    // 001 para que una base nueva también quede multi-tenant: dos orgs pueden
+    // tener FAC-0001, una etiqueta "Urgente", etc.)
     // ========================================
+    const perOrgUniques = [
+      ['tags', 'tags_name_key', 'idx_tags_name_org', '(name, organization_id)'],
+      ['note_categories', 'note_categories_name_key', 'idx_note_categories_name_org', '(name, organization_id)'],
+      ['sop_categories', 'sop_categories_name_key', 'idx_sop_categories_name_org', '(name, organization_id)'],
+      ['invoices', 'invoices_invoice_number_key', 'idx_invoices_number_org', '(invoice_number, organization_id)'],
+      ['team_members', 'team_members_email_key', 'idx_team_members_user_org', '(user_id, organization_id)'],
+    ];
+    for (const [table, oldConstraint, indexName, cols] of perOrgUniques) {
+      try {
+        await pool.query(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS ${oldConstraint}`);
+        await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS ${indexName} ON ${table}${cols}`);
+      } catch (e) {
+        console.warn(`Warning: per-org unique on ${table} skipped: ${e.message}`);
+      }
+    }
+
+    // ========================================
+    // BACKFILL: Assign organization_id to orphaned rows
+    //
+    // Multi-tenant: una fila con organization_id NULL NUNCA debe caer en la
+    // organización "equivocada". Por eso:
+    //   1) Las tablas hijas heredan la org de su padre (tarea → proyecto, etc.).
+    //   2) El fallback "todo lo huérfano es de la primera org" SOLO se aplica
+    //      cuando existe UNA sola organización (instalación legacy mono-tenant).
+    //      Con varias orgs, los huérfanos restantes se dejan como están y se
+    //      avisa en el log para revisarlos a mano.
+    // ========================================
+    // [tabla hija, columna FK, tabla padre]
+    const childOrgBackfills = [
+      // Primero los padres intermedios (clients → projects → tasks) para que las
+      // hijas encuentren la org ya resuelta en la misma pasada.
+      ['projects', 'client_id', 'clients'],
+      ['tasks', 'project_id', 'projects'],
+      ['subtasks', 'task_id', 'tasks'],
+      ['task_comments', 'task_id', 'tasks'],
+      ['task_files', 'task_id', 'tasks'],
+      ['task_assignees', 'task_id', 'tasks'],
+      ['task_dependencies', 'task_id', 'tasks'],
+      ['board_columns', 'project_id', 'projects'],
+      ['project_team', 'project_id', 'projects'],
+      ['invoices', 'client_id', 'clients'],
+      ['client_access_tokens', 'client_id', 'clients'],
+      ['client_portal_settings', 'client_id', 'clients'],
+      ['client_comments', 'client_id', 'clients'],
+      ['client_notifications', 'client_id', 'clients'],
+      ['client_facebook_credentials', 'client_id', 'clients'],
+      ['client_google_ads_credentials', 'client_id', 'clients'],
+      ['client_tiktok_credentials', 'client_id', 'clients'],
+      ['client_shopify_credentials', 'client_id', 'clients'],
+      ['client_woocommerce_credentials', 'client_id', 'clients'],
+      ['client_daily_metrics', 'client_id', 'clients'],
+      ['metrics_sync_jobs', 'client_id', 'clients'],
+      ['client_priorities', 'client_id', 'clients'],
+      ['growth_objectives', 'client_id', 'clients'],
+      ['growth_palancas', 'client_id', 'clients'],
+      ['growth_milestones', 'client_id', 'clients'],
+      ['growth_banderas', 'client_id', 'clients'],
+      ['note_versions', 'note_id', 'notes'],
+      ['note_links', 'note_id', 'notes'],
+      ['ad_tag_values', 'category_id', 'ad_tag_categories'],
+      ['form_sections', 'form_id', 'forms'],
+      ['form_fields', 'section_id', 'form_sections'],
+      ['form_responses', 'assignment_id', 'form_assignments'],
+      ['invoice_status_history', 'invoice_id', 'invoices'],
+      ['payroll_employees', 'payroll_period_id', 'payroll_periods'],
+      ['bank_transactions', 'statement_period_id', 'bank_statement_periods'],
+      ['sop_revisions', 'sop_id', 'sops'],
+      ['chat_members', 'conversation_id', 'chat_conversations'],
+      ['project_template_tasks', 'template_id', 'project_templates'],
+      ['client_group_members', 'group_id', 'client_groups'],
+      ['reference_ad_clients', 'reference_ad_id', 'reference_ads'],
+      ['reference_ad_groups', 'reference_ad_id', 'reference_ads'],
+      ['ugc_creator_list_members', 'list_id', 'ugc_creator_lists'],
+      ['ugc_project_creators', 'project_id', 'ugc_projects'],
+    ];
     try {
-      const firstOrg = await pool.query(`SELECT id FROM organizations ORDER BY id LIMIT 1`);
-      if (firstOrg.rows.length > 0) {
-        const defaultOrgId = firstOrg.rows[0].id;
+      const orgRows = await pool.query(`SELECT id FROM organizations ORDER BY id`);
+      if (orgRows.rows.length > 0) {
         let totalBackfilled = 0;
-        for (const table of rootTablesForOrgId) {
-          const result = await pool.query(
-            `UPDATE ${table} SET organization_id = $1 WHERE organization_id IS NULL`,
-            [defaultOrgId]
-          );
-          if (result.rowCount > 0) {
-            console.log(`  🔄 Backfill: ${table} — ${result.rowCount} rows assigned to org ${defaultOrgId}`);
-            totalBackfilled += result.rowCount;
+
+        // 1) Hijas → heredan de su padre (solo si la tabla hija tiene la columna)
+        for (const [child, fk, parent] of childOrgBackfills) {
+          try {
+            const hasCol = await pool.query(
+              `SELECT 1 FROM information_schema.columns WHERE table_name = $1 AND column_name = 'organization_id'`,
+              [child]
+            );
+            if (hasCol.rows.length === 0) continue;
+            const result = await pool.query(`
+              UPDATE ${child} c SET organization_id = p.organization_id
+              FROM ${parent} p
+              WHERE c.${fk} = p.id AND c.organization_id IS NULL AND p.organization_id IS NOT NULL
+            `);
+            if (result.rowCount > 0) {
+              console.log(`  🔄 Backfill: ${child} — ${result.rowCount} rows inherited org from ${parent}`);
+              totalBackfilled += result.rowCount;
+            }
+          } catch (e) {
+            console.warn(`  ⚠️  Backfill ${child} from ${parent} skipped: ${e.message}`);
           }
         }
-        // Also backfill team_members
-        const tmResult = await pool.query(
-          `UPDATE team_members SET organization_id = $1 WHERE organization_id IS NULL`,
-          [defaultOrgId]
-        );
-        if (tmResult.rowCount > 0) {
-          console.log(`  🔄 Backfill: team_members — ${tmResult.rowCount} rows assigned to org ${defaultOrgId}`);
-          totalBackfilled += tmResult.rowCount;
+
+        // 2) Fallback legacy: solo con UNA organización
+        if (orgRows.rows.length === 1) {
+          const defaultOrgId = orgRows.rows[0].id;
+          for (const table of rootTablesForOrgId) {
+            const result = await pool.query(
+              `UPDATE ${table} SET organization_id = $1 WHERE organization_id IS NULL`,
+              [defaultOrgId]
+            );
+            if (result.rowCount > 0) {
+              console.log(`  🔄 Backfill: ${table} — ${result.rowCount} rows assigned to org ${defaultOrgId}`);
+              totalBackfilled += result.rowCount;
+            }
+          }
+          // Also backfill team_members
+          const tmResult = await pool.query(
+            `UPDATE team_members SET organization_id = $1 WHERE organization_id IS NULL`,
+            [defaultOrgId]
+          );
+          if (tmResult.rowCount > 0) {
+            console.log(`  🔄 Backfill: team_members — ${tmResult.rowCount} rows assigned to org ${defaultOrgId}`);
+            totalBackfilled += tmResult.rowCount;
+          }
+        } else {
+          // Varias orgs: solo informar huérfanos (no adivinar a quién pertenecen)
+          for (const table of rootTablesForOrgId) {
+            try {
+              const orphan = await pool.query(`SELECT COUNT(*)::int AS n FROM ${table} WHERE organization_id IS NULL`);
+              if (orphan.rows[0]?.n > 0) {
+                console.warn(`  ⚠️  ${table}: ${orphan.rows[0].n} filas sin organization_id (multi-org: NO se asignan automáticamente)`);
+              }
+            } catch (e) { /* tabla sin columna */ }
+          }
         }
         if (totalBackfilled > 0) {
           console.log(`  ✅ Backfill complete: ${totalBackfilled} total rows updated`);
@@ -3262,25 +3382,6 @@ export const initializeDatabase = async () => {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_list_members_creator ON ugc_creator_list_members(creator_id)`);
 
-    // UGC Project Settlements (liquidación privada: ingreso vs costo de creadores → utilidad)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS ugc_project_settlements (
-        id SERIAL PRIMARY KEY,
-        project_id INTEGER NOT NULL UNIQUE REFERENCES ugc_projects(id) ON DELETE CASCADE,
-        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-        client_total REAL,
-        product_cost REAL,
-        extra_items JSONB DEFAULT '[]',
-        notes TEXT,
-        status TEXT CHECK(status IN ('draft', 'settled')) DEFAULT 'draft',
-        snapshot JSONB,
-        settled_at TIMESTAMP,
-        settled_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_settlements_org ON ugc_project_settlements(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_org ON ugc_creators(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_stage ON ugc_creators(stage_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creators_phone ON ugc_creators(phone)`);
@@ -3376,22 +3477,6 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_assignment ON ugc_creator_payments(assignment_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_payments_org ON ugc_creator_payments(organization_id)`);
 
-    // UGC Creator Internal Notes (100% internal, never visible to creators or clients)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS ugc_creator_notes (
-        id SERIAL PRIMARY KEY,
-        creator_id INTEGER NOT NULL REFERENCES ugc_creators(id) ON DELETE CASCADE,
-        project_id INTEGER REFERENCES ugc_projects(id) ON DELETE SET NULL,
-        content TEXT NOT NULL,
-        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_creator ON ugc_creator_notes(creator_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_project ON ugc_creator_notes(project_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_org ON ugc_creator_notes(organization_id)`);
 
     // ========================================
     // DOCUMENT SIGNING (NDA / Contracts)
@@ -3494,6 +3579,43 @@ export const initializeDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_projects_client ON ugc_projects(client_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_projects_org ON ugc_projects(organization_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_projects_status ON ugc_projects(status)`);
+
+    // UGC Project Settlements (liquidación privada; va después de ugc_projects por la FK: ingreso vs costo de creadores → utilidad)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_project_settlements (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER NOT NULL UNIQUE REFERENCES ugc_projects(id) ON DELETE CASCADE,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        client_total REAL,
+        product_cost REAL,
+        extra_items JSONB DEFAULT '[]',
+        notes TEXT,
+        status TEXT CHECK(status IN ('draft', 'settled')) DEFAULT 'draft',
+        snapshot JSONB,
+        settled_at TIMESTAMP,
+        settled_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_settlements_org ON ugc_project_settlements(organization_id)`);
+
+    // UGC Creator Internal Notes (va después de ugc_projects por la FK; 100% internal, never visible to creators or clients)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ugc_creator_notes (
+        id SERIAL PRIMARY KEY,
+        creator_id INTEGER NOT NULL REFERENCES ugc_creators(id) ON DELETE CASCADE,
+        project_id INTEGER REFERENCES ugc_projects(id) ON DELETE SET NULL,
+        content TEXT NOT NULL,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES team_members(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_creator ON ugc_creator_notes(creator_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_project ON ugc_creator_notes(project_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ugc_creator_notes_org ON ugc_creator_notes(organization_id)`);
 
     // UGC Project Creators (Creators assigned to a project with their own pipeline)
     await pool.query(`
@@ -3747,14 +3869,15 @@ export const initializeDatabase = async () => {
         ('Pausado', 3, '#F59E0B', 'Temporalmente no disponible', 1),
         ('Inactivo', 4, '#EF4444', 'Ya no trabaja con la agencia', 1)
       ) AS v(name, position, color, description, organization_id)
-      WHERE NOT EXISTS (SELECT 1 FROM ugc_creator_stages WHERE organization_id = 1)
+      WHERE EXISTS (SELECT 1 FROM organizations WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM ugc_creator_stages WHERE organization_id = 1)
     `);
 
     // Seed default UGC industries for LA REAL (org_id = 1)
     // Using INSERT ON CONFLICT to add new industries without duplicating
     await pool.query(`
       INSERT INTO ugc_industries (name, slug, icon, organization_id)
-      VALUES
+      SELECT * FROM (VALUES
         ('Skincare', 'skincare', '🧴', 1),
         ('Maquillaje', 'maquillaje', '💄', 1),
         ('Belleza', 'belleza', '💅', 1),
@@ -3782,6 +3905,8 @@ export const initializeDatabase = async () => {
         ('Finanzas', 'finanzas', '💰', 1),
         ('Automotriz', 'automotriz', '🚗', 1),
         ('Otros', 'otros', '📦', 1)
+      ) AS v(name, slug, icon, organization_id)
+      WHERE EXISTS (SELECT 1 FROM organizations WHERE id = 1)
       ON CONFLICT (slug, organization_id) DO NOTHING
     `);
 
@@ -3794,7 +3919,8 @@ export const initializeDatabase = async () => {
         ('Pro', 150, 160000, 24000000, 'Para alto volumen y sostener una inversión grande en Meta.', false, 1),
         ('Personalizado', 0, 0, 0, 'Paquete con valores personalizados.', true, 1)
       ) AS v(name, video_count, price_per_video, total_price, description, is_custom, organization_id)
-      WHERE NOT EXISTS (SELECT 1 FROM ugc_packages WHERE organization_id = 1)
+      WHERE EXISTS (SELECT 1 FROM organizations WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM ugc_packages WHERE organization_id = 1)
     `);
 
     // =========================================================================
@@ -3863,7 +3989,8 @@ export const initializeDatabase = async () => {
          '{"can_view_dashboard": true, "can_view_projects": true, "can_view_invoices": true, "can_view_payment_proofs": true, "can_view_reports": true, "can_view_metrics": true, "can_view_calls": true, "can_view_forms": true, "can_view_ugc": true, "can_view_documents": true}'::jsonb,
          FALSE, 1)
       ) AS v(name, slug, description, icon, settings, is_default, organization_id)
-      WHERE NOT EXISTS (SELECT 1 FROM dashboard_templates WHERE organization_id = 1)
+      WHERE EXISTS (SELECT 1 FROM organizations WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM dashboard_templates WHERE organization_id = 1)
     `);
 
     // =========================================================================
@@ -3881,7 +4008,8 @@ export const initializeDatabase = async () => {
         true,
         1,
         1
-      WHERE NOT EXISTS (SELECT 1 FROM document_templates WHERE organization_id = 1 AND category = 'nda')
+      WHERE EXISTS (SELECT 1 FROM organizations WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM document_templates WHERE organization_id = 1 AND category = 'nda')
     `, [
       `<div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; color: #1a1a1a;">
 

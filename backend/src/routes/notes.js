@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import db from '../config/database.js';
+import { findRowInOrg, assertRowInOrg, TenantError, sendTenantError } from '../utils/tenant.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,30 @@ const upload = multer({
 });
 
 const router = express.Router();
+
+// --- Aislamiento multi-tenant: validar padres/relaciones que vienen del body ---
+// Devuelve el id normalizado (o null) de una categoría/carpeta de la org; 404 si es de otra org.
+async function resolveNoteParent(table, id, orgId, label) {
+  if (!id) return null;
+  const row = await findRowInOrg(db, table, id, orgId, { columns: 'id', label });
+  if (!row) throw new TenantError(`${label} no encontrado`);
+  return row.id;
+}
+
+// Valida que cada link (client_id / project_id / team_member_id) pertenezca a la org.
+async function assertLinksInOrg(links, orgId) {
+  for (const link of links) {
+    if (link.client_id && !(await findRowInOrg(db, 'clients', link.client_id, orgId, { columns: 'id' }))) {
+      throw new TenantError('Cliente no encontrado');
+    }
+    if (link.project_id && !(await findRowInOrg(db, 'projects', link.project_id, orgId, { columns: 'id' }))) {
+      throw new TenantError('Proyecto no encontrado');
+    }
+    if (link.team_member_id && !(await findRowInOrg(db, 'team_members', link.team_member_id, orgId, { columns: 'id' }))) {
+      throw new TenantError('Miembro del equipo no encontrado');
+    }
+  }
+}
 
 // Get all notes with filters
 router.get('/', async (req, res) => {
@@ -174,6 +199,8 @@ router.get('/:id', async (req, res) => {
 // Get notes for specific client
 router.get('/client/:clientId', async (req, res) => {
   try {
+    // 404 si el cliente no es de esta organización (no revelar existencia)
+    await assertRowInOrg(db, 'clients', req.params.clientId, req.orgId, { columns: 'id', label: 'Cliente' });
     const notes = await db.prepare(`
       SELECT DISTINCT n.*,
         nc.name as category_name,
@@ -190,13 +217,14 @@ router.get('/client/:clientId', async (req, res) => {
 
     res.json(notes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
 // Get notes for specific project
 router.get('/project/:projectId', async (req, res) => {
   try {
+    await assertRowInOrg(db, 'projects', req.params.projectId, req.orgId, { columns: 'id', label: 'Proyecto' });
     const notes = await db.prepare(`
       SELECT DISTINCT n.*,
         nc.name as category_name,
@@ -213,13 +241,14 @@ router.get('/project/:projectId', async (req, res) => {
 
     res.json(notes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
 // Get notes for specific team member
 router.get('/team/:memberId', async (req, res) => {
   try {
+    await assertRowInOrg(db, 'team_members', req.params.memberId, req.orgId, { columns: 'id', label: 'Miembro' });
     const notes = await db.prepare(`
       SELECT DISTINCT n.*,
         nc.name as category_name,
@@ -236,7 +265,7 @@ router.get('/team/:memberId', async (req, res) => {
 
     res.json(notes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
@@ -249,6 +278,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
+    // Categoría, carpeta y links deben pertenecer a la organización
+    const safeCategoryId = await resolveNoteParent('note_categories', category_id, req.orgId, 'Categoría');
+    const safeFolderId = await resolveNoteParent('note_folders', folder_id, req.orgId, 'Carpeta');
+    if (links && Array.isArray(links)) await assertLinksInOrg(links, req.orgId);
+
     const result = await db.prepare(`
       INSERT INTO notes (title, content, content_plain, color, category_id, folder_id, is_pinned, created_by, visibility, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -257,8 +291,8 @@ router.post('/', async (req, res) => {
       content ? (typeof content === 'string' ? content : JSON.stringify(content)) : null,
       content_plain || '',
       color || '#FFFFFF',
-      category_id || null,
-      folder_id || null,
+      safeCategoryId,
+      safeFolderId,
       is_pinned ? 1 : 0,
       req.teamMember.id,
       visibility || 'organization',
@@ -283,7 +317,7 @@ router.post('/', async (req, res) => {
     const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(noteId, req.orgId);
     res.status(201).json(note);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error, 'Error creating note');
   }
 });
 
@@ -310,6 +344,11 @@ router.put('/:id', async (req, res) => {
 
     const contentStr = content ? (typeof content === 'string' ? content : JSON.stringify(content)) : null;
 
+    // Categoría, carpeta y links deben pertenecer a la organización
+    const safeCategoryId = await resolveNoteParent('note_categories', category_id, req.orgId, 'Categoría');
+    const safeFolderId = await resolveNoteParent('note_folders', folder_id, req.orgId, 'Carpeta');
+    if (links !== undefined && Array.isArray(links)) await assertLinksInOrg(links, req.orgId);
+
     // Save version snapshot before updating (only if content changed)
     if (existingNote.content && contentStr && existingNote.content !== contentStr) {
       await db.prepare(`
@@ -329,8 +368,8 @@ router.put('/:id', async (req, res) => {
       contentStr,
       content_plain || '',
       color || '#FFFFFF',
-      category_id || null,
-      folder_id || null,
+      safeCategoryId,
+      safeFolderId,
       is_pinned ? 1 : 0,
       newVisibility,
       req.teamMember.id,
@@ -360,7 +399,7 @@ router.put('/:id', async (req, res) => {
     const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(note);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error, 'Error updating note');
   }
 });
 
@@ -468,15 +507,15 @@ router.post('/:id/links', async (req, res) => {
     // Verify linked entities belong to the same org
     if (client_id) {
       const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(client_id, req.orgId);
-      if (!client) return res.status(400).json({ error: 'Client not found in this organization' });
+      if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
     }
     if (project_id) {
       const project = await db.prepare('SELECT id FROM projects WHERE id = ? AND organization_id = ?').get(project_id, req.orgId);
-      if (!project) return res.status(400).json({ error: 'Project not found in this organization' });
+      if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
     }
     if (team_member_id) {
       const member = await db.prepare('SELECT id FROM team_members WHERE id = ? AND organization_id = ?').get(team_member_id, req.orgId);
-      if (!member) return res.status(400).json({ error: 'Team member not found in this organization' });
+      if (!member) return res.status(404).json({ error: 'Miembro del equipo no encontrado' });
     }
 
     const { visible_in_portal } = req.body;
@@ -555,6 +594,7 @@ router.delete('/:id', async (req, res) => {
 // Get version history for a note
 router.get('/:id/versions', async (req, res) => {
   try {
+    await assertRowInOrg(db, 'notes', req.params.id, req.orgId, { columns: 'id', label: 'Nota' });
     const versions = await db.prepare(`
       SELECT nv.id, nv.title, nv.content_plain, nv.edited_by, nv.edited_by_client,
         nv.change_source, nv.created_at,
@@ -568,7 +608,7 @@ router.get('/:id/versions', async (req, res) => {
 
     res.json(versions);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
@@ -605,7 +645,7 @@ router.post('/:id/versions/:versionId/restore', async (req, res) => {
     }
 
     // Save current content as a new version before restoring
-    const currentNote = await db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+    const currentNote = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (currentNote && currentNote.content) {
       await db.prepare(`
         INSERT INTO note_versions (note_id, content, content_plain, title, edited_by, change_source, organization_id)
@@ -620,7 +660,7 @@ router.post('/:id/versions/:versionId/restore', async (req, res) => {
       WHERE id = ? AND organization_id = ?
     `).run(version.content, version.content_plain, version.title, req.teamMember.id, req.params.id, req.orgId);
 
-    const note = await db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
+    const note = await db.prepare('SELECT * FROM notes WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(note);
   } catch (error) {
     res.status(500).json({ error: error.message });

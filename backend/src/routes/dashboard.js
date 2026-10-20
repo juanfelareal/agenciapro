@@ -60,8 +60,8 @@ router.get('/stats', async (req, res) => {
         SUM(CASE WHEN t.status = 'review' THEN 1 ELSE 0 END) as review,
         SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done
       FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE p.organization_id = ?${dateFilter.replace(/created_at/g, 't.created_at')}
+      LEFT JOIN projects p ON t.project_id = p.id
+      WHERE t.organization_id = ?${dateFilter.replace(/created_at/g, 't.created_at')}
     `;
     const taskStats = await db.prepare(taskQuery).get(orgId, ...params);
     stats.tasks = taskStats;
@@ -233,8 +233,8 @@ router.get('/recent-activity', async (req, res) => {
     const recentTasks = await db.prepare(`
       SELECT 'task' as type, t.id, t.title, t.status, t.created_at
       FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE p.organization_id = ?
+      LEFT JOIN projects p ON t.project_id = p.id
+      WHERE t.organization_id = ?
       ORDER BY t.created_at DESC
       LIMIT ?
     `).all(orgId, Math.ceil(limit / 3));
@@ -269,7 +269,7 @@ router.get('/upcoming-tasks', async (req, res) => {
       WHERE t.status != 'done'
         AND t.due_date IS NOT NULL
         AND t.due_date >= CURRENT_DATE
-        AND p.organization_id = ?
+        AND t.organization_id = ?
       ORDER BY t.due_date ASC
       LIMIT 10
     `).all(orgId);

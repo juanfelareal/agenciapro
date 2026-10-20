@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
+import { assertRowInOrg, isTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
@@ -130,8 +131,8 @@ router.delete('/:id', async (req, res) => {
   try {
     // Check for existing signatures
     const signatures = await db.prepare(
-      'SELECT COUNT(*) as count FROM document_signatures WHERE template_id = ?'
-    ).get(req.params.id);
+      'SELECT COUNT(*) as count FROM document_signatures WHERE template_id = ? AND organization_id = ?'
+    ).get(req.params.id, req.orgId);
 
     if (signatures.count > 0) {
       return res.status(400).json({
@@ -255,6 +256,7 @@ router.get('/signatures/all', async (req, res) => {
 // GET /signatures/client/:clientId — Signatures for a specific client
 router.get('/signatures/client/:clientId', async (req, res) => {
   try {
+    await assertRowInOrg(db, 'clients', req.params.clientId, req.orgId, { columns: 'id', label: 'Cliente' });
     const signatures = await db.prepare(`
       SELECT ds.*, dt.name as template_name, dt.category
       FROM document_signatures ds
@@ -265,6 +267,7 @@ router.get('/signatures/client/:clientId', async (req, res) => {
 
     res.json(signatures);
   } catch (error) {
+    if (isTenantError(error)) return res.status(404).json({ error: error.message });
     console.error('Error getting client signatures:', error);
     res.status(500).json({ error: 'Error al obtener firmas del cliente' });
   }
@@ -326,7 +329,7 @@ router.delete('/signatures/:signatureId', async (req, res) => {
       return res.status(400).json({ error: 'No se puede eliminar un documento ya firmado' });
     }
 
-    await db.prepare('DELETE FROM document_signatures WHERE id = ?').run(req.params.signatureId);
+    await db.prepare('DELETE FROM document_signatures WHERE id = ? AND organization_id = ?').run(req.params.signatureId, req.orgId);
     res.json({ message: 'Solicitud de firma eliminada' });
   } catch (error) {
     console.error('Error deleting signature:', error);

@@ -2,8 +2,22 @@ import express from 'express';
 import crypto from 'crypto';
 import db from '../config/database.js';
 import googleDriveService from '../services/googleDrive.js';
+import { assertRowInOrg, assertClientInOrg, findRowInOrg, assertAllRowsInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
+
+// Verifica que un id opcional del body (stage_id, project_id, package_id…) pertenece a la org.
+// Devuelve el id normalizado, null si venía vacío, o lanza 404 si es de otra organización.
+async function optionalOrgRef(table, id, orgId, label) {
+  if (id === undefined || id === null || id === '') return null;
+  const row = await findRowInOrg(db, table, id, orgId, { columns: 'id', label });
+  if (!row) {
+    const err = new Error(`${label} no encontrado`);
+    err.status = 404;
+    throw err;
+  }
+  return row.id;
+}
 
 // Helper function to generate contract token
 function generateContractToken() {
@@ -27,7 +41,8 @@ router.post('/sync-assignments', async (req, res) => {
       JOIN ugc_projects p ON pc.project_id = p.id
       JOIN clients c ON p.client_id = c.id
       WHERE pc.video_count IS NOT NULL AND pc.agreed_rate IS NOT NULL
-    `);
+        AND p.organization_id = ?
+    `, [req.orgId]);
 
     const statusMap = {
       'presented': 'proposed',
@@ -128,8 +143,17 @@ router.post('/migrate-statuses', async (req, res) => {
     `);
 
     // Update old statuses to new ones
-    await db.run(`UPDATE ugc_project_creators SET status = 'presented' WHERE status = 'contacted'`);
-    await db.run(`UPDATE ugc_project_creators SET status = 'delivered_approved' WHERE status = 'delivered'`);
+    // Solo filas de proyectos de la organización activa
+    await db.run(
+      `UPDATE ugc_project_creators SET status = 'presented'
+       WHERE status = 'contacted' AND project_id IN (SELECT id FROM ugc_projects WHERE organization_id = ?)`,
+      [req.orgId]
+    );
+    await db.run(
+      `UPDATE ugc_project_creators SET status = 'delivered_approved'
+       WHERE status = 'delivered' AND project_id IN (SELECT id FROM ugc_projects WHERE organization_id = ?)`,
+      [req.orgId]
+    );
 
     // Add new constraint
     await db.run(`
@@ -201,7 +225,8 @@ router.put('/stages/:id', async (req, res) => {
       [name, color, description, req.params.id, req.orgId]
     );
 
-    const stage = await db.get('SELECT * FROM ugc_creator_stages WHERE id = ?', [req.params.id]);
+    const stage = await db.get('SELECT * FROM ugc_creator_stages WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!stage) return res.status(404).json({ error: 'Etapa no encontrada' });
     res.json(stage);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -392,7 +417,8 @@ router.post('/lists/:id/creators', async (req, res) => {
 router.delete('/lists/:id/creators/:creatorId', async (req, res) => {
   try {
     const list = await db.get('SELECT id FROM ugc_creator_lists WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
-    if (!list) return res.status(404).json({ error: 'Lista no encontrada' });
+    const creator = await db.get('SELECT id FROM ugc_creators WHERE id = ? AND organization_id = ?', [req.params.creatorId, req.orgId]);
+    if (!list || !creator) return res.status(404).json({ error: 'Lista o creador no encontrado' });
     await db.run('DELETE FROM ugc_creator_list_members WHERE list_id = ? AND creator_id = ?', [req.params.id, req.params.creatorId]);
     const ids = await db.all('SELECT list_id FROM ugc_creator_list_members WHERE creator_id = ? ORDER BY list_id', [req.params.creatorId]);
     res.json({ creator_id: Number(req.params.creatorId), list_ids: ids.map(r => r.list_id) });
@@ -554,6 +580,9 @@ router.post('/creators', async (req, res) => {
       return res.status(400).json({ error: 'Nombre y teléfono son obligatorios' });
     }
 
+    // stage_id debe ser una etapa de esta organización
+    const safeStageId = await optionalOrgRef('ugc_creator_stages', stage_id, req.orgId, 'Etapa');
+
     const result = await db.run(
       `INSERT INTO ugc_creators (
         full_name, email, phone, cedula, social_networks,
@@ -564,7 +593,7 @@ router.post('/creators', async (req, res) => {
       [
         full_name, email, phone, cedula, JSON.stringify(social_networks || {}),
         address, city, department, postal_code, shipping_notes,
-        industries || [], other_industry || null, bio, portfolio_url, profile_photo_url, stage_id || null, notes, source || 'manual', req.orgId,
+        industries || [], other_industry || null, bio, portfolio_url, profile_photo_url, safeStageId, notes, source || 'manual', req.orgId,
         JSON.stringify(portfolio || {}), rate_per_video || null, parseRate(default_rate), JSON.stringify(traits || {}),
         languages || [], equipment || [], JSON.stringify(availability || {})
       ]
@@ -573,7 +602,7 @@ router.post('/creators', async (req, res) => {
     const creator = await db.get('SELECT * FROM ugc_creators WHERE id = ?', [result.lastID]);
     res.status(201).json(creator);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -625,7 +654,8 @@ router.put('/creators/:id', async (req, res) => {
     }
     if (has('stage_id')) {
       sets.push('stage_id = ?');
-      params.push(body.stage_id ? parseInt(body.stage_id) || null : null);
+      // La etapa debe pertenecer a esta organización (404 si es de otra)
+      params.push(await optionalOrgRef('ugc_creator_stages', body.stage_id, req.orgId, 'Etapa'));
     }
     if (has('rate_per_video')) {
       sets.push('rate_per_video = ?');
@@ -663,12 +693,12 @@ router.put('/creators/:id', async (req, res) => {
       `SELECT c.*, s.name as stage_name, s.color as stage_color
        FROM ugc_creators c
        LEFT JOIN ugc_creator_stages s ON c.stage_id = s.id
-       WHERE c.id = ?`,
-      [req.params.id]
+       WHERE c.id = ? AND c.organization_id = ?`,
+      [req.params.id, req.orgId]
     );
     res.json(creator);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -676,22 +706,24 @@ router.put('/creators/:id', async (req, res) => {
 router.patch('/creators/:id/stage', async (req, res) => {
   try {
     const { stage_id } = req.body;
+    const safeStageId = await optionalOrgRef('ugc_creator_stages', stage_id, req.orgId, 'Etapa');
 
-    await db.run(
+    const result = await db.run(
       'UPDATE ugc_creators SET stage_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?',
-      [stage_id, req.params.id, req.orgId]
+      [safeStageId, req.params.id, req.orgId]
     );
+    if (!result.changes) return res.status(404).json({ error: 'Creador no encontrado' });
 
     const creator = await db.get(
       `SELECT c.*, s.name as stage_name, s.color as stage_color
        FROM ugc_creators c
        LEFT JOIN ugc_creator_stages s ON c.stage_id = s.id
-       WHERE c.id = ?`,
-      [req.params.id]
+       WHERE c.id = ? AND c.organization_id = ?`,
+      [req.params.id, req.orgId]
     );
     res.json(creator);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -972,6 +1004,11 @@ router.post('/assignments', async (req, res) => {
       return res.status(400).json({ error: 'Creador, cliente y título son obligatorios' });
     }
 
+    // Creador, cliente y proyecto deben ser de esta organización (404 si no)
+    await assertRowInOrg(db, 'ugc_creators', creator_id, req.orgId, { columns: 'id', label: 'Creador' });
+    await assertClientInOrg(db, client_id, req.orgId, 'id');
+    await optionalOrgRef('ugc_projects', project_id, req.orgId, 'Proyecto');
+
     const result = await db.run(
       `INSERT INTO ugc_assignments (
         creator_id, client_id, project_id, title, description, deliverables,
@@ -1015,7 +1052,7 @@ router.post('/assignments', async (req, res) => {
     const assignment = await db.get('SELECT * FROM ugc_assignments WHERE id = ?', [result.lastID]);
     res.status(201).json(assignment);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -1040,7 +1077,8 @@ router.put('/assignments/:id', async (req, res) => {
       ]
     );
 
-    const assignment = await db.get('SELECT * FROM ugc_assignments WHERE id = ?', [req.params.id]);
+    const assignment = await db.get('SELECT * FROM ugc_assignments WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
     res.json(assignment);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1063,7 +1101,8 @@ router.patch('/assignments/:id/status', async (req, res) => {
       [status, updates.delivered_at || null, req.params.id, req.orgId]
     );
 
-    const assignment = await db.get('SELECT * FROM ugc_assignments WHERE id = ?', [req.params.id]);
+    const assignment = await db.get('SELECT * FROM ugc_assignments WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
     res.json(assignment);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1137,6 +1176,10 @@ router.post('/payments', async (req, res) => {
       return res.status(400).json({ error: 'Creador, monto y fecha son obligatorios' });
     }
 
+    // Creador y asignación deben ser de esta organización (404 si no)
+    await assertRowInOrg(db, 'ugc_creators', creator_id, req.orgId, { columns: 'id', label: 'Creador' });
+    await optionalOrgRef('ugc_assignments', assignment_id, req.orgId, 'Asignación');
+
     const result = await db.run(
       `INSERT INTO ugc_creator_payments (
         creator_id, assignment_id, amount, currency, payment_date,
@@ -1161,7 +1204,7 @@ router.post('/payments', async (req, res) => {
     const payment = await db.get('SELECT * FROM ugc_creator_payments WHERE id = ?', [result.lastID]);
     res.status(201).json(payment);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -1186,7 +1229,8 @@ router.put('/payments/:id', async (req, res) => {
       ]
     );
 
-    const payment = await db.get('SELECT * FROM ugc_creator_payments WHERE id = ?', [req.params.id]);
+    const payment = await db.get('SELECT * FROM ugc_creator_payments WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!payment) return res.status(404).json({ error: 'Payment not found' });
     res.json(payment);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1696,16 +1740,20 @@ router.post('/projects', async (req, res) => {
       return res.status(400).json({ error: 'Cliente y título son requeridos' });
     }
 
+    // Cliente y paquete deben ser de esta organización (404 si no)
+    await assertClientInOrg(db, client_id, req.orgId, 'id');
+    const safePackageId = await optionalOrgRef('ugc_packages', package_id, req.orgId, 'Paquete');
+
     const result = await db.run(
       `INSERT INTO ugc_projects (client_id, title, description, brief_url, brief_content, budget, currency, start_date, deadline, package_id, video_count, price_per_video, creator_cost_per_video, product_value, organization_id, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [client_id, title, description, brief_url, brief_content, budget || 0, currency || 'COP', start_date, deadline, package_id, video_count || 0, price_per_video || 0, creator_cost_per_video || 0, product_value || 0, req.orgId, req.user?.id]
+      [client_id, title, description, brief_url, brief_content, budget || 0, currency || 'COP', start_date, deadline, safePackageId, video_count || 0, price_per_video || 0, creator_cost_per_video || 0, product_value || 0, req.orgId, req.user?.id]
     );
 
     const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(project);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -1734,7 +1782,8 @@ router.put('/projects/:id', async (req, res) => {
       [title, description, brief_url, brief_content, budget, currency, start_date, deadline, status, salesAnglesJson, req.params.id, req.orgId]
     );
 
-    const project = await db.get('SELECT * FROM ugc_projects WHERE id = ?', [req.params.id]);
+    const project = await db.get('SELECT * FROM ugc_projects WHERE id = ? AND organization_id = ?', [req.params.id, req.orgId]);
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
     res.json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1769,7 +1818,22 @@ router.post('/projects/:id/creators', async (req, res) => {
     const added = [];
     const skipped = [];
 
+    // Solo creadores de esta organización; los demás se reportan como omitidos
+    const numericIds = creator_ids.map(Number).filter(n => Number.isInteger(n) && n > 0);
+    const orgCreatorIds = new Set(
+      numericIds.length
+        ? (await db.all(
+            `SELECT id FROM ugc_creators WHERE organization_id = ? AND id IN (${numericIds.map(() => '?').join(',')})`,
+            [req.orgId, ...numericIds]
+          )).map(r => Number(r.id))
+        : []
+    );
+
     for (const creatorId of creator_ids) {
+      if (!orgCreatorIds.has(Number(creatorId))) {
+        skipped.push(creatorId);
+        continue;
+      }
       try {
         // Generate unique contract token for each creator
         const contractToken = generateContractToken();
@@ -1797,6 +1861,15 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
   try {
     const { status, agreed_rate, currency, deliverables, delivery_url, brief_url, video_count, notes, assigned_angles } = req.body;
     console.log('Updating project creator:', { projectId: req.params.projectId, creatorId: req.params.creatorId, body: req.body });
+
+    // El proyecto debe pertenecer a esta organización (404 si no)
+    const ownProject = await db.get(
+      'SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?',
+      [req.params.projectId, req.orgId]
+    );
+    if (!ownProject) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
 
     let extraFields = '';
     if (status === 'delivered') {
@@ -2003,6 +2076,14 @@ router.put('/projects/:projectId/creators/:creatorId', async (req, res) => {
 // DELETE /api/ugc/projects/:projectId/creators/:creatorId - Remove creator from project
 router.delete('/projects/:projectId/creators/:creatorId', async (req, res) => {
   try {
+    // El proyecto debe pertenecer a esta organización (404 si no)
+    const project = await db.get(
+      'SELECT id FROM ugc_projects WHERE id = ? AND organization_id = ?',
+      [req.params.projectId, req.orgId]
+    );
+    if (!project) {
+      return res.status(404).json({ error: 'Proyecto no encontrado' });
+    }
     await db.run(
       'DELETE FROM ugc_project_creators WHERE project_id = ? AND creator_id = ?',
       [req.params.projectId, req.params.creatorId]
@@ -2481,10 +2562,14 @@ router.post('/creators/:id/notes', async (req, res) => {
       return res.status(400).json({ error: 'El contenido de la nota es requerido' });
     }
 
+    // Creador y proyecto (opcional) deben ser de esta organización (404 si no)
+    await assertRowInOrg(db, 'ugc_creators', req.params.id, req.orgId, { columns: 'id', label: 'Creador' });
+    const safeProjectId = await optionalOrgRef('ugc_projects', project_id, req.orgId, 'Proyecto');
+
     const result = await db.run(`
       INSERT INTO ugc_creator_notes (creator_id, project_id, content, organization_id, created_by)
       VALUES (?, ?, ?, ?, ?)
-    `, [req.params.id, project_id || null, content.trim(), req.orgId, req.user?.id]);
+    `, [req.params.id, safeProjectId, content.trim(), req.orgId, req.user?.id]);
 
     const note = await db.get(`
       SELECT n.*,
@@ -2493,12 +2578,12 @@ router.post('/creators/:id/notes', async (req, res) => {
       FROM ugc_creator_notes n
       LEFT JOIN ugc_projects p ON n.project_id = p.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
-      WHERE n.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE n.id = ? AND n.organization_id = ?
+    `, [result.lastInsertRowid, req.orgId]);
 
     res.status(201).json(note);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 
@@ -2511,11 +2596,15 @@ router.put('/notes/:id', async (req, res) => {
       return res.status(400).json({ error: 'El contenido de la nota es requerido' });
     }
 
-    await db.run(`
+    // El proyecto (opcional) debe ser de esta organización (404 si no)
+    const safeProjectId = await optionalOrgRef('ugc_projects', project_id, req.orgId, 'Proyecto');
+
+    const result = await db.run(`
       UPDATE ugc_creator_notes
       SET content = ?, project_id = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND organization_id = ?
-    `, [content.trim(), project_id || null, req.params.id, req.orgId]);
+    `, [content.trim(), safeProjectId, req.params.id, req.orgId]);
+    if (!result.changes) return res.status(404).json({ error: 'Nota no encontrada' });
 
     const note = await db.get(`
       SELECT n.*,
@@ -2524,12 +2613,12 @@ router.put('/notes/:id', async (req, res) => {
       FROM ugc_creator_notes n
       LEFT JOIN ugc_projects p ON n.project_id = p.id
       LEFT JOIN team_members tm ON n.created_by = tm.id
-      WHERE n.id = ?
-    `, [req.params.id]);
+      WHERE n.id = ? AND n.organization_id = ?
+    `, [req.params.id, req.orgId]);
 
     res.json(note);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 

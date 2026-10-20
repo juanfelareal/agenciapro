@@ -129,7 +129,7 @@ router.get('/store-info', async (req, res) => {
     const { session_id } = req.query;
     const session = session_id ? sessions.get(session_id) : null;
     if (!session?.keys) return res.status(401).json({ error: 'Sesión expirada. Vuelve a conectar la tienda.' });
-    if (session.orgId !== req.orgId) return res.status(403).json({ error: 'Sesión de otra organización' });
+    if (Number(session.orgId) !== Number(req.orgId)) return res.status(404).json({ error: 'Sesión no encontrada' });
     const woo = new WooCommerceIntegration(session.storeUrl, session.keys.consumer_key, session.keys.consumer_secret);
     const test = await woo.testConnection();
     if (!test.success) return res.status(400).json({ error: `Las claves no funcionan: ${test.error}` });
@@ -146,7 +146,7 @@ router.post('/link-store', async (req, res) => {
     const { session_id, client_id } = req.body || {};
     const session = session_id ? sessions.get(session_id) : null;
     if (!session?.keys) return res.status(401).json({ error: 'Sesión expirada. Vuelve a conectar la tienda.' });
-    if (session.orgId !== orgId || Number(client_id) !== session.clientId) return res.status(403).json({ error: 'La sesión no corresponde a este cliente' });
+    if (Number(session.orgId) !== Number(orgId) || Number(client_id) !== Number(session.clientId)) return res.status(404).json({ error: 'Sesión no encontrada para este cliente' });
 
     const woo = new WooCommerceIntegration(session.storeUrl, session.keys.consumer_key, session.keys.consumer_secret);
     const test = await woo.testConnection();

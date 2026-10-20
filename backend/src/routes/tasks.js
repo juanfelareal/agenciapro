@@ -3,6 +3,7 @@ import db from '../config/database.js';
 import { notifyTaskAssigned, notifyTaskUpdated, notifyTaskCompleted } from '../utils/notificationHelper.js';
 import { processTaskCreated, processTaskUpdated } from '../services/automationEngine.js';
 import { logTaskActivity, diffTaskForActivity } from '../utils/activityLog.js';
+import { assertProjectInOrg, assertFormInOrg, assertAllRowsInOrg, findRowInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
@@ -104,7 +105,7 @@ router.get('/assigned-alerts', async (req, res) => {
       LIMIT 30
     `).all(req.teamMember.id, req.orgId);
     const byIds = [...new Set(rows.map((r) => { try { return JSON.parse(r.metadata || '{}').assigned_by; } catch { return null; } }).filter(Boolean))];
-    const names = byIds.length ? await db.prepare(`SELECT id, name FROM team_members WHERE id IN (${byIds.map(() => '?').join(',')})`).all(...byIds) : [];
+    const names = byIds.length ? await db.prepare(`SELECT id, name FROM team_members WHERE id IN (${byIds.map(() => '?').join(',')}) AND organization_id = ?`).all(...byIds, req.orgId) : [];
     const nameById = Object.fromEntries(names.map((n) => [n.id, n.name]));
     const seen = new Set();
     const items = [];
@@ -208,16 +209,20 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    // Verify project belongs to this organization (if provided)
+    // Verify project belongs to this organization (if provided) — 404 to avoid leaking existence
     if (project_id) {
-      const project = await db.get(
-        'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
-        [project_id, req.orgId]
-      );
-      if (!project) {
-        return res.status(403).json({ error: 'Project does not belong to this organization' });
-      }
+      await assertProjectInOrg(db, project_id, req.orgId, 'id');
     }
+
+    // Verify linked form belongs to this organization (if provided)
+    if (linked_form_id) {
+      await assertFormInOrg(db, linked_form_id, req.orgId, 'id');
+    }
+
+    // created_by must be a member of this org; otherwise fall back to the session member
+    const creatorId = (created_by && await findRowInOrg(db, 'team_members', created_by, req.orgId, { columns: 'id' }))
+      ? Number(created_by)
+      : (req.teamMember?.id || null);
 
     // Resolve assignees: prefer assignee_ids array, fallback to assigned_to for backwards compat
     const resolvedAssigneeIds = Array.isArray(assignee_ids) && assignee_ids.length > 0
@@ -227,16 +232,8 @@ router.post('/', async (req, res) => {
     // Primary assignee for backwards-compatible assigned_to column
     const primaryAssignee = resolvedAssigneeIds.length > 0 ? resolvedAssigneeIds[0] : null;
 
-    // Verify all assigned team members belong to this organization
-    for (const memberId of resolvedAssigneeIds) {
-      const member = await db.get(
-        'SELECT id FROM team_members WHERE id = ? AND organization_id = ?',
-        [memberId, req.orgId]
-      );
-      if (!member) {
-        return res.status(403).json({ error: `Team member ${memberId} does not belong to this organization` });
-      }
-    }
+    // Verify all assigned team members belong to this organization (404 if any is foreign)
+    await assertAllRowsInOrg(db, 'team_members', resolvedAssigneeIds, req.orgId, { label: 'Miembro del equipo' });
 
     const result = await db.run(`
       INSERT INTO tasks (
@@ -262,7 +259,7 @@ router.post('/', async (req, res) => {
       color || null,
       estimated_hours || null,
       delivery_url || null,
-      created_by || req.teamMember?.id || null,
+      creatorId,
       order_index != null ? order_index : null,
       linked_form_id || null,
       visible_to_client ? 1 : 0,
@@ -296,7 +293,7 @@ router.post('/', async (req, res) => {
           if (!existingAssignment) {
             await db.run(
               'INSERT INTO form_assignments (form_id, client_id, due_date, assigned_by, organization_id) VALUES (?, ?, ?, ?, ?)',
-              [linked_form_id, project.client_id, due_date || null, created_by || req.teamMember?.id || null, req.orgId]
+              [linked_form_id, project.client_id, due_date || null, creatorId, req.orgId]
             );
           }
         }
@@ -307,7 +304,7 @@ router.post('/', async (req, res) => {
 
     // Notify all assignees
     if (resolvedAssigneeIds.length > 0) {
-      notifyTaskAssigned(taskId, title, resolvedAssigneeIds, created_by || 0);
+      notifyTaskAssigned(taskId, title, resolvedAssigneeIds, creatorId || 0);
     }
 
     // Process automations for new task
@@ -330,8 +327,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(task);
   } catch (error) {
-    console.error('Error creating task:', error);
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error, 'Error creating task:');
   }
 });
 
@@ -371,15 +367,14 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // If changing project, verify new project belongs to this org
-    if (project_id && project_id !== oldTask.project_id) {
-      const newProject = await db.get(
-        'SELECT id FROM projects WHERE id = ? AND organization_id = ?',
-        [project_id, req.orgId]
-      );
-      if (!newProject) {
-        return res.status(403).json({ error: 'Target project does not belong to this organization' });
-      }
+    // If changing project, verify new project belongs to this org (404 if foreign)
+    if (project_id && Number(project_id) !== Number(oldTask.project_id)) {
+      await assertProjectInOrg(db, project_id, req.orgId, 'id');
+    }
+
+    // If linking a form, verify it belongs to this org
+    if (linked_form_id && Number(linked_form_id) !== Number(oldTask.linked_form_id)) {
+      await assertFormInOrg(db, linked_form_id, req.orgId, 'id');
     }
 
     // Resolve assignees: prefer assignee_ids array, fallback to assigned_to for backwards compat
@@ -389,16 +384,8 @@ router.put('/:id', async (req, res) => {
 
     // If assignee_ids was provided, sync task_assignees
     if (resolvedAssigneeIds !== null) {
-      // Verify all new assignees belong to this org
-      for (const memberId of resolvedAssigneeIds) {
-        const member = await db.get(
-          'SELECT id FROM team_members WHERE id = ? AND organization_id = ?',
-          [memberId, req.orgId]
-        );
-        if (!member) {
-          return res.status(403).json({ error: `Team member ${memberId} does not belong to this organization` });
-        }
-      }
+      // Verify all new assignees belong to this org (404 if any is foreign)
+      await assertAllRowsInOrg(db, 'team_members', resolvedAssigneeIds, req.orgId, { label: 'Miembro del equipo' });
 
       // Get current assignees
       const currentAssignees = await db.all(
@@ -435,8 +422,8 @@ router.put('/:id', async (req, res) => {
         const placeholders = allChangedIds.map(() => '?').join(',');
         const memberRows = allChangedIds.length > 0
           ? await db.all(
-              `SELECT id, name FROM team_members WHERE id IN (${placeholders})`,
-              allChangedIds
+              `SELECT id, name FROM team_members WHERE id IN (${placeholders}) AND organization_id = ?`,
+              [...allChangedIds, req.orgId]
             ).catch(() => [])
           : [];
         const nameById = Object.fromEntries(memberRows.map(m => [m.id, m.name]));
@@ -568,8 +555,8 @@ router.put('/:id', async (req, res) => {
         if (uniqueProjectIds.length > 0) {
           const placeholders = uniqueProjectIds.map(() => '?').join(',');
           const rows = await db.all(
-            `SELECT id, name FROM projects WHERE id IN (${placeholders})`,
-            uniqueProjectIds
+            `SELECT id, name FROM projects WHERE id IN (${placeholders}) AND organization_id = ?`,
+            [...uniqueProjectIds, req.orgId]
           );
           projectNamesById = Object.fromEntries(rows.map(r => [r.id, r.name]));
         }
@@ -587,8 +574,7 @@ router.put('/:id', async (req, res) => {
 
     res.json(task);
   } catch (error) {
-    console.error('Error updating task:', error);
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error, 'Error updating task:');
   }
 });
 

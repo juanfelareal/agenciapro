@@ -1,11 +1,13 @@
 import express from 'express';
 import db from '../config/database.js';
+import { assertClientInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
 // Get all calls for a client
 router.get('/:clientId', async (req, res) => {
   try {
+    await assertClientInOrg(db, req.params.clientId, req.orgId, 'id');
     const calls = await db.all(`
       SELECT cc.*, tm.name as created_by_name
       FROM client_calls cc
@@ -15,7 +17,7 @@ router.get('/:clientId', async (req, res) => {
     `, [req.params.clientId, req.orgId]);
     res.json(calls);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
@@ -40,6 +42,7 @@ router.post('/:clientId', async (req, res) => {
   try {
     const { title, call_date, duration_minutes, summary, transcription } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
+    await assertClientInOrg(db, req.params.clientId, req.orgId, 'id');
 
     const result = await db.run(`
       INSERT INTO client_calls (client_id, title, call_date, duration_minutes, summary, transcription, created_by, organization_id)
@@ -49,7 +52,7 @@ router.post('/:clientId', async (req, res) => {
     const call = await db.get('SELECT * FROM client_calls WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(call);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 

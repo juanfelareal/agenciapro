@@ -458,14 +458,21 @@ export async function createIntake({ orgId, teamMemberId, phone, source, title, 
   return getIntake(r.lastInsertRowid);
 }
 
-export async function getIntake(id) {
-  const row = await db.get('SELECT * FROM meeting_intakes WHERE id = ?', [id]);
+/** `orgId` opcional: si se pasa, solo devuelve intakes de esa organización (recomendado desde rutas). */
+export async function getIntake(id, orgId = null) {
+  const row = orgId
+    ? await db.get('SELECT * FROM meeting_intakes WHERE id = ? AND organization_id = ?', [id, orgId])
+    : await db.get('SELECT * FROM meeting_intakes WHERE id = ?', [id]);
   if (!row) return null;
   return { ...row, tasks: safeJson(row.tasks, []), created_task_ids: safeJson(row.created_task_ids, []) };
 }
 
-export async function saveIntakeTasks(id, tasks) {
-  await db.run('UPDATE meeting_intakes SET tasks = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(tasks), id]);
+export async function saveIntakeTasks(id, tasks, orgId = null) {
+  if (orgId) {
+    await db.run('UPDATE meeting_intakes SET tasks = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?', [JSON.stringify(tasks), id, orgId]);
+  } else {
+    await db.run('UPDATE meeting_intakes SET tasks = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [JSON.stringify(tasks), id]);
+  }
 }
 
 export async function openIntakeForPhone(orgId, phone) {
@@ -501,10 +508,20 @@ async function projectForClient(orgId, clientId) {
 
 /** Crea las tareas en Orbit y cierra el intake */
 export async function confirmIntake({ orgId, intakeId, createdBy }) {
-  const intake = await getIntake(intakeId);
+  // El intake debe pertenecer a la organización que confirma
+  const intake = await getIntake(intakeId, orgId);
   if (!intake) throw new Error('Reunión no encontrada');
   if (intake.status !== 'proposed') throw new Error(`La reunión ya está ${intake.status}`);
   const active = intake.tasks.filter((t) => !t.removed);
+  // Responsables y clientes propuestos deben ser de esta organización (defensa ante tasks editados a mano)
+  const memberIds = [...new Set(active.map((t) => Number(t.assignee_member_id)).filter(Boolean))];
+  const clientIds = [...new Set(active.map((t) => Number(t.client_id)).filter(Boolean))];
+  const okMembers = new Set(memberIds.length ? (await db.all(`SELECT id FROM team_members WHERE organization_id = ? AND id IN (${memberIds.map(() => '?').join(',')})`, [orgId, ...memberIds])).map((r) => r.id) : []);
+  const okClients = new Set(clientIds.length ? (await db.all(`SELECT id FROM clients WHERE organization_id = ? AND id IN (${clientIds.map(() => '?').join(',')})`, [orgId, ...clientIds])).map((r) => r.id) : []);
+  for (const t of active) {
+    if (t.assignee_member_id && !okMembers.has(Number(t.assignee_member_id))) { t.assignee_member_id = null; t.assignee_name = null; }
+    if (t.client_id && !okClients.has(Number(t.client_id))) { t.client_id = null; t.client_name = null; }
+  }
   const created = [];
   for (const t of active) {
     const projectId = await projectForClient(orgId, t.client_id);
@@ -520,12 +537,17 @@ export async function confirmIntake({ orgId, intakeId, createdBy }) {
     }
     created.push({ id: taskId, n: t.n, title: t.title, assignee_member_id: t.assignee_member_id, assignee_name: t.assignee_name, due_date: t.due_date, client_name: t.client_name });
   }
-  await db.run("UPDATE meeting_intakes SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP, created_task_ids = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [JSON.stringify(created.map((c) => c.id)), intakeId]);
+  await db.run("UPDATE meeting_intakes SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP, created_task_ids = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?", [JSON.stringify(created.map((c) => c.id)), intakeId, orgId]);
   return { intake, created };
 }
 
-export async function cancelIntake(intakeId) {
-  await db.run("UPDATE meeting_intakes SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'proposed'", [intakeId]);
+/** `orgId` opcional: si se pasa, solo cancela si el intake es de esa organización. */
+export async function cancelIntake(intakeId, orgId = null) {
+  if (orgId) {
+    await db.run("UPDATE meeting_intakes SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'proposed' AND organization_id = ?", [intakeId, orgId]);
+  } else {
+    await db.run("UPDATE meeting_intakes SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'proposed'", [intakeId]);
+  }
   return { cancelled: true };
 }
 

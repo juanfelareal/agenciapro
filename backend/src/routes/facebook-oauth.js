@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../config/database.js';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -41,7 +42,8 @@ router.get('/url', async (req, res) => {
     }
 
     // Generate state for CSRF protection
-    const state = `${client_id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // Estado aleatorio (CSRF + identificador de sesión no adivinable); la org y el cliente quedan en memoria
+    const state = crypto.randomBytes(24).toString('hex');
 
     // Store state with client_id and orgId for later verification
     oauthSessions.set(state, {
@@ -154,7 +156,7 @@ router.get('/callback', async (req, res) => {
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
     // Store token temporarily with session ID
-    const sessionId = `fb_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const sessionId = `fb_${crypto.randomBytes(24).toString('hex')}`;
     oauthSessions.set(sessionId, {
       accessToken: longLivedToken,
       expiresAt: expiresAt.toISOString(),
@@ -212,6 +214,10 @@ router.get('/ad-accounts', async (req, res) => {
     const session = oauthSessions.get(session_id);
     if (!session) {
       return res.status(401).json({ error: 'Sesion expirada. Por favor reconecta con Facebook.' });
+    }
+    // La sesión OAuth pertenece a la organización que la inició
+    if (Number(session.orgId) !== Number(orgId)) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
     }
 
     const { accessToken, clientId } = session;
@@ -295,6 +301,10 @@ router.post('/link-accounts', async (req, res) => {
     if (!session) {
       return res.status(401).json({ error: 'Sesion expirada. Por favor reconecta con Facebook.' });
     }
+    // La sesión OAuth debe pertenecer a esta organización y a este mismo cliente
+    if (Number(session.orgId) !== Number(orgId) || Number(session.clientId) !== Number(client_id)) {
+      return res.status(404).json({ error: 'Sesión no encontrada para este cliente' });
+    }
 
     const { accessToken, expiresAt } = session;
 
@@ -320,8 +330,8 @@ router.post('/link-accounts', async (req, res) => {
     // Insert or update each selected account
     const insertStmt = db.prepare(`
       INSERT INTO client_facebook_credentials
-        (client_id, access_token, ad_account_id, ad_account_name, status, expires_at)
-      VALUES (?, ?, ?, ?, 'active', ?)
+        (client_id, organization_id, access_token, ad_account_id, ad_account_name, status, expires_at)
+      VALUES (?, ?, ?, ?, ?, 'active', ?)
       ON CONFLICT(client_id, ad_account_id)
       DO UPDATE SET
         access_token = excluded.access_token,
@@ -336,7 +346,7 @@ router.post('/link-accounts', async (req, res) => {
     for (const accountId of account_ids) {
       const accountName = accountsMap.get(accountId) || 'Cuenta de anuncios';
       try {
-        await insertStmt.run(client_id, accessToken, accountId, accountName, expiresAt || null);
+        await insertStmt.run(client_id, orgId, accessToken, accountId, accountName, expiresAt || null);
         results.push({ accountId, success: true });
       } catch (err) {
         results.push({ accountId, success: false, error: err.message });

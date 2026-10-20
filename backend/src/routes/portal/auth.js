@@ -29,7 +29,8 @@ router.post('/login', async (req, res) => {
 
     // Find the invite token
     const invite = await db.get(`
-      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email, c.logo_url as client_logo_url
+      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email, c.logo_url as client_logo_url,
+             c.organization_id as client_org_id
       FROM client_access_tokens cat
       JOIN clients c ON cat.client_id = c.id
       WHERE cat.token = ?
@@ -45,10 +46,12 @@ router.post('/login', async (req, res) => {
     const sessionToken = generateSessionToken();
 
     // Create session
+    // La sesión hereda la organización del cliente (nunca NULL: el backfill de arranque la asignaría a la org 1)
+    const clientOrgId = invite.client_org_id || invite.organization_id || null;
     await db.run(`
-      INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, last_used_at)
-      VALUES (?, ?, 'session', 'active', NULL, CURRENT_TIMESTAMP)
-    `, [invite.client_id, sessionToken]);
+      INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, last_used_at, organization_id)
+      VALUES (?, ?, 'session', 'active', NULL, CURRENT_TIMESTAMP, ?)
+    `, [invite.client_id, sessionToken, clientOrgId]);
 
     // Get portal settings
     let settings = await db.get(`
@@ -57,7 +60,7 @@ router.post('/login', async (req, res) => {
 
     // Create default settings if not exist
     if (!settings) {
-      await db.run(`INSERT INTO client_portal_settings (client_id) VALUES (?)`, [invite.client_id]);
+      await db.run(`INSERT INTO client_portal_settings (client_id, organization_id) VALUES (?, ?)`, [invite.client_id, clientOrgId]);
       settings = await db.get(`SELECT * FROM client_portal_settings WHERE client_id = ?`, [invite.client_id]);
     }
 

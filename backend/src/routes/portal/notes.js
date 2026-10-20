@@ -69,6 +69,15 @@ router.post('/:noteId/comments', clientAuthMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Nota no encontrada' });
     }
 
+    // El comentario padre (si viene) debe ser de esta misma nota
+    if (parent_id) {
+      const parent = await db.get(
+        'SELECT id FROM note_comments WHERE id = ? AND note_id = ?',
+        [parent_id, noteId]
+      );
+      if (!parent) return res.status(404).json({ error: 'Comentario no encontrado' });
+    }
+
     const result = await db.run(`
       INSERT INTO note_comments (note_id, author_name, author_type, content, tab_context, parent_id, quoted_text, organization_id)
       VALUES (?, ?, 'client', ?, ?, ?, ?, ?)

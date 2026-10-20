@@ -4,6 +4,7 @@ import * as decoding from 'lib0/decoding';
 import * as syncProtocol from 'y-protocols/sync';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import db from '../config/database.js';
+import { resolveSocketSession } from './chatService.js';
 
 // Store active documents and awareness states
 const docs = new Map(); // noteId -> Y.Doc
@@ -130,11 +131,35 @@ export const setupCollaboration = (io) => {
     let currentNoteId = null;
 
     // Join a note room
-    socket.on('join-note', async ({ noteId, user }) => {
+    // Requiere token de sesión (payload.token, handshake.auth.token o ?token=) y que la nota
+    // pertenezca a la organización de esa sesión; si es privada, solo su creador.
+    socket.on('join-note', async ({ noteId, user, token } = {}) => {
       if (!noteId) {
         socket.emit('error', { message: 'Note ID required' });
         return;
       }
+
+      const sessionToken = token || socket.handshake?.auth?.token || socket.handshake?.query?.token;
+      const session = await resolveSocketSession(sessionToken);
+      if (!session) {
+        socket.emit('error', { message: 'No autenticado' });
+        return;
+      }
+      let noteRow = null;
+      try {
+        noteRow = await db.get(
+          'SELECT id, visibility, created_by FROM notes WHERE id = ? AND organization_id = ?',
+          [noteId, session.orgId]
+        );
+      } catch (error) {
+        console.error(`[Collab] Error verificando nota ${noteId}:`, error.message);
+      }
+      if (!noteRow || (noteRow.visibility === 'private' && Number(noteRow.created_by) !== session.teamMemberId)) {
+        socket.emit('error', { message: 'Nota no encontrada' });
+        return;
+      }
+      socket.data.teamMemberId = session.teamMemberId;
+      socket.data.orgId = session.orgId;
 
       // Leave previous room if any
       if (currentRoom) {

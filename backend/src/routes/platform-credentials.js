@@ -82,11 +82,11 @@ router.post('/health-check', async (req, res) => {
   try {
     const { runIntegrationHealthCheck, refreshExpiringFacebookTokens } = await import('../services/integrationHealthCheck.js');
 
-    // First, refresh any expiring Facebook tokens
-    const tokenRefreshResult = await refreshExpiringFacebookTokens();
+    // First, refresh any expiring Facebook tokens (solo de esta organización)
+    const tokenRefreshResult = await refreshExpiringFacebookTokens(req.orgId);
 
-    // Then run the health check
-    const healthCheckResult = await runIntegrationHealthCheck();
+    // Then run the health check (solo de esta organización)
+    const healthCheckResult = await runIntegrationHealthCheck(req.orgId);
 
     res.json({
       ...healthCheckResult,
@@ -101,7 +101,7 @@ router.post('/health-check', async (req, res) => {
 router.post('/refresh-facebook-tokens', async (req, res) => {
   try {
     const { refreshExpiringFacebookTokens } = await import('../services/integrationHealthCheck.js');
-    const result = await refreshExpiringFacebookTokens();
+    const result = await refreshExpiringFacebookTokens(req.orgId);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -153,9 +153,9 @@ router.post('/facebook', async (req, res) => {
     } else {
       // Insert new
       const result = await db.prepare(`
-        INSERT INTO client_facebook_credentials (client_id, access_token, ad_account_id)
-        VALUES (?, ?, ?)
-      `).run(client_id, tokenToUse, ad_account_id);
+        INSERT INTO client_facebook_credentials (client_id, organization_id, access_token, ad_account_id)
+        VALUES (?, ?, ?, ?)
+      `).run(client_id, orgId, tokenToUse, ad_account_id);
 
       res.status(201).json({ message: 'Facebook Ads conectado exitosamente', id: result.lastInsertRowid });
     }
@@ -452,9 +452,9 @@ router.post('/shopify', async (req, res) => {
     } else {
       // Insert new
       const result = await db.prepare(`
-        INSERT INTO client_shopify_credentials (client_id, store_url, access_token)
-        VALUES (?, ?, ?)
-      `).run(client_id, normalizedUrl, access_token);
+        INSERT INTO client_shopify_credentials (client_id, organization_id, store_url, access_token)
+        VALUES (?, ?, ?, ?)
+      `).run(client_id, orgId, normalizedUrl, access_token);
 
       res.status(201).json({ message: 'Shopify conectado exitosamente', id: result.lastInsertRowid });
     }

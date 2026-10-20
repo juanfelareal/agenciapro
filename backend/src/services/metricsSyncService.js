@@ -15,10 +15,20 @@ import { upsertOrders } from './orderLedger.js';
  */
 
 /**
+ * organization_id de un cliente (para que toda fila derivada herede la org del padre
+ * y el backfill de arranque nunca la reasigne a la primera organización).
+ */
+async function resolveClientOrgId(clientId) {
+  const row = await db.get('SELECT organization_id FROM clients WHERE id = ?', [clientId]);
+  return row?.organization_id ?? null;
+}
+
+/**
  * Get all active clients with platform credentials
+ * @param {number|null} orgId - si se pasa, solo los clientes de esa organización
  * @returns {Array}
  */
-export async function getClientsWithCredentials() {
+export async function getClientsWithCredentials(orgId = null) {
   const systemToken = process.env.FACEBOOK_SYSTEM_USER_TOKEN;
   const systemGoogleRefresh = process.env.GOOGLE_ADS_REFRESH_TOKEN;
   const systemTiktokToken = process.env.TIKTOK_SYSTEM_ACCESS_TOKEN;
@@ -53,9 +63,10 @@ export async function getClientsWithCredentials() {
     LEFT JOIN client_woocommerce_credentials wc ON c.id = wc.client_id
     WHERE c.status = 'active'
       AND (fb.id IS NOT NULL OR ga.id IS NOT NULL OR tt.id IS NOT NULL OR sh.id IS NOT NULL OR wc.id IS NOT NULL)
+      ${orgId ? 'AND c.organization_id = ?' : ''}
   `;
 
-  const clients = await db.prepare(query).all();
+  const clients = orgId ? await db.prepare(query).all(orgId) : await db.prepare(query).all();
 
   // Use system-level tokens as fallback when a client has an account id but no personal token
   return clients.map(c => ({
@@ -72,11 +83,12 @@ export async function getClientsWithCredentials() {
  * @param {string} jobType - 'facebook', 'shopify', or 'all'
  * @returns {number} Job ID
  */
-export async function createSyncJob(clientId, jobType) {
+export async function createSyncJob(clientId, jobType, orgId = null) {
+  const organizationId = orgId ?? await resolveClientOrgId(clientId);
   const result = await db.prepare(`
-    INSERT INTO metrics_sync_jobs (client_id, job_type, status, started_at)
-    VALUES (?, ?, 'running', NOW())
-  `).run(clientId, jobType);
+    INSERT INTO metrics_sync_jobs (client_id, organization_id, job_type, status, started_at)
+    VALUES (?, ?, ?, 'running', NOW())
+  `).run(clientId, organizationId, jobType);
 
   return result.lastInsertRowid;
 }
@@ -123,7 +135,8 @@ export async function updateCredentialStatus(table, clientId, status, error = nu
  * @param {string} date - YYYY-MM-DD
  * @param {object} metrics
  */
-export async function upsertDailyMetrics(clientId, date, metrics) {
+export async function upsertDailyMetrics(clientId, date, metrics, orgId = null) {
+  const organizationId = orgId ?? await resolveClientOrgId(clientId);
   const existing = await db.prepare(`
     SELECT id FROM client_daily_metrics
     WHERE client_id = ? AND metric_date = ?
@@ -258,7 +271,7 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
   } else {
     await db.prepare(`
       INSERT INTO client_daily_metrics (
-        client_id, metric_date,
+        client_id, organization_id, metric_date,
         shopify_revenue, shopify_orders, shopify_aov, shopify_refunds, shopify_net_revenue,
         shopify_total_tax, shopify_total_discounts, shopify_discounts_net, shopify_sessions, shopify_conversion_rate,
         shopify_pending_orders, shopify_customers,
@@ -274,9 +287,9 @@ export async function upsertDailyMetrics(clientId, date, metrics) {
         tt_spend, tt_impressions, tt_clicks, tt_ctr, tt_cpc, tt_cpm,
         tt_conversions, tt_revenue, tt_roas, tt_cost_per_conversion,
         total_revenue, overall_roas, cost_per_order, ad_spend_percentage
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      clientId, date,
+      clientId, organizationId, date,
       metrics.shopify_revenue || 0,
       metrics.shopify_orders || 0,
       metrics.shopify_aov || 0,
@@ -595,7 +608,7 @@ export async function syncClientForDate(clientId, date) {
     }
   }
 
-  await upsertDailyMetrics(clientId, date, metricsToSave);
+  await upsertDailyMetrics(clientId, date, metricsToSave, client.organization_id);
 
   // Ventas por producto del día (base del costo de producto en el dashboard financiero).
   // Reutiliza los pedidos ya descargados; si falla no afecta el sync de métricas.
@@ -693,8 +706,8 @@ function generateDateRange(startDate, endDate) {
  * @param {string} endDate - YYYY-MM-DD
  * @returns {Promise<{success: boolean, recordsProcessed: number, error?: string}>}
  */
-export async function syncClientDateRange(clientId, startDate, endDate) {
-  const jobId = await createSyncJob(clientId, 'all');
+export async function syncClientDateRange(clientId, startDate, endDate, orgId = null) {
+  const jobId = await createSyncJob(clientId, 'all', orgId);
   let recordsProcessed = 0;
   const errors = [];
 
@@ -755,12 +768,12 @@ function getColombiaDate(offsetDays = 0) {
  * @param {string} date - YYYY-MM-DD (defaults to yesterday in Colombia timezone)
  * @returns {Promise<{success: boolean, clientsSynced: number, errors: Array}>}
  */
-export async function syncAllClientsForDate(date = null) {
+export async function syncAllClientsForDate(date = null, orgId = null) {
   if (!date) {
     date = getColombiaDate(0); // Today — cron runs every 5 min for near real-time data
   }
 
-  const clients = await getClientsWithCredentials();
+  const clients = await getClientsWithCredentials(orgId);
   let clientsSynced = 0;
   const errors = [];
 
@@ -849,7 +862,7 @@ async function getExistingDates(client, startDate, endDate) {
  * @param {string} endDate - YYYY-MM-DD (defaults to yesterday)
  * @returns {Promise<{success: boolean, clientsSynced: number, daysProcessed: number, daysSkipped: number, errors: Array}>}
  */
-export async function syncAllClientsSmart(startDate = null, endDate = null) {
+export async function syncAllClientsSmart(startDate = null, endDate = null, orgId = null) {
   if (!endDate) {
     endDate = getColombiaDate(-1);
   }
@@ -857,7 +870,8 @@ export async function syncAllClientsSmart(startDate = null, endDate = null) {
     startDate = getColombiaDate(-365);
   }
 
-  const clients = await getClientsWithCredentials();
+  // orgId: una organización solo puede disparar la sincronización de SUS clientes
+  const clients = await getClientsWithCredentials(orgId);
   let clientsSynced = 0;
   let totalDaysProcessed = 0;
   let totalDaysSkipped = 0;

@@ -55,7 +55,8 @@ export async function generateWeeklyInsight(clientId, orgId) {
     `, [clientId, prevStart, prevEnd]);
 
     // Get client info
-    const client = await db.get('SELECT name, company FROM clients WHERE id = ?', [clientId]);
+    const client = await db.get('SELECT name, company FROM clients WHERE id = ? AND organization_id = ?', [clientId, orgId]);
+    if (!client) return null;
 
     if (!current || (current.revenue === 0 && current.ad_spend === 0)) {
       return null; // No data to analyze
