@@ -410,6 +410,28 @@ const Landing = () => {
           </div>
         </section>
 
+        {/* Video demo: capturas reales de Orbit (anonimizadas), 75 s, sin audio */}
+        <section className="lp-section lp-demo" id="demo" aria-label="Demo de Orbit en video">
+          <div className="lp-container">
+            <div className="lp-section__head">
+              <span className="lp-eyebrow" data-reveal>Mira Orbit en 75 segundos</span>
+              <h2 className="lp-h2" data-reveal data-reveal-delay="1">Así se ve una agencia operando sus marcas con números reales.</h2>
+            </div>
+            <div className="lp-demo__frame" data-reveal data-reveal-delay="2">
+              <video
+                className="lp-demo__video"
+                src="/demo/orbit-demo-web.mp4"
+                poster="/demo/orbit-demo-poster.jpg"
+                controls
+                muted
+                playsInline
+                preload="metadata"
+                aria-label="Video demo de Orbit"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* ---------- Problema ---------- */}
         <section className="lp-section" id="problema">
           <div className="lp-container">
