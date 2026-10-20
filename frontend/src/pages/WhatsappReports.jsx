@@ -2,6 +2,7 @@
 // Quién del equipo recibe cada resumen, reporte diario al dueño de cada marca (add-on),
 // número desde el que se envía (compartido de Orbit o propio, add-on) y envío de prueba.
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { ADDONS_BY_KEY } from '../config/pricing';
 import { Link, Navigate } from 'react-router-dom';
 import {
   ChevronLeft, MessageCircle, Lock, ArrowUpRight, Loader2, Save, Send, Eye, X, Users, Store, Phone, Hash, Check,
@@ -9,9 +10,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { whatsappBriefingsAPI } from '../utils/api';
 
-// Precio mensual de cada add-on cuando no viene incluido en el plan anual.
-// TODO: leer de /api/org/plan (planCatalog) cuando el catálogo exponga los add-ons.
-const ADDON_PRICES = { hourly_reports: 59000, owner_reports: 89000, dedicated_number: 149000 };
+// Precio mensual de cada add-on cuando no viene incluido en el plan anual (fuente única: config/pricing.js).
+const ADDON_PRICES = Object.fromEntries(Object.entries(ADDONS_BY_KEY).map(([k, a]) => [k, a.price]));
 const ADDON_LABELS = { hourly_reports: 'Reportes cada hora', owner_reports: 'Reporte diario al dueño de cada marca', dedicated_number: 'Número de WhatsApp propio' };
 
 const KIND_META = [

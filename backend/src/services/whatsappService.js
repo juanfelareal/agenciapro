@@ -12,22 +12,12 @@ import {
   extractMessageText,
 } from '../utils/kapsoClient.js';
 import { createNotification } from '../utils/notificationHelper.js';
-import { resolvePlanKey } from './plans.js';
+import { computePlanState } from './plans.js';
 
 // ---------------------------------------------------------------------------
 // Organización: add-ons y número desde el que se envía
 // ---------------------------------------------------------------------------
 
-/**
- * Add-ons que cada plan incluye cuando la suscripción es ANUAL.
- * Mensual: solo lo que esté en `organizations.addons` como true.
- */
-const ANNUAL_INCLUDED_ADDONS = {
-  starter: ['owner_reports'],
-  growth: ['hourly_reports', 'owner_reports'],
-  agencia: ['hourly_reports', 'owner_reports', 'dedicated_number'],
-  trial: [],
-};
 export const ADDON_KEYS = ['hourly_reports', 'owner_reports', 'dedicated_number'];
 
 const parseJson = (v) => {
@@ -38,18 +28,13 @@ const parseJson = (v) => {
 
 /**
  * ¿La organización tiene activo el add-on `key`?
- * Activo si addons[key] === true, o si billing_cycle === 'annual' y el plan lo incluye.
- * Org 1 (LA REAL): todo activo.
- * TODO: usar plans.isAddonEnabled(orgId, key) al integrar (misma regla).
+ * Regla canónica en services/plans.js (computePlanState + addonsFor): activo si está en
+ * `organizations.addons`, o si la suscripción es anual y el plan lo incluye. Org 1 (LA REAL): todo.
  */
 export const addonOn = (orgRow, key) => {
   if (!orgRow) return false;
-  if (Number(orgRow.id) === 1) return true;
-  const addons = parseJson(orgRow.addons) || {};
-  if (addons[key] === true) return true;
-  if ((orgRow.billing_cycle || 'monthly') !== 'annual') return false;
-  const planKey = resolvePlanKey(orgRow);
-  return (ANNUAL_INCLUDED_ADDONS[planKey] || []).includes(key);
+  const state = computePlanState({ ...orgRow, org_id: orgRow.id });
+  return state.addons?.[key] === true;
 };
 
 /** Fila de la organización con lo necesario para add-ons, marca y número propio. */
