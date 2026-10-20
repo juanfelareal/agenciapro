@@ -9,7 +9,8 @@ import {
   isPlatformAdminEmail,
   SELECTABLE_PLANS,
 } from '../services/plans.js';
-import { PLAN_STATUSES, publicCatalog } from '../config/planCatalog.js';
+import { PLAN_STATUSES, BILLING_CYCLES, publicCatalog } from '../config/planCatalog.js';
+import { normalizeAddons } from '../services/plans.js'; // [billing]
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.get('/organizations', async (req, res) => {
     const rows = await db.all(`
       SELECT o.id, o.name, o.slug, o.logo_url, o.plan, o.plan_selected, o.plan_status, o.trial_ends_at,
              o.modules, o.plan_limits, o.plan_requested_at, o.created_at, o.settings,
+             o.billing_cycle, o.addons, o.plan_started_at, o.plan_renews_at, o.price_locked_until, o.plan_price_locked, o.kapso_phone_number_id,
              (SELECT COUNT(*) FROM clients c WHERE c.organization_id = o.id AND c.status = 'active') AS brands,
              (SELECT COUNT(*) FROM team_members tm WHERE tm.organization_id = o.id AND tm.status = 'active') AS users,
              (SELECT COUNT(*) FROM client_shopify_credentials s JOIN clients c ON c.id = s.client_id
@@ -74,6 +76,16 @@ router.get('/organizations', async (req, res) => {
         plan_limits: row.plan_limits || null,
         modules: state.modules,
         overrides: state.overrides,
+        // [billing]
+        billing_cycle: state.billing_cycle,
+        addons: state.addons,
+        addons_raw: state.addons_raw,
+        addons_included: state.addons_included,
+        plan_started_at: state.plan_started_at,
+        plan_renews_at: state.plan_renews_at,
+        price_locked_until: state.price_locked_until,
+        plan_price_locked: state.plan_price_locked,
+        has_dedicated_number: state.has_dedicated_number,
         usage: {
           brands: Number(row.brands || 0),
           users: Number(row.users || 0),
@@ -91,8 +103,10 @@ router.get('/organizations', async (req, res) => {
 
 /**
  * PUT /api/platform/organizations/:id/plan
- * { plan, plan_status, trial_ends_at, plan_limits: { brands, users } }
+ * { plan, plan_status, trial_ends_at, plan_limits: { brands, users }, modules,
+ *   billing_cycle, addons, plan_renews_at, price_locked_until, plan_price_locked, plan_started_at }   // [billing]
  * Solo actualiza los campos enviados. Activar un plan → plan = plan_selected = <plan>.
+ * Activación manual por transferencia: { plan, plan_status: 'active', billing_cycle: 'annual', plan_renews_at, price_locked_until }.
  */
 router.put('/organizations/:id/plan', async (req, res) => {
   try {
@@ -102,6 +116,7 @@ router.put('/organizations/:id/plan', async (req, res) => {
     if (!org) return res.status(404).json({ error: 'Organización no encontrada' });
 
     const { plan, plan_status, trial_ends_at, plan_limits, modules } = req.body || {};
+    const { billing_cycle, addons, plan_renews_at, price_locked_until, plan_price_locked, plan_started_at } = req.body || {}; // [billing]
     const sets = [];
     const params = [];
 
@@ -159,6 +174,41 @@ router.put('/organizations/:id/plan', async (req, res) => {
       }
     }
 
+    // [billing] ciclo, add-ons y fechas del plan
+    if (billing_cycle !== undefined) {
+      if (!BILLING_CYCLES.includes(billing_cycle)) {
+        return res.status(400).json({ error: `Ciclo inválido. Opciones: ${BILLING_CYCLES.join(', ')}` });
+      }
+      sets.push('billing_cycle = ?');
+      params.push(billing_cycle);
+    }
+    if (addons !== undefined) {
+      if (addons === null) sets.push(`addons = '{}'::jsonb`);
+      else if (typeof addons === 'object' && !Array.isArray(addons)) {
+        sets.push('addons = ?::jsonb');
+        params.push(JSON.stringify(normalizeAddons(addons)));
+      } else {
+        return res.status(400).json({ error: 'addons debe ser un objeto { hourly_reports, owner_reports, dedicated_number, extra_users, extra_brands } o null' });
+      }
+    }
+    for (const [field, value] of [['plan_renews_at', plan_renews_at], ['price_locked_until', price_locked_until], ['plan_started_at', plan_started_at]]) {
+      if (value === undefined) continue;
+      if (value === null || value === '') { sets.push(`${field} = NULL`); continue; }
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return res.status(400).json({ error: `Fecha inválida para ${field}` });
+      sets.push(`${field} = ?`);
+      params.push(d.toISOString());
+    }
+    if (plan_price_locked !== undefined) {
+      if (plan_price_locked === null || plan_price_locked === '') sets.push('plan_price_locked = NULL');
+      else {
+        const n = Number(plan_price_locked);
+        if (!Number.isFinite(n) || n < 0) return res.status(400).json({ error: 'plan_price_locked inválido' });
+        sets.push('plan_price_locked = ?');
+        params.push(Math.round(n));
+      }
+    }
+
     if (!sets.length) return res.status(400).json({ error: 'Nada que actualizar' });
 
     sets.push('updated_at = CURRENT_TIMESTAMP');
@@ -167,7 +217,8 @@ router.put('/organizations/:id/plan', async (req, res) => {
     invalidateOrgPlanCache(orgId);
 
     const row = await db.get(
-      `SELECT id, name, slug, plan, plan_selected, plan_status, trial_ends_at, modules, plan_limits, plan_requested_at, created_at
+      `SELECT id, name, slug, plan, plan_selected, plan_status, trial_ends_at, modules, plan_limits, plan_requested_at, created_at,
+              billing_cycle, addons, plan_started_at, plan_renews_at, price_locked_until, plan_price_locked, kapso_phone_number_id
        FROM organizations WHERE id = ?`,
       [orgId]
     );

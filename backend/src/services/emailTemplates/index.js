@@ -5,6 +5,7 @@ import trialWelcome from './trial-welcome.js';
 import trialEnding from './trial-ending.js';
 import taskAssigned from './task-assigned.js';
 import invoiceSent from './invoice-sent.js';
+import paymentApproved from './payment-approved.js'; // [billing]
 
 /** Registro de plantillas: nombre → { subject(data), body(data), sample } */
 export const templates = {
@@ -15,6 +16,7 @@ export const templates = {
   'trial-ending': { ...trialEnding, label: 'Fin de prueba', audience: 'Agencia' },
   'task-assigned': { ...taskAssigned, label: 'Tarea asignada', audience: 'Equipo' },
   'invoice-sent': { ...invoiceSent, label: 'Factura enviada', audience: 'Cliente' },
+  'payment-approved': { ...paymentApproved, label: 'Pago confirmado', audience: 'Agencia' }, // [billing]
 };
 
 export const templateNames = Object.keys(templates);
