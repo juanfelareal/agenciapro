@@ -149,48 +149,6 @@ router.get('/onboarding/status', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Módulos por organización (mínimo; contrato compartido con "módulos por organización")
 // ---------------------------------------------------------------------------
-router.get('/modules', async (req, res) => {
-  try {
-    const settings = await getOrgSettings(req.orgId);
-    const agencyType = settings?.onboarding?.agency_type;
-    res.json({ modules: settings.modules || (agencyType ? MODULE_DEFAULTS[agencyType] : null) });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.put('/modules', requireAdmin, async (req, res) => {
-  try {
-    const modules = sanitizeModules(req.body?.modules);
-    if (!modules) return res.status(400).json({ error: 'Formato inválido: { modules: { clave: boolean } }' });
-    const saved = await saveSettingsKey(req.orgId, 'modules', modules);
-    res.json({ modules: saved });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Marca (mínimo: color de acento + tema)
-// ---------------------------------------------------------------------------
-router.get('/branding', async (req, res) => {
-  try {
-    const settings = await getOrgSettings(req.orgId);
-    res.json({ branding: settings.branding || null });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.put('/branding', requireAdmin, async (req, res) => {
-  try {
-    const branding = sanitizeBranding(req.body);
-    if (!branding) return res.status(400).json({ error: 'Formato inválido: { accent: "#RRGGBB", theme: "light" | "dark" }' });
-    const saved = await saveSettingsKey(req.orgId, 'branding', branding);
-    res.json({ branding: saved });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// [modules]/[branding]: GET/PUT /modules y /branding viven en routes/org.js y routes/org-branding.js
 
 export default router;

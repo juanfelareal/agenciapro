@@ -655,6 +655,16 @@ router.post('/register', async (req, res) => {
 
     const orgId = orgResult.lastInsertRowid;
 
+    // [modules] Los módulos elegidos en el registro quedan como overrides del plan (solo apagan; nunca
+    // encienden uno fuera del plan). Se guardan en organizations.modules, que es lo que lee services/plans.js.
+    try {
+      const chosen = settings ? JSON.parse(settings)?.modules : null;
+      if (chosen && typeof chosen === 'object') {
+        const overrides = Object.fromEntries(Object.entries(chosen).filter(([, v]) => v === false));
+        if (Object.keys(overrides).length) await db.run('UPDATE organizations SET modules = ? WHERE id = ?', [JSON.stringify(overrides), orgId]);
+      }
+    } catch (e) { console.warn('[register] módulos iniciales no aplicados:', e.message); }
+
     // Create admin membership
     await db.run(`
       INSERT INTO team_members (name, email, role, status, user_id, organization_id, pin_hash)
