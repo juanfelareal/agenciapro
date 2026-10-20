@@ -52,7 +52,7 @@ const CSS = `
   .rep .heat .c { height: 11px; border-radius: 2px; background: #F3F4F6; }
   .rep .heat .lab { font-size: 9px; color: #6B7280; }
   .rep .heat .hr { font-size: 8px; color: #9CA3AF; text-align: center; }
-  .rep .hbar { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 10px; }
+  .rep .hbar { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 10px; white-space: nowrap; }
   .rep .hbar .t { height: 9px; background: #D1D5DB; border-radius: 4px; }
   .rep .foot { margin-top: 18px; padding-top: 8px; border-top: 1px solid #E5E7EB; font-size: 9px; color: #9CA3AF; }
   .rep .note { font-size: 9.5px; color: #6B7280; margin-top: 6px; }
