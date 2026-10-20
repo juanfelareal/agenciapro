@@ -366,7 +366,7 @@ const GlobalSearch = () => {
       >
         <Search size={16} />
         <span className="hidden sm:inline">Buscar...</span>
-        <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs bg-white rounded border border-gray-200">
+        <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs bg-[var(--surface)] rounded border border-gray-200">
           ⌘K
         </kbd>
       </button>

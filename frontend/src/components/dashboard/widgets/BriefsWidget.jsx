@@ -91,13 +91,13 @@ const BriefsWidget = ({ widget }) => {
       {previewBrief && (
         <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] ${fullscreen ? "p-0" : "p-4"}`}>
           <div
-            className={`bg-white shadow-xl flex flex-col ${
+            className={`bg-[var(--surface)] shadow-xl flex flex-col ${
               fullscreen ? 'w-full h-full' : 'rounded-2xl w-full max-w-5xl h-[85vh] max-h-[90dvh]'
             }`}
           >
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
               <div>
-                <h3 className="font-semibold text-[#121314]">{previewBrief.title}</h3>
+                <h3 className="font-semibold text-[var(--ink)]">{previewBrief.title}</h3>
                 <p className="text-xs text-gray-400">
                   {previewBrief.client_nickname || previewBrief.client_company || previewBrief.client_name}
                 </p>

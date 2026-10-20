@@ -351,13 +351,13 @@ export default function Forms() {
                   {shareCopied ? 'Copiado!' : shareToken ? 'Link público' : 'Compartir'}
                 </button>
                 {showShareMenu && shareToken && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-slate-200 p-4 z-50">
+                  <div className="absolute right-0 mt-2 w-80 bg-[var(--surface)] rounded-xl shadow-lg border border-slate-200 p-4 z-50">
                     <p className="text-xs text-slate-500 mb-2">Enlace público del formulario:</p>
                     <div className="flex gap-2 mb-3">
                       <input type="text" readOnly value={`${window.location.origin}/f/${shareToken}`}
                         className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-600" />
                       <button onClick={handleShare}
-                        className="px-3 py-2 bg-[#121314] text-white rounded-lg text-xs hover:bg-[#2a2a3e]">
+                        className="px-3 py-2 bg-[var(--dark)] text-white rounded-lg text-xs hover:bg-[#2a2a3e]">
                         {shareCopied ? 'Copiado!' : 'Copiar'}
                       </button>
                     </div>
@@ -386,7 +386,7 @@ export default function Forms() {
                 )}
               </button>
             )}
-            <button onClick={saveForm} disabled={saving || !formTitle.trim()} className="flex items-center gap-2 px-4 py-2 bg-[#121314] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 text-sm">
+            <button onClick={saveForm} disabled={saving || !formTitle.trim()} className="flex items-center gap-2 px-4 py-2 bg-[var(--dark)] text-white rounded-lg hover:bg-[#2a2a3e] disabled:opacity-50 text-sm">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
@@ -405,7 +405,7 @@ export default function Forms() {
           <input
             type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)}
             placeholder="Título del formulario"
-            className="w-full text-2xl font-bold text-slate-800 border-0 border-b border-slate-200 pb-3 mb-3 focus:outline-none focus:border-[#121314] placeholder:text-slate-300"
+            className="w-full text-2xl font-bold text-slate-800 border-0 border-b border-slate-200 pb-3 mb-3 focus:outline-none focus:border-[var(--ink)] placeholder:text-slate-300"
           />
           <textarea
             value={formDescription} onChange={e => setFormDescription(e.target.value)}
@@ -456,10 +456,10 @@ export default function Forms() {
                       <input
                         type="text" value={field.label} onChange={e => updateField(sIdx, fIdx, 'label', e.target.value)}
                         placeholder="Pregunta"
-                        className="flex-1 text-sm font-medium border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#121314]"
+                        className="flex-1 text-sm font-medium border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                       />
                       <select value={field.field_type} onChange={e => updateField(sIdx, fIdx, 'field_type', e.target.value)}
-                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white">
+                        className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none bg-[var(--surface)]">
                         {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </div>
@@ -486,14 +486,14 @@ export default function Forms() {
                 </div>
               ))}
 
-              <button onClick={() => addField(sIdx)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#121314] py-2">
+              <button onClick={() => addField(sIdx)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[var(--ink)] py-2">
                 <Plus size={16} /> Agregar campo
               </button>
             </div>
           </div>
         ))}
 
-        <button onClick={addSection} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#121314] py-3 px-4 border border-dashed border-slate-300 rounded-xl w-full justify-center hover:border-slate-400">
+        <button onClick={addSection} className="flex items-center gap-2 text-sm text-slate-500 hover:text-[var(--ink)] py-3 px-4 border border-dashed border-slate-300 rounded-xl w-full justify-center hover:border-slate-400">
           <Plus size={16} /> Agregar sección
         </button>
 
@@ -522,7 +522,7 @@ export default function Forms() {
                     </div>
                   </div>
                   <button onClick={() => viewResponse(a.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
                     <Eye size={14} /> Ver
                   </button>
                 </div>
@@ -543,7 +543,7 @@ export default function Forms() {
                     </div>
                   </div>
                   <button onClick={() => viewPublicResponse(r.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
                     <Eye size={14} /> Ver
                   </button>
                 </div>
@@ -555,7 +555,7 @@ export default function Forms() {
         {/* Assign Panel */}
         {showAssignPanel && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-lg overflow-hidden shadow-xl max-h-[80vh] flex flex-col">
+            <div className="bg-[var(--surface)] rounded-xl w-full max-w-lg overflow-hidden shadow-xl max-h-[80vh] flex flex-col">
               <div className="flex items-center justify-between p-4 border-b border-slate-200">
                 <h3 className="text-lg font-semibold text-slate-800">Asignaciones y respuestas</h3>
                 <button onClick={() => setShowAssignPanel(false)} className="p-2 hover:bg-slate-100 rounded-lg"><X size={20} className="text-slate-500" /></button>
@@ -563,12 +563,12 @@ export default function Forms() {
               <div className="p-5 space-y-5 overflow-y-auto flex-1">
                 <div className="space-y-3">
                   <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]">
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]">
                     <option value="">Seleccionar cliente</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}{c.company && c.nickname ? ` — ${c.company}` : ''}</option>)}
                   </select>
                   <button onClick={assignForm} disabled={!selectedClient}
-                    className="w-full px-5 py-2.5 bg-[#121314] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3e] disabled:opacity-50">
+                    className="w-full px-5 py-2.5 bg-[var(--dark)] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3e] disabled:opacity-50">
                     Asignar
                   </button>
                 </div>
@@ -650,7 +650,7 @@ export default function Forms() {
           <h1 className="text-2xl font-bold text-slate-800">Formularios</h1>
           <p className="text-sm text-slate-500 mt-1">Crea y asigna formularios a tus clientes</p>
         </div>
-        <button onClick={() => openBuilder()} className="flex items-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-lg hover:bg-[#2a2a3e] text-sm">
+        <button onClick={() => openBuilder()} className="flex items-center gap-2 px-4 py-2.5 bg-[var(--dark)] text-white rounded-lg hover:bg-[#2a2a3e] text-sm">
           <Plus size={18} /> Nuevo formulario
         </button>
       </div>
@@ -661,10 +661,10 @@ export default function Forms() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar formularios..."
-            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#121314]" />
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]" />
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+          className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none bg-[var(--surface)]">
           <option value="">Todos los estados</option>
           <option value="draft">Borrador</option>
           <option value="published">Publicado</option>
@@ -687,7 +687,7 @@ export default function Forms() {
             <div key={form.id} onClick={() => openBuilder(form)}
               className="glass rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer group">
               <div className="flex items-start justify-between gap-2 mb-3">
-                <h3 className="font-semibold text-slate-800 group-hover:text-[#121314] line-clamp-2" title={form.title}>{form.title}</h3>
+                <h3 className="font-semibold text-slate-800 group-hover:text-[var(--ink)] line-clamp-2" title={form.title}>{form.title}</h3>
                 <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${STATUS_LABELS[form.status]?.color || 'bg-slate-100'}`}>
                   {STATUS_LABELS[form.status]?.label || form.status}
                 </span>
@@ -748,7 +748,7 @@ function OptionsEditor({ options, onChange }) {
           <button onClick={() => removeOption(idx)} className="text-slate-400 hover:text-red-500"><X size={12} /></button>
         </div>
       ))}
-      <button onClick={addOption} className="text-xs text-slate-400 hover:text-[#121314] flex items-center gap-1 pt-1">
+      <button onClick={addOption} className="text-xs text-slate-400 hover:text-[var(--ink)] flex items-center gap-1 pt-1">
         <Plus size={12} /> Agregar opción
       </button>
     </div>

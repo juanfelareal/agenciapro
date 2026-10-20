@@ -227,7 +227,7 @@ export default function PortalDocumentSign() {
       </div>
 
       {/* Document Content */}
-      <div className="bg-white border border-ink-200 rounded-xl p-6 mb-6">
+      <div className="bg-[var(--surface)] border border-ink-200 rounded-xl p-6 mb-6">
         <div
           className="prose prose-ink max-w-none"
           dangerouslySetInnerHTML={{ __html: document.rendered_content }}
@@ -235,7 +235,7 @@ export default function PortalDocumentSign() {
       </div>
 
       {/* Signature Form */}
-      <div className="bg-white border border-ink-200 rounded-xl p-6">
+      <div className="bg-[var(--surface)] border border-ink-200 rounded-xl p-6">
         <h2 className="text-lg font-semibold text-ink-900 mb-4">Firma del documento</h2>
 
         {error && (
@@ -296,7 +296,7 @@ export default function PortalDocumentSign() {
               ref={canvasRef}
               width={600}
               height={150}
-              className="w-full bg-white rounded-lg cursor-crosshair touch-none"
+              className="w-full bg-[var(--surface)] rounded-lg cursor-crosshair touch-none"
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}

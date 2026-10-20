@@ -20,7 +20,7 @@ const KPICard = ({ title, value, change, subtitle, icon: Icon, iconColor = 'teal
   const isNegative = change < 0;
 
   return (
-    <div className="glass rounded-2xl p-5 hover:bg-[#121212]/[0.03] transition-all duration-200">
+    <div className="glass rounded-2xl p-5 hover:bg-[rgb(var(--ink-rgb)/0.03)] transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
         {Icon && (
           <span className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconColorMap[iconColor]}`}>
@@ -40,7 +40,7 @@ const KPICard = ({ title, value, change, subtitle, icon: Icon, iconColor = 'teal
         )}
       </div>
       <div className="text-xs text-gray-500 font-medium mb-1">{title}</div>
-      <div className="text-2xl font-bold text-[#121314] tracking-tight">{value}</div>
+      <div className="text-2xl font-bold text-[var(--ink)] tracking-tight">{value}</div>
       {subtitle && <div className="text-xs text-gray-400 mt-1">{subtitle}</div>}
     </div>
   );

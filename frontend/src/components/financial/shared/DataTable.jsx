@@ -33,7 +33,7 @@ const DataTable = ({ columns, data, className = '' }) => {
               {columns.map((col, colIdx) => (
                 <td
                   key={col.key || colIdx}
-                  className={`px-4 py-3.5 text-[13px] text-[#121314] border-b border-gray-100 group-hover:bg-[#121212]/[0.04] transition-colors ${
+                  className={`px-4 py-3.5 text-[13px] text-[var(--ink)] border-b border-gray-100 group-hover:bg-[rgb(var(--ink-rgb)/0.04)] transition-colors ${
                     col.align === 'right' ? 'text-right font-semibold' : ''
                   } ${col.align === 'center' ? 'text-center' : ''} ${row.cells?.[col.key]?.className || ''}`}
                   style={row.cells?.[col.key]?.style}

@@ -27,6 +27,21 @@
         background-color: #F3F1ED;
       }
     </style>
+    <script>
+      /* [branding] Fondo del tema cacheado antes de cargar la app (evita el flash claro→oscuro). */
+      (function () {
+        try {
+          var p = location.pathname;
+          if (p === '/' || p.indexOf('/landing') === 0 || p.indexOf('/register') === 0) return;
+          var key = p.indexOf('/portal') === 0 ? 'orbitPortalBranding' : 'orbitBranding';
+          var c = JSON.parse(localStorage.getItem(key) || 'null');
+          var t = c && c.branding && c.branding.theme;
+          var bg = t === 'dark' ? '#121314' : t === 'white' ? '#F5F5F6' : null;
+          if (bg) document.documentElement.style.backgroundColor = bg;
+          if (t === 'dark') document.documentElement.style.colorScheme = 'dark';
+        } catch (e) { /* sin cache */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

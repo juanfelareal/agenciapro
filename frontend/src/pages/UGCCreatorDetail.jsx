@@ -21,7 +21,7 @@ const SOURCE_OPTIONS = [
   { value: 'otro', label: 'Otro' },
 ];
 
-const INPUT_CLASS = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 disabled:bg-gray-50 disabled:text-gray-400';
+const INPUT_CLASS = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] disabled:bg-gray-50 disabled:text-gray-400';
 
 // Normalize an Instagram/TikTok handle or URL to a bare username (no @, no URL)
 function normalizeHandle(input, domain) {
@@ -386,7 +386,7 @@ export default function UGCCreatorDetail() {
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
         <div className="flex-1 min-w-[180px]">
-          <h1 className="text-2xl font-semibold text-[#121314]">{creator.full_name}</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)]">{creator.full_name}</h1>
           <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-2">
             {creator.city && <><MapPin className="w-3.5 h-3.5" /> {creator.city}, {creator.department}</>}
           </p>
@@ -399,7 +399,7 @@ export default function UGCCreatorDetail() {
             <select
               value={creator.stage_id || ''}
               onChange={(e) => handleStageChange(parseInt(e.target.value))}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
               style={{ borderLeftColor: currentStage?.color, borderLeftWidth: '3px' }}
             >
               {stages.map(s => (
@@ -410,7 +410,7 @@ export default function UGCCreatorDetail() {
 
           <button
             onClick={openEditModal}
-            className="flex items-center gap-2 px-3.5 py-2 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
+            className="flex items-center gap-2 px-3.5 py-2 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
           >
             <Edit3 className="w-4 h-4" /> Editar perfil
           </button>
@@ -429,19 +429,19 @@ export default function UGCCreatorDetail() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-4">
           <p className="text-xs text-gray-500 mb-1">Asignaciones</p>
-          <p className="text-2xl font-bold text-[#121314]">{assignments.length}</p>
+          <p className="text-2xl font-bold text-[var(--ink)]">{assignments.length}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-4">
           <p className="text-xs text-gray-500 mb-1">Total Acordado</p>
-          <p className="text-2xl font-bold text-[#121314]">{formatCurrency(totalAgreed)}</p>
+          <p className="text-2xl font-bold text-[var(--ink)]">{formatCurrency(totalAgreed)}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-4">
           <p className="text-xs text-gray-500 mb-1">Total Pagado</p>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-4">
           <p className="text-xs text-gray-500 mb-1">Pendiente</p>
           <p className={`text-2xl font-bold ${pendingAmount > 0 ? 'text-orange-500' : 'text-gray-400'}`}>
             {formatCurrency(pendingAmount)}
@@ -461,7 +461,7 @@ export default function UGCCreatorDetail() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.id
-                ? 'border-[#121314] text-[#121314]'
+                ? 'border-[var(--ink)] text-[var(--ink)]'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -474,8 +474,8 @@ export default function UGCCreatorDetail() {
       {activeTab === 'info' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Contact Info */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <h3 className="font-semibold text-[#121314] mb-4">Contacto</h3>
+          <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-5">
+            <h3 className="font-semibold text-[var(--ink)] mb-4">Contacto</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-gray-400" />
@@ -493,8 +493,8 @@ export default function UGCCreatorDetail() {
           </div>
 
           {/* Social Networks */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <h3 className="font-semibold text-[#121314] mb-4">Redes Sociales</h3>
+          <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-5">
+            <h3 className="font-semibold text-[var(--ink)] mb-4">Redes Sociales</h3>
             <div className="space-y-3">
               {socialNetworks.instagram && (
                 <a
@@ -525,8 +525,8 @@ export default function UGCCreatorDetail() {
           </div>
 
           {/* Shipping Label */}
-          <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-5 relative">
-            <div className="absolute -top-3 left-4 bg-white px-2">
+          <div className="bg-[var(--surface)] rounded-xl border-2 border-dashed border-gray-300 p-5 relative">
+            <div className="absolute -top-3 left-4 bg-[var(--surface)] px-2">
               <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Etiqueta de Envío</span>
             </div>
 
@@ -535,16 +535,16 @@ export default function UGCCreatorDetail() {
               {/* Recipient name - bold and prominent */}
               <div className="border-b border-gray-200 pb-2">
                 <p className="text-xs text-gray-400 uppercase tracking-wide">Destinatario</p>
-                <p className="text-base font-bold text-[#121314] uppercase">{creator.full_name || '-'}</p>
+                <p className="text-base font-bold text-[var(--ink)] uppercase">{creator.full_name || '-'}</p>
               </div>
 
               {/* Address block */}
               <div className="space-y-1">
-                <p className="text-sm text-[#121314] font-medium">{creator.address || '-'}</p>
+                <p className="text-sm text-[var(--ink)] font-medium">{creator.address || '-'}</p>
                 {creator.shipping_notes && (
-                  <p className="text-sm text-[#121314]">{creator.shipping_notes}</p>
+                  <p className="text-sm text-[var(--ink)]">{creator.shipping_notes}</p>
                 )}
-                <p className="text-sm text-[#121314] font-semibold">
+                <p className="text-sm text-[var(--ink)] font-semibold">
                   {creator.city}{creator.department ? `, ${creator.department}` : ''} {creator.postal_code || ''}
                 </p>
               </div>
@@ -553,11 +553,11 @@ export default function UGCCreatorDetail() {
               <div className="border-t border-gray-200 pt-2 grid grid-cols-2 gap-2">
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase">Teléfono</p>
-                  <p className="text-sm font-medium text-[#121314]">{creator.phone || '-'}</p>
+                  <p className="text-sm font-medium text-[var(--ink)]">{creator.phone || '-'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase">Cédula</p>
-                  <p className="text-sm font-medium text-[#121314]">{creator.cedula || '-'}</p>
+                  <p className="text-sm font-medium text-[var(--ink)]">{creator.cedula || '-'}</p>
                 </div>
               </div>
             </div>
@@ -576,9 +576,9 @@ export default function UGCCreatorDetail() {
           </div>
 
           {/* Custom lists */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
+          <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-[#121314]">Listas</h3>
+              <h3 className="font-semibold text-[var(--ink)]">Listas</h3>
               <ListTagButton listIds={creator.list_ids} onOpen={(rect) => setListPicker(rect)} className="p-1.5 hover:bg-gray-100" />
             </div>
             {creator.list_ids?.length > 0 ? (
@@ -606,8 +606,8 @@ export default function UGCCreatorDetail() {
           </div>
 
           {/* Industries & Bio */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <h3 className="font-semibold text-[#121314] mb-4">Perfil</h3>
+          <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-5">
+            <h3 className="font-semibold text-[var(--ink)] mb-4">Perfil</h3>
             {creator.industries?.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {creator.industries.map((ind, i) => (
@@ -626,8 +626,8 @@ export default function UGCCreatorDetail() {
 
           {/* Características físicas */}
           {creator.traits && (
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h3 className="font-semibold text-[#121314] mb-4 flex items-center gap-2">
+            <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-5">
+              <h3 className="font-semibold text-[var(--ink)] mb-4 flex items-center gap-2">
                 <Palette className="w-4 h-4 text-gray-400" /> Características
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -695,8 +695,8 @@ export default function UGCCreatorDetail() {
           )}
 
           {/* Trabajo y Portfolio */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <h3 className="font-semibold text-[#121314] mb-4 flex items-center gap-2">
+          <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-5">
+            <h3 className="font-semibold text-[var(--ink)] mb-4 flex items-center gap-2">
               <Camera className="w-4 h-4 text-gray-400" /> Trabajo
             </h3>
 
@@ -712,7 +712,7 @@ export default function UGCCreatorDetail() {
             ) : (
               <div className="bg-gray-50 rounded-lg p-3 mb-4">
                 <p className="text-xs text-gray-400 mb-0.5">Tarifa base por video</p>
-                <p className="text-sm text-gray-500">Sin definir · <button type="button" onClick={openEditModal} className="underline hover:text-[#121314]">agregar</button></p>
+                <p className="text-sm text-gray-500">Sin definir · <button type="button" onClick={openEditModal} className="underline hover:text-[var(--ink)]">agregar</button></p>
               </div>
             )}
 
@@ -789,20 +789,20 @@ export default function UGCCreatorDetail() {
 
           {/* Disponibilidad */}
           {creator.availability && (
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h3 className="font-semibold text-[#121314] mb-4 flex items-center gap-2">
+            <div className="bg-[var(--surface)] rounded-xl border border-gray-100 p-5">
+              <h3 className="font-semibold text-[var(--ink)] mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-gray-400" /> Disponibilidad
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {creator.availability.videos_per_week && (
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-[#121314]">{creator.availability.videos_per_week}</p>
+                    <p className="text-2xl font-bold text-[var(--ink)]">{creator.availability.videos_per_week}</p>
                     <p className="text-xs text-gray-500">videos/semana</p>
                   </div>
                 )}
                 {creator.availability.delivery_time && (
                   <div className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-[#121314]">{creator.availability.delivery_time}</p>
+                    <p className="text-2xl font-bold text-[var(--ink)]">{creator.availability.delivery_time}</p>
                     <p className="text-xs text-gray-500">días de entrega</p>
                   </div>
                 )}
@@ -812,7 +812,7 @@ export default function UGCCreatorDetail() {
 
           {/* Notas Internas - full width */}
           <div className="md:col-span-2 bg-amber-50/50 rounded-xl border border-amber-200 p-5">
-            <h3 className="font-semibold text-[#121314] mb-4 flex items-center gap-2">
+            <h3 className="font-semibold text-[var(--ink)] mb-4 flex items-center gap-2">
               <StickyNote className="w-4 h-4 text-amber-500" />
               Notas Internas
               <span className="text-xs font-normal text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">
@@ -826,7 +826,7 @@ export default function UGCCreatorDetail() {
                 <select
                   value={newNoteProjectId}
                   onChange={(e) => setNewNoteProjectId(e.target.value)}
-                  className="px-3 py-2 text-sm border border-amber-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  className="px-3 py-2 text-sm border border-amber-200 rounded-lg bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-amber-300"
                 >
                   <option value="">Sin proyecto</option>
                   {projects.map(p => (
@@ -840,7 +840,7 @@ export default function UGCCreatorDetail() {
                   value={newNoteContent}
                   onChange={(e) => setNewNoteContent(e.target.value)}
                   placeholder="Ej: Tiene carro eléctrico, ideal para campaña..."
-                  className="flex-1 px-4 py-2.5 border border-amber-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  className="flex-1 px-4 py-2.5 border border-amber-200 rounded-lg text-sm bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-amber-300"
                 />
                 <button
                   type="submit"
@@ -861,7 +861,7 @@ export default function UGCCreatorDetail() {
             ) : (
               <div className="space-y-2">
                 {notes.map(note => (
-                  <div key={note.id} className="bg-white rounded-lg p-3 border border-amber-100 group">
+                  <div key={note.id} className="bg-[var(--surface)] rounded-lg p-3 border border-amber-100 group">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         {note.project_title && (
@@ -895,7 +895,7 @@ export default function UGCCreatorDetail() {
           <div className="flex justify-end mb-4">
             <button
               onClick={() => setShowAssignmentModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
             >
               <Plus className="w-4 h-4" /> Nueva Asignación
             </button>
@@ -909,10 +909,10 @@ export default function UGCCreatorDetail() {
           ) : (
             <div className="space-y-3">
               {assignments.map(assignment => (
-                <div key={assignment.id} className="bg-white rounded-xl border border-gray-100 p-4">
+                <div key={assignment.id} className="bg-[var(--surface)] rounded-xl border border-gray-100 p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h4 className="font-semibold text-[#121314]">{assignment.title}</h4>
+                      <h4 className="font-semibold text-[var(--ink)]">{assignment.title}</h4>
                       <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
                         <Building2 className="w-3.5 h-3.5" /> {assignment.client_name || 'Sin cliente'}
                       </p>
@@ -957,7 +957,7 @@ export default function UGCCreatorDetail() {
           <div className="flex justify-end mb-4">
             <button
               onClick={() => setShowPaymentModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
             >
               <Plus className="w-4 h-4" /> Registrar Pago
             </button>
@@ -973,14 +973,14 @@ export default function UGCCreatorDetail() {
               {payments.map(payment => {
                 const StatusIcon = PAYMENT_STATUS[payment.status]?.icon || Clock;
                 return (
-                  <div key={payment.id} className="bg-white rounded-xl border border-gray-100 p-4">
+                  <div key={payment.id} className="bg-[var(--surface)] rounded-xl border border-gray-100 p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${PAYMENT_STATUS[payment.status]?.color}`}>
                           <StatusIcon className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="font-semibold text-[#121314]">{formatCurrency(payment.amount)}</p>
+                          <p className="font-semibold text-[var(--ink)]">{formatCurrency(payment.amount)}</p>
                           <p className="text-xs text-gray-500">
                             {formatDate(payment.payment_date)} • {payment.payment_method || 'Sin método'}
                           </p>
@@ -1009,9 +1009,9 @@ export default function UGCCreatorDetail() {
       {/* Assignment Modal */}
       {showAssignmentModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowAssignmentModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-[#121314]">Nueva Asignación</h2>
+              <h2 className="text-lg font-semibold text-[var(--ink)]">Nueva Asignación</h2>
               <button onClick={() => setShowAssignmentModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -1023,7 +1023,7 @@ export default function UGCCreatorDetail() {
                 <select
                   value={assignmentForm.client_id}
                   onChange={(e) => setAssignmentForm({ ...assignmentForm, client_id: e.target.value, project_id: '' })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   required
                 >
                   <option value="">Seleccionar cliente...</option>
@@ -1039,7 +1039,7 @@ export default function UGCCreatorDetail() {
                   <select
                     value={assignmentForm.project_id}
                     onChange={(e) => setAssignmentForm({ ...assignmentForm, project_id: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   >
                     <option value="">Sin proyecto específico</option>
                     {projects
@@ -1061,7 +1061,7 @@ export default function UGCCreatorDetail() {
                   value={assignmentForm.title}
                   onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
                   placeholder="Ej: 3 Reels para lanzamiento"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   required
                 />
               </div>
@@ -1072,7 +1072,7 @@ export default function UGCCreatorDetail() {
                   value={assignmentForm.description}
                   onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 resize-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] resize-none"
                 />
               </div>
 
@@ -1083,7 +1083,7 @@ export default function UGCCreatorDetail() {
                     type="date"
                     value={assignmentForm.start_date}
                     onChange={(e) => setAssignmentForm({ ...assignmentForm, start_date: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   />
                 </div>
                 <div>
@@ -1092,7 +1092,7 @@ export default function UGCCreatorDetail() {
                     type="date"
                     value={assignmentForm.end_date}
                     onChange={(e) => setAssignmentForm({ ...assignmentForm, end_date: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   />
                 </div>
               </div>
@@ -1105,7 +1105,7 @@ export default function UGCCreatorDetail() {
                     value={assignmentForm.agreed_value}
                     onChange={(e) => setAssignmentForm({ ...assignmentForm, agreed_value: e.target.value })}
                     placeholder="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   />
                 </div>
                 <div>
@@ -1113,7 +1113,7 @@ export default function UGCCreatorDetail() {
                   <select
                     value={assignmentForm.status}
                     onChange={(e) => setAssignmentForm({ ...assignmentForm, status: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   >
                     {Object.entries(ASSIGNMENT_STATUS).map(([key, val]) => (
                       <option key={key} value={key}>{val.label}</option>
@@ -1133,7 +1133,7 @@ export default function UGCCreatorDetail() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear Asignación'}
                 </button>
@@ -1146,9 +1146,9 @@ export default function UGCCreatorDetail() {
       {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowPaymentModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-[#121314]">Registrar Pago</h2>
+              <h2 className="text-lg font-semibold text-[var(--ink)]">Registrar Pago</h2>
               <button onClick={() => setShowPaymentModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
@@ -1160,7 +1160,7 @@ export default function UGCCreatorDetail() {
                 <select
                   value={paymentForm.assignment_id}
                   onChange={(e) => setPaymentForm({ ...paymentForm, assignment_id: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                 >
                   <option value="">Sin asignación específica</option>
                   {assignments.map(a => (
@@ -1177,7 +1177,7 @@ export default function UGCCreatorDetail() {
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
                     placeholder="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                     required
                   />
                 </div>
@@ -1187,7 +1187,7 @@ export default function UGCCreatorDetail() {
                     type="date"
                     value={paymentForm.payment_date}
                     onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                     required
                   />
                 </div>
@@ -1199,7 +1199,7 @@ export default function UGCCreatorDetail() {
                   <select
                     value={paymentForm.payment_method}
                     onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   >
                     <option value="">Seleccionar...</option>
                     <option value="transferencia">Transferencia</option>
@@ -1216,7 +1216,7 @@ export default function UGCCreatorDetail() {
                     value={paymentForm.reference_number}
                     onChange={(e) => setPaymentForm({ ...paymentForm, reference_number: e.target.value })}
                     placeholder="# de transacción"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                   />
                 </div>
               </div>
@@ -1227,7 +1227,7 @@ export default function UGCCreatorDetail() {
                   value={paymentForm.notes}
                   onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#44BF47]/40 resize-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] resize-none"
                 />
               </div>
 
@@ -1242,7 +1242,7 @@ export default function UGCCreatorDetail() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Registrar Pago'}
                 </button>
@@ -1260,10 +1260,10 @@ export default function UGCCreatorDetail() {
         const extraIndustries = editForm.industries.filter(i => !industriesCatalog.some(c => c.slug === i));
         return (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !savingProfile && setShowEditModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-[var(--surface)] rounded-t-2xl z-10">
               <div>
-                <h2 className="text-lg font-semibold text-[#121314]">Editar perfil</h2>
+                <h2 className="text-lg font-semibold text-[var(--ink)]">Editar perfil</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Actualiza los datos que el creador haya cambiado.</p>
               </div>
               <button onClick={() => setShowEditModal(false)} className="p-1 hover:bg-gray-100 rounded-lg" disabled={savingProfile}>
@@ -1363,7 +1363,7 @@ export default function UGCCreatorDetail() {
                       onClick={() => toggleEditIndustry(industry.slug)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                         editForm.industries.includes(industry.slug)
-                          ? 'bg-[#121314] text-white'
+                          ? 'bg-[var(--dark)] text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -1376,7 +1376,7 @@ export default function UGCCreatorDetail() {
                       type="button"
                       onClick={() => toggleEditIndustry(slug)}
                       title="Valor fuera del catálogo actual. Click para quitarlo."
-                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#121314] text-white"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--dark)] text-white"
                     >
                       {slug}
                     </button>
@@ -1446,7 +1446,7 @@ export default function UGCCreatorDetail() {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar cambios'}
                 </button>
@@ -1460,14 +1460,14 @@ export default function UGCCreatorDetail() {
       {/* Delete Creator Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !deleting && setShowDeleteModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
                   <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-[#121314]">Eliminar a {creator.full_name}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--ink)]">Eliminar a {creator.full_name}</h2>
                   <p className="text-sm text-gray-600 mt-1">
                     Esta acción no se puede deshacer. Se borrará el perfil completo del creador y, con él:
                   </p>

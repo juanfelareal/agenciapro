@@ -1,4 +1,16 @@
 /** @type {import('tailwindcss').Config} */
+
+// ===== DESIGN SYSTEM 2026 — Papel + Tinta · acento verde =====
+// Tokens de landing.larealmarketing.com (fuente de verdad), expuestos como
+// variables CSS (src/index.css) para que cada organización pueda personalizar
+// acento, tema, radios y fuente en vivo (src/branding/applyBranding.js).
+// Los nombres anteriores (surface/dark/carbon/lime/ink/cream…) se conservan.
+
+const rgb = (name) => `rgb(var(--${name}-rgb) / <alpha-value>)`;
+const gray = (n) => rgb(`gray-${n}`);
+// Tintes del acento sobre la superficie (en tema oscuro salen oscuros solos)
+const tint = (pct) => `color-mix(in srgb, var(--accent) ${pct}%, var(--surface))`;
+
 export default {
   content: [
     "./index.html",
@@ -7,45 +19,30 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ===== DESIGN SYSTEM 2026 — Papel + Tinta · acento verde =====
-        // Tokens de landing.larealmarketing.com (fuente de verdad).
-        // Los nombres anteriores (surface/dark/carbon/lime/ink/cream…) se conservan
-        // para no tocar cientos de archivos; solo cambian los valores.
+        // `white` = texto/anillos claros sobre oscuro en todos los temas. Los fondos
+        // `bg-white` se reescribieron a `bg-[var(--surface)]` para que el tema oscuro funcione.
+        white: rgb('white'),
 
-        // `white` pasa a ser el blanco papel de la landing: superficie de tarjetas
-        // (bg-white) y texto sobre oscuro (text-white = --on-dark). El blanco puro
-        // sigue disponible como #FFFFFF para inputs/modales si hace falta.
-        white: '#FBFAF8',
-
-        // Neutros cálidos derivados de la tinta (reemplazan al gray frío de Tailwind)
+        // Neutros cálidos derivados de la tinta (se invierten en tema oscuro)
         gray: {
-          50: '#F6F5F2',
-          100: '#F0EEE9',
-          200: '#E8E5DF',
-          300: '#C9C6C0',
-          400: '#9A9792',
-          500: '#7A7772',
-          600: '#5C5955',
-          700: '#4A4844',
-          800: '#3A3A3A',
-          900: '#121212',
-          950: '#0B0B0B',
+          50: gray(50), 100: gray(100), 200: gray(200), 300: gray(300), 400: gray(400),
+          500: gray(500), 600: gray(600), 700: gray(700), 800: gray(800), 900: gray(900), 950: gray(950),
         },
 
         // Superficies
-        surface: '#F3F1ED',   // fondo papel de la app
-        card: '#FBFAF8',      // superficie de tarjetas
-        dark: '#121314',      // tinta (sidebar activo, botones primarios, tarjetas dark)
+        surface: rgb('bg'),       // fondo papel de la app
+        card: rgb('surface'),     // superficie de tarjetas
+        dark: rgb('dark'),        // tinta (sidebar activo, botones primarios, tarjetas dark)
         carbon: {
-          DEFAULT: '#121314',
-          hover: '#1C1D1F',
+          DEFAULT: rgb('dark'),
+          hover: 'var(--dark-hover)',
         },
 
-        // Acento verde (el nombre `lime` se conserva por compatibilidad de clases)
+        // Acento (el nombre `lime` se conserva por compatibilidad de clases)
         lime: {
-          400: '#44BF47',   // acento: fondos, iconos sobre oscuro
-          500: '#1E7A30',   // verde profundo para texto sobre claro
-          600: '#166A28',
+          400: rgb('accent'),        // acento: fondos, iconos sobre oscuro
+          500: rgb('accent-deep'),   // verde profundo para texto sobre claro
+          600: rgb('accent-deep'),
         },
 
         // Semantic colors for financials
@@ -53,59 +50,47 @@ export default {
         expense: '#F97316',
 
         // Text colors
-        'text-primary': '#121212',
-        'text-secondary': '#7A7772',
+        'text-primary': 'var(--text)',
+        'text-secondary': 'var(--text-muted)',
 
         // Primary (tinta para botones) — escala heredada
         primary: {
-          50: '#F6F5F2',
-          100: '#F0EEE9',
-          200: '#E8E5DF',
-          300: '#C9C6C0',
-          400: '#9A9792',
-          500: '#121314',
-          600: '#1C1D1F',
+          50: gray(50), 100: gray(100), 200: gray(200), 300: gray(300), 400: gray(400),
+          500: rgb('dark'),
+          600: 'var(--dark-hover)',
           700: '#0D0D0D',
           800: '#080808',
           900: '#000000',
         },
         // Papel
         cream: {
-          50: '#FBFAF8',
-          100: '#F6F5F2',
-          200: '#F3F1ED',
-          300: '#ECEAE5',
+          50: rgb('surface'),
+          100: gray(50),
+          200: rgb('bg'),
+          300: gray(200),
         },
         // Tinta
         ink: {
-          900: '#121212',
-          800: '#3A3A3A',
-          700: '#4A4844',
-          600: '#5C5955',
-          500: '#7A7772',
-          400: '#9A9792',
-          300: '#C9C6C0',
-          200: '#E8E5DF',
-          100: '#F0EEE9',
-          50: '#F6F5F2',
+          900: gray(900), 800: gray(800), 700: gray(700), 600: gray(600), 500: gray(500),
+          400: gray(400), 300: gray(300), 200: gray(200), 100: gray(100), 50: gray(50),
         },
-        // Verde de marca (acento)
+        // Acento de marca
         accent: {
-          DEFAULT: '#44BF47',
-          50: '#EEF8EE',
-          100: '#DCF1DD',
-          200: '#B9E3BA',
-          300: '#8ED492',
-          400: '#44BF47',
-          500: '#44BF47',
-          600: '#1E7A30',
-          700: '#166A28',
+          DEFAULT: rgb('accent'),
+          50: tint(8),
+          100: tint(15),
+          200: tint(30),
+          300: tint(50),
+          400: rgb('accent'),
+          500: rgb('accent'),
+          600: rgb('accent-deep'),
+          700: rgb('accent-deep'),
         },
-        // `green` semántico alineado al acento (green-600 era exactamente #16a34a)
+        // `green` semántico alineado al acento
         green: {
-          500: '#44BF47',
-          600: '#1E7A30',
-          700: '#166A28',
+          500: rgb('accent'),
+          600: rgb('accent-deep'),
+          700: rgb('accent-deep'),
         },
         // Secondary accents
         amber: {
@@ -131,9 +116,9 @@ export default {
         success: {
           50: '#F0FDF4',
           100: '#DCFCE7',
-          500: '#44BF47',
-          600: '#1E7A30',
-          700: '#166A28',
+          500: rgb('accent'),
+          600: rgb('accent-deep'),
+          700: rgb('accent-deep'),
         },
         warning: {
           50: '#FFFBEB',
@@ -149,8 +134,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter Tight', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        sans: ['var(--font-sans)', 'Inter Tight', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       fontSize: {
         // Editorial typography with tight tracking
@@ -172,10 +156,11 @@ export default {
         '88': '22rem',
       },
       borderRadius: {
-        'xl': '12px',
-        '2xl': '16px',
-        '3xl': '22px',   // lg de la landing
-        '4xl': '32px',   // xl de la landing
+        // Preset "soft" (12/16/20/24) o "round" (16/22/28/32) según la marca
+        'xl': 'var(--radius-md)',
+        '2xl': 'var(--radius-lg)',
+        '3xl': 'var(--radius-xl)',
+        '4xl': 'var(--radius-2xl)',
       },
       boxShadow: {
         // Superficies papel: sombra casi inexistente, la línea hairline hace el trabajo
@@ -183,22 +168,22 @@ export default {
         'glass-lg': '0 4px 12px rgba(18, 18, 18, 0.05), 0 12px 32px rgba(18, 18, 18, 0.04)',
         'elevated': '0 1px 2px rgba(18, 18, 18, 0.04), 0 4px 12px rgba(18, 18, 18, 0.04)',
         'bento': '0 2px 8px rgba(18, 18, 18, 0.04), 0 8px 24px rgba(18, 18, 18, 0.05)',
-        'glow-lime': '0 0 0 3px rgba(68, 191, 71, 0.18)',
+        'glow-lime': '0 0 0 3px rgb(var(--accent-rgb) / 0.18)',
         // Legacy shadows (kept for compatibility)
         'soft': '0 1px 2px rgba(18, 18, 18, 0.03), 0 4px 12px rgba(18, 18, 18, 0.03)',
         'medium': '0 4px 12px -2px rgba(18, 18, 18, 0.06), 0 8px 24px -4px rgba(18, 18, 18, 0.04)',
         'large': '0 8px 24px -4px rgba(18, 18, 18, 0.10), 0 16px 48px -8px rgba(18, 18, 18, 0.08)',
         'card': '0 1px 2px rgba(18, 18, 18, 0.03), 0 1px 0 rgba(18, 18, 18, 0.02)',
         'card-hover': '0 4px 12px rgba(18, 18, 18, 0.06), 0 12px 32px rgba(18, 18, 18, 0.04)',
-        'glow': '0 0 40px rgba(68, 191, 71, 0.15)',
+        'glow': '0 0 40px rgb(var(--accent-rgb) / 0.15)',
         'button': '0 1px 2px rgba(18, 19, 20, 0.18)',
         'sidebar': '4px 0 24px -4px rgba(18, 18, 18, 0.04)',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         // Sin degradados: los nombres se conservan pero resuelven a papel plano
-        'hero-gradient': 'linear-gradient(#F3F1ED, #F3F1ED)',
-        'card-glow': 'linear-gradient(#FBFAF8, #FBFAF8)',
+        'hero-gradient': 'linear-gradient(var(--bg), var(--bg))',
+        'card-glow': 'linear-gradient(var(--surface), var(--surface))',
       },
       backdropBlur: {
         'xs': '2px',
@@ -223,8 +208,8 @@ export default {
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
         glowPulse: {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(68, 191, 71, 0.1)' },
-          '50%': { boxShadow: '0 0 40px rgba(68, 191, 71, 0.2)' },
+          '0%, 100%': { boxShadow: '0 0 20px rgb(var(--accent-rgb) / 0.1)' },
+          '50%': { boxShadow: '0 0 40px rgb(var(--accent-rgb) / 0.2)' },
         },
       },
     },

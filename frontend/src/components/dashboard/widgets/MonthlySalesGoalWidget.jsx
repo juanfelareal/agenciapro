@@ -267,7 +267,7 @@ const MonthlySalesGoalWidget = () => {
 
       {showGoalsModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-xl">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-xl">
             <div className="flex justify-between items-center p-6 pb-4 border-b border-ink-100">
               <h2 className="text-xl font-semibold text-ink-900">Editar metas {year}</h2>
               <button onClick={() => setShowGoalsModal(false)} className="p-2 hover:bg-ink-100 rounded-xl">
@@ -303,7 +303,7 @@ const MonthlySalesGoalWidget = () => {
               <button
                 onClick={handleSaveGoals}
                 disabled={savingGoals}
-                className="px-4 py-2 text-sm font-medium bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] flex items-center gap-2"
               >
                 <Save size={16} />
                 {savingGoals ? 'Guardando…' : 'Guardar metas'}

@@ -98,10 +98,10 @@ const IncomeTrendWidget = ({ widget, period }) => {
               <Line
                 type="monotone"
                 dataKey="amount"
-                stroke="#44BF47"
+                stroke="var(--accent)"
                 strokeWidth={2}
-                dot={{ fill: '#44BF47', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, fill: '#44BF47' }}
+                dot={{ fill: 'var(--accent)', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, fill: 'var(--accent)' }}
               />
             </LineChart>
           </ResponsiveContainer>

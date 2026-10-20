@@ -182,7 +182,7 @@ const Expenses = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Gastos</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Gastos</h1>
           <p className="text-sm text-gray-500 mt-0.5">Registro de gastos y egresos</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -190,7 +190,7 @@ const Expenses = () => {
             <button
               onClick={handleSyncFromSiigo}
               disabled={syncingSiigo}
-              className="border border-gray-200 text-[#121314] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="border border-gray-200 text-[var(--ink)] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <RefreshCw size={18} className={syncingSiigo ? 'animate-spin' : ''} />
               {syncingSiigo ? 'Sincronizando...' : 'Importar de Siigo'}
@@ -198,7 +198,7 @@ const Expenses = () => {
           )}
           <button
             onClick={handleNew}
-            className="bg-[#121314] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
+            className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
           >
             <Plus size={20} />
             Nuevo Gasto
@@ -232,7 +232,7 @@ const Expenses = () => {
           <div key={expense.id} className="glass-card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-[#121314] break-words">{expense.description}</p>
+                <p className="font-medium text-[var(--ink)] break-words">{expense.description}</p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {expense.expense_date}{expense.project_name ? ` · ${expense.project_name}` : ''}{expense.payment_method ? ` · ${expense.payment_method}` : ''}
                 </p>
@@ -280,7 +280,7 @@ const Expenses = () => {
           <tbody className="divide-y divide-gray-100">
             {expenses.map((expense) => (
               <tr key={expense.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap font-medium text-[#121314]">{expense.description}</td>
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-[var(--ink)]">{expense.description}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {expense.category && (
                     <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs">
@@ -297,7 +297,7 @@ const Expenses = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button
                     onClick={() => handleEdit(expense)}
-                    className="text-gray-400 hover:text-[#121314] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
+                    className="text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 p-1.5 rounded-lg mr-2 transition-colors"
                   >
                     <Edit size={18} />
                   </button>
@@ -316,9 +316,9 @@ const Expenses = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#121314]">
+              <h2 className="text-xl font-semibold text-[var(--ink)]">
                 {editingExpense ? 'Editar Gasto' : 'Nuevo Gasto'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -424,7 +424,7 @@ const Expenses = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
                 >
                   Guardar
                 </button>

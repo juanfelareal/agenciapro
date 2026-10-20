@@ -9,6 +9,7 @@ import { isPlatformAdminEmail, TRIAL_DAYS } from '../config/planCatalog.js'; // 
 import { checkLimit } from '../services/plans.js'; // [modules]
 // [onboarding] registro autoservicio: plan, trial, módulos y marca iniciales
 import { ensureOnboardingColumns, buildInitialSettings, normalizePlan, trialEndsAt } from '../services/orgOnboarding.js';
+import { normalizeBranding } from '../utils/branding.js'; // [branding]
 
 const router = express.Router();
 router.use(authRecoveryRouter); // [email] POST /forgot-pin y /reset-pin con código (antes del handler legado)
@@ -157,7 +158,8 @@ router.post('/login', async (req, res) => {
     // Get organizations this user belongs to
     const memberships = await db.all(`
       SELECT tm.id as team_member_id, tm.role, tm.position, tm.permissions,
-             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url
+             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url,
+             o.branding as org_branding
       FROM team_members tm
       JOIN organizations o ON tm.organization_id = o.id
       WHERE tm.user_id = ? AND tm.status = 'active'
@@ -217,7 +219,8 @@ router.post('/login', async (req, res) => {
         id: currentOrg.org_id,
         name: currentOrg.org_name,
         slug: currentOrg.org_slug,
-        logo_url: currentOrg.org_logo_url
+        logo_url: currentOrg.org_logo_url,
+        branding: normalizeBranding(currentOrg.org_branding, { logo_url: currentOrg.org_logo_url }) // [branding]
       },
       organizations
     });
@@ -399,7 +402,7 @@ router.post('/select-org', teamAuthMiddleware, async (req, res) => {
 
     // Verify user has membership in this org
     const membership = await db.get(`
-      SELECT tm.*, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url
+      SELECT tm.*, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url, o.branding as org_branding
       FROM team_members tm
       JOIN organizations o ON tm.organization_id = o.id
       WHERE tm.user_id = ? AND tm.organization_id = ? AND tm.status = 'active'
@@ -435,7 +438,8 @@ router.post('/select-org', teamAuthMiddleware, async (req, res) => {
         id: org_id,
         name: membership.org_name,
         slug: membership.org_slug,
-        logo_url: membership.org_logo_url
+        logo_url: membership.org_logo_url,
+        branding: normalizeBranding(membership.org_branding, { logo_url: membership.org_logo_url }) // [branding]
       }
     });
   } catch (error) {

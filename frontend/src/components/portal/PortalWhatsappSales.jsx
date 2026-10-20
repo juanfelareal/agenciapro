@@ -46,16 +46,16 @@ export default function PortalWhatsappSales({ startDate, endDate, summary, onCha
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6">
+    <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center"><MessageCircle className="w-4 h-4 text-emerald-700" /></div>
           <div>
-            <h3 className="font-semibold text-[#121314]">Ventas por WhatsApp</h3>
+            <h3 className="font-semibold text-[var(--ink)]">Ventas por WhatsApp</h3>
             <p className="text-xs text-gray-500">Registra aquí lo que cierras por chat para que sume en tus reportes y mida el retorno de la pauta de WhatsApp.</p>
           </div>
         </div>
-        <button onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium">
+        <button onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium">
           <Plus className="w-4 h-4" /> Registrar
         </button>
       </div>
@@ -63,19 +63,19 @@ export default function PortalWhatsappSales({ startDate, endDate, summary, onCha
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
         <div className="rounded-xl bg-emerald-50/70 border border-emerald-100 p-3">
           <p className="text-[11px] uppercase tracking-wide text-gray-500">Venta WhatsApp del periodo</p>
-          <p className="text-xl font-bold text-[#121314] tabular-nums">{money(summary?.revenue ?? total)}</p>
+          <p className="text-xl font-bold text-[var(--ink)] tabular-nums">{money(summary?.revenue ?? total)}</p>
           <p className="text-[11px] text-gray-500">{summary?.orders ?? (data?.sales || []).reduce((t, r) => t + (Number(r.orders) || 0), 0)} pedidos</p>
         </div>
         {summary && (
           <>
             <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
               <p className="text-[11px] uppercase tracking-wide text-gray-500">Pauta de WhatsApp</p>
-              <p className="text-xl font-bold text-[#121314] tabular-nums">{money(summary.ad_spend)}</p>
+              <p className="text-xl font-bold text-[var(--ink)] tabular-nums">{money(summary.ad_spend)}</p>
               <p className="text-[11px] text-gray-500">ROAS WhatsApp {summary.roas ? `${summary.roas.toFixed(2).replace('.', ',')}x` : '—'}</p>
             </div>
             <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
               <p className="text-[11px] uppercase tracking-wide text-gray-500">Venta total (web + WhatsApp)</p>
-              <p className="text-xl font-bold text-[#121314] tabular-nums">{money(summary.total_revenue)}</p>
+              <p className="text-xl font-bold text-[var(--ink)] tabular-nums">{money(summary.total_revenue)}</p>
               <p className="text-[11px] text-gray-500">ROAS total {summary.roas_total ? `${summary.roas_total.toFixed(2).replace('.', ',')}x` : '—'} · web {summary.roas_web ? `${summary.roas_web.toFixed(2).replace('.', ',')}x` : '—'}</p>
             </div>
           </>
@@ -85,8 +85,8 @@ export default function PortalWhatsappSales({ startDate, endDate, summary, onCha
       {open && (
         <div className="mt-4 border border-gray-100 rounded-xl p-4">
           <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-3 w-full sm:w-fit">
-            <button onClick={() => setMode('day')} className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium ${mode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Un día</button>
-            <button onClick={() => setMode('bulk')} className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium ${mode === 'bulk' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Semana o mes completo</button>
+            <button onClick={() => setMode('day')} className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium ${mode === 'day' ? 'bg-[var(--surface)] shadow-sm text-gray-900' : 'text-gray-500'}`}>Un día</button>
+            <button onClick={() => setMode('bulk')} className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-sm font-medium ${mode === 'bulk' ? 'bg-[var(--surface)] shadow-sm text-gray-900' : 'text-gray-500'}`}>Semana o mes completo</button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             {mode === 'day' ? (
@@ -117,7 +117,7 @@ export default function PortalWhatsappSales({ startDate, endDate, summary, onCha
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
             {msg ? <p className={`text-sm ${msg.ok ? 'text-emerald-700' : 'text-red-600'}`}>{msg.text}</p> : <p className="text-xs text-gray-400">{mode === 'bulk' ? 'El total se reparte parejo entre los días.' : 'Si ya existe un registro para esa fecha, se reemplaza.'}</p>}
-            <button onClick={save} disabled={saving || !form.revenue} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium disabled:opacity-50">
+            <button onClick={save} disabled={saving || !form.revenue} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium disabled:opacity-50">
               <Check className="w-4 h-4" /> {saving ? 'Guardando…' : 'Guardar'}
             </button>
           </div>

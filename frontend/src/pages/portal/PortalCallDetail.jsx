@@ -42,8 +42,8 @@ export default function PortalCallDetail() {
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
-        <h2 className="text-xl font-semibold text-[#121314]">Llamada no encontrada</h2>
-        <Link to="/portal/calls" className="text-gray-500 hover:text-[#121314] mt-4">
+        <h2 className="text-xl font-semibold text-[var(--ink)]">Llamada no encontrada</h2>
+        <Link to="/portal/calls" className="text-gray-500 hover:text-[var(--ink)] mt-4">
           Volver a llamadas
         </Link>
       </div>
@@ -54,7 +54,7 @@ export default function PortalCallDetail() {
     <div className="space-y-6">
       <Link
         to="/portal/calls"
-        className="inline-flex items-center gap-2 text-gray-500 hover:text-[#121314] transition-colors"
+        className="inline-flex items-center gap-2 text-gray-500 hover:text-[var(--ink)] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Volver a llamadas</span>
@@ -67,7 +67,7 @@ export default function PortalCallDetail() {
             <Phone className="w-6 h-6 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">{call.title}</h1>
+            <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">{call.title}</h1>
             <div className="flex items-center gap-4 mt-2 flex-wrap">
               <span className="text-sm text-gray-500 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
@@ -92,7 +92,7 @@ export default function PortalCallDetail() {
           <button
             onClick={() => setActiveTab('summary')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'summary' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'summary' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Resumen
@@ -102,7 +102,7 @@ export default function PortalCallDetail() {
           <button
             onClick={() => setActiveTab('transcription')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeTab === 'transcription' ? 'bg-white text-[#121314] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'transcription' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Transcripción

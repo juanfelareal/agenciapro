@@ -1,6 +1,7 @@
 import db from '../config/database.js';
 import { applyClientVisibility } from './clientVisibility.js';
 import { trialGate } from './trialGate.js'; // [modules]
+import { normalizeBranding } from '../utils/branding.js'; // [branding]
 
 /**
  * Middleware to authenticate team member requests (multi-tenant).
@@ -29,7 +30,8 @@ export const teamAuthMiddleware = async (req, res, next) => {
     const newToken = await db.get(`
       SELECT ust.id as token_id, ust.user_id, ust.current_org_id, ust.status, ust.expires_at,
              u.name as user_name, u.email as user_email, u.avatar_url as user_avatar_url,
-             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url
+             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url,
+             o.branding as org_branding
       FROM user_session_tokens ust
       JOIN users u ON ust.user_id = u.id
       JOIN organizations o ON ust.current_org_id = o.id
@@ -86,7 +88,8 @@ export const teamAuthMiddleware = async (req, res, next) => {
         id: newToken.org_id,
         name: newToken.org_name,
         slug: newToken.org_slug,
-        logo_url: newToken.org_logo_url
+        logo_url: newToken.org_logo_url,
+        branding: normalizeBranding(newToken.org_branding, { logo_url: newToken.org_logo_url }) // [branding]
       };
 
       req.teamMember = {

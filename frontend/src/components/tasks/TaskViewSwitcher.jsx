@@ -18,7 +18,7 @@ export default function TaskViewSwitcher({ value, onChange }) {
             onClick={() => onChange(view.id)}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               isActive
-                ? 'bg-white text-gray-900 shadow-sm'
+                ? 'bg-[var(--surface)] text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
+import { normalizeBranding, onAccent } from './branding.js'; // [branding]
 
 // Unified email sender: uses Resend (HTTP) if configured, falls back to SMTP
 export const sendEmail = async ({ from, to, cc, subject, html }) => {
@@ -35,7 +36,28 @@ export const getEmailTransporter = () => {
   });
 };
 
-export const sendWelcomeEmail = async ({ to, memberName, email, pin, orgName, loginUrl }) => {
+/**
+ * [branding] Colores/logo de la agencia para los correos. `brand` sigue el contrato de
+ * utils/branding.js (accent, accent_deep, logo_url). Default: papel + tinta + verde LA REAL.
+ */
+export const emailBrand = (brand = {}) => {
+  const b = normalizeBranding(brand);
+  return {
+    dark: '#121314',
+    paper: '#F3F1ED',
+    ink: '#121212',
+    accent: b.accent,
+    accentDeep: b.accent_deep,
+    onAccent: onAccent(b.accent),
+    logoUrl: b.logo_dark_url || b.logo_url || null,
+  };
+};
+
+export const sendWelcomeEmail = async ({ to, memberName, email, pin, orgName, loginUrl, brand = null }) => {
+  const B = emailBrand(brand); // [branding]
+  const headerContent = B.logoUrl
+    ? `<img src="${B.logoUrl}" alt="${orgName}" height="40" style="max-height:40px;max-width:200px;display:block;margin:0 auto;" />`
+    : `<h1 style="color:${B.accent};margin:0;font-size:22px;font-weight:700;">${orgName}</h1>`;
   const html = `
     <!DOCTYPE html>
     <html>
@@ -43,23 +65,21 @@ export const sendWelcomeEmail = async ({ to, memberName, email, pin, orgName, lo
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
-    <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
+    <body style="margin:0;padding:0;background-color:${B.paper};font-family:Arial,Helvetica,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:${B.paper};padding:40px 20px;">
         <tr>
           <td align="center">
             <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:12px;overflow:hidden;">
               <!-- Header -->
               <tr>
-                <td style="background-color:#1A1A2E;padding:32px 40px;text-align:center;">
-                  <h1 style="color:#BFFF00;margin:0;font-size:22px;font-weight:700;">
-                    ${orgName}
-                  </h1>
+                <td style="background-color:${B.dark};padding:32px 40px;text-align:center;">
+                  ${headerContent}
                 </td>
               </tr>
               <!-- Body -->
               <tr>
                 <td style="padding:40px;">
-                  <h2 style="color:#1A1A2E;margin:0 0 8px;font-size:20px;">
+                  <h2 style="color:${B.ink};margin:0 0 8px;font-size:20px;">
                     Hola ${memberName},
                   </h2>
                   <p style="color:#6b7280;margin:0 0 28px;font-size:15px;line-height:1.6;">
@@ -74,13 +94,13 @@ export const sendWelcomeEmail = async ({ to, memberName, email, pin, orgName, lo
                           <tr>
                             <td style="padding-bottom:14px;">
                               <span style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Email</span><br>
-                              <span style="color:#1A1A2E;font-size:16px;font-weight:600;">${email}</span>
+                              <span style="color:${B.ink};font-size:16px;font-weight:600;">${email}</span>
                             </td>
                           </tr>
                           <tr>
                             <td style="border-top:1px solid #e5e7eb;padding-top:14px;">
                               <span style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">PIN de acceso</span><br>
-                              <span style="color:#1A1A2E;font-size:20px;font-weight:700;letter-spacing:2px;">${pin}</span>
+                              <span style="color:${B.ink};font-size:20px;font-weight:700;letter-spacing:2px;">${pin}</span>
                             </td>
                           </tr>
                         </table>
@@ -92,7 +112,7 @@ export const sendWelcomeEmail = async ({ to, memberName, email, pin, orgName, lo
                   <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td align="center">
-                        <a href="${loginUrl}" style="display:inline-block;background-color:#1A1A2E;color:#BFFF00;text-decoration:none;padding:14px 36px;border-radius:10px;font-size:15px;font-weight:600;">
+                        <a href="${loginUrl}" style="display:inline-block;background-color:${B.accent};color:${B.onAccent};text-decoration:none;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:600;">
                           Iniciar Sesión
                         </a>
                       </td>

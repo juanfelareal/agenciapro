@@ -72,7 +72,7 @@ const ExpensesSection = ({ data, loading }) => {
           <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <CreditCard className="w-8 h-8 text-orange-500" />
           </div>
-          <h3 className="text-lg font-semibold text-[#121314] mb-2">Sin gastos registrados</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">Sin gastos registrados</h3>
           <p className="text-gray-500 max-w-md mx-auto">
             Registra gastos o sincroniza con Siigo para verlos aquí.
           </p>
@@ -132,7 +132,7 @@ const ExpensesSection = ({ data, loading }) => {
                   <div key={idx}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-gray-600 truncate max-w-[60%]">{cat.name}</span>
-                      <span className="font-semibold text-[#121314]">{formatCurrency(cat.value)}</span>
+                      <span className="font-semibold text-[var(--ink)]">{formatCurrency(cat.value)}</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -166,7 +166,7 @@ const ExpensesSection = ({ data, loading }) => {
               {recentExpenses.map((exp, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <div className="text-sm font-medium text-[#121314]">{exp.description || 'Sin descripción'}</div>
+                    <div className="text-sm font-medium text-[var(--ink)]">{exp.description || 'Sin descripción'}</div>
                     <div className="text-xs text-gray-500">{exp.category || 'Sin categoría'}</div>
                   </div>
                   <div className="text-right">

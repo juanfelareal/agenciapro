@@ -210,7 +210,7 @@ export default function UGCProjects() {
               placeholder="Buscar proyectos..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm w-56 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+              className="pl-9 pr-4 py-2.5 bg-[var(--surface)] border border-gray-200 rounded-xl text-sm w-56 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
             />
           </div>
 
@@ -218,7 +218,7 @@ export default function UGCProjects() {
           <select
             value={filterClient}
             onChange={e => setFilterClient(e.target.value)}
-            className="px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+            className="px-3 py-2.5 bg-[var(--surface)] border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
           >
             <option value="">Todos los clientes</option>
             {clients.map(c => (
@@ -230,7 +230,7 @@ export default function UGCProjects() {
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+            className="px-3 py-2.5 bg-[var(--surface)] border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
           >
             <option value="">Todos los estados</option>
             {Object.entries(PROJECT_STATUSES).map(([key, val]) => (
@@ -244,7 +244,7 @@ export default function UGCProjects() {
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-white text-[#121314] shadow-sm'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
               title="Vista Grid"
@@ -255,7 +255,7 @@ export default function UGCProjects() {
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === 'list'
-                  ? 'bg-white text-[#121314] shadow-sm'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
               title="Vista Lista"
@@ -267,7 +267,7 @@ export default function UGCProjects() {
           {/* New Project Button */}
           <button
             onClick={() => { setSaveError(''); setShowNewModal(true); }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#121314] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl text-sm font-medium hover:bg-black transition-colors"
           >
             <Plus className="w-4 h-4" />
             Nuevo Proyecto
@@ -286,7 +286,7 @@ export default function UGCProjects() {
         </Link>
         <Link
           to="/app/ugc/projects"
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-[#121314] text-[#121314] -mb-px"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-[var(--ink)] text-[var(--ink)] -mb-px"
         >
           <FolderKanban className="w-4 h-4" />
           Proyectos
@@ -311,7 +311,7 @@ export default function UGCProjects() {
                 <div
                   key={project.id}
                   onClick={() => navigate(`/app/ugc/projects/${project.id}`)}
-                  className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-gray-200 transition-all cursor-pointer group"
+                  className="bg-[var(--surface)] rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-gray-200 transition-all cursor-pointer group"
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
@@ -344,7 +344,7 @@ export default function UGCProjects() {
                       {/* Status Dropdown */}
                       {statusDropdownId === project.id && (
                         <div
-                          className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]"
+                          className="absolute right-0 top-full mt-1 bg-[var(--surface)] rounded-xl shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {Object.entries(PROJECT_STATUSES).map(([key, val]) => {
@@ -424,7 +424,7 @@ export default function UGCProjects() {
           </div>
         ) : (
           /* List View */
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+          <div className="bg-[var(--surface)] rounded-2xl border border-gray-100 overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
@@ -483,7 +483,7 @@ export default function UGCProjects() {
                           {/* Status Dropdown */}
                           {statusDropdownId === project.id && (
                             <div
-                              className="absolute left-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]"
+                              className="absolute left-0 top-full mt-1 bg-[var(--surface)] rounded-xl shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {Object.entries(PROJECT_STATUSES).map(([key, val]) => {
@@ -580,7 +580,7 @@ export default function UGCProjects() {
       {/* New Project Modal */}
       {showNewModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-auto">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-auto">
             <div className="p-6 border-b border-gray-100">
               <h2 className="text-lg font-semibold">Nuevo Proyecto UGC</h2>
               <p className="text-sm text-gray-500 mt-1">Crea una campaña para asignar creadores</p>
@@ -797,7 +797,7 @@ export default function UGCProjects() {
                 <button
                   type="submit"
                   disabled={saving || !newProject.client_id || !newProject.title || !newProject.package_id || videoCount <= 0}
-                  className="px-4 py-2 bg-[#121314] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl font-medium hover:bg-black transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Crear Proyecto

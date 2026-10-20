@@ -316,11 +316,11 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#121314] text-white flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-[var(--dark)] text-white flex items-center justify-center shrink-0">
               <BookOpen className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -334,7 +334,7 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setShowForm(v => !v); if (!showForm) { setForm(emptyForm()); setEditingId(null); } }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-[#121314] text-white hover:bg-black transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-[var(--dark)] text-white hover:bg-black transition-colors"
             >
               <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Nueva entrada</span><span className="sm:hidden">Nueva</span>
             </button>
@@ -365,7 +365,7 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
                   <select
                     value={monthFilter}
                     onChange={e => changeMonth(e.target.value)}
-                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 bg-[var(--surface)] text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
                     aria-label="Mes"
                   >
                     <option value="all">Todos los meses</option>
@@ -378,7 +378,7 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
                     type="button"
                     onClick={() => setExportOpen(v => !v)}
                     disabled={exporting || filtered.length === 0}
-                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-gray-300 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 bg-[var(--surface)] text-gray-700 hover:border-gray-300 disabled:opacity-50"
                     title="Exportar lo que se ve (filtros aplicados)"
                   >
                     {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
@@ -386,7 +386,7 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
                     <ChevronDown className="w-3 h-3 text-gray-400" />
                   </button>
                   {exportOpen && (
-                    <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-10">
+                    <div className="absolute right-0 mt-1 w-56 bg-[var(--surface)] border border-gray-200 rounded-xl shadow-lg py-1 z-10">
                       <p className="px-3 py-1.5 text-[11px] text-gray-400">
                         {filtered.length} {filtered.length === 1 ? 'entrada' : 'entradas'} · {periodLabel}
                       </p>
@@ -402,11 +402,11 @@ export default function ClientLogbookModal({ clientId, clientName, onClose, onCh
               </div>
 
               <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => setTypeFilter('all')} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === 'all' ? 'bg-[#121314] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                <button onClick={() => setTypeFilter('all')} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === 'all' ? 'bg-[var(--dark)] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                   Todas ({byMonth.length})
                 </button>
                 {ENTRY_TYPES.filter(t => byMonth.some(e => e.entry_type === t.value)).map(t => (
-                  <button key={t.value} onClick={() => setTypeFilter(t.value)} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === t.value ? 'bg-[#121314] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  <button key={t.value} onClick={() => setTypeFilter(t.value)} className={`text-xs px-2.5 py-1 rounded-full ${typeFilter === t.value ? 'bg-[var(--dark)] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                     {t.label} ({byMonth.filter(e => e.entry_type === t.value).length})
                   </button>
                 ))}
@@ -469,7 +469,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
           <button
             type="button" key={t.value}
             onClick={() => setForm(f => ({ ...f, entry_type: t.value }))}
-            className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${form.entry_type === t.value ? t.cls + ' ring-2 ring-offset-1 ring-gray-300' : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'}`}
+            className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${form.entry_type === t.value ? t.cls + ' ring-2 ring-offset-1 ring-gray-300' : 'bg-[var(--surface)] text-gray-500 border border-gray-200 hover:border-gray-300'}`}
           >
             {t.label}
           </button>
@@ -481,7 +481,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
         value={form.title}
         onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
         placeholder="¿Qué pasó? (título corto)"
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-200"
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-gray-200"
         required
       />
       <textarea
@@ -489,7 +489,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
         onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
         placeholder="Detalle: qué se cambió, por qué, qué se observó…"
         rows={3}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-200 resize-y"
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-gray-200 resize-y"
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -499,7 +499,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
             type="datetime-local"
             value={form.event_at}
             onChange={e => setForm(f => ({ ...f, event_at: e.target.value }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-900"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)] text-gray-900"
           />
         </label>
         <label className="text-xs text-gray-500 space-y-1">
@@ -507,7 +507,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
           <select
             value={form.impact}
             onChange={e => setForm(f => ({ ...f, impact: e.target.value }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-900"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)] text-gray-900"
           >
             <option value="">Sin definir</option>
             {IMPACTS.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
@@ -520,7 +520,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
             value={form.link_url}
             onChange={e => setForm(f => ({ ...f, link_url: e.target.value }))}
             placeholder="https://…"
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-900"
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)] text-gray-900"
           />
         </label>
       </div>
@@ -533,7 +533,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
             <button
               type="button" key={p.value}
               onClick={() => setForm(f => ({ ...f, platforms: on ? f.platforms.filter(x => x !== p.value) : [...f.platforms, p.value] }))}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${on ? 'bg-[#121314] text-white border-[#121314]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${on ? 'bg-[var(--dark)] text-white border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-500 border-gray-200 hover:border-gray-300'}`}
             >
               {p.label}
             </button>
@@ -549,7 +549,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
             <button
               type="button"
               onClick={() => setForm(f => ({ ...f, actions: [...f.actions, { description: '', assignee_id: '', due_date: '' }] }))}
-              className="text-xs text-gray-600 hover:text-[#121314] inline-flex items-center gap-1"
+              className="text-xs text-gray-600 hover:text-[var(--ink)] inline-flex items-center gap-1"
             >
               <Plus className="w-3 h-3" /> Agregar acción
             </button>
@@ -573,7 +573,7 @@ function EntryForm({ mode, form, setForm, team, saving, error, onSubmit, onCance
         </label>
         <div className="flex items-center gap-2">
           <button type="button" onClick={onCancel} className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-          <button type="submit" disabled={saving || !form.title.trim()} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[#121314] text-white hover:bg-black disabled:opacity-50">
+          <button type="submit" disabled={saving || !form.title.trim()} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--dark)] text-white hover:bg-black disabled:opacity-50">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />} {isEdit ? 'Guardar cambios' : 'Guardar entrada'}
           </button>
         </div>
@@ -590,12 +590,12 @@ function ActionEditor({ value, team, onChange, onRemove }) {
         value={value.description}
         onChange={e => onChange({ ...value, description: e.target.value })}
         placeholder="Qué hay que hacer"
-        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white"
+        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)]"
       />
       <select
         value={value.assignee_id || ''}
         onChange={e => onChange({ ...value, assignee_id: e.target.value })}
-        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700"
+        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)] text-gray-700"
       >
         <option value="">Responsable</option>
         {team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -604,7 +604,7 @@ function ActionEditor({ value, team, onChange, onRemove }) {
         type="date"
         value={value.due_date || ''}
         onChange={e => onChange({ ...value, due_date: e.target.value })}
-        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-700"
+        className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-[var(--surface)] text-gray-700"
       />
       <button type="button" onClick={onRemove} className="p-2 text-gray-400 hover:text-red-500 rounded-lg" title="Quitar">
         <Trash2 className="w-4 h-4" />
@@ -622,7 +622,7 @@ function EntryCard({ entry, team, draft, setDraft, onPin, onDelete, onEdit, onTo
   const d = draft || { description: '', assignee_id: '', due_date: '' };
 
   return (
-    <article className={`rounded-xl border p-4 ${entry.is_pinned ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100 bg-white'}`}>
+    <article className={`rounded-xl border p-4 ${entry.is_pinned ? 'border-amber-200 bg-amber-50/40' : 'border-gray-100 bg-[var(--surface)]'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -664,7 +664,7 @@ function EntryCard({ entry, team, draft, setDraft, onPin, onDelete, onEdit, onTo
           <span className="text-[11px] font-medium text-gray-500">
             Acciones {entry.actions.length > 0 && <span className="text-gray-400">· {entry.actions.length - pending}/{entry.actions.length} hechas</span>}
           </span>
-          <button onClick={() => setAddingAction(v => !v)} className="text-[11px] text-gray-500 hover:text-[#121314] inline-flex items-center gap-1">
+          <button onClick={() => setAddingAction(v => !v)} className="text-[11px] text-gray-500 hover:text-[var(--ink)] inline-flex items-center gap-1">
             {addingAction ? <ChevronUp className="w-3 h-3" /> : <Plus className="w-3 h-3" />} {addingAction ? 'Cerrar' : 'Agregar acción'}
           </button>
         </div>
@@ -696,7 +696,7 @@ function EntryCard({ entry, team, draft, setDraft, onPin, onDelete, onEdit, onTo
           <div className="mt-2">
             <ActionEditor value={d} team={team} onChange={setDraft} onRemove={() => { setAddingAction(false); setDraft({ description: '', assignee_id: '', due_date: '' }); }} />
             <div className="flex justify-end mt-2">
-              <button onClick={() => { onAddAction(entry); setAddingAction(false); }} disabled={!d.description?.trim()} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#121314] text-white hover:bg-black disabled:opacity-50">
+              <button onClick={() => { onAddAction(entry); setAddingAction(false); }} disabled={!d.description?.trim()} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--dark)] text-white hover:bg-black disabled:opacity-50">
                 Guardar acción
               </button>
             </div>

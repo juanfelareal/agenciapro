@@ -113,7 +113,7 @@ export default function ClientTrendPanel({ clientId, revenueMetric, revenueLabel
   const label = revenueLabel || revenueMetricLabel(revenueMetric);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-xl border border-gray-100 overflow-hidden">
       {/* Trend table: days or weeks, configurable range */}
       <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-baseline gap-2 mr-auto">

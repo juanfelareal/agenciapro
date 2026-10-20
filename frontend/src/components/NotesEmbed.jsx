@@ -270,7 +270,7 @@ const NotesEmbed = ({ entityType, entityId, entityName }) => {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div
-            className="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-[var(--surface)] rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
             style={{ backgroundColor: formData.color }}
           >
             {/* Modal Header */}
@@ -328,7 +328,7 @@ const NotesEmbed = ({ entityType, entityId, entityName }) => {
                     ...prev,
                     category_id: e.target.value || null
                   }))}
-                  className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white/80"
+                  className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-[rgb(var(--surface-rgb)/0.8)]"
                 >
                   <option value="">Sin categoría</option>
                   {categories.map(cat => (

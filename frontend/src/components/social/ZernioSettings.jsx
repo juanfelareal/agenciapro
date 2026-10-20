@@ -129,7 +129,7 @@ const ZernioSettings = () => {
   return (
     <div className="space-y-6">
       {/* Status Card */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -189,7 +189,7 @@ const ZernioSettings = () => {
       )}
 
       {/* API Key Form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
             <Key className="w-5 h-5 text-blue-600" />
@@ -272,7 +272,7 @@ const ZernioSettings = () => {
 
       {/* Connected Accounts */}
       {settings?.is_configured && accounts.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
               <Link2 className="w-5 h-5 text-purple-600" />

@@ -14,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
 
 // ─── Catálogos ───
 const CATEGORIES = [
-  { id: 'mejora', label: 'Mejora', icon: Wrench, pill: 'bg-[#44BF47]/15 text-[#1E7A30] border-[#44BF47]/40' },
+  { id: 'mejora', label: 'Mejora', icon: Wrench, pill: 'bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent-deep)] border-[rgb(var(--accent-rgb)/0.4)]' },
   { id: 'error', label: 'Error', icon: Bug, pill: 'bg-red-50 text-red-700 border-red-200' },
   { id: 'idea', label: 'Idea', icon: Sparkles, pill: 'bg-violet-50 text-violet-700 border-violet-200' },
   { id: 'pregunta', label: 'Pregunta', icon: HelpCircle, pill: 'bg-sky-50 text-sky-700 border-sky-200' },
@@ -22,7 +22,7 @@ const CATEGORIES = [
 const CATEGORY_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
 const STATUSES = [
-  { id: 'nueva', label: 'Nueva', pill: 'bg-white text-gray-700 border-gray-200', dot: 'bg-gray-400' },
+  { id: 'nueva', label: 'Nueva', pill: 'bg-[var(--surface)] text-gray-700 border-gray-200', dot: 'bg-gray-400' },
   { id: 'en_revision', label: 'En revisión', pill: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-400' },
   { id: 'en_progreso', label: 'En progreso', pill: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
   { id: 'hecha', label: 'Hecha', pill: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500' },
@@ -161,14 +161,14 @@ const ImageAttachZone = ({ uploads, compact = false }) => {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={`rounded-xl border-2 border-dashed transition-colors ${compact ? 'p-3' : 'p-4'} ${
-          dragging ? 'border-[#121314] bg-[#44BF47]/12' : 'border-gray-200 bg-white/50 hover:border-gray-300'
-        } focus:outline-none focus:border-[#121314]`}
+          dragging ? 'border-[var(--ink)] bg-[rgb(var(--accent-rgb)/0.12)]' : 'border-gray-200 bg-[rgb(var(--surface-rgb)/0.5)] hover:border-gray-300'
+        } focus:outline-none focus:border-[var(--ink)]`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface)] border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <ImagePlus size={15} /> Adjuntar pantallazo
           </button>
@@ -193,11 +193,11 @@ const ImageAttachZone = ({ uploads, compact = false }) => {
               <div key={it.key} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 group">
                 <img src={it.preview} alt="" className={`w-full h-full object-cover ${it.done ? '' : 'opacity-50'}`} />
                 {!it.done && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/40">
-                    <Loader2 size={16} className="animate-spin text-[#121314]" />
-                    <span className="text-[10px] font-semibold text-[#121314]">{it.progress}%</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgb(var(--surface-rgb)/0.4)]">
+                    <Loader2 size={16} className="animate-spin text-[var(--ink)]" />
+                    <span className="text-[10px] font-semibold text-[var(--ink)]">{it.progress}%</span>
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
-                      <div className="h-full bg-[#121314] transition-all" style={{ width: `${it.progress}%` }} />
+                      <div className="h-full bg-[var(--dark)] transition-all" style={{ width: `${it.progress}%` }} />
                     </div>
                   </div>
                 )}
@@ -205,7 +205,7 @@ const ImageAttachZone = ({ uploads, compact = false }) => {
                   <button
                     type="button"
                     onClick={() => uploads.remove(it.key)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#121314]/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[rgb(var(--dark-rgb)/0.8)] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Quitar"
                   >
                     <X size={12} />
@@ -241,7 +241,7 @@ const Lightbox = ({ images, index, onClose, onIndex }) => {
   if (!images?.length) return null;
   return (
     <div className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4" onClick={onClose}>
-      <button type="button" onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20" title="Cerrar">
+      <button type="button" onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-[rgb(var(--surface-rgb)/0.1)] text-white hover:bg-[rgb(var(--surface-rgb)/0.2)]" title="Cerrar">
         <X size={20} />
       </button>
       {images.length > 1 && (
@@ -249,14 +249,14 @@ const Lightbox = ({ images, index, onClose, onIndex }) => {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onIndex((index - 1 + images.length) % images.length); }}
-            className="absolute left-3 sm:left-6 p-2 rounded-full bg-white/10 text-white hover:bg-white/20"
+            className="absolute left-3 sm:left-6 p-2 rounded-full bg-[rgb(var(--surface-rgb)/0.1)] text-white hover:bg-[rgb(var(--surface-rgb)/0.2)]"
           >
             <ChevronLeft size={22} />
           </button>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onIndex((index + 1) % images.length); }}
-            className="absolute right-3 sm:right-6 p-2 rounded-full bg-white/10 text-white hover:bg-white/20"
+            className="absolute right-3 sm:right-6 p-2 rounded-full bg-[rgb(var(--surface-rgb)/0.1)] text-white hover:bg-[rgb(var(--surface-rgb)/0.2)]"
           >
             <ChevronRight size={22} />
           </button>
@@ -298,7 +298,7 @@ const PriorityPill = ({ id }) => {
 
 const Avatar = ({ name, size = 'sm' }) => (
   <span
-    className={`inline-flex items-center justify-center rounded-full bg-[#121314] text-[#44BF47] font-bold shrink-0 ${
+    className={`inline-flex items-center justify-center rounded-full bg-[var(--dark)] text-[var(--accent)] font-bold shrink-0 ${
       size === 'sm' ? 'w-6 h-6 text-[10px]' : 'w-8 h-8 text-xs'
     }`}
     title={name || 'Sin autor'}
@@ -313,7 +313,7 @@ const VoteButton = ({ item, onVote, size = 'md' }) => (
     onClick={(e) => { e.stopPropagation(); onVote(item); }}
     className={`flex flex-col items-center justify-center rounded-xl border transition-colors ${
       size === 'md' ? 'w-12 py-1.5' : 'px-3 py-1.5 flex-row gap-1.5'
-    } ${item.has_voted ? 'bg-[#121314] text-[#44BF47] border-[#121314]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#121314] hover:text-[#121314]'}`}
+    } ${item.has_voted ? 'bg-[var(--dark)] text-[var(--accent)] border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-[var(--ink)] hover:text-[var(--ink)]'}`}
     title={item.has_voted ? 'Quitar mi +1' : 'Dar +1'}
   >
     <ChevronUp size={size === 'md' ? 18 : 16} strokeWidth={2.5} />
@@ -332,7 +332,7 @@ const FeedbackCard = ({ item, onOpen, onVote, onLightbox }) => {
       tabIndex={0}
       onClick={() => onOpen(item)}
       onKeyDown={(e) => { if (e.key === 'Enter') onOpen(item); }}
-      className={`glass-card p-4 flex gap-4 cursor-pointer hover:bg-[#121212]/[0.03] transition-colors ${closed ? 'opacity-75' : ''}`}
+      className={`glass-card p-4 flex gap-4 cursor-pointer hover:bg-[rgb(var(--ink-rgb)/0.03)] transition-colors ${closed ? 'opacity-75' : ''}`}
     >
       <VoteButton item={item} onVote={onVote} />
       <div className="flex-1 min-w-0">
@@ -341,10 +341,10 @@ const FeedbackCard = ({ item, onOpen, onVote, onLightbox }) => {
           {item.status !== 'nueva' && <StatusPill id={item.status} />}
           {item.priority !== 'media' && <PriorityPill id={item.priority} />}
           {item.page && (
-            <Pill className="bg-white/70 text-gray-600 border-gray-200"><Monitor size={11} /> {item.page}</Pill>
+            <Pill className="bg-[rgb(var(--surface-rgb)/0.7)] text-gray-600 border-gray-200"><Monitor size={11} /> {item.page}</Pill>
           )}
         </div>
-        <h3 className={`font-semibold text-[#121314] leading-snug ${item.status === 'hecha' ? 'line-through decoration-gray-400' : ''}`}>{item.title}</h3>
+        <h3 className={`font-semibold text-[var(--ink)] leading-snug ${item.status === 'hecha' ? 'line-through decoration-gray-400' : ''}`}>{item.title}</h3>
         {item.body && <p className="text-sm text-gray-600 mt-1 line-clamp-2 whitespace-pre-line">{item.body}</p>}
 
         {thumbs.length > 0 && (
@@ -354,7 +354,7 @@ const FeedbackCard = ({ item, onOpen, onVote, onLightbox }) => {
                 key={url + i}
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onLightbox(item.images, i); }}
-                className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#121314] transition"
+                className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[var(--ink)] transition"
                 title="Ver pantallazo"
               >
                 <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -437,7 +437,7 @@ const FeedbackFormModal = ({ initial, onClose, onSaved }) => {
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-[#121314]">{isEdit ? 'Editar sugerencia' : 'Nueva sugerencia'}</h2>
+            <h2 className="text-lg font-bold text-[var(--ink)]">{isEdit ? 'Editar sugerencia' : 'Nueva sugerencia'}</h2>
             <p className="text-xs text-gray-500">Cuéntale al equipo qué quieres que Orbit haga mejor.</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"><X size={18} /></button>
@@ -452,7 +452,7 @@ const FeedbackFormModal = ({ initial, onClose, onSaved }) => {
               onChange={set('title')}
               maxLength={200}
               placeholder="Ej: Poder filtrar tareas por cliente en el tablero"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] focus:outline-none focus:ring-2 focus:ring-[#121314]/20 focus:border-[#121314]"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
             />
           </div>
 
@@ -463,20 +463,20 @@ const FeedbackFormModal = ({ initial, onClose, onSaved }) => {
               onChange={set('body')}
               rows={5}
               placeholder="¿Qué pasa hoy, qué esperabas y por qué importa? Puedes pegar pantallazos aquí con Ctrl/Cmd+V."
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] resize-y focus:outline-none focus:ring-2 focus:ring-[#121314]/20 focus:border-[#121314]"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm text-[var(--ink)] resize-y focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
-              <select value={form.category} onChange={set('category')} className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] focus:outline-none focus:border-[#121314]">
+              <select value={form.category} onChange={set('category')} className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--ink)]">
                 {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Prioridad</label>
-              <select value={form.priority} onChange={set('priority')} className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] focus:outline-none focus:border-[#121314]">
+              <select value={form.priority} onChange={set('priority')} className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--ink)]">
                 {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
               </select>
             </div>
@@ -488,7 +488,7 @@ const FeedbackFormModal = ({ initial, onClose, onSaved }) => {
                 list="orbit-feedback-pages"
                 maxLength={120}
                 placeholder="Ej: Tareas"
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] focus:outline-none focus:border-[#121314]"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--ink)]"
               />
               <datalist id="orbit-feedback-pages">
                 {PAGE_SUGGESTIONS.map((p) => <option key={p} value={p} />)}
@@ -511,7 +511,7 @@ const FeedbackFormModal = ({ initial, onClose, onSaved }) => {
           <button
             type="submit"
             disabled={saving || uploads.busy}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
             {uploads.busy ? 'Subiendo pantallazos…' : isEdit ? 'Guardar cambios' : 'Publicar sugerencia'}
@@ -614,15 +614,15 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="glass-solid rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur rounded-t-2xl z-10">
+        <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-gray-100 sticky top-0 bg-[rgb(var(--surface-rgb)/0.95)] backdrop-blur rounded-t-2xl z-10">
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
               <CategoryPill id={item.category} />
               <StatusPill id={item.status} />
               <PriorityPill id={item.priority} />
-              {item.page && <Pill className="bg-white/70 text-gray-600 border-gray-200"><Monitor size={11} /> {item.page}</Pill>}
+              {item.page && <Pill className="bg-[rgb(var(--surface-rgb)/0.7)] text-gray-600 border-gray-200"><Monitor size={11} /> {item.page}</Pill>}
             </div>
-            <h2 className="text-lg font-bold text-[#121314] leading-snug">{item.title}</h2>
+            <h2 className="text-lg font-bold text-[var(--ink)] leading-snug">{item.title}</h2>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {(isAuthor || isAdmin) && (
@@ -643,7 +643,7 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Avatar name={item.created_by_name} size="md" />
               <div className="leading-tight">
-                <div className="font-semibold text-[#121314]">{item.created_by_name || 'Sin autor'}</div>
+                <div className="font-semibold text-[var(--ink)]">{item.created_by_name || 'Sin autor'}</div>
                 <div className="text-xs text-gray-500" title={formatFull(item.created_at)}>
                   {formatFull(item.created_at)} · {timeAgo(item.created_at)}
                   {item.updated_at && item.updated_at !== item.created_at && <span> · editada {timeAgo(item.updated_at)}</span>}
@@ -658,7 +658,7 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
                     value={item.status}
                     disabled={changingStatus}
                     onChange={(e) => changeStatus(e.target.value)}
-                    className="appearance-none pl-3 pr-8 py-1.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-[#121314] focus:outline-none focus:border-[#121314] disabled:opacity-60"
+                    className="appearance-none pl-3 pr-8 py-1.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm font-medium text-[var(--ink)] focus:outline-none focus:border-[var(--ink)] disabled:opacity-60"
                     title="Cambiar estado (admin / manager)"
                   >
                     {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
@@ -673,7 +673,7 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
 
           {/* Cuerpo */}
           {item.body ? (
-            <p className="text-[15px] text-[#121314] whitespace-pre-wrap leading-relaxed">{item.body}</p>
+            <p className="text-[15px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed">{item.body}</p>
           ) : (
             <p className="text-sm text-gray-400 italic">Sin descripción.</p>
           )}
@@ -692,10 +692,10 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
                   key={url + i}
                   type="button"
                   onClick={() => onLightbox(item.images, i)}
-                  className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#121314] transition text-left"
+                  className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[var(--ink)] transition text-left"
                   title="Ampliar"
                 >
-                  <img src={url} alt={`Pantallazo ${i + 1}`} className="w-full max-h-72 object-contain bg-white" loading="lazy" />
+                  <img src={url} alt={`Pantallazo ${i + 1}`} className="w-full max-h-72 object-contain bg-[var(--surface)]" loading="lazy" />
                 </button>
               ))}
             </div>
@@ -707,7 +707,7 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
 
           {/* Comentarios */}
           <div className="border-t border-gray-100 pt-4">
-            <h3 className="text-sm font-bold text-[#121314] mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[var(--ink)] mb-3 flex items-center gap-2">
               <MessageSquare size={15} /> Comentarios
               <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{comments.length}</span>
             </h3>
@@ -721,10 +721,10 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
                 {comments.map((c) => (
                   <li key={c.id} className="flex gap-3 group">
                     <Avatar name={c.created_by_name} size="md" />
-                    <div className="flex-1 min-w-0 bg-white/70 border border-gray-100 rounded-xl px-3 py-2.5">
+                    <div className="flex-1 min-w-0 bg-[rgb(var(--surface-rgb)/0.7)] border border-gray-100 rounded-xl px-3 py-2.5">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <div className="text-xs text-gray-500">
-                          <span className="font-semibold text-[#121314]">{c.created_by_name || 'Sin autor'}</span>
+                          <span className="font-semibold text-[var(--ink)]">{c.created_by_name || 'Sin autor'}</span>
                           <span className="mx-1.5">·</span>
                           <span title={formatFull(c.created_at)}>{timeAgo(c.created_at)}</span>
                         </div>
@@ -734,11 +734,11 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
                           </button>
                         )}
                       </div>
-                      {c.body && <p className="text-sm text-[#121314] whitespace-pre-wrap">{c.body}</p>}
+                      {c.body && <p className="text-sm text-[var(--ink)] whitespace-pre-wrap">{c.body}</p>}
                       {c.images?.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {c.images.map((url, i) => (
-                            <button key={url + i} type="button" onClick={() => onLightbox(c.images, i)} className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#121314] transition">
+                            <button key={url + i} type="button" onClick={() => onLightbox(c.images, i)} className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[var(--ink)] transition">
                               <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
                             </button>
                           ))}
@@ -757,14 +757,14 @@ const FeedbackDetailModal = ({ item, canModerate, currentUserId, isAdmin, onClos
                 onChange={(e) => setCommentBody(e.target.value)}
                 rows={3}
                 placeholder="Escribe un comentario… (puedes pegar pantallazos con Ctrl/Cmd+V)"
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#121314] resize-y focus:outline-none focus:ring-2 focus:ring-[#121314]/20 focus:border-[#121314]"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-sm text-[var(--ink)] resize-y focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
               />
               <ImageAttachZone uploads={uploads} compact />
               <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={sending || uploads.busy || (!commentBody.trim() && !uploads.urls.length)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
                 >
                   {sending ? <Loader2 size={15} className="animate-spin" /> : <MessageSquare size={15} />}
                   Comentar
@@ -887,18 +887,18 @@ const OrbitFeedback = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#121314] text-[#44BF47] flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-[var(--dark)] text-[var(--accent)] flex items-center justify-center shrink-0">
             <Lightbulb size={22} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-[#121314]">Mejoras de Orbit</h1>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Mejoras de Orbit</h1>
             <p className="text-sm text-gray-500 mt-0.5">Lo que el equipo quiere que Orbit haga mejor</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => { setEditing(null); setShowForm(true); }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] transition-colors"
         >
           <Plus size={16} /> Nueva sugerencia
         </button>
@@ -911,7 +911,7 @@ const OrbitFeedback = () => {
       )}
 
       {/* Pestañas por estado */}
-      <div className="flex items-center gap-1 mb-3 bg-white/50 border border-[#121212]/[0.09] rounded-xl p-1 w-fit max-w-full overflow-x-auto">
+      <div className="flex items-center gap-1 mb-3 bg-[rgb(var(--surface-rgb)/0.5)] border border-[rgb(var(--ink-rgb)/0.09)] rounded-xl p-1 w-fit max-w-full overflow-x-auto">
         {TABS.map((t) => {
           const active = statusTab === t.id;
           const count = counts[t.id] ?? 0;
@@ -920,10 +920,10 @@ const OrbitFeedback = () => {
               key={t.id}
               type="button"
               onClick={() => setStatusTab(t.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[#121314] text-white shadow-sm' : 'text-gray-600 hover:bg-[#121212]/[0.03]'}`}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-[var(--dark)] text-white shadow-sm' : 'text-gray-600 hover:bg-[rgb(var(--ink-rgb)/0.03)]'}`}
             >
               {t.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-[rgb(var(--surface-rgb)/0.15)] text-white' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
             </button>
           );
         })}
@@ -935,7 +935,7 @@ const OrbitFeedback = () => {
           <button
             type="button"
             onClick={() => setCategory('')}
-            className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${!category ? 'bg-[#121314] text-[#44BF47] border-[#121314]' : 'bg-white/70 text-gray-600 border-gray-200 hover:border-gray-400'}`}
+            className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${!category ? 'bg-[var(--dark)] text-[var(--accent)] border-[var(--ink)]' : 'bg-[rgb(var(--surface-rgb)/0.7)] text-gray-600 border-gray-200 hover:border-gray-400'}`}
           >
             Todo
           </button>
@@ -947,7 +947,7 @@ const OrbitFeedback = () => {
                 key={c.id}
                 type="button"
                 onClick={() => setCategory(active ? '' : c.id)}
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${active ? 'bg-[#121314] text-[#44BF47] border-[#121314]' : `${c.pill} hover:brightness-95`}`}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${active ? 'bg-[var(--dark)] text-[var(--accent)] border-[var(--ink)]' : `${c.pill} hover:brightness-95`}`}
               >
                 <Icon size={12} /> {c.label}
               </button>
@@ -961,7 +961,7 @@ const OrbitFeedback = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar…"
-              className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white/80 text-sm text-[#121314] focus:outline-none focus:border-[#121314]"
+              className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-[rgb(var(--surface-rgb)/0.8)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--ink)]"
             />
             {search && (
               <button type="button" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"><X size={13} /></button>
@@ -973,9 +973,9 @@ const OrbitFeedback = () => {
               role="switch"
               aria-checked={mine}
               onClick={() => setMine((m) => !m)}
-              className={`relative w-9 h-5 rounded-full transition-colors ${mine ? 'bg-[#121314]' : 'bg-gray-300'}`}
+              className={`relative w-9 h-5 rounded-full transition-colors ${mine ? 'bg-[var(--dark)]' : 'bg-gray-300'}`}
             >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${mine ? 'translate-x-4 bg-[#44BF47]' : 'translate-x-0.5 bg-white'}`} />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-transform ${mine ? 'translate-x-4 bg-[var(--accent)]' : 'translate-x-0.5 bg-[var(--surface)]'}`} />
             </button>
             Solo las mías
           </label>
@@ -1004,22 +1004,22 @@ const OrbitFeedback = () => {
         </div>
       ) : visible.length === 0 ? (
         <div className="glass-card p-10 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[#44BF47]/15 text-[#1E7A30] flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 rounded-2xl bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent-deep)] flex items-center justify-center mx-auto mb-3">
             <Lightbulb size={26} />
           </div>
           {hasFilters ? (
             <>
-              <h3 className="font-semibold text-[#121314]">Nada por aquí con esos filtros</h3>
+              <h3 className="font-semibold text-[var(--ink)]">Nada por aquí con esos filtros</h3>
               <p className="text-sm text-gray-500 mt-1">Prueba con otro estado o categoría, o limpia la búsqueda.</p>
             </>
           ) : (
             <>
-              <h3 className="font-semibold text-[#121314]">Todavía no hay sugerencias</h3>
+              <h3 className="font-semibold text-[var(--ink)]">Todavía no hay sugerencias</h3>
               <p className="text-sm text-gray-500 mt-1">¿Algo de Orbit te estorba o se te ocurre una idea? Este es el lugar.</p>
               <button
                 type="button"
                 onClick={() => { setEditing(null); setShowForm(true); }}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#121314] text-[#44BF47] text-sm font-medium hover:bg-[#1C1D1F]"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F]"
               >
                 <Plus size={15} /> Registrar la primera
               </button>

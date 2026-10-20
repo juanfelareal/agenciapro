@@ -33,8 +33,8 @@ function Notice({ notice, onClose }) {
   if (!notice) return null;
   const ok = notice.type === 'ok';
   return (
-    <div className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:bottom-5 z-50 flex items-start gap-2 rounded-xl px-4 py-3 text-sm shadow-xl ${ok ? 'bg-[#121314] text-white' : 'bg-red-600 text-white'}`}>
-      {ok ? <CheckCircle2 className="w-4 h-4 mt-0.5 text-[#44BF47] shrink-0" /> : <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />}
+    <div className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:bottom-5 z-50 flex items-start gap-2 rounded-xl px-4 py-3 text-sm shadow-xl ${ok ? 'bg-[var(--dark)] text-white' : 'bg-red-600 text-white'}`}>
+      {ok ? <CheckCircle2 className="w-4 h-4 mt-0.5 text-[var(--accent)] shrink-0" /> : <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />}
       <span className="flex-1 sm:max-w-xs">{notice.text}</span>
       <button type="button" onClick={onClose} className="ml-2 opacity-70 hover:opacity-100" aria-label="Cerrar"><X className="w-4 h-4" /></button>
     </div>
@@ -261,9 +261,9 @@ export default function PortalFinancials() {
       />
 
       {hasScenariosTab && data.scenarios_enabled && (
-        <div className="no-print flex gap-1 bg-white/70 border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
+        <div className="no-print flex gap-1 bg-[rgb(var(--surface-rgb)/0.7)] border border-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto">
           {[['resumen', 'Resumen'], ['escenarios', 'Escenarios']].map(([k, label]) => (
-            <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${tab === k ? 'bg-[#121314] text-[#44BF47]' : 'text-gray-500 hover:text-[#121314]'}`}>{label}</button>
+            <button key={k} type="button" onClick={() => switchTab(k)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${tab === k ? 'bg-[var(--dark)] text-[var(--accent)]' : 'text-gray-500 hover:text-[var(--ink)]'}`}>{label}</button>
           ))}
         </div>
       )}
@@ -275,7 +275,7 @@ export default function PortalFinancials() {
       ) : !data.shopify?.connected && !hasAny ? (
         <div className="glass-solid rounded-2xl p-8 sm:p-10 text-center max-w-xl mx-auto">
           <Store className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <h2 className="text-base font-semibold text-[#121314]">Todavía no hay datos de tu tienda</h2>
+          <h2 className="text-base font-semibold text-[var(--ink)]">Todavía no hay datos de tu tienda</h2>
           <p className="text-sm text-gray-500 mt-1">Cuando LA REAL conecte tu tienda (Shopify o WooCommerce) verás aquí ventas, pedidos, productos y la utilidad real de cada mes.</p>
         </div>
       ) : (

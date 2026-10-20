@@ -153,7 +153,7 @@ const SocialAutomations = ({ account }) => {
 
   if (!account) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+      <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
         <Zap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona una cuenta</h3>
         <p className="text-gray-500">
@@ -213,7 +213,7 @@ const SocialAutomations = ({ account }) => {
 
       {/* Automations List */}
       {automations.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
           <Zap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Sin automatizaciones
@@ -230,7 +230,7 @@ const SocialAutomations = ({ account }) => {
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 divide-y divide-gray-100">
           {automations.map((automation) => (
             <div
               key={automation.id}
@@ -351,7 +351,7 @@ const SocialAutomations = ({ account }) => {
               onClick={closeModal}
             />
 
-            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+            <div className="relative bg-[var(--surface)] rounded-xl shadow-xl w-full max-w-lg p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
                   {editingAutomation ? 'Editar Automatizacion' : 'Nueva Automatizacion'}
@@ -423,7 +423,7 @@ const SocialAutomations = ({ account }) => {
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-[var(--surface)] transition-transform ${
                         formData.isActive ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />

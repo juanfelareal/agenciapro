@@ -43,6 +43,7 @@ import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
 import OrbitLogo from './OrbitLogo';
+import { useBranding } from '../branding/useBranding'; // [branding]
 import useIsMobile from '../hooks/useIsMobile';
 import Tour from './onboarding/Tour';
 import { TOUR_MENU_EVENT } from './onboarding/onboardingApi';
@@ -53,6 +54,7 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const { user, currentOrg, hasPermission, logout } = useAuth();
   const { isModuleEnabled, isPlatformAdmin } = useOrgPlan(); // [modules] módulos de la org = capa sobre los permisos
+  const brandLogo = useBranding().logo('sidebar'); // [branding] logo claro u oscuro según barra/tema
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Móvil: el sidebar es un drawer (cerrado por defecto) y nunca se muestra colapsado
   const isMobile = useIsMobile();
@@ -250,11 +252,11 @@ const Layout = ({ children }) => {
         className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
           item.badge === 'news'
             ? (active
-              ? 'bg-[#44BF47] text-white font-semibold'
-              : 'bg-[#44BF47]/12 text-[#121314] font-semibold hover:bg-[#44BF47]/20')
+              ? 'bg-[var(--accent)] text-white font-semibold'
+              : 'bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--ink)] font-semibold hover:bg-[rgb(var(--accent-rgb)/0.2)]')
             : (active
-              ? 'bg-[#121314] text-[#44BF47]'
-              : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]')
+              ? 'bg-[var(--dark)] text-[var(--accent)]'
+              : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]')
         }`}
         title={collapsedUI ? item.name : ''}
         data-tour={item.path === '/app' ? 'dashboard' : item.path.replace('/app/', '')} /* [onboarding] */
@@ -279,7 +281,7 @@ const Layout = ({ children }) => {
           </span>
         )}
         {collapsedUI && item.badge === 'news' && newsUnreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 ring-2 ring-white rounded-full" />
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 ring-2 ring-[var(--surface)] rounded-full" />
         )}
         {/* WhatsApp sin leer: badge verde (expandido) o punto verde (colapsado) */}
         {!collapsedUI && item.badge === 'whatsapp' && waUnreadCount > 0 && (
@@ -291,7 +293,7 @@ const Layout = ({ children }) => {
           </span>
         )}
         {collapsedUI && item.badge === 'whatsapp' && waUnreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 ring-2 ring-white rounded-full" />
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 ring-2 ring-[var(--surface)] rounded-full" />
         )}
         {/* Tareas asignadas sin ver: badge azul (expandido) o punto azul (colapsado) */}
         {!collapsedUI && item.badge === 'tasks' && taskAlertCount > 0 && (
@@ -303,12 +305,12 @@ const Layout = ({ children }) => {
           </span>
         )}
         {collapsedUI && item.badge === 'tasks' && taskAlertCount > 0 && (
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-sky-500 ring-2 ring-white rounded-full" />
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-sky-500 ring-2 ring-[var(--surface)] rounded-full" />
         )}
 
         {/* Tooltip for collapsed state */}
         {collapsedUI && (
-          <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+          <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
             {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}{item.badge === 'whatsapp' && waUnreadCount > 0 ? ` · ${waUnreadCount} sin leer` : ''}{item.badge === 'tasks' && taskAlertCount > 0 ? ` · ${taskAlertCount} nueva${taskAlertCount === 1 ? '' : 's'}` : ''}
           </div>
         )}
@@ -331,18 +333,18 @@ const Layout = ({ children }) => {
         }`}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center px-3 border-b border-[#121212]/[0.09]">
+        <div className="h-16 flex items-center px-3 border-b border-[rgb(var(--ink-rgb)/0.09)]">
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="md:hidden mr-2 p-2 -ml-1 rounded-lg text-gray-500 hover:bg-[#121212]/[0.04]"
+            className="md:hidden mr-2 p-2 -ml-1 rounded-lg text-gray-500 hover:bg-[rgb(var(--ink-rgb)/0.04)]"
             aria-label="Cerrar menú"
           >
             <X size={20} />
           </button>
-          {currentOrg?.logo_url ? (
+          {brandLogo ? ( // [branding]
             <img
-              src={currentOrg.logo_url}
+              src={brandLogo}
               alt={currentOrg.name || 'Logo'}
               className={collapsedUI ? 'w-10 h-10 object-contain rounded-lg' : 'h-10 max-w-full object-contain object-left'}
             />
@@ -353,26 +355,26 @@ const Layout = ({ children }) => {
 
         {/* Organization Switcher */}
         {!collapsedUI && currentOrg && (
-          <div className="px-3 py-2 border-b border-[#121212]/[0.09]">
+          <div className="px-3 py-2 border-b border-[rgb(var(--ink-rgb)/0.09)]">
             <OrgSwitcher />
           </div>
         )}
 
         {/* User Info */}
         {!collapsedUI && user && (
-          <div className="p-3 border-b border-[#121212]/[0.09]">
+          <div className="p-3 border-b border-[rgb(var(--ink-rgb)/0.09)]">
             <div className="flex items-center gap-3">
               {user.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
               ) : (
                 <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#44BF47] font-semibold text-sm flex-shrink-0 bg-[#121314]"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--accent)] font-semibold text-sm flex-shrink-0 bg-[var(--dark)]"
                 >
                   {getUserInitials(user.name)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-[#121314] truncate">{user.name}</p>
+                <p className="text-sm font-medium text-[var(--ink)] truncate">{user.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user.position || user.role}</p>
               </div>
             </div>
@@ -393,8 +395,8 @@ const Layout = ({ children }) => {
                   data-tour="finanzas"
                   className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     isFinanzasActive
-                      ? 'bg-[#121314] text-[#44BF47]'
-                      : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
+                      ? 'bg-[var(--dark)] text-[var(--accent)]'
+                      : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
                   }`}
                   title={collapsedUI ? 'Finanzas' : ''}
                 >
@@ -413,7 +415,7 @@ const Layout = ({ children }) => {
 
                   {/* Tooltip for collapsed state */}
                   {collapsedUI && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                       Finanzas
                     </div>
                   )}
@@ -421,7 +423,7 @@ const Layout = ({ children }) => {
 
                 {/* Submenú */}
                 {(finanzasExpanded || collapsedUI) && !collapsedUI && (
-                  <div className="mt-1 ml-3 pl-3 border-l border-[#121212]/[0.09] space-y-1">
+                  <div className="mt-1 ml-3 pl-3 border-l border-[rgb(var(--ink-rgb)/0.09)] space-y-1">
                     {filteredFinanzas.map((item) => {
                       const Icon = item.icon;
                       const active = isActive(item.path);
@@ -431,8 +433,8 @@ const Layout = ({ children }) => {
                           to={item.path}
                           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                             active
-                              ? 'bg-[#121212]/[0.06] text-[#121314]'
-                              : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
+                              ? 'bg-[rgb(var(--ink-rgb)/0.06)] text-[var(--ink)]'
+                              : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
                           }`}
                         >
                           <Icon size={18} className="flex-shrink-0" />
@@ -455,7 +457,7 @@ const Layout = ({ children }) => {
                           key={item.path}
                           to={item.path}
                           className={`flex items-center gap-2 px-3 py-2 text-sm ${
-                            active ? 'text-[#121314] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
+                            active ? 'text-[var(--ink)] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
                           <Icon size={16} />
@@ -479,14 +481,14 @@ const Layout = ({ children }) => {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 space-y-1 border-t border-[#121212]/[0.09]" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
+        <div className="p-3 space-y-1 border-t border-[rgb(var(--ink-rgb)/0.09)]" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
           {/* Mejoras de Orbit */}
           <Link
             to="/app/mejoras"
             className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               isActive('/app/mejoras')
-                ? 'bg-[#121314] text-[#44BF47]'
-                : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
+                ? 'bg-[var(--dark)] text-[var(--accent)]'
+                : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
             }`}
             title={collapsedUI ? 'Mejoras de Orbit' : ''}
           >
@@ -494,16 +496,16 @@ const Layout = ({ children }) => {
             {!collapsedUI && <span className="truncate flex-1">Mejoras de Orbit</span>}
             {!collapsedUI && newFeedbackCount > 0 && (
               <span className={`ml-auto text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
-                isActive('/app/mejoras') ? 'bg-[#44BF47] text-white' : 'bg-[#121314] text-[#44BF47]'
+                isActive('/app/mejoras') ? 'bg-[var(--accent)] text-white' : 'bg-[var(--dark)] text-[var(--accent)]'
               }`}>
                 {newFeedbackCount > 99 ? '99+' : newFeedbackCount}
               </span>
             )}
             {collapsedUI && newFeedbackCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#44BF47] ring-2 ring-white rounded-full" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] ring-2 ring-[var(--surface)] rounded-full" />
             )}
             {collapsedUI && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mejoras de Orbit{newFeedbackCount > 0 ? ` · ${newFeedbackCount} nuevas` : ''}
               </div>
             )}
@@ -514,8 +516,8 @@ const Layout = ({ children }) => {
             to="/app/settings"
             className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               isActive('/app/settings')
-                ? 'bg-[#121314] text-[#44BF47]'
-                : 'text-gray-500 hover:text-[#121314] hover:bg-[#121212]/[0.04]'
+                ? 'bg-[var(--dark)] text-[var(--accent)]'
+                : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
             }`}
             title={collapsedUI ? 'Mi Cuenta' : ''}
             data-tour="settings"
@@ -523,7 +525,7 @@ const Layout = ({ children }) => {
             <Settings size={20} className="flex-shrink-0" />
             {!collapsedUI && <span>Mi Cuenta</span>}
             {collapsedUI && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[#121314] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mi Cuenta
               </div>
             )}
@@ -542,7 +544,7 @@ const Layout = ({ children }) => {
           {/* Collapse Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#121314] hover:bg-gray-100 transition-all duration-150"
+            className="hidden md:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[var(--ink)] hover:bg-gray-100 transition-all duration-150"
           >
             {collapsedUI ? (
               <ChevronRight size={20} />
@@ -568,22 +570,22 @@ const Layout = ({ children }) => {
         {/* Top Header Bar - Clean white.
             Altura h-16 para que coincida con el header del sidebar (también h-16);
             así las dos border-b se alinean en la misma línea horizontal. */}
-        <header className="sticky top-0 z-30 h-14 md:h-16 px-3 md:px-6 flex items-center justify-between md:justify-end bg-transparent" style={{ background: 'linear-gradient(180deg, rgba(243,244,239,0.92) 0%, rgba(243,244,239,0.7) 70%, transparent 100%)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+        <header className="sticky top-0 z-30 h-14 md:h-16 px-3 md:px-6 flex items-center justify-between md:justify-end bg-transparent" style={{ background: 'linear-gradient(180deg, rgb(var(--bg-rgb) / 0.92) 0%, rgb(var(--bg-rgb) / 0.7) 70%, transparent 100%)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} /* [branding] */>
           {/* Móvil: botón de menú + logo */}
           <div className="flex items-center gap-2 md:hidden min-w-0">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="relative p-2 rounded-xl text-[#121314] hover:bg-[#121212]/[0.04] active:bg-white"
+              className="relative p-2 rounded-xl text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)] active:bg-[var(--surface)]"
               aria-label="Abrir menú"
             >
               <Menu size={22} />
               {(newsUnreadCount > 0 || waUnreadCount > 0) && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#F3F1ED]" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[var(--bg)]" />
               )}
             </button>
-            {currentOrg?.logo_url ? (
-              <img src={currentOrg.logo_url} alt={currentOrg.name || 'Logo'} className="h-8 max-w-[120px] object-contain" />
+            {brandLogo ? ( // [branding]
+              <img src={brandLogo} alt={currentOrg.name || 'Logo'} className="h-8 max-w-[120px] object-contain" />
             ) : (
               <OrbitLogo size={28} showText />
             )}
@@ -595,7 +597,7 @@ const Layout = ({ children }) => {
             {/* User Avatar */}
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-[#121314]">
+                <p className="text-sm font-medium text-[var(--ink)]">
                   {user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -609,7 +611,7 @@ const Layout = ({ children }) => {
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-xl object-cover" />
               ) : (
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#44BF47] font-semibold text-sm bg-[#121314]">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--accent)] font-semibold text-sm bg-[var(--dark)]">
                   {getUserInitials(user?.name || 'U')}
                 </div>
               )}

@@ -312,7 +312,7 @@ const Team = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {[1,2,3].map(i => (
-          <div key={i} className="h-48 bg-white/50 rounded-2xl animate-pulse"></div>
+          <div key={i} className="h-48 bg-[rgb(var(--surface-rgb)/0.5)] rounded-2xl animate-pulse"></div>
         ))}
       </div>
     );
@@ -322,12 +322,12 @@ const Team = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#121314] tracking-tight">Equipo</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Equipo</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de miembros del equipo</p>
         </div>
         <button
           onClick={handleNew}
-          className="bg-[#121314] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
+          className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
         >
           <Plus size={18} />
           Nuevo Miembro
@@ -346,12 +346,12 @@ const Team = () => {
                     className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-[#121314] flex items-center justify-center text-[#44BF47] font-semibold text-lg">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--dark)] flex items-center justify-center text-[var(--accent)] font-semibold text-lg">
                     {member.name?.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div>
-                  <h3 className="font-semibold text-[#121314]">{member.name}</h3>
+                  <h3 className="font-semibold text-[var(--ink)]">{member.name}</h3>
                   <p className="text-xs text-gray-500">{member.position || 'Sin cargo'}</p>
                 </div>
               </div>
@@ -412,9 +412,9 @@ const Team = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-[#121314]">
+              <h2 className="text-xl font-semibold text-[var(--ink)]">
                 {editingMember ? 'Editar Miembro' : 'Nuevo Miembro'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -429,7 +429,7 @@ const Team = () => {
                   {formData.avatar_url ? (
                     <img src={formData.avatar_url} alt="Foto" className="w-16 h-16 rounded-2xl object-cover" />
                   ) : (
-                    <div className="w-16 h-16 rounded-2xl bg-[#121314] flex items-center justify-center text-[#44BF47] font-bold text-xl">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--dark)] flex items-center justify-center text-[var(--accent)] font-bold text-xl">
                       {formData.name ? formData.name.charAt(0).toUpperCase() : <Camera size={22} />}
                     </div>
                   )}
@@ -564,7 +564,7 @@ const Team = () => {
                             value={newMemberPin}
                             onChange={(e) => setNewMemberPin(e.target.value)}
                             placeholder="Mínimo 4 caracteres"
-                            className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#44BF47]/30 focus:border-[#44BF47]"
+                            className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
                           />
                           <button
                             type="button"
@@ -583,11 +583,11 @@ const Team = () => {
                           type="checkbox"
                           checked={sendWelcomeEmail}
                           onChange={(e) => setSendWelcomeEmail(e.target.checked)}
-                          className="w-4 h-4 accent-[#121314]"
+                          className="w-4 h-4 accent-[var(--ink)]"
                         />
                         <Mail size={18} className="text-blue-600" />
                         <div>
-                          <span className="text-sm font-medium text-[#121314]">Enviar email de bienvenida</span>
+                          <span className="text-sm font-medium text-[var(--ink)]">Enviar email de bienvenida</span>
                           <p className="text-xs text-gray-500">Se enviarán las credenciales de acceso al email del miembro</p>
                         </div>
                       </label>
@@ -612,14 +612,14 @@ const Team = () => {
                           onClick={() => applyTemplate(template)}
                           className={`px-3 py-1.5 text-sm rounded-xl border-2 flex items-center gap-1.5 transition ${
                             selectedTemplate === template.name
-                              ? 'border-[#44BF47] bg-[#44BF47]/8 text-[#121314]'
+                              ? 'border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.08)] text-[var(--ink)]'
                               : 'border-gray-200 hover:border-gray-300 text-gray-700'
                           }`}
                           title={template.description}
                         >
                           <span>{template.icon}</span>
                           <span>{template.name}</span>
-                          {selectedTemplate === template.name && <Check size={14} className="text-[#121314]" />}
+                          {selectedTemplate === template.name && <Check size={14} className="text-[var(--ink)]" />}
                         </button>
                       ))}
                     </div>
@@ -627,15 +627,15 @@ const Team = () => {
 
                   {/* Copy Permissions from Another Member */}
                   {getAvailableMembersForCopy().length > 0 && (
-                    <div className="mb-4 p-3 bg-[#121314]/5 rounded-xl border border-[#121314]/10">
+                    <div className="mb-4 p-3 bg-[rgb(var(--ink-rgb)/0.05)] rounded-xl border border-[rgb(var(--ink-rgb)/0.1)]">
                       <div className="flex items-center gap-2 mb-2">
-                        <Users size={16} className="text-[#121314]" />
-                        <p className="text-sm font-medium text-[#121314]">
+                        <Users size={16} className="text-[var(--ink)]" />
+                        <p className="text-sm font-medium text-[var(--ink)]">
                           Mismos permisos que:
                         </p>
                       </div>
                       <select
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-[var(--surface)]"
                         onChange={(e) => copyPermissionsFromMember(e.target.value)}
                         defaultValue=""
                       >
@@ -682,7 +682,7 @@ const Team = () => {
                             key={permission.key}
                             className={`flex items-center gap-2 p-2 rounded-xl border-2 cursor-pointer transition text-sm ${
                               formData.permissions[permission.key]
-                                ? 'border-[#44BF47] bg-[#44BF47]/8'
+                                ? 'border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.08)]'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
@@ -699,7 +699,7 @@ const Team = () => {
                                 });
                                 setSelectedTemplate(null);
                               }}
-                              className="w-4 h-4 accent-[#121314]"
+                              className="w-4 h-4 accent-[var(--ink)]"
                             />
                             <span>{permission.icon}</span>
                             <span className="font-medium truncate">{permission.label}</span>
@@ -722,7 +722,7 @@ const Team = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
                 >
                   Guardar
                 </button>
@@ -735,10 +735,10 @@ const Team = () => {
       {/* PIN Modal */}
       {showPinModal && pinMember && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center p-5 border-b border-gray-100">
               <div>
-                <h2 className="text-lg font-semibold text-[#121314]">Establecer PIN</h2>
+                <h2 className="text-lg font-semibold text-[var(--ink)]">Establecer PIN</h2>
                 <p className="text-sm text-gray-500">{pinMember.name}</p>
               </div>
               <button
@@ -757,7 +757,7 @@ const Team = () => {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-[#121314] mb-2">
+                <label className="block text-sm font-medium text-[var(--ink)] mb-2">
                   Nuevo PIN de acceso
                 </label>
                 <div className="relative">
@@ -766,7 +766,7 @@ const Team = () => {
                     value={pinValue}
                     onChange={(e) => setPinValue(e.target.value)}
                     placeholder="Mínimo 4 caracteres"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#44BF47]/30 focus:border-[#44BF47]"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
                     autoFocus
                   />
                   <button
@@ -793,7 +793,7 @@ const Team = () => {
               <button
                 onClick={handleSetPin}
                 disabled={pinLoading || pinValue.length < 4}
-                className="px-4 py-2.5 bg-[#121314] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {pinLoading ? (
                   <>

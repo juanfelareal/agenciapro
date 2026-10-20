@@ -85,7 +85,7 @@ function Heatmap({ heatmap, mode, selected, onSelect }) {
                   className="rounded-[2px] aspect-square min-h-[10px] w-full transition-transform hover:scale-110 focus:outline-none"
                   style={{
                     ...cellStyle(c),
-                    boxShadow: isSel ? 'inset 0 0 0 2px #44BF47' : isBest ? 'inset 0 0 0 2px #44BF47' : undefined,
+                    boxShadow: isSel ? 'inset 0 0 0 2px var(--accent)' : isBest ? 'inset 0 0 0 2px var(--accent)' : undefined,
                   }}
                 />
               );
@@ -114,12 +114,12 @@ function WeekdayRanking({ byWeekday, bestDays }) {
         const strong = top.has(wd);
         return (
           <div key={wd} className="grid items-center gap-2 text-[11px]" style={{ gridTemplateColumns: '26px 1fr auto' }}>
-            <span className={`leading-none ${strong ? 'text-[#121314] font-semibold' : 'text-gray-400'}`}>{DAY_SHORT[wd]}</span>
+            <span className={`leading-none ${strong ? 'text-[var(--ink)] font-semibold' : 'text-gray-400'}`}>{DAY_SHORT[wd]}</span>
             <div className="h-[18px] bg-gray-100 rounded-md overflow-hidden">
-              <div className="h-full rounded-md transition-[width] duration-500" style={{ width: `${pct}%`, background: strong ? '#121314' : '#C9C6C0' }} />
+              <div className="h-full rounded-md transition-[width] duration-500" style={{ width: `${pct}%`, background: strong ? 'var(--ink)' : '#C9C6C0' }} />
             </div>
             <span className="tabular-nums text-right whitespace-nowrap">
-              <span className={`font-semibold ${strong ? 'text-[#121314]' : 'text-gray-600'}`}>
+              <span className={`font-semibold ${strong ? 'text-[var(--ink)]' : 'text-gray-600'}`}>
                 <span className="sm:hidden">{fmtMoneyShort(w.avg_revenue_per_day)}</span>
                 <span className="hidden sm:inline">{fmtMoney(w.avg_revenue_per_day)}</span>
               </span>
@@ -180,12 +180,12 @@ export default function PurchasePatterns({ clientId, api }) {
     const p = data.period || {};
     body = (
       <>
-        {summary && <p className="text-[13px] text-[#121314] leading-relaxed mt-3">{summary}</p>}
+        {summary && <p className="text-[13px] text-[var(--ink)] leading-relaxed mt-3">{summary}</p>}
         <Heatmap heatmap={data.heatmap} mode={mode} selected={selected} onSelect={setSelected} />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-gray-500">
           {selectedCell ? (
             <span>
-              <span className="font-medium text-[#121314]">{DAY_SHORT[selectedCell.weekday]} {hourRange(selectedCell.hour)}</span>
+              <span className="font-medium text-[var(--ink)]">{DAY_SHORT[selectedCell.weekday]} {hourRange(selectedCell.hour)}</span>
               {' · '}{fmtInt(selectedCell.orders)} pedidos · {fmtMoney(selectedCell.revenue)}
               {!selected && <span className="text-gray-400"> (celda pico)</span>}
             </span>
