@@ -12,8 +12,9 @@ const api = axios.create({
 // Adjunta el token en cada petición aunque la página se monte antes de que
 // AuthContext termine de restaurar la sesión (rutas sin ProtectedRoute, recargas).
 api.interceptors.request.use((config) => {
-  const hasHeader = config.headers?.Authorization || api.defaults.headers.common['Authorization'];
-  if (!hasHeader) {
+  // Si la petición salió sin Authorization (p. ej. se creó en el mismo tick en que AuthContext
+  // restauraba la sesión y los defaults aún no estaban mezclados), la tomamos del storage.
+  if (!config.headers?.Authorization) {
     const token = localStorage.getItem('authToken');
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
