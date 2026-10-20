@@ -16,6 +16,9 @@ import { teamAuthMiddleware } from './src/middleware/teamAuth.js';
 // [modules] Módulos por organización, planes y panel de plataforma
 import { requireModule } from './src/middleware/requireModule.js';
 import orgRoutes from './src/routes/org.js';
+import orgBillingRoutes from './src/routes/org-billing.js'; // [billing]
+import boldWebhookRoutes from './src/routes/webhooks-bold.js'; // [billing]
+import { runBillingDaily } from './src/services/billingCron.js'; // [billing]
 import platformRoutes from './src/routes/platform.js';
 
 // Import routes
@@ -148,6 +151,7 @@ console.log('  - NODE_ENV:', process.env.NODE_ENV || 'not set');
 app.use(cors());
 // Webhook de WhatsApp (Kapso): necesita el cuerpo crudo para verificar la firma HMAC → va ANTES de express.json()
 app.use('/api/whatsapp/webhook', whatsappWebhookRoutes);
+app.use('/api/webhooks/bold', boldWebhookRoutes); // [billing] cuerpo crudo para la firma de Bold
 app.use(express.json({ limit: '2mb' }));
 
 // Serve uploaded files
@@ -217,6 +221,7 @@ app.use('/api/auth', authRoutes);
 // Team routes (handles its own auth internally for legacy compat)
 app.use('/api/team', teamRoutes);
 // [modules] Plan/módulos de la org actual y panel de plataforma (LA REAL)
+app.use('/api/org/billing', teamAuthMiddleware, orgBillingRoutes); // [billing]
 app.use('/api/org', teamAuthMiddleware, orgRoutes);
 app.use('/api/platform', teamAuthMiddleware, platformRoutes);
 
@@ -444,6 +449,9 @@ console.log('✅ Weekly AI insights cron job scheduled (Monday 7:00 AM Colombia 
 // Setup cron job for daily integration health check (Facebook, Shopify, Siigo tokens)
 // Runs every day at 7:00 AM Colombia time
 import { runIntegrationHealthCheck } from './src/services/integrationHealthCheck.js';
+// [billing] Vencimientos: active con renovación vencida > 7 días → past_due
+cron.schedule('30 0 * * *', () => runBillingDaily().catch((e) => console.error('❌ Billing daily:', e.message)), { scheduled: true, timezone: 'America/Bogota' });
+
 cron.schedule('0 7 * * *', async () => {
   console.log('⏰ Running daily integration health check...');
   try {
