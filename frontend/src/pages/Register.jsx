@@ -295,9 +295,10 @@ const Register = () => {
     }
   }, [name, email, pin, orgName, planId, accent, modules, agencyType, teamSize, logo, validInvites]);
 
-  const enterOrbit = async () => {
-    setSubmitting(true);
-    try { await checkAuth(); } catch { /* el token ya está guardado; ProtectedRoute lo valida */ }
+  const enterOrbit = () => {
+    // El token ya quedó guardado al registrar; refrescamos la sesión sin bloquear la navegación
+    // (si checkAuth tarda o falla, ProtectedRoute vuelve a validar al entrar).
+    Promise.resolve().then(() => checkAuth()).catch(() => {});
     navigate('/app?tour=1', { replace: true });
   };
 
