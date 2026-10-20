@@ -15,7 +15,8 @@ import {
   Check,
   Video,
   MessageCircle,
-  Lock
+  Lock,
+  Wallet
 } from 'lucide-react';
 import { clientsAPI, platformCredentialsAPI, facebookOAuthAPI, googleAdsOAuthAPI, tiktokOAuthAPI, shopifyOAuthAPI, woocommerceAuthAPI, portalAdminAPI, teamAPI } from '../utils/api';
 
@@ -90,6 +91,9 @@ function ClientPlatformSettings() {
   const [privacy, setPrivacy] = useState({ canManage: false, memberId: null, members: [], selected: [], saving: false, loaded: false });
   const [savingWhatsappSales, setSavingWhatsappSales] = useState(false);
   const [savingUgc, setSavingUgc] = useState(false);
+  // Finanzas en el portal del cliente (ver dashboard financiero / editar costos y metas)
+  const [portalFinancials, setPortalFinancials] = useState({ can_view_financials: false, financials_editable: false });
+  const [savingPortalFinancials, setSavingPortalFinancials] = useState(null); // clave que se está guardando
 
 
   // Load client and credentials
@@ -179,6 +183,10 @@ function ClientPlatformSettings() {
         }
         setCanViewUgc(!!portalRes.settings?.can_view_ugc);
         setWhatsappSalesEnabled(!!portalRes.settings?.whatsapp_sales_enabled);
+        setPortalFinancials({
+          can_view_financials: !!portalRes.settings?.can_view_financials,
+          financials_editable: !!portalRes.settings?.financials_editable,
+        });
       } catch (e) {
         // Settings may not exist yet
       }
@@ -242,6 +250,23 @@ function ClientPlatformSettings() {
       alert('Error al guardar configuración');
     } finally {
       setSavingWhatsappSales(false);
+    }
+  };
+
+  const togglePortalFinancials = async (key) => {
+    setSavingPortalFinancials(key);
+    try {
+      const newValue = !portalFinancials[key];
+      const patch = { [key]: newValue };
+      // Si se apaga la vista, la edición deja de tener sentido
+      if (key === 'can_view_financials' && !newValue) patch.financials_editable = false;
+      await portalAdminAPI.updateSettings(clientId, patch);
+      setPortalFinancials((prev) => ({ ...prev, ...patch }));
+    } catch (error) {
+      console.error('Error saving portal financials setting:', error);
+      alert('Error al guardar configuración');
+    } finally {
+      setSavingPortalFinancials(null);
     }
   };
 
@@ -1593,6 +1618,58 @@ function ClientPlatformSettings() {
               Cuando está activo, el cliente podrá ver en su portal los creadores de contenido que le has asignado, junto con el estado de sus proyectos.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Finanzas en el portal del cliente */}
+      <div className="glass rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+          <div className="w-10 h-10 bg-lime-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Wallet className="w-5 h-5 text-lime-700" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-gray-900">Finanzas en el portal</h2>
+            <p className="text-sm text-gray-500">La marca ve su propio dashboard financiero (P&L del mes) desde el portal y el celular</p>
+          </div>
+        </div>
+        <div className="p-6 space-y-3">
+          {[
+            {
+              key: 'can_view_financials',
+              label: 'Finanzas en el portal',
+              help: 'Aparece la pestaña "Finanzas" en el portal con ventas, costos, utilidad, BE ROAS y meta del mes. Solo ve sus datos; nada de la agencia ni de otras marcas.',
+              disabled: false,
+            },
+            {
+              key: 'financials_editable',
+              label: 'El cliente puede editar costos y metas',
+              help: 'Permite que la marca cargue y edite sus costos fijos, costos variables, el costo unitario de sus productos y la meta de venta del mes. Si está apagado, el dashboard es de solo lectura.',
+              disabled: !portalFinancials.can_view_financials,
+            },
+          ].map((opt) => {
+            const on = !!portalFinancials[opt.key];
+            const saving = savingPortalFinancials === opt.key;
+            return (
+              <div key={opt.key} className={`p-4 rounded-lg flex items-start justify-between gap-4 ${on ? 'bg-green-50' : 'bg-gray-50'} ${opt.disabled ? 'opacity-60' : ''}`}>
+                <div className="min-w-0">
+                  <div className={`flex items-center gap-2 font-medium ${on ? 'text-green-700' : 'text-gray-600'}`}>
+                    {on ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <XCircle className="w-5 h-5 flex-shrink-0" />}
+                    <span>{opt.label}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1.5 ml-7">{opt.help}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => togglePortalFinancials(opt.key)}
+                  disabled={saving || opt.disabled}
+                  aria-label={opt.label}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D7F653] focus:ring-offset-2 flex-shrink-0 mt-0.5 ${on ? 'bg-[#17181A]' : 'bg-gray-300'} ${saving ? 'opacity-50 cursor-wait' : opt.disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
 

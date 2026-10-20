@@ -148,8 +148,9 @@ function ScenarioPlanner({ be, daysInMonth, isCurrent }) {
 /**
  * Meta de venta del mes (objetivo "revenue" de Growth) + ROAS de equilibrio según el margen real.
  * Props: clientId, period (YYYY-MM), data (financials), goal ({id, conservador, base, optimista} | null), onGoalSaved()
+ *        api (opcional): adaptador con la misma firma de growthAPI (p. ej. el portal del cliente)
  */
-export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved }) {
+export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved, api }) {
   const t = data.totals || {};
   const be = data.break_even || {};
   const isCurrent = data.is_current_month;
@@ -168,7 +169,7 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved 
   const save = async () => {
     setSaving(true);
     try {
-      await growthAPI.createObjective(clientId, {
+      await (api?.createObjective ?? growthAPI.createObjective)(clientId, {
         period, metric: 'revenue',
         conservador: Number(form.conservador) || 0, base: Number(form.base) || 0, optimista: Number(form.optimista) || 0,
       });

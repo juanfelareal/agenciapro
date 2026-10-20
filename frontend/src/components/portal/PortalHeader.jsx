@@ -16,7 +16,8 @@ import {
   X,
   Receipt,
   Video,
-  FileSignature
+  FileSignature,
+  Wallet
 } from 'lucide-react';
 
 export default function PortalHeader() {
@@ -57,6 +58,7 @@ export default function PortalHeader() {
     { path: '/portal/payment-proofs', icon: Receipt, label: 'Soportes de pago', permission: 'can_view_payment_proofs' },
     { path: '/portal/reports', icon: BarChart3, label: 'Reportes', permission: 'can_view_reports' },
     { path: '/portal/metrics', icon: BarChart3, label: 'Métricas', permission: 'can_view_metrics' },
+    { path: '/portal/finanzas', icon: Wallet, label: 'Finanzas', permission: 'can_view_financials' },
     { path: '/portal/calls', icon: Phone, label: 'Llamadas', permission: 'can_view_calls' },
     { path: '/portal/forms', icon: ClipboardList, label: 'Formularios', permission: 'can_view_forms' },
     { path: '/portal/ugc', icon: Video, label: 'Creadores', permission: 'can_view_ugc' },

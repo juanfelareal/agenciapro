@@ -422,4 +422,38 @@ export const portalStructuredBriefsAPI = {
   },
 };
 
+// ============================================
+// FINANCIALS API (Portal) — dashboard financiero del cliente
+// Mismo contrato que growthAPI.getFinancials/costos/productos, pero sin clientId
+// (el backend usa el cliente autenticado). Devuelve response.data como el resto del portal.
+// ============================================
+export const portalFinancialsAPI = {
+  get: async (period, { light = false } = {}) => {
+    const response = await portalApi.get('/financials', { params: { period, ...(light ? { light: 1 } : {}) } });
+    return response.data;
+  },
+  updateSettings: async (data) => {
+    const response = await portalApi.put('/financials/settings', data);
+    return response.data;
+  },
+
+  getFixedCosts: async () => (await portalApi.get('/financials/fixed-costs')).data,
+  createFixedCost: async (data) => (await portalApi.post('/financials/fixed-costs', data)).data,
+  updateFixedCost: async (id, data) => (await portalApi.put(`/financials/fixed-costs/${id}`, data)).data,
+  deleteFixedCost: async (id) => (await portalApi.delete(`/financials/fixed-costs/${id}`)).data,
+
+  getVariableCosts: async () => (await portalApi.get('/financials/variable-costs')).data,
+  createVariableCost: async (data) => (await portalApi.post('/financials/variable-costs', data)).data,
+  updateVariableCost: async (id, data) => (await portalApi.put(`/financials/variable-costs/${id}`, data)).data,
+  deleteVariableCost: async (id) => (await portalApi.delete(`/financials/variable-costs/${id}`)).data,
+
+  updateProductCost: async (productId, cost) => (await portalApi.put(`/financials/products/${productId}/cost`, { cost })).data,
+  updateVariantCost: async (variantId, cost) => (await portalApi.put(`/financials/products/variant/${encodeURIComponent(variantId)}/cost`, { cost })).data,
+  resetProductCost: async (productId) => (await portalApi.delete(`/financials/products/${productId}/cost`)).data,
+  syncProducts: async () => (await portalApi.post('/financials/products/sync')).data,
+
+  getObjective: async (period) => (await portalApi.get('/financials/objective', { params: { period } })).data,
+  saveObjective: async (data) => (await portalApi.post('/financials/objective', data)).data,
+};
+
 export default portalApi;

@@ -74,6 +74,7 @@ import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalPaymentProofs from './pages/portal/PortalPaymentProofs';
 import PortalReports from './pages/portal/PortalReports';
 import PortalMetrics from './pages/portal/PortalMetrics';
+import PortalFinancials from './pages/portal/PortalFinancials';
 import PortalForms from './pages/portal/PortalForms';
 import PortalFormFill from './pages/portal/PortalFormFill';
 import PortalCalls from './pages/portal/PortalCalls';
@@ -182,6 +183,14 @@ function App() {
             element={
               <PortalProtectedRoute permission="can_view_metrics">
                 <PortalMetrics />
+              </PortalProtectedRoute>
+            }
+          />
+          <Route
+            path="finanzas"
+            element={
+              <PortalProtectedRoute permission="can_view_financials">
+                <PortalFinancials />
               </PortalProtectedRoute>
             }
           />
