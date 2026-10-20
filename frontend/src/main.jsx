@@ -4,15 +4,18 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
+import { OrgPlanProvider } from './context/OrgPlanContext.jsx' // [modules]
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <DashboardProvider>
-          <App />
-        </DashboardProvider>
+        <OrgPlanProvider>
+          <DashboardProvider>
+            <App />
+          </DashboardProvider>
+        </OrgPlanProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

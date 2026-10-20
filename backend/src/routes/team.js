@@ -5,6 +5,7 @@ import { teamAuthMiddleware, requireAdmin } from '../middleware/teamAuth.js';
 // [email] el welcome email ahora sale por services/email.js (plantilla team-invite)
 import teamInvitesRouter, { createTeamInviteAndSend } from './team-invites.js'; // [email]
 import { sendTemplate } from '../services/email.js'; // [email]
+import { checkLimit } from '../services/plans.js'; // [modules]
 
 const router = express.Router();
 router.use(teamInvitesRouter); // [email] POST /:id/invite, GET|POST /invitations/:token
@@ -308,6 +309,9 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
+
+    const userLimit = await checkLimit(req.orgId, 'users'); // [modules] límite de usuarios del plan
+    if (!userLimit.allowed) return res.status(402).json(userLimit.payload); // [modules]
 
     const emailLower = email.toLowerCase().trim();
 

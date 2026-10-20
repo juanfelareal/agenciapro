@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // [modules] Link
 import { useAuth } from '../context/AuthContext';
 import { teamAPI } from '../utils/api';
-import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2 } from 'lucide-react';
+import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2, Puzzle, Sparkles, ChevronRight } from 'lucide-react'; // [modules] Puzzle, Sparkles, ChevronRight
 
 const Settings = () => {
   const { user, currentOrg, logout, checkAuth, isAdmin } = useAuth();
@@ -374,6 +374,32 @@ const Settings = () => {
           </div>
         )}
       </div>
+
+      {/* [modules] Organización: módulos y suscripción (solo admins) */}
+      {isAdmin && (
+        <div className="glass-card divide-y divide-[#121212]/[0.06]">
+          <Link to="/app/configuracion/modulos" className="flex items-center gap-3 p-4 hover:bg-[#121212]/[0.03] transition-colors rounded-t-2xl">
+            <div className="w-10 h-10 rounded-xl bg-[#121314] flex items-center justify-center flex-shrink-0">
+              <Puzzle size={20} className="text-[#44BF47]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#121314]">Módulos</p>
+              <p className="text-xs text-gray-500">Elige qué partes de Orbit ve tu equipo.</p>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </Link>
+          <Link to="/app/suscripcion" className="flex items-center gap-3 p-4 hover:bg-[#121212]/[0.03] transition-colors rounded-b-2xl">
+            <div className="w-10 h-10 rounded-xl bg-[#121314] flex items-center justify-center flex-shrink-0">
+              <Sparkles size={20} className="text-[#44BF47]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#121314]">Suscripción</p>
+              <p className="text-xs text-gray-500">Plan, prueba, límites y cambio de plan.</p>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </Link>
+        </div>
+      )}
 
       {/* Change PIN Card */}
       <div className="glass-card p-6">

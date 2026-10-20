@@ -1,8 +1,13 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useOrgPlan } from '../hooks/useOrgPlan'; // [modules]
+import { moduleForPath } from '../utils/modules'; // [modules]
+import ModuleDisabled from './plan/ModuleDisabled'; // [modules]
 
-const ProtectedRoute = ({ children, permission }) => {
+const ProtectedRoute = ({ children, permission, module }) => {
   const { isAuthenticated, hasPermission, loading } = useAuth();
+  const { isModuleEnabled } = useOrgPlan(); // [modules]
+  const location = useLocation(); // [modules]
 
   if (loading) {
     return (
@@ -18,6 +23,12 @@ const ProtectedRoute = ({ children, permission }) => {
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // [modules] Módulo apagado para la organización (prop `module` o inferido de la ruta)
+  const moduleKey = module || moduleForPath(location.pathname);
+  if (moduleKey && !isModuleEnabled(moduleKey)) {
+    return <ModuleDisabled module={moduleKey} />;
   }
 
   // Check permission if specified

@@ -65,6 +65,10 @@ import UGCRegister from './pages/UGCRegister';
 import DocumentTemplates from './pages/DocumentTemplates';
 import FinancialDashboard from './pages/FinancialDashboard';
 import ClientFinancialDashboard from './pages/ClientFinancialDashboard';
+// [modules] Planes, módulos por organización y panel de plataforma
+import OrgModules from './pages/OrgModules';
+import Subscription from './pages/Subscription';
+import Platform from './pages/Platform';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -614,6 +618,10 @@ function App() {
                 <Route path="novedades" element={<ProtectedRoute><News /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="configuracion/correos" element={<EmailTemplatesPreview />} /> {/* [email] */}
+                {/* [modules] Módulos, suscripción y panel de plataforma */}
+                <Route path="configuracion/modulos" element={<ProtectedRoute><OrgModules /></ProtectedRoute>} />
+                <Route path="suscripcion" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+                <Route path="plataforma" element={<ProtectedRoute><Platform /></ProtectedRoute>} />
               </Routes>
             </Layout>
           }

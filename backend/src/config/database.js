@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import pg from 'pg';
 import { ensureEmailTables } from './emailSchema.js'; // [email]
+import { allModulesOn, TRIAL_DAYS } from './planCatalog.js'; // [modules]
 const { Pool } = pg;
 
 // Debug: Log environment info at startup
@@ -4178,6 +4179,27 @@ export const initializeDatabase = async () => {
 
     // [email] Tablas de correos transaccionales (email_log, pin_reset_codes, team_invites)
     await ensureEmailTables(pool);
+    // [modules] Planes por organización, módulos habilitables y prueba de 14 días
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS modules JSONB DEFAULT NULL`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_selected TEXT`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_status TEXT DEFAULT 'trial'`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_limits JSONB`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_requested_at TIMESTAMP`);
+    // LA REAL (org 1): plan Agencia activo con todos los módulos encendidos (idempotente: solo si aún no lo es)
+    await pool.query(
+      `UPDATE organizations
+          SET plan = 'agencia', plan_selected = 'agencia', plan_status = 'active', trial_ends_at = NULL,
+              modules = $1::jsonb, updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1 AND (plan IS DISTINCT FROM 'agencia' OR plan_status IS DISTINCT FROM 'active')`,
+      [JSON.stringify(allModulesOn())]
+    );
+    // Organizaciones en prueba sin fecha de fin (creadas antes de esta migración): 14 días desde hoy
+    await pool.query(
+      `UPDATE organizations SET trial_ends_at = CURRENT_TIMESTAMP + ($1 || ' days')::interval
+        WHERE plan_status = 'trial' AND trial_ends_at IS NULL`,
+      [String(TRIAL_DAYS)]
+    );
 
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
