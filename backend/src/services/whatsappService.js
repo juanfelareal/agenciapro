@@ -12,6 +12,79 @@ import {
   extractMessageText,
 } from '../utils/kapsoClient.js';
 import { createNotification } from '../utils/notificationHelper.js';
+import { resolvePlanKey } from './plans.js';
+
+// ---------------------------------------------------------------------------
+// Organización: add-ons y número desde el que se envía
+// ---------------------------------------------------------------------------
+
+/**
+ * Add-ons que cada plan incluye cuando la suscripción es ANUAL.
+ * Mensual: solo lo que esté en `organizations.addons` como true.
+ */
+const ANNUAL_INCLUDED_ADDONS = {
+  starter: ['owner_reports'],
+  growth: ['hourly_reports', 'owner_reports'],
+  agencia: ['hourly_reports', 'owner_reports', 'dedicated_number'],
+  trial: [],
+};
+export const ADDON_KEYS = ['hourly_reports', 'owner_reports', 'dedicated_number'];
+
+const parseJson = (v) => {
+  if (v == null) return null;
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch { return null; }
+};
+
+/**
+ * ¿La organización tiene activo el add-on `key`?
+ * Activo si addons[key] === true, o si billing_cycle === 'annual' y el plan lo incluye.
+ * Org 1 (LA REAL): todo activo.
+ * TODO: usar plans.isAddonEnabled(orgId, key) al integrar (misma regla).
+ */
+export const addonOn = (orgRow, key) => {
+  if (!orgRow) return false;
+  if (Number(orgRow.id) === 1) return true;
+  const addons = parseJson(orgRow.addons) || {};
+  if (addons[key] === true) return true;
+  if ((orgRow.billing_cycle || 'monthly') !== 'annual') return false;
+  const planKey = resolvePlanKey(orgRow);
+  return (ANNUAL_INCLUDED_ADDONS[planKey] || []).includes(key);
+};
+
+/** Fila de la organización con lo necesario para add-ons, marca y número propio. */
+export const loadOrgRow = async (orgId) => {
+  if (!orgId) return null;
+  try {
+    return await db.get(`
+      SELECT id, name, plan, plan_status, billing_cycle, addons, kapso_phone_number_id, branding
+      FROM organizations WHERE id = ?
+    `, [orgId]) || null;
+  } catch {
+    // Columnas nuevas aún no migradas: degradar al comportamiento compartido
+    const row = await db.get(`SELECT id, name, plan, plan_status FROM organizations WHERE id = ?`, [orgId]).catch(() => null);
+    return row || null;
+  }
+};
+
+/** Nombre con el que la agencia firma sus mensajes (branding.display_name o el nombre de la org). */
+export const orgDisplayName = (orgRow) => {
+  const b = parseJson(orgRow?.branding) || {};
+  return String(b.display_name || orgRow?.name || 'Tu agencia').trim();
+};
+
+/** phone_number_id desde el que envía la org: el propio si tiene el add-on y lo configuró; si no, null (compartido). */
+export const orgPhoneNumberId = (orgRow) => {
+  if (!orgRow) return null;
+  const own = String(orgRow.kapso_phone_number_id || '').trim();
+  return own && addonOn(orgRow, 'dedicated_number') ? own : null;
+};
+
+/** Opciones de envío para una organización: { orgId, phoneNumberId, org } */
+export const orgSendOptions = async (orgId) => {
+  const org = await loadOrgRow(orgId);
+  return { orgId: Number(orgId), phoneNumberId: orgPhoneNumberId(org), org };
+};
 
 const CLIENT_NAME_SQL = `CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END`;
 
@@ -66,12 +139,12 @@ export const recordOutbound = async ({
 /**
  * Envía texto libre y lo registra. Si no se pasa clientId intenta emparejar por teléfono.
  */
-export const sendTextAndRecord = async ({ orgId, to, body, clientId = null, context = null, sentBy = null }) => {
+export const sendTextAndRecord = async ({ orgId, to, body, clientId = null, context = null, sentBy = null, phoneNumberId = null }) => {
   const phone = normalizeWaNumber(to);
   if (!phone || phone.length < 8) throw new Error('Número de WhatsApp inválido');
   if (!body || !String(body).trim()) throw new Error('El mensaje no puede estar vacío');
   const client = clientId ? null : await matchClientByPhone(phone, orgId);
-  const result = await sendText({ to: phone, body });
+  const result = await sendText({ to: phone, body, phoneNumberId });
   const id = await recordOutbound({
     orgId, clientId: clientId || client?.id || null, phone, wamid: result.wamid, body, messageType: 'text',
     context, sentBy, status: result.messageStatus === 'accepted' ? 'sent' : (result.messageStatus || 'sent'), contactName: client?.display_name || null,
@@ -81,12 +154,12 @@ export const sendTextAndRecord = async ({ orgId, to, body, clientId = null, cont
 
 /** Envía una plantilla y la registra con el texto renderizado (para el inbox) */
 export const sendTemplateAndRecord = async ({
-  orgId, to, name, language = 'es', components = [], renderedText = '', clientId = null, context = null, sentBy = null,
+  orgId, to, name, language = 'es', components = [], renderedText = '', clientId = null, context = null, sentBy = null, phoneNumberId = null,
 }) => {
   const phone = normalizeWaNumber(to);
   if (!phone || phone.length < 8) throw new Error('Número de WhatsApp inválido');
   const client = clientId ? null : await matchClientByPhone(phone, orgId);
-  const result = await sendTemplate({ to: phone, name, language, components });
+  const result = await sendTemplate({ to: phone, name, language, components, phoneNumberId });
   const id = await recordOutbound({
     orgId, clientId: clientId || client?.id || null, phone, wamid: result.wamid,
     body: renderedText || `[Plantilla ${name}]`, messageType: 'template', templateName: name,
@@ -130,9 +203,56 @@ const notifyTeamInbound = async ({ orgId, phone, contactName, text, messageId })
   }
 };
 
-/** Procesa whatsapp.message.received */
-export const handleInboundMessage = async (payload) => {
-  const { organizationId: orgId } = getKapsoConfig();
+/** phone_number_id de destino de un evento de Kapso (número al que escribió el usuario) */
+export const inboundPhoneNumberId = (payload) => String(
+  payload?.metadata?.phone_number_id
+  || payload?.message?.metadata?.phone_number_id
+  || payload?.message?.kapso?.phone_number_id
+  || payload?.conversation?.phone_number_id
+  || payload?.phone_number_id
+  || '',
+).trim();
+
+/** Teléfono del interlocutor en un evento de Kapso */
+export const inboundPhone = (payload) => normalizeWaNumber(
+  payload?.conversation?.phone_number || payload?.message?.from || payload?.from || payload?.message?.to || '',
+);
+
+/**
+ * Resuelve a qué organización pertenece un evento entrante cuando el número de WhatsApp es compartido.
+ *  1. Si el número de destino coincide con `organizations.kapso_phone_number_id` de alguna org → esa gana.
+ *  2. Si no, por el teléfono del interlocutor: destinatarios de resúmenes, miembros del equipo,
+ *     dueños de marca y teléfonos de clientes (en ese orden). Si hay empate entre orgs, gana la org por defecto.
+ *  3. Fallback: KAPSO_ORGANIZATION_ID.
+ */
+export const resolveInboundOrg = async (payload) => {
+  const defaultOrg = getKapsoConfig().organizationId;
+  const pnid = inboundPhoneNumberId(payload);
+  if (pnid) {
+    const own = await db.get(`SELECT id FROM organizations WHERE kapso_phone_number_id = ? LIMIT 1`, [pnid]).catch(() => null);
+    if (own?.id) return Number(own.id);
+  }
+  const tail = phoneTail(inboundPhone(payload));
+  if (!tail || tail.length < 7) return defaultOrg;
+  const TAIL = `RIGHT(REGEXP_REPLACE(phone, '\\D', '', 'g'), 10) = ?`;
+  const sources = [
+    `SELECT organization_id AS org FROM whatsapp_briefing_recipients WHERE enabled = TRUE AND ${TAIL}`,
+    `SELECT organization_id AS org FROM team_members WHERE status = 'active' AND phone IS NOT NULL AND ${TAIL}`,
+    `SELECT organization_id AS org FROM client_owner_reports WHERE phone IS NOT NULL AND ${TAIL}`,
+    `SELECT organization_id AS org FROM clients WHERE phone IS NOT NULL AND ${TAIL}`,
+  ];
+  for (const sql of sources) {
+    const rows = await db.all(sql, [tail]).catch(() => []);
+    const orgs = [...new Set(rows.map((r) => Number(r.org)).filter(Boolean))];
+    if (!orgs.length) continue;
+    if (orgs.includes(Number(defaultOrg))) return Number(defaultOrg);
+    return orgs.sort((a, b) => a - b)[0];
+  }
+  return defaultOrg;
+};
+
+/** Procesa whatsapp.message.received. `orgId` = organización ya resuelta (ver resolveInboundOrg). */
+export const handleInboundMessage = async (payload, { orgId = getKapsoConfig().organizationId } = {}) => {
   const message = payload?.message;
   const conversation = payload?.conversation || {};
   if (!message?.id) return { skipped: 'sin message.id' };
@@ -171,8 +291,8 @@ const STATUS_BY_EVENT = {
 };
 const STATUS_RANK = { queued: 0, accepted: 0, sent: 1, delivered: 2, read: 3, failed: 9 };
 
-/** Procesa whatsapp.message.sent/delivered/read/failed */
-export const handleStatusEvent = async (eventName, payload) => {
+/** Procesa whatsapp.message.sent/delivered/read/failed. `orgId` solo se usa si el mensaje no estaba registrado. */
+export const handleStatusEvent = async (eventName, payload, { orgId: resolvedOrgId = null } = {}) => {
   const status = STATUS_BY_EVENT[eventName];
   const message = payload?.message;
   if (!status || !message?.id) return { skipped: true };
@@ -187,7 +307,7 @@ export const handleStatusEvent = async (eventName, payload) => {
   const row = await db.get(`SELECT id, status FROM whatsapp_messages WHERE wa_message_id = ?`, [message.id]);
   if (!row) {
     // Mensaje enviado desde otro lado (ej. inbox de Kapso): lo registramos como saliente
-    const { organizationId: orgId } = getKapsoConfig();
+    const orgId = resolvedOrgId || getKapsoConfig().organizationId;
     const phone = normalizeWaNumber(payload?.conversation?.phone_number || message.to || '');
     if (!phone) return { skipped: 'sin teléfono' };
     const client = await matchClientByPhone(phone, orgId);
@@ -309,6 +429,12 @@ export default {
   rememberWebhookEvent,
   handleInboundMessage,
   handleStatusEvent,
+  resolveInboundOrg,
+  addonOn,
+  loadOrgRow,
+  orgDisplayName,
+  orgPhoneNumberId,
+  orgSendOptions,
   listConversations,
   listMessages,
   markConversationRead,

@@ -382,6 +382,20 @@ export const whatsappAPI = {
   cancelMeeting: (id) => api.post(`/whatsapp/meetings/${id}/cancel`),
 };
 
+// [briefings] Resúmenes por WhatsApp de la organización: destinatarios, dueños de marca, número y pruebas
+export const whatsappBriefingsAPI = {
+  recipients: () => api.get('/whatsapp/briefings/recipients'),
+  saveRecipients: (recipients) => api.put('/whatsapp/briefings/recipients', { recipients }),
+  owners: () => api.get('/whatsapp/briefings/owners'),
+  saveOwners: (owners) => api.put('/whatsapp/briefings/owners', { owners }),
+  // { mode: 'shared' | 'dedicated', phone_number_id? }
+  saveNumber: (data) => api.put('/whatsapp/briefings/number', data),
+  // params: { kind, clientId?, sub?, date? } · kind: morning | tasks | noon | alerts | hourly | owner
+  preview: (params) => api.get('/whatsapp/briefings/preview', { params }),
+  // { kind, phone?, clientId?, sub? } · envía ahora (admin)
+  test: (data) => api.post('/whatsapp/briefings/test', data),
+};
+
 // Expenses API
 export const expensesAPI = {
   getAll: (filters) => api.get('/expenses', { params: filters }),

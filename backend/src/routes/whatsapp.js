@@ -1,6 +1,10 @@
 /**
  * WhatsApp (Kapso) — rutas del equipo: estado del número, bandeja de conversaciones,
- * envío de mensajes de texto y plantillas.
+ * envío de mensajes de texto y plantillas, y configuración de los resúmenes por organización.
+ *
+ * Multi-organización: el módulo `whatsapp` lo valida requireModule('whatsapp') en server.js; todas
+ * las consultas van filtradas por req.orgId. El número es compartido (Orbit) salvo que la org tenga
+ * el add-on `dedicated_number` y su propio `kapso_phone_number_id`.
  */
 import express from 'express';
 import db from '../config/database.js';
@@ -21,37 +25,51 @@ import {
   sendTemplateAndRecord,
   linkConversationToClient,
   matchClientByPhone,
+  addonOn,
+  loadOrgRow,
+  orgDisplayName,
+  orgPhoneNumberId,
+  orgSendOptions,
+  ADDON_KEYS,
 } from '../services/whatsappService.js';
-import { sendBriefing, buildMorningReport, buildNoonReport, buildTasksReport, buildAlertsReport } from '../services/whatsappBriefings.js';
+import { sendBriefing, buildReport, parseKinds, RECIPIENT_KINDS, DEFAULT_KINDS } from '../services/whatsappBriefings.js';
+import { requireAdmin } from '../middleware/teamAuth.js';
 import * as meetings from '../services/meetingTasks.js';
 
 const router = express.Router();
 
 const CLIENT_NAME_SQL = `CASE WHEN c.company IS NOT NULL AND c.company != '' THEN c.company ELSE c.name END`;
 
-/** Solo la organización dueña del número puede operar WhatsApp */
-const requireOwnerOrg = (req, res, next) => {
-  const { organizationId } = getKapsoConfig();
-  if (Number(req.orgId) !== Number(organizationId)) {
-    return res.status(403).json({ error: 'WhatsApp no está habilitado para esta organización' });
-  }
-  next();
+/** Estado de add-ons de la org (contrato: ver addonOn en whatsappService.js) */
+const addonState = (org) => Object.fromEntries(ADDON_KEYS.map((k) => [k, addonOn(org, k)]));
+
+/** Respuesta 402 estándar cuando falta un add-on */
+const ADDON_NAMES = { hourly_reports: 'Reportes cada hora', owner_reports: 'Reporte diario al dueño de cada marca', dedicated_number: 'Número de WhatsApp propio' };
+const addonRequired = (res, addon) => res.status(402).json({ error: `Activa el add-on "${ADDON_NAMES[addon]}" en Suscripción`, upgrade: true, addon });
+
+/** Errores de servicios con status/payload (400/402/404) → respuesta HTTP */
+const sendError = (res, error, fallback = 500) => {
+  const status = error?.status || fallback;
+  if (error?.payload) return res.status(status).json(error.payload);
+  return res.status(status).json({ error: error?.message || 'Error inesperado' });
 };
 
-router.use(requireOwnerOrg);
-
-// Estado de la integración + número conectado
+// Estado de la integración + número conectado (propio de la org si tiene el add-on; si no, el compartido)
 router.get('/status', async (req, res) => {
   const configured = isKapsoConfigured();
+  const org = await loadOrgRow(req.orgId).catch(() => null);
+  const ownNumber = orgPhoneNumberId(org);
   const base = {
     configured,
     webhook_configured: Boolean(getKapsoConfig().webhookSecret),
-    phone_number_id: getKapsoConfig().phoneNumberId || null,
+    phone_number_id: ownNumber || getKapsoConfig().phoneNumberId || null,
+    number_mode: ownNumber ? 'dedicated' : 'shared',
+    addons: addonState(org),
     unread: configured ? await unreadCount(req.orgId).catch(() => 0) : 0,
   };
   if (!configured) return res.json({ ...base, number: null });
   try {
-    const info = await getPhoneNumberInfo();
+    const info = await getPhoneNumberInfo({ phoneNumberId: ownNumber });
     res.json({
       ...base,
       number: {
@@ -126,8 +144,9 @@ router.post('/send', async (req, res) => {
     if (!isKapsoConfigured()) return res.status(503).json({ error: 'WhatsApp no está configurado (KAPSO_API_KEY / KAPSO_PHONE_NUMBER_ID)' });
     const { to, body, client_id, context } = req.body || {};
     if (!to || !body) return res.status(400).json({ error: 'to y body son requeridos' });
+    const { phoneNumberId } = await orgSendOptions(req.orgId);
     const result = await sendTextAndRecord({
-      orgId: req.orgId, to, body, clientId: client_id || null, context: context || null, sentBy: req.teamMember?.id || null,
+      orgId: req.orgId, to, body, clientId: client_id || null, context: context || null, sentBy: req.teamMember?.id || null, phoneNumberId,
     });
     res.json({ success: true, ...result });
   } catch (error) {
@@ -142,9 +161,10 @@ router.post('/send-template', async (req, res) => {
     if (!isKapsoConfigured()) return res.status(503).json({ error: 'WhatsApp no está configurado' });
     const { to, name, language = 'es', components = [], rendered_text, client_id, context } = req.body || {};
     if (!to || !name) return res.status(400).json({ error: 'to y name son requeridos' });
+    const { phoneNumberId } = await orgSendOptions(req.orgId);
     const result = await sendTemplateAndRecord({
       orgId: req.orgId, to, name, language, components, renderedText: rendered_text || '',
-      clientId: client_id || null, context: context || null, sentBy: req.teamMember?.id || null,
+      clientId: client_id || null, context: context || null, sentBy: req.teamMember?.id || null, phoneNumberId,
     });
     res.json({ success: true, ...result });
   } catch (error) {
@@ -153,28 +173,230 @@ router.post('/send-template', async (req, res) => {
   }
 });
 
-// Resúmenes programados: vista previa y envío de prueba (solo admin)
-const BRIEFING_BUILDERS = { morning: buildMorningReport, noon: buildNoonReport, tasks: buildTasksReport, alerts: buildAlertsReport };
+// ---------------------------------------------------------------------------
+// Resúmenes programados por organización: destinatarios, dueños de marca, número, prueba y vista previa
+// ---------------------------------------------------------------------------
+
+/** Vista previa del texto (sin enviar). kind = morning | tasks | noon | alerts | hourly | owner (+ clientId) */
 router.get('/briefings/preview', async (req, res) => {
   try {
     const kind = String(req.query.kind || 'morning');
-    const build = BRIEFING_BUILDERS[kind];
-    if (!build) return res.status(400).json({ error: 'kind inválido (morning | noon | tasks | alerts)' });
-    const text = await build(req.orgId, { name: req.teamMember?.name?.split(' ')[0] || '', ...(req.query.date ? { date: String(req.query.date) } : {}) });
+    const text = await buildReport(req.orgId, kind, {
+      name: req.teamMember?.name?.split(' ')[0] || '',
+      date: req.query.date ? String(req.query.date) : null,
+      clientId: req.query.clientId ? Number(req.query.clientId) : null,
+      sub: req.query.sub ? String(req.query.sub) : null,
+    });
     res.json({ kind, text: text || '', empty: !text });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
-router.post('/briefings/test', async (req, res) => {
+
+/** Enviar ahora (admin). body: { kind, phone?, clientId?, date?, force? }. kind admite `hourly` y `owner:<clientId>`. */
+router.post('/briefings/test', requireAdmin, async (req, res) => {
   try {
-    if (req.teamMember?.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
-    const { kind = 'morning', to, force = true, date } = req.body || {};
-    const results = await sendBriefing(kind, { orgId: req.orgId, to: to || null, force: Boolean(force), date: date || null });
+    const { kind = 'morning', phone, to, force = true, date, clientId, client_id, sub } = req.body || {};
+    let target = phone || to || null;
+    if (!target && !String(kind).startsWith('owner')) {
+      // Sin teléfono: al del propio solicitante (equipo) si lo tiene registrado
+      const me = await db.get(`SELECT phone FROM team_members WHERE id = ? AND organization_id = ?`, [req.teamMember.id, req.orgId]);
+      target = me?.phone || null;
+    }
+    const results = await sendBriefing(kind, {
+      orgId: req.orgId, to: target, force: Boolean(force), date: date || null,
+      clientId: Number(clientId || client_id) || null, sub: sub || null,
+    });
     res.json({ kind, results });
   } catch (error) {
     console.error('[whatsapp] briefings/test:', error.message);
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
+  }
+});
+
+const memberRow = (m) => ({ id: m.id, name: m.name, role: m.role, phone: m.phone || null, wa: normalizeWaNumber(m.phone || '') });
+
+/** Destinatarios del equipo + miembros con teléfono + estado de add-ons y del número */
+router.get('/briefings/recipients', async (req, res) => {
+  try {
+    const org = await loadOrgRow(req.orgId);
+    const [recipients, members] = await Promise.all([
+      db.all(`SELECT id, team_member_id, client_id, phone, name, kinds, enabled, created_at FROM whatsapp_briefing_recipients WHERE organization_id = ? ORDER BY id ASC`, [req.orgId]),
+      db.all(`SELECT id, name, role, phone FROM team_members WHERE organization_id = ? AND status = 'active' ORDER BY name ASC`, [req.orgId]),
+    ]);
+    const ownNumber = String(org?.kapso_phone_number_id || '').trim() || null;
+    res.json({
+      kinds: RECIPIENT_KINDS,
+      default_kinds: DEFAULT_KINDS,
+      recipients: recipients.map((r) => ({ ...r, phone: normalizeWaNumber(r.phone), phone_formatted: formatWaNumber(normalizeWaNumber(r.phone)), kinds: parseKinds(r.kinds), enabled: r.enabled !== false })),
+      members: members.map(memberRow),
+      addons: addonState(org),
+      number: {
+        mode: orgPhoneNumberId(org) ? 'dedicated' : 'shared',
+        phone_number_id: ownNumber,
+        shared_configured: Boolean(getKapsoConfig().phoneNumberId),
+      },
+      agency_name: orgDisplayName(org),
+      plan: org?.plan || null,
+      billing_cycle: org?.billing_cycle || 'monthly',
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+/**
+ * Reemplaza la lista de destinatarios de la org (admin).
+ * body: { recipients: [{ team_member_id?, phone, name?, kinds?, enabled? }] }
+ * `hourly` solo si el add-on está activo (402 si no).
+ */
+router.put('/briefings/recipients', requireAdmin, async (req, res) => {
+  try {
+    const list = Array.isArray(req.body?.recipients) ? req.body.recipients : null;
+    if (!list) return res.status(400).json({ error: 'Formato inválido: se espera { recipients: [...] }' });
+    const org = await loadOrgRow(req.orgId);
+    const hourlyOk = addonOn(org, 'hourly_reports');
+    const members = await db.all(`SELECT id, name, phone FROM team_members WHERE organization_id = ? AND status = 'active'`, [req.orgId]);
+    const byId = Object.fromEntries(members.map((m) => [m.id, m]));
+    const clean = [];
+    const seen = new Set();
+    for (const r of list) {
+      const member = r.team_member_id ? byId[Number(r.team_member_id)] : null;
+      if (r.team_member_id && !member) return res.status(400).json({ error: `Miembro ${r.team_member_id} no pertenece a esta organización` });
+      const phone = normalizeWaNumber(r.phone || member?.phone || '');
+      if (!phone || phone.length < 8) return res.status(400).json({ error: `Teléfono inválido para ${r.name || member?.name || 'destinatario'}` });
+      if (seen.has(phone)) continue;
+      seen.add(phone);
+      const kinds = Array.isArray(r.kinds) ? r.kinds.map(String).filter((k) => RECIPIENT_KINDS.includes(k)) : [...DEFAULT_KINDS];
+      if (kinds.includes('hourly') && !hourlyOk) return addonRequired(res, 'hourly_reports');
+      clean.push({
+        team_member_id: member?.id || null,
+        client_id: Number(r.client_id) || null,
+        phone,
+        name: String(r.name || member?.name || '').slice(0, 80) || null,
+        kinds,
+        enabled: r.enabled !== false,
+      });
+    }
+    // Reemplazo completo: borrar los que ya no están, upsert el resto
+    if (clean.length) {
+      await db.run(`DELETE FROM whatsapp_briefing_recipients WHERE organization_id = ? AND phone NOT IN (${clean.map(() => '?').join(',')})`, [req.orgId, ...clean.map((c) => c.phone)]);
+    } else {
+      await db.run(`DELETE FROM whatsapp_briefing_recipients WHERE organization_id = ?`, [req.orgId]);
+    }
+    for (const c of clean) {
+      await db.run(`
+        INSERT INTO whatsapp_briefing_recipients (organization_id, team_member_id, client_id, phone, name, kinds, enabled)
+        VALUES (?, ?, ?, ?, ?, ?::jsonb, ?)
+        ON CONFLICT (organization_id, phone) DO UPDATE SET
+          team_member_id = EXCLUDED.team_member_id, client_id = EXCLUDED.client_id, name = EXCLUDED.name,
+          kinds = EXCLUDED.kinds, enabled = EXCLUDED.enabled
+      `, [req.orgId, c.team_member_id, c.client_id, c.phone, c.name, JSON.stringify(c.kinds), c.enabled]);
+    }
+    const rows = await db.all(`SELECT id, team_member_id, client_id, phone, name, kinds, enabled FROM whatsapp_briefing_recipients WHERE organization_id = ? ORDER BY id ASC`, [req.orgId]);
+    res.json({ recipients: rows.map((r) => ({ ...r, phone_formatted: formatWaNumber(r.phone), kinds: parseKinds(r.kinds), enabled: r.enabled !== false })) });
+  } catch (error) {
+    console.error('[whatsapp] briefings/recipients:', error.message);
+    sendError(res, error);
+  }
+});
+
+/** Marcas activas de la org con su configuración de reporte al dueño */
+router.get('/briefings/owners', async (req, res) => {
+  try {
+    const org = await loadOrgRow(req.orgId);
+    const rows = await db.all(`
+      SELECT c.id AS client_id, COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) AS brand, c.service_type, c.phone AS client_phone,
+             w.phone, w.name, w.enabled, w.send_morning, w.send_noon
+      FROM clients c
+      LEFT JOIN client_owner_reports w ON w.client_id = c.id AND w.organization_id = c.organization_id
+      WHERE c.organization_id = ? AND c.status = 'active'
+      ORDER BY (c.service_type = 'growth') DESC, brand ASC
+    `, [req.orgId]);
+    res.json({
+      addon_enabled: addonOn(org, 'owner_reports'),
+      agency_name: orgDisplayName(org),
+      owners: rows.map((r) => ({
+        client_id: r.client_id,
+        brand: r.brand,
+        growth: r.service_type === 'growth',
+        phone: r.phone ? normalizeWaNumber(r.phone) : '',
+        suggested_phone: r.client_phone ? normalizeWaNumber(r.client_phone) : '',
+        name: r.name || '',
+        enabled: r.enabled === true,
+        send_morning: r.send_morning !== false,
+        send_noon: r.send_noon !== false,
+      })),
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+/**
+ * Guarda la configuración de dueños (admin). body: { owners: [{ client_id, phone, name?, enabled, send_morning?, send_noon? }] }
+ * Activar una marca sin el add-on → 402 { error, upgrade:true, addon:'owner_reports' }.
+ */
+router.put('/briefings/owners', requireAdmin, async (req, res) => {
+  try {
+    const list = Array.isArray(req.body?.owners) ? req.body.owners : null;
+    if (!list) return res.status(400).json({ error: 'Formato inválido: se espera { owners: [...] }' });
+    const org = await loadOrgRow(req.orgId);
+    const ownerOk = addonOn(org, 'owner_reports');
+    const clients = await db.all(`SELECT id FROM clients WHERE organization_id = ?`, [req.orgId]);
+    const valid = new Set(clients.map((c) => c.id));
+    const clean = [];
+    for (const o of list) {
+      const clientId = Number(o.client_id);
+      if (!valid.has(clientId)) return res.status(400).json({ error: `La marca ${o.client_id} no pertenece a esta organización` });
+      const enabled = o.enabled === true;
+      if (enabled && !ownerOk) return addonRequired(res, 'owner_reports');
+      const phone = normalizeWaNumber(o.phone || '');
+      if (enabled && (!phone || phone.length < 8)) return res.status(400).json({ error: 'Cada marca activa necesita el teléfono del dueño' });
+      clean.push({ clientId, phone, name: String(o.name || '').slice(0, 80) || null, enabled, send_morning: o.send_morning !== false, send_noon: o.send_noon !== false });
+    }
+    for (const c of clean) {
+      if (!c.phone && !c.enabled) {
+        await db.run(`DELETE FROM client_owner_reports WHERE client_id = ? AND organization_id = ?`, [c.clientId, req.orgId]);
+        continue;
+      }
+      await db.run(`
+        INSERT INTO client_owner_reports (client_id, organization_id, phone, name, enabled, send_morning, send_noon)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (client_id) DO UPDATE SET
+          phone = EXCLUDED.phone, name = EXCLUDED.name, enabled = EXCLUDED.enabled,
+          send_morning = EXCLUDED.send_morning, send_noon = EXCLUDED.send_noon
+        RETURNING client_id
+      `, [c.clientId, req.orgId, c.phone, c.name, c.enabled, c.send_morning, c.send_noon]);
+    }
+    res.json({ success: true, saved: clean.length });
+  } catch (error) {
+    console.error('[whatsapp] briefings/owners:', error.message);
+    sendError(res, error);
+  }
+});
+
+/**
+ * Número de WhatsApp de la org (admin). body: { mode: 'shared' | 'dedicated', phone_number_id? }
+ * `dedicated` requiere el add-on `dedicated_number` (402 si no) y un phone_number_id de Meta.
+ */
+router.put('/briefings/number', requireAdmin, async (req, res) => {
+  try {
+    const mode = String(req.body?.mode || 'shared');
+    const org = await loadOrgRow(req.orgId);
+    if (mode === 'dedicated') {
+      if (!addonOn(org, 'dedicated_number')) return addonRequired(res, 'dedicated_number');
+      const pnid = String(req.body?.phone_number_id || '').trim();
+      if (!/^\d{6,32}$/.test(pnid)) return res.status(400).json({ error: 'phone_number_id inválido: solo dígitos (lo da Meta / Kapso)' });
+      const taken = await db.get(`SELECT id FROM organizations WHERE kapso_phone_number_id = ? AND id <> ?`, [pnid, req.orgId]);
+      if (taken) return res.status(409).json({ error: 'Ese número ya está asociado a otra organización' });
+      await db.run(`UPDATE organizations SET kapso_phone_number_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [pnid, req.orgId]);
+      return res.json({ mode: 'dedicated', phone_number_id: pnid });
+    }
+    await db.run(`UPDATE organizations SET kapso_phone_number_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [req.orgId]);
+    res.json({ mode: 'shared', phone_number_id: null });
+  } catch (error) {
+    sendError(res, error);
   }
 });
 

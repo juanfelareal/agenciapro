@@ -11,7 +11,9 @@
  *   KAPSO_API_BASE_URL            (opcional) default https://api.kapso.ai
  *   KAPSO_META_GRAPH_VERSION      (opcional) default v24.0
  *   KAPSO_WEBHOOK_SECRET          secreto HMAC del webhook configurado en Kapso
- *   KAPSO_ORGANIZATION_ID         organización de Orbit dueña del número (default 1)
+ *   KAPSO_ORGANIZATION_ID         organización por defecto cuando un mensaje entrante no se puede atribuir a ninguna (default 1).
+ *                                 El número es compartido por todas las agencias; una org con el add-on `dedicated_number`
+ *                                 envía desde su propio `organizations.kapso_phone_number_id`.
  *   WHATSAPP_DEFAULT_COUNTRY_CODE indicativo por defecto para números locales (default 57 = Colombia)
  */
 import axios from 'axios';
@@ -62,11 +64,16 @@ export const formatWaNumber = (digits) => {
   return `+${d}`;
 };
 
-const requireConfig = () => {
+/**
+ * Config efectiva para un envío. `phoneNumberId` opcional: número propio de una organización
+ * (add-on `dedicated_number`); si no se pasa, se usa el número compartido de Orbit (env).
+ */
+const requireConfig = (phoneNumberId = null) => {
   const cfg = getKapsoConfig();
   if (!cfg.apiKey) throw new Error('KAPSO_API_KEY no está configurada');
-  if (!cfg.phoneNumberId) throw new Error('KAPSO_PHONE_NUMBER_ID no está configurado');
-  return cfg;
+  const effective = String(phoneNumberId || cfg.phoneNumberId || '').trim();
+  if (!effective) throw new Error('KAPSO_PHONE_NUMBER_ID no está configurado');
+  return { ...cfg, phoneNumberId: effective };
 };
 
 const metaClient = () => {
@@ -110,9 +117,12 @@ export const kapsoError = (error, fallback = 'Error comunicándose con WhatsApp'
 // Envío de mensajes
 // ---------------------------------------------------------------------------
 
-/** Envía cualquier payload de la Cloud API (`messaging_product` se agrega solo). */
-export const sendWhatsAppMessage = async (payload) => {
-  const cfg = requireConfig();
+/**
+ * Envía cualquier payload de la Cloud API (`messaging_product` se agrega solo).
+ * opts.phoneNumberId: enviar desde el número propio de una organización en vez del compartido.
+ */
+export const sendWhatsAppMessage = async (payload, { phoneNumberId = null } = {}) => {
+  const cfg = requireConfig(phoneNumberId);
   try {
     const res = await metaClient().post(`/${cfg.phoneNumberId}/messages`, { messaging_product: 'whatsapp', ...payload });
     const data = res.data || {};
@@ -127,45 +137,46 @@ export const sendWhatsAppMessage = async (payload) => {
   }
 };
 
-export const sendText = ({ to, body, previewUrl = false }) =>
+export const sendText = ({ to, body, previewUrl = false, phoneNumberId = null }) =>
   sendWhatsAppMessage({
     to: normalizeWaNumber(to),
     type: 'text',
     text: { body: String(body || '').slice(0, 4096), preview_url: Boolean(previewUrl) },
-  });
+  }, { phoneNumberId });
 
 /**
  * Envía una plantilla aprobada.
  * components: formato Cloud API ([{ type:'body', parameters:[{type:'text', parameter_name, text}] }])
  */
-export const sendTemplate = ({ to, name, language = 'es', components = [] }) =>
+export const sendTemplate = ({ to, name, language = 'es', components = [], phoneNumberId = null }) =>
   sendWhatsAppMessage({
     to: normalizeWaNumber(to),
     type: 'template',
     template: { name, language: { code: language }, components },
-  });
+  }, { phoneNumberId });
 
-export const sendDocument = ({ to, link, filename, caption }) =>
+export const sendDocument = ({ to, link, filename, caption, phoneNumberId = null }) =>
   sendWhatsAppMessage({
     to: normalizeWaNumber(to),
     type: 'document',
     document: { link, filename, ...(caption ? { caption } : {}) },
-  });
+  }, { phoneNumberId });
 
 // ---------------------------------------------------------------------------
 // Consultas (Platform API / proxy Meta)
 // ---------------------------------------------------------------------------
 
-let phoneInfoCache = { at: 0, data: null };
+const phoneInfoCache = new Map(); // phoneNumberId -> { at, data }
 
-/** Info del número conectado (estado, nombre verificado, calidad, WABA). Cache 5 min. */
-export const getPhoneNumberInfo = async ({ force = false } = {}) => {
-  const cfg = requireConfig();
-  if (!force && phoneInfoCache.data && Date.now() - phoneInfoCache.at < 5 * 60 * 1000) return phoneInfoCache.data;
+/** Info del número conectado (estado, nombre verificado, calidad, WABA). Cache 5 min por número. */
+export const getPhoneNumberInfo = async ({ force = false, phoneNumberId = null } = {}) => {
+  const cfg = requireConfig(phoneNumberId);
+  const hit = phoneInfoCache.get(cfg.phoneNumberId);
+  if (!force && hit?.data && Date.now() - hit.at < 5 * 60 * 1000) return hit.data;
   try {
     const res = await platformClient().get(`/whatsapp/phone_numbers/${cfg.phoneNumberId}`);
     const data = res.data?.data || res.data;
-    phoneInfoCache = { at: Date.now(), data };
+    phoneInfoCache.set(cfg.phoneNumberId, { at: Date.now(), data });
     return data;
   } catch (error) {
     throw kapsoError(error, 'No se pudo consultar el número de WhatsApp');
