@@ -4333,6 +4333,34 @@ export const initializeDatabase = async () => {
       [String(TRIAL_DAYS)]
     );
 
+    // [billing] Ciclo de facturación (mensual/anual), add-ons, fechas del plan y pagos con Bold
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'monthly'`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS addons JSONB DEFAULT '{}'::jsonb`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_started_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_renews_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS price_locked_until TIMESTAMP`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS plan_price_locked INTEGER`);
+    await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS kapso_phone_number_id TEXT`); // número propio (dedicated_number)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS billing_payments (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        provider TEXT NOT NULL DEFAULT 'bold',           -- 'bold' | 'manual'
+        reference TEXT NOT NULL UNIQUE,                   -- orb_<orgId>_<timestamp>_<rand>
+        plan TEXT NOT NULL,                               -- starter | growth | agencia
+        cycle TEXT NOT NULL DEFAULT 'monthly',            -- monthly | annual
+        amount INTEGER NOT NULL,                          -- sin IVA (COP)
+        iva INTEGER NOT NULL DEFAULT 0,
+        total INTEGER NOT NULL,                           -- amount + iva
+        status TEXT NOT NULL DEFAULT 'pending',           -- pending | approved | rejected | voided
+        bold_link_id TEXT,
+        bold_payload JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        paid_at TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_billing_payments_org ON billing_payments(organization_id, created_at DESC)`);
+
     console.log('✅ PostgreSQL database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);

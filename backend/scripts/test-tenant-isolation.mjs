@@ -9,6 +9,8 @@
  * de las rutas principales, incluidas /growth/clients/:id/financials,
  * /client-metrics/:id, /portal-admin/clients/:id/settings y /search?q=) exigiendo
  * 404/403, y comprueba que los listados de B no incluyen nada de A.
+ * [billing] También: add-ons (/org/addons) y pagos (/org/billing/*): el checkout de A
+ * no se ve desde B, y el webhook de Bold activa el plan anual de A con sus add-ons incluidos.
  *
  * USO (contra una base LOCAL de prueba, nunca producción):
  *
@@ -490,6 +492,82 @@ for (const [url, check] of intact) {
   record(r.status === 200 && !list.some((t) => t.id === a.tag.id), 'La tarea de B no quedó etiquetada con la etiqueta de A', `${r.status}`);
 }
 
+
+// ---------------------------------------------------------------------------
+// 8b) [billing] Add-ons y pagos: aislamiento entre organizaciones
+// ---------------------------------------------------------------------------
+console.log('\n💳 Add-ons y pagos (billing)...');
+{
+  // Add-ons: la prueba se comporta como Growth → hourly_reports permitido; extra_users suma al límite
+  const r0 = await api('GET', '/org/plan', { token: A.token });
+  record(r0.status === 200 && r0.data?.billing_cycle === 'monthly' && r0.data?.addons && Array.isArray(r0.data?.addons_included) && Array.isArray(r0.data?.catalog?.addons),
+    'GET    /org/plan trae billing_cycle, addons, addons_included y catalog.addons', `${r0.status}`);
+  const baseUsers = r0.data?.limits?.users;
+
+  const r1 = await api('PUT', '/org/addons', { token: A.token, body: { addons: { hourly_reports: true, extra_users: 2 } } });
+  record(r1.status === 200 && r1.data?.addons?.hourly_reports === true && r1.data?.addons?.extra_users === 2 && (baseUsers == null || r1.data?.limits?.users === baseUsers + 2),
+    'PUT    /org/addons (A) activa hourly_reports y suma 2 usuarios al límite', `${r1.status} limits=${JSON.stringify(r1.data?.limits)}`);
+
+  const r2 = await api('PUT', '/org/addons', { token: A.token, body: { addons: { extra_users: -1 } } });
+  record(r2.status === 400, 'PUT    /org/addons con entero negativo → 400', `${r2.status}`);
+  const r3 = await api('PUT', '/org/addons', { token: A.token, body: { addons: { nope: true } } });
+  record(r3.status === 400, 'PUT    /org/addons con add-on desconocido → 400', `${r3.status}`);
+
+  // B no hereda nada de A
+  const rb = await api('GET', '/org/addons', { token: B.token });
+  record(rb.status === 200 && rb.data?.addons?.hourly_reports === false && rb.data?.addons?.extra_users === 0,
+    'GET    /org/addons (B) no refleja los add-ons de A', `${rb.status}`);
+
+  // Starter: hourly_reports no está en el plan → 402 con required_plan
+  await pool.query(`UPDATE organizations SET plan = 'starter', plan_status = 'active', trial_ends_at = NULL WHERE id = $1`, [B.orgId]);
+  await api('PUT', '/org/modules', { token: B.token, body: { modules: {} } }); // escribe → invalida la caché del plan (30 s) en el servidor
+  const r4 = await api('PUT', '/org/addons', { token: B.token, body: { addons: { hourly_reports: true } } });
+  const r4ok = r4.status === 402 && r4.data?.upgrade === true && r4.data?.required_plan === 'growth';
+  record(r4ok, 'PUT    /org/addons (B en Starter) hourly_reports → 402 upgrade required_plan=growth', r4ok ? '402' : `recibió ${r4.status}: ${String(r4.raw).slice(0, 120)}`);
+
+  // Checkout manual (sin BOLD_API_KEY en la prueba) y pagos
+  const c1 = await api('POST', '/org/billing/checkout', { token: A.token, body: { plan: 'growth', cycle: 'annual' } });
+  const c1ok = c1.status === 201 && c1.data?.provider === 'manual' && c1.data?.amount === 4890000 && c1.data?.iva === 929100 && c1.data?.total === 5819100 && /^orb_\d+_\d+_[0-9a-f]+$/.test(c1.data?.reference || '');
+  record(c1ok, 'POST   /org/billing/checkout (A, growth anual) → manual, 4.890.000 + IVA 929.100 = 5.819.100', c1ok ? '201' : `recibió ${c1.status}: ${String(c1.raw).slice(0, 160)}`);
+  const refA = c1.data?.reference;
+
+  const c2 = await api('POST', '/org/billing/checkout', { token: A.token, body: { plan: 'nope', cycle: 'annual' } });
+  record(c2.status === 400, 'POST   /org/billing/checkout con plan inválido → 400', `${c2.status}`);
+
+  const l1 = await api('GET', '/org/billing/payments', { token: A.token });
+  record(l1.status === 200 && (l1.data?.payments || []).some((p) => p.reference === refA), 'GET    /org/billing/payments (A) lista su pago', `${l1.status}`);
+  const l2 = await api('GET', '/org/billing/payments', { token: B.token });
+  record(l2.status === 200 && !(l2.data?.payments || []).some((p) => p.reference === refA), 'GET    /org/billing/payments (B) no ve el pago de A', `${l2.status}`);
+  const s1 = await api('GET', `/org/billing/status?reference=${encodeURIComponent(refA)}`, { token: B.token });
+  record(s1.status === 404, 'GET    /org/billing/status?reference=<pago de A> con token B → 404', `${s1.status}`);
+  const s2 = await api('GET', `/org/billing/status?reference=${encodeURIComponent(refA)}`, { token: A.token });
+  record(s2.status === 200 && s2.data?.payment?.status === 'pending', 'GET    /org/billing/status (A) → pending', `${s2.status}`);
+
+  // Webhook de Bold (sin secreto → aceptado fuera de producción): activa el plan anual de A
+  const event = { id: `evt-${run}`, type: 'SALE_APPROVED', subject: `pay-${run}`, source: '/payments', time: Date.now() * 1e6,
+    data: { payment_id: `pay-${run}`, amount: { currency: 'COP', total: 5819100, taxes: [{ type: 'VAT', base: 4890000, value: 929100 }], tip: 0 }, metadata: { reference: refA }, payment_method: 'PSE', payer_email: `admin-A-${run}@test.local` } };
+  const w = await fetch(`${base}/api/webhooks/bold`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(event) });
+  const wd = await w.json().catch(() => ({}));
+  record(w.status === 200 && wd?.status === 'approved', 'POST   /api/webhooks/bold SALE_APPROVED → approved', `${w.status} ${JSON.stringify(wd).slice(0, 120)}`);
+  const w2 = await fetch(`${base}/api/webhooks/bold`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(event) });
+  const wd2 = await w2.json().catch(() => ({}));
+  record(w2.status === 200 && wd2?.duplicate === true, 'POST   /api/webhooks/bold repetido → idempotente (duplicate)', `${w2.status}`);
+
+  const orgA = (await pool.query('SELECT plan, plan_status, billing_cycle, plan_renews_at, price_locked_until, plan_price_locked, trial_ends_at FROM organizations WHERE id = $1', [A.orgId])).rows[0];
+  const months = orgA?.plan_renews_at ? Math.round((new Date(orgA.plan_renews_at) - Date.now()) / (30.4 * 86400000)) : null;
+  record(orgA?.plan === 'growth' && orgA?.plan_status === 'active' && orgA?.billing_cycle === 'annual' && months === 12 && orgA?.plan_price_locked === 489000 && orgA?.trial_ends_at === null && !!orgA?.price_locked_until,
+    'Org A activada: growth / active / annual / renueva en 12 meses / precio congelado', JSON.stringify({ plan: orgA?.plan, status: orgA?.plan_status, cycle: orgA?.billing_cycle, months, locked: orgA?.plan_price_locked }));
+
+  const pA = await api('GET', '/org/plan', { token: A.token });
+  const inc = pA.data?.addons_included || [];
+  record(pA.status === 200 && pA.data?.billing_cycle === 'annual' && inc.includes('hourly_reports') && inc.includes('owner_reports') && pA.data?.addons?.owner_reports === true,
+    'GET    /org/plan (A) muestra addons_included del anual (hourly_reports, owner_reports)', `${pA.status} included=${inc.join(',')}`);
+  const off = await api('PUT', '/org/addons', { token: A.token, body: { addons: { owner_reports: false } } });
+  record(off.status === 400 && off.data?.included === true, 'PUT    /org/addons (A anual) apagar add-on incluido → 400', `${off.status}`);
+  const pB = await api('GET', '/org/plan', { token: B.token });
+  record(pB.status === 200 && pB.data?.billing_cycle === 'monthly' && (pB.data?.addons_included || []).length === 0, 'GET    /org/plan (B) sigue mensual y sin add-ons incluidos', `${pB.status}`);
+}
+
 // ---------------------------------------------------------------------------
 // 9) Limpieza y resumen
 // ---------------------------------------------------------------------------
@@ -499,7 +577,7 @@ async function cleanup() {
     for (const org of [A.orgId, B.orgId]) {
       // Borrar en orden hijo → padre lo que no tenga ON DELETE CASCADE
       const tables = [
-        'task_dependencies', 'task_tags', 'board_column_values', 'subtasks', 'task_comments', 'task_files', 'task_assignees', 'tasks',
+        'billing_payments', 'task_dependencies', 'task_tags', 'board_column_values', 'subtasks', 'task_comments', 'task_files', 'task_assignees', 'tasks',
         'board_columns', 'project_team', 'expenses', 'invoice_status_history', 'invoices', 'projects',
         'note_links', 'note_versions', 'notes', 'form_fields', 'form_sections', 'form_assignments', 'forms',
         'document_signatures', 'document_templates', 'sop_revisions', 'sops', 'tags', 'notifications', 'activity_log', 'audit_log',

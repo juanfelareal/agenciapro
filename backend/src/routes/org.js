@@ -6,6 +6,8 @@ import {
   getOrgPlan,
   invalidateOrgPlanCache,
   validateModuleOverrides,
+  validateAddonsChange,
+  addonsMonthlyCost,
   isPlatformAdminEmail,
   SELECTABLE_PLANS,
   PLANS,
@@ -73,6 +75,63 @@ router.put('/modules', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('[modules] PUT /org/modules:', error);
     res.status(500).json({ error: 'Error al actualizar los módulos' });
+  }
+});
+
+/**
+ * GET /api/org/addons
+ * { addons (efectivos), addons_raw, addons_included, limits, monthly_cost }
+ */
+router.get('/addons', async (req, res) => {
+  try {
+    const state = await getOrgPlan(req.orgId, { withUsage: true });
+    if (!state) return res.status(404).json({ error: 'Organización no encontrada' });
+    res.json({
+      addons: state.addons,
+      addons_raw: state.addons_raw,
+      addons_included: state.addons_included,
+      limits: state.limits,
+      billing_cycle: state.billing_cycle,
+      monthly_cost: addonsMonthlyCost(state.addons, state.addons_included, state.usage?.brands),
+    });
+  } catch (error) {
+    console.error('[billing] GET /org/addons:', error);
+    res.status(500).json({ error: 'Error al consultar los add-ons' });
+  }
+});
+
+/**
+ * PUT /api/org/addons  { addons: { hourly_reports: true, extra_users: 2, ... } }  (o las claves directamente)
+ * Solo admin. Actualización parcial. Add-on fuera del plan → 402 { error, upgrade: true, required_plan }.
+ * En plan anual no se pueden apagar los add-ons incluidos (400).
+ * → 200 { addons, addons_included, limits }
+ */
+router.put('/addons', requireAdmin, async (req, res) => {
+  try {
+    const state = await getOrgPlan(req.orgId, { withUsage: false });
+    if (!state) return res.status(404).json({ error: 'Organización no encontrada' });
+    const body = req.body || {};
+    const incoming = body.addons && typeof body.addons === 'object' && !Array.isArray(body.addons) ? body.addons : body;
+    const result = validateAddonsChange(state, incoming);
+    if (!result.ok) return res.status(result.status).json(result.body);
+
+    await db.run(
+      `UPDATE organizations SET addons = ?::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [JSON.stringify(result.merged), req.orgId]
+    );
+    invalidateOrgPlanCache(req.orgId);
+    console.log(`[billing] add-ons org ${req.orgId} → ${JSON.stringify(result.merged)} (por ${userEmail(req) || 'desconocido'})`);
+    const fresh = await getOrgPlan(req.orgId, { withUsage: true });
+    res.json({
+      addons: fresh.addons,
+      addons_raw: fresh.addons_raw,
+      addons_included: fresh.addons_included,
+      limits: fresh.limits,
+      monthly_cost: addonsMonthlyCost(fresh.addons, fresh.addons_included, fresh.usage?.brands),
+    });
+  } catch (error) {
+    console.error('[billing] PUT /org/addons:', error);
+    res.status(500).json({ error: 'Error al actualizar los add-ons' });
   }
 });
 
