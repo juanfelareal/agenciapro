@@ -17,6 +17,9 @@ import ProductsTable from '../components/growth/financial/ProductsTable';
 import CostsPanel, { CostModal } from '../components/growth/financial/CostsPanel';
 import InventoryTab from '../components/growth/financial/InventoryTab';
 import ReservesTab from '../components/growth/financial/ReservesTab';
+import PurchasePatterns from '../components/growth/financial/PurchasePatterns';
+import CustomerMix from '../components/growth/financial/CustomerMix';
+import { growthLedgerApi } from '../components/growth/financial/ledgerApi';
 import { fmtMoney, fmtPct, fmtX, fmtInt, relDelta, currentPeriod, prevPeriod, sumDays, monthShort } from '../components/growth/financial/format';
 
 const POLL_MS = 5000;
@@ -300,6 +303,11 @@ export default function ClientFinancialDashboard() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
             <DailyPnlChart daily={data.daily} />
             <CumulativeProfitChart data={data} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <PurchasePatterns clientId={clientId} period={period} api={growthLedgerApi} />
+            <CustomerMix clientId={clientId} period={period} api={growthLedgerApi} />
           </div>
 
           <ProductsTable data={data} onSaveCost={handleSaveCost} onResetCost={handleResetCost} onSync={handleSync} syncing={syncing} onSaveRate={handleSaveRate} />

@@ -710,6 +710,10 @@ export const growthAPI = {
   resetProductCost: (clientId, productId) => api.delete(`/growth/clients/${clientId}/products/${productId}/cost`),
   syncProducts: (clientId) => api.post(`/growth/clients/${clientId}/products/sync`),
   calculateCOGS: (clientId, startDate, endDate) => api.post(`/growth/clients/${clientId}/cogs/calculate`, { start_date: startDate, end_date: endDate }),
+  // Libro de pedidos: cuándo compran / nuevos vs recurrentes
+  patterns: (clientId, days = 90) => api.get(`/growth/clients/${clientId}/patterns`, { params: { days } }),
+  customerMix: (clientId, start, end) => api.get(`/growth/clients/${clientId}/customer-mix`, { params: { start, end } }),
+  backfillOrders: (clientId, days = 180) => api.post(`/growth/clients/${clientId}/orders/backfill`, { days }),
 };
 
 // Briefs API

@@ -7,6 +7,7 @@ import { createStoreIntegration } from '../integrations/storeIntegration.js';
 import { recalcWhatsappSpend, isWhatsappSalesEnabled } from './whatsappSales.js';
 import { isLabEnabled, syncInventory } from './financialLab.js';
 import { recordProductSalesFromOrders } from './clientFinancialsService.js';
+import { upsertOrders } from './orderLedger.js';
 
 /**
  * Metrics Sync Service
@@ -600,6 +601,8 @@ export async function syncClientForDate(clientId, date) {
     } catch (error) {
       console.error(`Error guardando ventas por producto para cliente ${clientId} en ${date}:`, error.message);
     }
+    // Libro de pedidos (cuándo compran / nuevos vs recurrentes): mismos pedidos, nunca tumba el sync
+    try { await upsertOrders(clientId, client.organization_id, shopifyOrders, storePlatform); } catch (error) { console.error(`Error guardando libro de pedidos para cliente ${clientId} en ${date}:`, error.message); }
   }
 
   // Laboratorio financiero: existencias por variante en cada sincronización

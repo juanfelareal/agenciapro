@@ -2242,6 +2242,36 @@ export const initializeDatabase = async () => {
       )
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_product_daily_sales_client_date ON client_product_daily_sales(client_id, date)`);
+
+    // Libro de pedidos liviano (cuándo compran / nuevos vs recurrentes). Fecha y hora en Colombia.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_orders (
+        id SERIAL PRIMARY KEY,
+        organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        store TEXT NOT NULL DEFAULT 'shopify',
+        store_order_id TEXT NOT NULL,
+        order_number TEXT,
+        created_at TIMESTAMP,
+        local_date TEXT NOT NULL,
+        local_hour INTEGER,
+        weekday INTEGER,
+        financial_status TEXT,
+        cancelled INTEGER DEFAULT 0,
+        customer_key TEXT,
+        is_new_customer INTEGER DEFAULT 0,
+        customer_orders_count INTEGER,
+        gross_total REAL DEFAULT 0,
+        net_revenue REAL DEFAULT 0,
+        discounts REAL DEFAULT 0,
+        items INTEGER DEFAULT 0,
+        source_name TEXT,
+        synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(client_id, store_order_id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_orders_client_date ON client_orders(client_id, local_date)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_orders_client_customer ON client_orders(client_id, customer_key)`);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_financial_settings (
         client_id INTEGER PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
