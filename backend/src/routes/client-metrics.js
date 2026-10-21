@@ -454,8 +454,12 @@ router.get('/:clientId/daily', async (req, res) => {
       const adSpend = dailyAdSpend(row);
       const waSpend = Math.min(dailyWhatsappSpend(row), adSpend);
       const displayRevenue = webRevenue + waRevenue; // tienda + WhatsApp
+      const sessions = parseFloat(row.shopify_sessions) || 0;
       return {
         ...row,
+        // Tasa de conversión de la tienda con la misma fórmula del KPI del rango
+        // (pedidos web ÷ sesiones). null cuando no hay sesiones: "sin dato", no 0%.
+        store_conversion_rate: sessions > 0 ? ((parseFloat(row.shopify_orders) || 0) / sessions) * 100 : null,
         revenue_metric: revenueMetric,
         revenue_label: revenueLabel,
         display_revenue: displayRevenue,
@@ -586,7 +590,11 @@ router.get('/aggregate/all', async (req, res) => {
         cost_per_purchase: totalConversions > 0 ? totalFbSpend / totalConversions : 0,
         total_tax: parseFloat(client.total_tax) || 0,
         total_discounts: parseFloat(client.total_discounts) || 0,
-        total_sessions: parseFloat(client.total_sessions) || 0
+        total_sessions: parseFloat(client.total_sessions) || 0,
+        // Pedidos web de Shopify ÷ sesiones (no incluye WhatsApp). null = sin sesiones.
+        conversion_rate: (parseFloat(client.total_sessions) || 0) > 0
+          ? (totalOrders / parseFloat(client.total_sessions)) * 100
+          : null
       };
     });
 
@@ -598,7 +606,10 @@ router.get('/aggregate/all', async (req, res) => {
       total_orders: acc.total_orders + (client.total_orders || 0),
       total_ad_spend: acc.total_ad_spend + (client.total_ad_spend || 0),
       total_impressions: acc.total_impressions + (client.total_impressions || 0),
-      total_clicks: acc.total_clicks + (client.total_clicks || 0)
+      total_clicks: acc.total_clicks + (client.total_clicks || 0),
+      // Pedidos solo de clientes con sesiones, para no inflar la tasa con tiendas sin dato
+      sessions_orders: acc.sessions_orders + (client.total_sessions > 0 ? client.total_orders : 0),
+      total_sessions: acc.total_sessions + (client.total_sessions || 0)
     }), {
       total_revenue: 0,
       net_revenue: 0,
@@ -606,11 +617,16 @@ router.get('/aggregate/all', async (req, res) => {
       total_orders: 0,
       total_ad_spend: 0,
       total_impressions: 0,
-      total_clicks: 0
+      total_clicks: 0,
+      sessions_orders: 0,
+      total_sessions: 0
     });
 
     totals.roas = totals.total_ad_spend > 0 ? totals.display_revenue / totals.total_ad_spend : 0;
     totals.avg_ctr = totals.total_impressions > 0 ? (totals.total_clicks / totals.total_impressions) * 100 : 0;
+    // Ponderada (suma de pedidos ÷ suma de sesiones), nunca promedio de porcentajes
+    totals.conversion_rate = totals.total_sessions > 0 ? (totals.sessions_orders / totals.total_sessions) * 100 : null;
+    delete totals.sessions_orders;
 
     // Most recent successful sync across this org (FB or Shopify credentials)
     let last_sync_at = null;

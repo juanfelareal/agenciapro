@@ -170,9 +170,16 @@ function MetricsDashboard() {
     total_orders: acc.total_orders + (c.total_orders || 0),
     total_impressions: acc.total_impressions + (c.total_impressions || 0),
     total_clicks: acc.total_clicks + (c.total_clicks || 0),
-  }), { display_revenue: 0, total_ad_spend: 0, total_orders: 0, total_impressions: 0, total_clicks: 0 });
+    // Pedidos solo de clientes con sesiones, para no inflar la tasa con tiendas sin dato
+    sessions_orders: acc.sessions_orders + ((c.total_sessions || 0) > 0 ? (c.total_orders || 0) : 0),
+    total_sessions: acc.total_sessions + (c.total_sessions || 0),
+  }), { display_revenue: 0, total_ad_spend: 0, total_orders: 0, total_impressions: 0, total_clicks: 0, sessions_orders: 0, total_sessions: 0 });
   visibleTotals.roas = visibleTotals.total_ad_spend > 0 ? visibleTotals.display_revenue / visibleTotals.total_ad_spend : 0;
   visibleTotals.avg_ctr = visibleTotals.total_impressions > 0 ? (visibleTotals.total_clicks / visibleTotals.total_impressions) * 100 : 0;
+  // Ponderada (suma de pedidos ÷ suma de sesiones), nunca promedio de porcentajes
+  visibleTotals.conversion_rate = visibleTotals.total_sessions > 0 ? (visibleTotals.sessions_orders / visibleTotals.total_sessions) * 100 : null;
+  const formatConversion = (rate) => (rate == null ? '—' : `${rate.toFixed(2)}%`);
+  const conversionTooltip = 'Tasa de conversión de la tienda: pedidos web de Shopify ÷ sesiones. No incluye ventas por WhatsApp.';
 
   return (
     <div className="space-y-6">
@@ -324,6 +331,10 @@ function MetricsDashboard() {
                         <p className="text-[11px] text-gray-400 uppercase tracking-wide">Pedidos</p>
                         <p className="text-gray-700">{client.total_orders || 0} · CTR {client.avg_ctr?.toFixed(2) || '0.00'}%</p>
                       </div>
+                      <div title={conversionTooltip}>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Conv.</p>
+                        <p className="text-gray-700 tabular-nums">{formatConversion(client.conversion_rate)}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1 mt-3 -ml-1">
                       <button
@@ -386,6 +397,7 @@ function MetricsDashboard() {
                     <span>Inversión {formatCurrency(visibleTotals.total_ad_spend)}</span>
                     <span>ROAS {visibleTotals.roas?.toFixed(2) || '0.00'}</span>
                     <span>{visibleTotals.total_orders || 0} pedidos</span>
+                    <span>Conv. {formatConversion(visibleTotals.conversion_rate)}</span>
                   </div>
                 </div>
               </div>
@@ -397,6 +409,7 @@ function MetricsDashboard() {
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Venta</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Inversion</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pedidos</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" title={conversionTooltip}>Conv.</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ROAS</th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">CTR</th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -435,6 +448,7 @@ function MetricsDashboard() {
                         </td>
                         <td className="px-6 py-4 text-right text-gray-600">{formatCurrency(client.total_ad_spend)}</td>
                         <td className="px-6 py-4 text-right text-gray-600">{client.total_orders || 0}</td>
+                        <td className="px-6 py-4 text-right text-gray-600 tabular-nums">{formatConversion(client.conversion_rate)}</td>
                         <td className="px-6 py-4 text-right">
                           <span className={`font-medium ${client.roas >= 3 ? 'text-green-600' : client.roas >= 1 ? 'text-yellow-600' : 'text-red-600'}`}>
                             {client.roas?.toFixed(2) || '0.00'}
@@ -480,7 +494,7 @@ function MetricsDashboard() {
                       </tr>
                       {expandedClients[client.client_id] && (
                         <tr className="bg-gray-50">
-                          <td colSpan={7} className="px-6 py-4">
+                          <td colSpan={8} className="px-6 py-4">
                             <ClientTrendPanel
                               clientId={client.client_id}
                               revenueMetric={client.portal_revenue_metric}
@@ -507,6 +521,7 @@ function MetricsDashboard() {
                       <td className="px-6 py-4 text-right text-gray-900">{formatCurrency(visibleTotals.display_revenue)}</td>
                       <td className="px-6 py-4 text-right text-gray-900">{formatCurrency(visibleTotals.total_ad_spend)}</td>
                       <td className="px-6 py-4 text-right text-gray-900">{visibleTotals.total_orders || 0}</td>
+                      <td className="px-6 py-4 text-right text-gray-900 tabular-nums">{formatConversion(visibleTotals.conversion_rate)}</td>
                       <td className="px-6 py-4 text-right text-gray-900">{visibleTotals.roas?.toFixed(2) || '0.00'}</td>
                       <td className="px-6 py-4 text-right text-gray-900">{visibleTotals.avg_ctr?.toFixed(2) || '0.00'}%</td>
                       <td className="px-6 py-4"></td>
