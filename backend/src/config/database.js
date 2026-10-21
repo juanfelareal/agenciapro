@@ -4246,6 +4246,10 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Tareas recurrentes: cada ocurrencia nueva apunta a la tarea de la que salió
+    await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_parent_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_tasks_recurrence_parent ON tasks(recurrence_parent_id)`);
+
     // Fix orphaned private tasks: make public any private task without created_by
     // (these are invisible to everyone and can't be deleted through the UI)
     await pool.query(`

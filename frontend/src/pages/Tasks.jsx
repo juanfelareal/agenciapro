@@ -55,6 +55,20 @@ const Tasks = () => {
   // Confirmación al marcar tarea como Completada: ¿necesita aprobación del cliente?
   const [doneApprovalPrompt, setDoneApprovalPrompt] = useState(false);
   const pendingSubmitRef = useRef(null);
+  // Aviso tras completar una tarea recurrente: "Se programó la siguiente para el lun 27/10"
+  const [recurrenceNotice, setRecurrenceNotice] = useState(null);
+  const recurrenceNoticeTimer = useRef(null);
+  useEffect(() => () => clearTimeout(recurrenceNoticeTimer.current), []);
+
+  const announceNextOccurrence = (response) => {
+    const due = response?.data?.next_occurrence_due_date;
+    if (!due) return;
+    const [y, m, d] = due.split('-').map(Number);
+    const weekday = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][new Date(y, m - 1, d).getDay()];
+    setRecurrenceNotice(`Se programó la siguiente para el ${weekday} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`);
+    clearTimeout(recurrenceNoticeTimer.current);
+    recurrenceNoticeTimer.current = setTimeout(() => setRecurrenceNotice(null), 5000);
+  };
 
   // Segundo paso: pedir entregable (link o archivo) tras confirmar aprobación
   const [deliverablePrompt, setDeliverablePrompt] = useState(false);
@@ -314,6 +328,10 @@ const Tasks = () => {
     e.preventDefault();
     // Bloquea guardar si la tarea pide aprobación pero no hay entregable ni override explícito.
     if (!validateApprovalDeliverable()) return;
+    if (formData.is_recurring && (formData.recurrence_pattern?.days || []).length === 0) {
+      alert('Elige al menos un día para repetir la tarea, o desactiva "Tarea recurrente".');
+      return;
+    }
     // Si la tarea acaba de pasar a Completada y aún no se está pidiendo aprobación,
     // y la tarea está vinculada a un cliente, pregunta si necesita aprobación.
     const justMarkedDone =
@@ -348,8 +366,9 @@ const Tasks = () => {
       };
 
       if (editingTask) {
-        await tasksAPI.update(editingTask.id, apiData);
+        const response = await tasksAPI.update(editingTask.id, apiData);
         taskId = editingTask.id;
+        announceNextOccurrence(response);
       } else {
         const response = await tasksAPI.create(apiData);
         taskId = response.data.id;
@@ -432,8 +451,9 @@ const Tasks = () => {
       };
       let taskId;
       if (editingTask) {
-        await tasksAPI.update(editingTask.id, apiData);
+        const response = await tasksAPI.update(editingTask.id, apiData);
         taskId = editingTask.id;
+        announceNextOccurrence(response);
       } else {
         const response = await tasksAPI.create(apiData);
         taskId = response.data.id;
@@ -676,7 +696,8 @@ const Tasks = () => {
         delivery_url: task.delivery_url,
         visible_to_client: task.visible_to_client,
       };
-      await tasksAPI.update(task.id, updateData);
+      const response = await tasksAPI.update(task.id, updateData);
+      announceNextOccurrence(response);
       loadData();
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -687,7 +708,8 @@ const Tasks = () => {
 
   const handleUpdateTask = async (taskId, updates) => {
     try {
-      await tasksAPI.update(taskId, updates);
+      const response = await tasksAPI.update(taskId, updates);
+      announceNextOccurrence(response);
       loadData();
       return true;
     } catch (error) {
@@ -1663,7 +1685,7 @@ const Tasks = () => {
                   <ToggleRow
                     icon={Repeat}
                     label="Tarea recurrente"
-                    hint="Se creará automáticamente en los días seleccionados"
+                    hint="Al completarla, se crea la siguiente para el próximo día elegido"
                     checked={formData.is_recurring}
                     onChange={(checked) =>
                       setFormData({ ...formData, is_recurring: checked })
@@ -1709,6 +1731,9 @@ const Tasks = () => {
                           </label>
                         ))}
                       </div>
+                      {(formData.recurrence_pattern?.days || []).length === 0 && (
+                        <p className="text-xs text-gray-400 mt-2">Elige al menos un día.</p>
+                      )}
                     </div>
                   )}
                 </Section>
@@ -1842,6 +1867,16 @@ const Tasks = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {recurrenceNotice && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--dark)] text-white text-sm"
+        >
+          <Repeat size={14} className="text-[var(--accent)]" />
+          {recurrenceNotice}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import db from '../config/database.js';
 import { notifyTaskAssigned, notifyTaskUpdated, notifyTaskCompleted } from '../utils/notificationHelper.js';
 import { processTaskCreated, processTaskUpdated } from '../services/automationEngine.js';
 import { logTaskActivity, diffTaskForActivity } from '../utils/activityLog.js';
+import { createNextOccurrence, validateRecurrencePattern } from '../services/recurringTasks.js';
 import { assertProjectInOrg, assertFormInOrg, assertAllRowsInOrg, findRowInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
@@ -209,6 +210,13 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
+    let normalizedPattern;
+    try {
+      normalizedPattern = validateRecurrencePattern(recurrence_pattern);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
     // Verify project belongs to this organization (if provided) — 404 to avoid leaking existence
     if (project_id) {
       await assertProjectInOrg(db, project_id, req.orgId, 'id');
@@ -252,7 +260,7 @@ router.post('/', async (req, res) => {
       priority || 'medium',
       due_date || null,
       is_recurring ? 1 : 0,
-      recurrence_pattern ? JSON.stringify(recurrence_pattern) : null,
+      normalizedPattern ? JSON.stringify(normalizedPattern) : null,
       timeline_start || null,
       timeline_end || null,
       progress || 0,
@@ -367,6 +375,13 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    let normalizedPattern;
+    try {
+      normalizedPattern = validateRecurrencePattern(recurrence_pattern);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
     // If changing project, verify new project belongs to this org (404 if foreign)
     if (project_id && Number(project_id) !== Number(oldTask.project_id)) {
       await assertProjectInOrg(db, project_id, req.orgId, 'id');
@@ -459,7 +474,7 @@ router.put('/:id', async (req, res) => {
     if (priority !== undefined) fields.priority = priority;
     if (due_date !== undefined) fields.due_date = due_date || null;
     if (is_recurring !== undefined) fields.is_recurring = is_recurring ? 1 : 0;
-    if (recurrence_pattern !== undefined) fields.recurrence_pattern = recurrence_pattern ? JSON.stringify(recurrence_pattern) : null;
+    if (recurrence_pattern !== undefined) fields.recurrence_pattern = normalizedPattern ? JSON.stringify(normalizedPattern) : null;
     if (timeline_start !== undefined) fields.timeline_start = timeline_start || null;
     if (timeline_end !== undefined) fields.timeline_end = timeline_end || null;
     if (progress !== undefined) fields.progress = progress || null;
@@ -531,6 +546,45 @@ router.put('/:id', async (req, res) => {
       // Check if task was completed
       if (task.status === 'done' && oldTask.status !== 'done') {
         notifyTaskCompleted(req.params.id, task.title, 0);
+
+        // Tarea recurrente: crear la siguiente ocurrencia y pasarle la recurrencia
+        if (Number(task.is_recurring) === 1) {
+          try {
+            const next = await createNextOccurrence(task, req.orgId, req.teamMember?.id || null);
+            if (next) {
+              const { assignee_ids: nextAssigneeIds, ...nextTask } = next;
+              const [y, m, d] = next.due_date.split('-');
+              task.is_recurring = 0;
+              task.next_occurrence_id = next.id;
+              task.next_occurrence_due_date = next.due_date;
+
+              if (nextAssigneeIds.length > 0) {
+                notifyTaskAssigned(next.id, next.title, nextAssigneeIds, req.teamMember?.id || 0);
+              }
+              processTaskCreated(nextTask);
+
+              logTaskActivity(req, req.params.id, 'recurrence_next_created', {
+                description: `Tarea recurrente: se creó la siguiente para el ${d}/${m}`,
+                metadata: { next_task_id: next.id, due_date: next.due_date },
+              });
+              logTaskActivity(req, next.id, 'created', {
+                description: `Se creó automáticamente como repetición de "${task.title}" para el ${d}/${m}/${y}`,
+                metadata: {
+                  recurrence_parent_id: Number(req.params.id),
+                  status: next.status,
+                  priority: next.priority,
+                  assignee_ids: nextAssigneeIds,
+                  project_id: next.project_id,
+                },
+              });
+            } else {
+              // La serie ya tenía su siguiente ocurrencia: la completada no vuelve a ser recurrente
+              task.is_recurring = 0;
+            }
+          } catch (recErr) {
+            console.error('Error creating next recurring task:', recErr);
+          }
+        }
       }
 
       // Check if other important fields changed

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Trash2, ListChecks, Plus, Check, X, User, CheckSquare, Square, MinusSquare } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trash2, ListChecks, Plus, Check, X, User, CheckSquare, Square, MinusSquare, Repeat } from 'lucide-react';
 
 const statusLabels = {
   todo: 'Por Hacer',
@@ -619,7 +619,7 @@ export default function ListView({
               className="p-3 flex items-start gap-3 active:bg-gray-50 cursor-pointer"
             >
               <button
-                onClick={(e) => { e.stopPropagation(); onStatusChange && onStatusChange(task.id, task.status === 'done' ? 'todo' : 'done'); }}
+                onClick={(e) => { e.stopPropagation(); onStatusChange && onStatusChange(task, task.status === 'done' ? 'todo' : 'done'); }}
                 className={`mt-0.5 flex-shrink-0 ${task.status === 'done' ? 'text-[var(--ink)]' : 'text-gray-300'}`}
                 aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
               >
@@ -770,7 +770,9 @@ export default function ListView({
                         <span className="font-medium text-[var(--ink)] truncate block" title={task.title}>{task.title}</span>
                       )}
                       {!!task.is_recurring && (
-                        <span className="text-[#E8C4B8] text-sm" title="Tarea Recurrente">🔄</span>
+                        <span className="flex-shrink-0 text-gray-400" title="Tarea recurrente: reaparece al completarla">
+                          <Repeat size={12} />
+                        </span>
                       )}
                       {taskSubtaskProgress[task.id]?.total > 0 && (
                         <span className="flex items-center gap-1 text-xs text-gray-500">
