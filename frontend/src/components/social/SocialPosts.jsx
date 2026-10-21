@@ -111,7 +111,7 @@ const SocialPosts = ({ account }) => {
 
   if (!account) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+      <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
         <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona una cuenta</h3>
         <p className="text-gray-500">
@@ -166,7 +166,7 @@ const SocialPosts = ({ account }) => {
           <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
         </div>
       ) : posts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
           <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Sin publicaciones</h3>
           <p className="text-gray-500 mb-4">
@@ -186,7 +186,7 @@ const SocialPosts = ({ account }) => {
           {posts.map((post) => (
             <div
               key={post.id}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+              className="bg-[var(--surface)] rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
             >
               {/* Media preview */}
               {post.mediaItems && post.mediaItems.length > 0 ? (
@@ -383,7 +383,7 @@ const PostComposer = ({ account, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-[var(--surface)] rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">Nueva Publicacion</h3>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
@@ -509,7 +509,7 @@ const PostComposer = ({ account, onClose, onSuccess }) => {
 const PostDetail = ({ post, onClose, onUpdate }) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-[var(--surface)] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">Detalle de Publicacion</h3>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">

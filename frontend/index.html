@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/orbit-favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#F3F4EF" />
+    <meta name="theme-color" content="#F3F1ED" />
     <!-- Instalable en el celular (Agregar a pantalla de inicio) -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -14,12 +14,34 @@
     <meta name="apple-mobile-web-app-title" content="Orbit" />
     <meta name="description" content="Orbit - La plataforma todo-en-uno para agencias digitales y de marketing" />
     <title>Orbit</title>
+    <!-- Tipografía (misma que landing.larealmarketing.com): Inter Tight + JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
     <style>
       /* Prevent flash of unstyled content */
       html {
-        background-color: #F3F4EF;
+        background-color: #F3F1ED;
       }
     </style>
+    <script>
+      /* [branding] Fondo del tema cacheado antes de cargar la app (evita el flash claro→oscuro). */
+      (function () {
+        try {
+          var p = location.pathname;
+          if (p === '/' || p.indexOf('/landing') === 0 || p.indexOf('/register') === 0) return;
+          var key = p.indexOf('/portal') === 0 ? 'orbitPortalBranding' : 'orbitBranding';
+          var c = JSON.parse(localStorage.getItem(key) || 'null');
+          var t = c && c.branding && c.branding.theme;
+          var bg = t === 'dark' ? '#121314' : t === 'white' ? '#F5F5F6' : null;
+          if (bg) document.documentElement.style.backgroundColor = bg;
+          if (t === 'dark') document.documentElement.style.colorScheme = 'dark';
+        } catch (e) { /* sin cache */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

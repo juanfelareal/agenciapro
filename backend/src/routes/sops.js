@@ -1,7 +1,22 @@
 import express from 'express';
 import db from '../config/database.js';
+import { findRowInOrg } from '../utils/tenant.js';
 
 const router = express.Router();
+
+// Categoría opcional del body: null si no viene, id si es de la org, false si es ajena.
+async function sopCategoryInOrg(categoryId, orgId) {
+  if (!categoryId) return null;
+  const row = await findRowInOrg(db, 'sop_categories', categoryId, orgId, { columns: 'id' });
+  return row ? row.id : false;
+}
+
+// Id de miembro del body: solo se acepta si pertenece a la org; si no, el miembro autenticado.
+async function memberInOrgOrSelf(memberId, req) {
+  if (!memberId) return req.teamMember?.id || null;
+  const row = await findRowInOrg(db, 'team_members', memberId, req.orgId, { columns: 'id' });
+  return row ? row.id : (req.teamMember?.id || null);
+}
 
 // Helper function to generate slug
 const generateSlug = (title) => {
@@ -207,6 +222,13 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'El título es requerido' });
     }
 
+    // Categoría y autor deben ser de la organización
+    const safeCategoryId = await sopCategoryInOrg(category_id, req.orgId);
+    if (safeCategoryId === false) {
+      return res.status(404).json({ error: 'Categoría no encontrada' });
+    }
+    const safeCreatedBy = await memberInOrgOrSelf(created_by, req);
+
     // Generate unique slug
     let slug = generateSlug(title);
     const existingSlug = await db.prepare('SELECT id FROM sops WHERE slug = ? AND organization_id = ?').get(slug, req.orgId);
@@ -217,7 +239,7 @@ router.post('/', async (req, res) => {
     const result = await db.prepare(`
       INSERT INTO sops (title, slug, description, content, steps, editor_mode, category_id, created_by, status, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(title, slug, description, content, steps, editor_mode || 'freeform', category_id, created_by, status || 'draft', req.orgId);
+    `).run(title, slug, description, content, steps, editor_mode || 'freeform', safeCategoryId, safeCreatedBy, status || 'draft', req.orgId);
 
     const sop = await db.prepare(`
       SELECT s.*,
@@ -248,14 +270,21 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'SOP no encontrado' });
     }
 
+    // Categoría nueva (si viene) debe ser de la organización
+    const safeCategoryId = await sopCategoryInOrg(category_id, req.orgId);
+    if (safeCategoryId === false) {
+      return res.status(404).json({ error: 'Categoría no encontrada' });
+    }
+
     // Save revision if content or steps changed
     const contentChanged = content && content !== currentSop.content;
     const stepsChanged = steps && steps !== currentSop.steps;
     if (contentChanged || stepsChanged) {
+      const changedBy = await memberInOrgOrSelf(req.body.changed_by, req);
       await db.prepare(`
         INSERT INTO sop_revisions (sop_id, content, version, changed_by, change_notes)
         VALUES (?, ?, ?, ?, ?)
-      `).run(id, currentSop.content || currentSop.steps, currentSop.version, req.body.changed_by, 'Actualización de contenido');
+      `).run(id, currentSop.content || currentSop.steps, currentSop.version, changedBy, 'Actualización de contenido');
     }
 
     // Update slug if title changed
@@ -289,7 +318,7 @@ router.put('/:id', async (req, res) => {
           updated_at = CURRENT_TIMESTAMP,
           published_at = ?
       WHERE id = ? AND organization_id = ?
-    `).run(title, slug, description, content, steps, editor_mode, category_id, status, is_pinned, publishedAt, id, req.orgId);
+    `).run(title, slug, description, content, steps, editor_mode, safeCategoryId, status, is_pinned, publishedAt, id, req.orgId);
 
     const sop = await db.prepare(`
       SELECT s.*,

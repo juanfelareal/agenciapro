@@ -141,12 +141,12 @@ export default function PortalTasks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Mis Tareas</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Mis Tareas</h1>
           <p className="text-sm text-gray-500 mt-0.5">Revisa el estado de todas tus tareas</p>
         </div>
         <button
           onClick={handleOpenCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl
+          className="flex items-center gap-2 px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl
                    hover:bg-gray-800 transition-colors font-medium text-sm"
         >
           <Plus className="w-4 h-4" />
@@ -242,7 +242,7 @@ export default function PortalTasks() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-[#17181A]">{task.title}</p>
+                    <p className="font-medium text-[var(--ink)]">{task.title}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="text-sm text-gray-500 flex items-center gap-1">
                         <FolderKanban className="w-3.5 h-3.5" />
@@ -288,7 +288,7 @@ export default function PortalTasks() {
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <CheckSquare className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-[#17181A] mb-2">No hay tareas</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">No hay tareas</h3>
           <p className="text-gray-500">
             {search || statusFilter !== 'all' || approvalFilter !== 'all'
               ? 'No se encontraron tareas con los filtros aplicados.'
@@ -302,7 +302,7 @@ export default function PortalTasks() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="glass-solid rounded-2xl shadow-glass-lg max-w-lg w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-[#17181A]">Nueva Tarea</h3>
+              <h3 className="text-xl font-bold text-[var(--ink)]">Nueva Tarea</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
@@ -402,7 +402,7 @@ export default function PortalTasks() {
                 <button
                   type="submit"
                   disabled={!newTask.title.trim() || !newTask.project_id || creating}
-                  className="flex-1 px-4 py-2.5 bg-[#17181A] text-white rounded-xl font-medium
+                  className="flex-1 px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl font-medium
                            hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {creating ? 'Creando...' : 'Crear Tarea'}

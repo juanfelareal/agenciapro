@@ -1,5 +1,7 @@
 import db from '../config/database.js';
 import { applyClientVisibility } from './clientVisibility.js';
+import { trialGate } from './trialGate.js'; // [modules]
+import { normalizeBranding } from '../utils/branding.js'; // [branding]
 
 /**
  * Middleware to authenticate team member requests (multi-tenant).
@@ -28,7 +30,8 @@ export const teamAuthMiddleware = async (req, res, next) => {
     const newToken = await db.get(`
       SELECT ust.id as token_id, ust.user_id, ust.current_org_id, ust.status, ust.expires_at,
              u.name as user_name, u.email as user_email, u.avatar_url as user_avatar_url,
-             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url
+             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url,
+             o.branding as org_branding
       FROM user_session_tokens ust
       JOIN users u ON ust.user_id = u.id
       JOIN organizations o ON ust.current_org_id = o.id
@@ -85,7 +88,8 @@ export const teamAuthMiddleware = async (req, res, next) => {
         id: newToken.org_id,
         name: newToken.org_name,
         slug: newToken.org_slug,
-        logo_url: newToken.org_logo_url
+        logo_url: newToken.org_logo_url,
+        branding: normalizeBranding(newToken.org_branding, { logo_url: newToken.org_logo_url }) // [branding]
       };
 
       req.teamMember = {
@@ -100,7 +104,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
 
       req.tokenId = newToken.token_id;
 
-      return applyClientVisibility(req, res, next);
+      return applyClientVisibility(req, res, () => trialGate(req, res, next)); // [modules] prueba vencida → 402 en escrituras
     }
 
     // --- Fallback to legacy team_session_tokens ---
@@ -137,22 +141,24 @@ export const teamAuthMiddleware = async (req, res, next) => {
       try { permissions = JSON.parse(legacyToken.permissions); } catch (e) { /* ignore */ }
     }
 
-    // Set req properties (legacy mode: orgId from team_member if available)
+    // Multi-tenant: una sesión legacy sin organización no puede operar. Sin
+    // req.orgId las consultas no filtran nada y los INSERT quedarían con
+    // organization_id NULL (que el backfill de arranque asignaría a otra org).
+    if (!legacyToken.organization_id) {
+      return res.status(401).json({ error: 'La sesión no tiene una organización asociada. Inicia sesión nuevamente.' });
+    }
+
+    // Set req properties (legacy mode: orgId from team_member)
     req.user = legacyToken.user_id ? {
       id: legacyToken.user_id,
       email: legacyToken.email,
       name: legacyToken.name
     } : null;
 
-    req.orgId = legacyToken.organization_id || null;
+    req.orgId = legacyToken.organization_id;
 
-    // Try to get org info if organization_id exists
-    if (legacyToken.organization_id) {
-      const org = await db.get(`SELECT id, name, slug, logo_url FROM organizations WHERE id = ?`, [legacyToken.organization_id]);
-      req.currentOrg = org || null;
-    } else {
-      req.currentOrg = null;
-    }
+    const org = await db.get(`SELECT id, name, slug, logo_url FROM organizations WHERE id = ?`, [legacyToken.organization_id]);
+    req.currentOrg = org || null;
 
     req.teamMember = {
       id: legacyToken.team_member_id,
@@ -166,7 +172,7 @@ export const teamAuthMiddleware = async (req, res, next) => {
 
     req.tokenId = null; // no user_session_token id in legacy mode
 
-    return applyClientVisibility(req, res, next);
+    return applyClientVisibility(req, res, () => trialGate(req, res, next)); // [modules] prueba vencida → 402 en escrituras
   } catch (error) {
     console.error('Team auth error:', error);
     res.status(500).json({ error: 'Error de autenticación' });

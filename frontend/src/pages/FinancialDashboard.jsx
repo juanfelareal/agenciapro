@@ -167,7 +167,7 @@ const FinancialDashboard = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">
             Dashboard Financiero
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -213,7 +213,7 @@ const FinancialDashboard = () => {
           <div className="relative">
             <button
               onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-              className="flex items-center gap-2 px-4 py-2.5 glass rounded-xl text-sm font-medium text-[#17181A] hover:bg-white/80 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 glass rounded-xl text-sm font-medium text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.03)] transition-colors"
             >
               <Calendar className="w-4 h-4 text-gray-500" />
               <span>{formatPeriodLabel()}</span>
@@ -242,7 +242,7 @@ const FinancialDashboard = () => {
                         onClick={() => setPeriod(p.key)}
                         className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                           period === p.key
-                            ? 'bg-[#17181A] text-[#D7F653]'
+                            ? 'bg-[var(--dark)] text-[var(--accent)]'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -260,7 +260,7 @@ const FinancialDashboard = () => {
                       type="month"
                       value={selectedMonth}
                       onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      className="w-full px-3 py-2 bg-[var(--surface)] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                     />
                   </div>
                 )}
@@ -272,7 +272,7 @@ const FinancialDashboard = () => {
                     <select
                       value={selectedMonth.split('-')[0]}
                       onChange={(e) => setSelectedMonth(`${e.target.value}-01`)}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      className="w-full px-3 py-2 bg-[var(--surface)] border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                     >
                       {[2024, 2025, 2026].map((y) => (
                         <option key={y} value={y}>
@@ -285,7 +285,7 @@ const FinancialDashboard = () => {
                 <div className="p-3 border-t border-gray-100">
                   <button
                     onClick={() => setShowPeriodDropdown(false)}
-                    className="w-full px-3 py-2 bg-[#17181A] text-white text-sm font-medium rounded-lg hover:bg-[#26282C] transition-colors"
+                    className="w-full px-3 py-2 bg-[var(--dark)] text-white text-sm font-medium rounded-lg hover:bg-[#1C1D1F] transition-colors"
                   >
                     Aplicar
                   </button>
@@ -308,8 +308,8 @@ const FinancialDashboard = () => {
               onClick={() => setActiveSection(section.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-[#17181A] text-[#D7F653] shadow-sm'
-                  : 'text-gray-600 hover:text-[#17181A] hover:bg-white/60'
+                  ? 'bg-[var(--dark)] text-[var(--accent)] shadow-sm'
+                  : 'text-gray-600 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
               }`}
             >
               <Icon className="w-4 h-4" />

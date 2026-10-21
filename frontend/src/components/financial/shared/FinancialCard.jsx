@@ -15,7 +15,7 @@ const FinancialCard = ({ title, subtitle, action, children, className = '', span
       {(title || subtitle || action) && (
         <div className="flex justify-between items-start mb-5">
           <div>
-            {title && <h3 className="text-[15px] font-semibold text-[#17181A] mb-0.5">{title}</h3>}
+            {title && <h3 className="text-[15px] font-semibold text-[var(--ink)] mb-0.5">{title}</h3>}
             {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
           </div>
           {action && (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { fmtMoney, fmtPct, fmtX, fmtInt, monthLabel } from './format';
+import { useBranding } from '../../../branding/useBranding'; // [branding]
 
 /**
  * Informe financiero para imprimir / guardar como PDF.
@@ -18,17 +19,17 @@ const CSS = `
   @page { size: A4 portrait; margin: 14mm 13mm 16mm 13mm; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; }
-  .rep { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #17181A; font-size: 11px; line-height: 1.45; max-width: 184mm; margin: 0 auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rep { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); font-size: 11px; line-height: 1.45; max-width: 184mm; margin: 0 auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .rep .num { font-variant-numeric: tabular-nums; }
   .rep .muted { color: #6B7280; }
   .rep .faint { color: #9CA3AF; }
-  .rep .pos { color: #16a34a; } .rep .neg { color: #dc2626; } .rep .amber { color: #d97706; }
+  .rep .pos { color: var(--accent-deep); } .rep .neg { color: #dc2626; } .rep .amber { color: #d97706; }
   .rep .sec { break-inside: avoid; page-break-inside: avoid; margin: 0 0 14px; }
   .rep .brk { break-before: page; page-break-before: always; }
   .rep h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; margin: 0; }
   .rep h2 { font-size: 12.5px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.1px; }
   .rep .tag { display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6B7280; }
-  .rep .head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #17181A; padding-bottom: 10px; margin-bottom: 16px; }
+  .rep .head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 16px; }
   .rep .card { border: 1px solid #E5E7EB; border-radius: 10px; padding: 12px 14px; }
   .rep .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .rep .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -41,9 +42,9 @@ const CSS = `
   .rep th { text-align: left; font-size: 9px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.06em; padding: 5px 6px; border-bottom: 1px solid #E5E7EB; }
   .rep td { padding: 5px 6px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
   .rep th.r, .rep td.r { text-align: right; }
-  .rep tr.total td { font-weight: 700; border-top: 1px solid #17181A; border-bottom: 0; }
+  .rep tr.total td { font-weight: 700; border-top: 1px solid var(--ink); border-bottom: 0; }
   .rep .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 9.5px; font-weight: 700; }
-  .rep .pill.g { background: #16a34a; color: #fff; } .rep .pill.a { background: #F59E0B; color: #fff; } .rep .pill.r { background: #dc2626; color: #fff; } .rep .pill.n { background: #E5E7EB; color: #374151; }
+  .rep .pill.g { background: var(--accent); color: #fff; } .rep .pill.a { background: #F59E0B; color: #fff; } .rep .pill.r { background: #dc2626; color: #fff; } .rep .pill.n { background: #E5E7EB; color: #374151; }
   .rep .bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: #F3F4F6; }
   .rep .bar i { display: block; height: 100%; }
   .rep .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 6px; font-size: 10px; }
@@ -87,25 +88,25 @@ function DailyChart({ daily }) {
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
       {ticks.map((t, i) => (
         <g key={i}>
-          <line x1={padL} x2={W - 8} y1={y(t)} y2={y(t)} stroke="#F3F4F6" />
-          <text x={padL - 6} y={y(t) + 3} fontSize="8" fill="#9CA3AF" textAnchor="end">{t === 0 ? '$0' : `$${fmtK(t)}`}</text>
+          <line x1={padL} x2={W - 8} y1={y(t)} y2={y(t)} stroke="#E8E5DF" />
+          <text x={padL - 6} y={y(t) + 3} fontSize="8" fill="#7A7772" textAnchor="end">{t === 0 ? '$0' : `$${fmtK(t)}`}</text>
         </g>
       ))}
-      <line x1={padL} x2={W - 8} y1={y(0)} y2={y(0)} stroke="#9CA3AF" strokeWidth="0.6" />
+      <line x1={padL} x2={W - 8} y1={y(0)} y2={y(0)} stroke="#C9C6C0" strokeWidth="0.6" />
       {days.map((d, i) => {
         const x0 = padL + slot * i + slot / 2;
         const costs = num(d.cogs) + num(d.ad_spend) + num(d.variable_costs) + num(d.fixed_costs);
         return (
           <g key={d.date}>
-            <rect x={x0 - bw - 1} y={y(num(d.revenue))} width={bw} height={Math.max(0, y(0) - y(num(d.revenue)))} fill="#17181A" />
+            <rect x={x0 - bw - 1} y={y(num(d.revenue))} width={bw} height={Math.max(0, y(0) - y(num(d.revenue)))} fill="var(--ink)" />
             <rect x={x0 + 1} y={y(costs)} width={bw} height={Math.max(0, y(0) - y(costs))} fill="#C7CBD1" />
             {(i % Math.ceil(days.length / 10) === 0 || i === days.length - 1) && (
-              <text x={x0} y={H - 4} fontSize="8" fill="#6B7280" textAnchor="middle">{dayNum(d.date)}</text>
+              <text x={x0} y={H - 4} fontSize="8" fill="#7A7772" textAnchor="middle">{dayNum(d.date)}</text>
             )}
           </g>
         );
       })}
-      <polyline points={linePts} fill="none" stroke="#16a34a" strokeWidth="1.6" />
+      <polyline points={linePts} fill="none" stroke="var(--accent)" strokeWidth="1.6" />
       {days.map((d, i) => (num(d.net_profit) < 0 ? <circle key={`p${i}`} cx={padL + slot * i + slot / 2} cy={y(num(d.net_profit))} r="1.8" fill="#dc2626" /> : null))}
     </svg>
   );
@@ -129,21 +130,25 @@ function CumulativeChart({ cumulative, projection, daysInMonth }) {
       {[bottom, 0, top].filter((v, i, a) => a.indexOf(v) === i).map((t, i) => (
         <g key={i}>
           <line x1={padL} x2={W - 8} y1={y(t)} y2={y(t)} stroke={t === 0 ? '#9CA3AF' : '#F3F4F6'} strokeWidth={t === 0 ? 0.6 : 1} />
-          <text x={padL - 6} y={y(t) + 3} fontSize="8" fill="#9CA3AF" textAnchor="end">{t === 0 ? '$0' : `${t < 0 ? '−' : ''}$${fmtK(Math.abs(t))}`}</text>
+          <text x={padL - 6} y={y(t) + 3} fontSize="8" fill="#7A7772" textAnchor="end">{t === 0 ? '$0' : `${t < 0 ? '−' : ''}$${fmtK(Math.abs(t))}`}</text>
         </g>
       ))}
-      <polyline points={line} fill="none" stroke={last < 0 ? '#dc2626' : '#16a34a'} strokeWidth="1.8" />
+      <polyline points={line} fill="none" stroke={last < 0 ? '#dc2626' : 'var(--accent)'} strokeWidth="1.8" />
       {pts.length < daysInMonth && (
-        <line x1={x(pts.length - 1)} y1={y(last)} x2={x(daysInMonth - 1)} y2={y(projEnd)} stroke="#9CA3AF" strokeWidth="1.2" strokeDasharray="4 3" />
+        <line x1={x(pts.length - 1)} y1={y(last)} x2={x(daysInMonth - 1)} y2={y(projEnd)} stroke="#C9C6C0" strokeWidth="1.2" strokeDasharray="4 3" />
       )}
       {[1, Math.round(daysInMonth / 2), daysInMonth].map((d) => (
-        <text key={d} x={x(d - 1)} y={H - 4} fontSize="8" fill="#6B7280" textAnchor="middle">{d}</text>
+        <text key={d} x={x(d - 1)} y={H - 4} fontSize="8" fill="#7A7772" textAnchor="middle">{d}</text>
       ))}
     </svg>
   );
 }
 
 export default function FinancialReport({ data, client, period, patterns, mix, scenarios, generatedAt = new Date(), portal = false }) {
+  // [branding] Encabezado y pie con la marca de la agencia (nombre, logo, pie configurado)
+  const { org: agency, branding, logo: brandLogo } = useBranding();
+  const agencyName = agency?.name || 'LA REAL';
+  const agencyLogo = brandLogo('light');
   if (!data) return null;
   const t = data.totals || {};
   const be = data.break_even || {};
@@ -178,7 +183,10 @@ export default function FinancialReport({ data, client, period, patterns, mix, s
 
       <div className="head">
         <div>
-          <div className="tag">Informe financiero · {portal ? 'Portal del cliente' : 'Orbit · LA REAL'}</div>
+          <div className="tag" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {agencyLogo && <img src={agencyLogo} alt={agencyName} style={{ height: 18, maxWidth: 90, objectFit: 'contain' }} />}
+            <span>Informe financiero · {portal ? `Portal del cliente · ${agencyName}` : `Orbit · ${agencyName}`}</span>
+          </div>
           <h1>{brand} · {monthLabel(period)}</h1>
           <div className="muted" style={{ marginTop: 3 }}>
             Del 1 al {data.days_elapsed || 0} de {data.days_in_month} · todo sin IVA, venta neta como base{data.is_current_month ? ' · mes en curso' : ''}
@@ -248,7 +256,7 @@ export default function FinancialReport({ data, client, period, patterns, mix, s
               <tr><td><span className="dot" style={{ background: '#3B82F6' }} />Inversión en pauta</td><td className="r num">{money(bd.ads)}</td><td className="r muted num">{fmtPct(bd.ads_pct, 0)}</td></tr>
               <tr><td><span className="dot" style={{ background: '#10B981' }} />Costos variables</td><td className="r num">{money(bd.variable)}</td><td className="r muted num">{fmtPct(bd.variable_pct, 0)}</td></tr>
               <tr><td><span className="dot" style={{ background: '#F59E0B' }} />Costos fijos</td><td className="r num">{money(bd.fixed)}</td><td className="r muted num">{fmtPct(bd.fixed_pct, 0)}</td></tr>
-              <tr className="total"><td><span className="dot" style={{ background: profitNeg ? '#dc2626' : '#16a34a' }} />{profitNeg ? 'Pérdida' : 'Utilidad'}</td><td className={`r num ${profitNeg ? 'neg' : 'pos'}`}>{signed(bd.profit)}</td><td className="r muted num">{fmtPct(bd.profit_pct, 0)}</td></tr>
+              <tr className="total"><td><span className="dot" style={{ background: profitNeg ? '#dc2626' : 'var(--accent)' }} />{profitNeg ? 'Pérdida' : 'Utilidad'}</td><td className={`r num ${profitNeg ? 'neg' : 'pos'}`}>{signed(bd.profit)}</td><td className="r muted num">{fmtPct(bd.profit_pct, 0)}</td></tr>
             </tbody>
           </table>
         </div>
@@ -277,8 +285,8 @@ export default function FinancialReport({ data, client, period, patterns, mix, s
           )}
           {!be.reachable && t.revenue ? <div className="note neg">Con el costo de producto y los variables actuales no hay ROAS que alcance: cada venta deja menos de lo que cuesta.</div> : null}
         </div>
-        <div className="card" style={{ background: '#17181A', color: '#fff', borderColor: '#17181A' }}>
-          <h2 style={{ color: '#D7F653' }}>Punto de equilibrio</h2>
+        <div className="card" style={{ background: 'var(--dark)', color: '#fff', borderColor: 'var(--ink)' }}>
+          <h2 style={{ color: 'var(--accent)' }}>Punto de equilibrio</h2>
           <div className="grid2" style={{ gap: 8 }}>
             <div className="kpi"><div className="l" style={{ color: '#9CA3AF' }}>Necesitas vender / día</div><div className="v num" style={{ color: '#fff', fontSize: 18 }}>{money(be.revenue_per_day)}</div></div>
             <div className="kpi"><div className="l" style={{ color: '#9CA3AF' }}>Vas en / día</div><div className="v num" style={{ fontSize: 18, color: num(be.current_revenue_per_day) >= num(be.revenue_per_day) ? '#4ADE80' : '#FCA5A5' }}>{money(be.current_revenue_per_day)}</div></div>
@@ -333,7 +341,7 @@ export default function FinancialReport({ data, client, period, patterns, mix, s
                 {byWd.map((w) => (
                   <div className="hbar" key={w.weekday}>
                     <span className="muted" style={{ width: 24 }}>{WD[w.weekday]}</span>
-                    <span className="t" style={{ width: `${Math.max(2, (num(w.avg_revenue_per_day) / maxWd) * 60)}%`, background: patterns.best_days?.includes(w.weekday) ? '#17181A' : '#D1D5DB' }} />
+                    <span className="t" style={{ width: `${Math.max(2, (num(w.avg_revenue_per_day) / maxWd) * 60)}%`, background: patterns.best_days?.includes(w.weekday) ? 'var(--ink)' : '#D1D5DB' }} />
                     <span className="num">{money(w.avg_revenue_per_day)}<span className="faint"> / día · {fmtPct(w.share, 0)}</span></span>
                   </div>
                 ))}
@@ -444,7 +452,7 @@ export default function FinancialReport({ data, client, period, patterns, mix, s
       ) : null}
 
       <div className="foot">
-        Venta neta = lo que entra sin IVA ni envío, después de descuentos y devoluciones. Costo de producto = costo unitario registrado × unidades (estimado al {fmtPct(data.default_cogs_rate, 0)} cuando no hay costo). BE ROAS = ticket promedio ÷ margen por pedido. Generado por Orbit · LA REAL.
+        Venta neta = lo que entra sin IVA ni envío, después de descuentos y devoluciones. Costo de producto = costo unitario registrado × unidades (estimado al {fmtPct(data.default_cogs_rate, 0)} cuando no hay costo). BE ROAS = ticket promedio ÷ margen por pedido. Generado por Orbit · {agencyName}.{branding?.report_footer ? ` ${branding.report_footer}` : ''}
       </div>
     </div>
   );

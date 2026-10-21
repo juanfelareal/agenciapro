@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import axios from 'axios';
 import db from '../config/database.js';
+import crypto from 'crypto';
 import { listAccessibleCustomers } from '../integrations/googleAds.js';
 
 const router = Router();
@@ -37,7 +38,8 @@ router.get('/url', async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
-    const state = `${client_id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    // Estado aleatorio (CSRF + identificador de sesión no adivinable); la org y el cliente quedan en memoria
+    const state = crypto.randomBytes(24).toString('hex');
     oauthSessions.set(state, { clientId: client_id, orgId, createdAt: Date.now() });
 
     // Clean up old sessions (older than 10 minutes)
@@ -105,7 +107,7 @@ router.get('/callback', async (req, res) => {
     }
 
     // Store refresh token temporarily with a session id
-    const sessionId = `ga_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const sessionId = `ga_${crypto.randomBytes(24).toString('hex')}`;
     oauthSessions.set(sessionId, {
       refreshToken,
       clientId,
@@ -145,6 +147,10 @@ router.get('/customers', async (req, res) => {
     const session = oauthSessions.get(session_id);
     if (!session) {
       return res.status(401).json({ error: 'Sesión expirada. Por favor reconecta con Google.' });
+    }
+    // La sesión OAuth pertenece a la organización que la inició
+    if (Number(session.orgId) !== Number(orgId)) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
     }
 
     const { refreshToken, clientId } = session;
@@ -194,6 +200,10 @@ router.post('/link-accounts', async (req, res) => {
     if (!session) {
       return res.status(401).json({ error: 'Sesión expirada. Por favor reconecta con Google.' });
     }
+    // La sesión OAuth debe pertenecer a esta organización y a este mismo cliente
+    if (Number(session.orgId) !== Number(orgId) || Number(session.clientId) !== Number(client_id)) {
+      return res.status(404).json({ error: 'Sesión no encontrada para este cliente' });
+    }
 
     const { refreshToken } = session;
 
@@ -204,8 +214,8 @@ router.post('/link-accounts', async (req, res) => {
 
     const insertStmt = db.prepare(`
       INSERT INTO client_google_ads_credentials
-        (client_id, refresh_token, customer_id, customer_name, login_customer_id, status)
-      VALUES (?, ?, ?, ?, ?, 'active')
+        (client_id, organization_id, refresh_token, customer_id, customer_name, login_customer_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'active')
       ON CONFLICT(client_id, customer_id)
       DO UPDATE SET
         refresh_token = excluded.refresh_token,
@@ -223,7 +233,7 @@ router.post('/link-accounts', async (req, res) => {
       const name = acc.name || 'Cuenta de Google Ads';
       const loginCustomerId = acc.login_customer_id || null;
       try {
-        await insertStmt.run(client_id, refreshToken, customerId, name, loginCustomerId);
+        await insertStmt.run(client_id, orgId, refreshToken, customerId, name, loginCustomerId);
         results.push({ customerId, success: true });
       } catch (err) {
         results.push({ customerId, success: false, error: err.message });

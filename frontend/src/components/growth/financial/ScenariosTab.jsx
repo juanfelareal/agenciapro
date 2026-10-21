@@ -16,7 +16,7 @@ const parseMoney = (raw) => { const d = String(raw ?? '').replace(/\D/g, ''); re
 const fmtInput = (n) => (n === '' || n === null || n === undefined ? '' : Math.round(Number(n)).toLocaleString('es-CO'));
 const parseDec = (raw) => { const s = String(raw ?? '').replace(',', '.').replace(/[^\d.]/g, ''); return s === '' || Number.isNaN(Number(s)) ? '' : Number(s); };
 const errText = (err, fallback) => err?.response?.data?.error || err?.message || fallback;
-const profitCls = (v) => (v > 0 ? 'text-[#16a34a]' : v < 0 ? 'text-[#dc2626]' : 'text-[#17181A]');
+const profitCls = (v) => (v > 0 ? 'text-[var(--accent-deep)]' : v < 0 ? 'text-[#dc2626]' : 'text-[var(--ink)]');
 const signed = (v) => (v > 0 ? `+${fmtMoney(v)}` : fmtMoney(v));
 let keySeq = 0;
 const nextKey = () => `k${++keySeq}`;
@@ -58,7 +58,7 @@ const Field = ({ label, info, children, hint }) => (
   </label>
 );
 
-const chipCls = (active) => `px-2.5 py-1 rounded-full text-[11px] font-medium border transition whitespace-nowrap ${active ? 'bg-[#17181A] text-white border-[#17181A]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`;
+const chipCls = (active) => `px-2.5 py-1 rounded-full text-[11px] font-medium border transition whitespace-nowrap ${active ? 'bg-[var(--dark)] text-white border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-400'}`;
 
 function VisibilityChip({ visibility, className = '' }) {
   const priv = visibility === 'private';
@@ -138,10 +138,10 @@ function WherePesoGoes({ result }) {
         {parts.map((p) => (
           <li key={p.key} className="flex items-center justify-between gap-2 text-gray-600">
             <span className="inline-flex items-center gap-2 min-w-0"><span className="w-2 h-2 rounded-[2px] shrink-0" style={{ background: p.color }} /><span className="truncate">{p.label}</span></span>
-            <span className="tabular-nums whitespace-nowrap"><span className="text-[#17181A] font-medium">{fmtMoney(p.value)}</span><span className="text-gray-400 ml-2 inline-block w-11 text-right">{fmtPct(share(p.value), 0)}</span></span>
+            <span className="tabular-nums whitespace-nowrap"><span className="text-[var(--ink)] font-medium">{fmtMoney(p.value)}</span><span className="text-gray-400 ml-2 inline-block w-11 text-right">{fmtPct(share(p.value), 0)}</span></span>
           </li>
         ))}
-        <li className={`flex items-center justify-between gap-2 pt-1.5 border-t border-gray-100 font-semibold ${positive ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
+        <li className={`flex items-center justify-between gap-2 pt-1.5 border-t border-gray-100 font-semibold ${positive ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]'}`}>
           <span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-[2px]" style={{ background: positive ? COLORS.profit : COLORS.loss }} />{positive ? 'Utilidad' : 'Pérdida'}</span>
           <span className="tabular-nums whitespace-nowrap">{fmtMoney(r.net_profit)}<span className="ml-2 inline-block w-11 text-right opacity-80">{fmtPct(r.margin, 0)}</span></span>
         </li>
@@ -222,7 +222,7 @@ function Builder({ mode, scenario, baseline, data, period, api, onSaved, onCance
     <form onSubmit={save} className="glass-solid rounded-2xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-semibold text-sm text-[#17181A] inline-flex items-center gap-1.5"><SlidersHorizontal className="w-4 h-4" />{mode === 'edit' ? 'Editar escenario' : 'Nuevo escenario'}</h2>
+          <h2 className="font-semibold text-sm text-[var(--ink)] inline-flex items-center gap-1.5"><SlidersHorizontal className="w-4 h-4" />{mode === 'edit' ? 'Editar escenario' : 'Nuevo escenario'}</h2>
           <p className="text-xs text-gray-400 mt-0.5">Lo que dejes vacío toma el valor real de {monthLabel(period)}. Todo sin IVA, sobre venta neta.</p>
         </div>
         <button type="button" onClick={onCancel} className="p-2 hover:bg-gray-100 rounded-lg shrink-0" aria-label="Cerrar"><X className="w-4 h-4 text-gray-500" /></button>
@@ -262,7 +262,7 @@ function Builder({ mode, scenario, baseline, data, period, api, onSaved, onCance
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="flex items-center gap-1 text-xs font-medium text-gray-600">Costos variables <Info text="Lo que se paga por cada venta o pedido: pasarela, envío, empaque. Desmarca los actuales para quitarlos del escenario o agrega nuevos." /></span>
-              <button type="button" onClick={addVariable} className="text-xs text-gray-500 hover:text-[#17181A] inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Agregar</button>
+              <button type="button" onClick={addVariable} className="text-xs text-gray-500 hover:text-[var(--ink)] inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Agregar</button>
             </div>
             {activeVariable.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -307,7 +307,7 @@ function Builder({ mode, scenario, baseline, data, period, api, onSaved, onCance
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="flex items-center gap-1 text-xs font-medium text-gray-600">Costos fijos del mes <Info text="Fee, apps, nómina, arriendo: lo que se paga así no se venda nada. Desmarca los actuales o agrega nuevos (p. ej. un salario con prestaciones)." /></span>
-              <button type="button" onClick={addFixed} className="text-xs text-gray-500 hover:text-[#17181A] inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Agregar</button>
+              <button type="button" onClick={addFixed} className="text-xs text-gray-500 hover:text-[var(--ink)] inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Agregar</button>
             </div>
             {fixedItems.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -356,15 +356,15 @@ function Builder({ mode, scenario, baseline, data, period, api, onSaved, onCance
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 mt-4 text-[12px]">
-                  <div><div className="text-[10px] text-gray-400">Pauta del mes</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(r.ads_month)}</div></div>
-                  <div><div className="text-[10px] text-gray-400">Venta neta</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(r.revenue)}</div></div>
-                  <div><div className="text-[10px] text-gray-400">Pedidos</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtInt(Math.round(r.orders))}</div></div>
-                  <div><div className="text-[10px] text-gray-400">ROAS</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtX(r.roas)}</div></div>
-                  <div><div className="text-[10px] text-gray-400 inline-flex items-center gap-1">BE ROAS <Info text="ROAS a partir del cual la pauta deja plata (1 ÷ margen de contribución). Depende del margen, no de cuánto inviertes." align="left" /></div><div className="font-semibold tabular-nums text-[#17181A]">{fmtX(r.be_roas)}</div></div>
-                  <div><div className="text-[10px] text-gray-400 inline-flex items-center gap-1">ROAS necesario <Info text="El ROAS que necesitas para quedar en cero contando los fijos, con esa inversión." align="right" /></div><div className="font-semibold tabular-nums text-[#17181A]">{fmtX(r.roas_target)}</div></div>
+                  <div><div className="text-[10px] text-gray-400">Pauta del mes</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtMoney(r.ads_month)}</div></div>
+                  <div><div className="text-[10px] text-gray-400">Venta neta</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtMoney(r.revenue)}</div></div>
+                  <div><div className="text-[10px] text-gray-400">Pedidos</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtInt(Math.round(r.orders))}</div></div>
+                  <div><div className="text-[10px] text-gray-400">ROAS</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtX(r.roas)}</div></div>
+                  <div><div className="text-[10px] text-gray-400 inline-flex items-center gap-1">BE ROAS <Info text="ROAS a partir del cual la pauta deja plata (1 ÷ margen de contribución). Depende del margen, no de cuánto inviertes." align="left" /></div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtX(r.be_roas)}</div></div>
+                  <div><div className="text-[10px] text-gray-400 inline-flex items-center gap-1">ROAS necesario <Info text="El ROAS que necesitas para quedar en cero contando los fijos, con esa inversión." align="right" /></div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtX(r.roas_target)}</div></div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-200 text-[12px] text-gray-600">
-                  Para quedar en cero necesitas vender <strong className="text-[#17181A] tabular-nums">{fmtMoney(r.revenue_break_even)}</strong> en el mes
+                  Para quedar en cero necesitas vender <strong className="text-[var(--ink)] tabular-nums">{fmtMoney(r.revenue_break_even)}</strong> en el mes
                   {r.reachable && r.revenue > 0 && <span className="text-gray-400"> ({r.revenue >= r.revenue_break_even ? 'lo superas' : `te faltan ${fmtMoney(r.revenue_break_even - r.revenue)}`})</span>}
                   <Info text="(Pauta del mes + costos fijos) ÷ margen de contribución." className="ml-1" />
                 </div>
@@ -413,10 +413,10 @@ function ScenarioCard({ s, baseline, selected, selectable, onToggle, onEdit, onD
   const r = s.result || {};
   const diff = baseline ? r.net_profit - baseline.net_profit : null;
   return (
-    <div className={`glass-solid rounded-2xl p-5 flex flex-col gap-3 transition ${selected ? 'ring-2 ring-[#D7F653]' : ''}`}>
+    <div className={`glass-solid rounded-2xl p-5 flex flex-col gap-3 transition ${selected ? 'ring-2 ring-[var(--accent)]' : ''}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-semibold text-sm text-[#17181A] truncate">{s.name}</h3>
+          <h3 className="font-semibold text-sm text-[var(--ink)] truncate">{s.name}</h3>
           {s.description && <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">{s.description}</p>}
         </div>
         <VisibilityChip visibility={s.visibility} className="shrink-0" />
@@ -427,17 +427,17 @@ function ScenarioCard({ s, baseline, selected, selectable, onToggle, onEdit, onD
         {diff !== null && <div className={`text-[11px] tabular-nums ${profitCls(diff)}`}>{signed(diff)} vs hoy</div>}
       </div>
       <div className="grid grid-cols-3 gap-2 text-[12px]">
-        <div><div className="text-[10px] text-gray-400">Pauta / mes</div><div className="font-semibold tabular-nums text-[#17181A] truncate">{fmtMoney(r.ads_month)}</div></div>
-        <div><div className="text-[10px] text-gray-400">ROAS</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtX(r.roas)}</div></div>
-        <div><div className="text-[10px] text-gray-400">Venta</div><div className="font-semibold tabular-nums text-[#17181A] truncate">{fmtMoney(r.revenue)}</div></div>
+        <div><div className="text-[10px] text-gray-400">Pauta / mes</div><div className="font-semibold tabular-nums text-[var(--ink)] truncate">{fmtMoney(r.ads_month)}</div></div>
+        <div><div className="text-[10px] text-gray-400">ROAS</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtX(r.roas)}</div></div>
+        <div><div className="text-[10px] text-gray-400">Venta</div><div className="font-semibold tabular-nums text-[var(--ink)] truncate">{fmtMoney(r.revenue)}</div></div>
       </div>
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100 mt-auto">
         <label className={`inline-flex items-center gap-1.5 text-[11px] ${selectable || selected ? 'text-gray-600 cursor-pointer' : 'text-gray-300'}`}>
-          <input type="checkbox" checked={selected} disabled={!selectable && !selected} onChange={onToggle} className="accent-[#17181A]" /> Comparar
+          <input type="checkbox" checked={selected} disabled={!selectable && !selected} onChange={onToggle} className="accent-[var(--ink)]" /> Comparar
         </label>
         <div className="flex items-center gap-0.5">
-          <button type="button" onClick={onDuplicate} className="p-1.5 text-gray-400 hover:text-[#17181A] rounded-lg hover:bg-gray-100" title="Duplicar" aria-label="Duplicar"><Copy className="w-4 h-4" /></button>
-          {s.can_edit !== false && <button type="button" onClick={onEdit} className="p-1.5 text-gray-400 hover:text-[#17181A] rounded-lg hover:bg-gray-100" title="Editar" aria-label="Editar"><Pencil className="w-4 h-4" /></button>}
+          <button type="button" onClick={onDuplicate} className="p-1.5 text-gray-400 hover:text-[var(--ink)] rounded-lg hover:bg-gray-100" title="Duplicar" aria-label="Duplicar"><Copy className="w-4 h-4" /></button>
+          {s.can_edit !== false && <button type="button" onClick={onEdit} className="p-1.5 text-gray-400 hover:text-[var(--ink)] rounded-lg hover:bg-gray-100" title="Editar" aria-label="Editar"><Pencil className="w-4 h-4" /></button>}
           {s.can_edit !== false && <button type="button" onClick={onDelete} disabled={deleting} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50" title="Borrar" aria-label="Borrar">{deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}</button>}
         </div>
       </div>
@@ -449,17 +449,17 @@ function ScenarioCard({ s, baseline, selected, selectable, onToggle, onEdit, onD
 function BaselineCard({ baseline, period }) {
   const r = baseline || {};
   return (
-    <div className="rounded-2xl p-5 bg-[#17181A] text-white flex flex-col gap-3">
+    <div className="rounded-2xl p-5 bg-[var(--dark)] text-white flex flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="font-semibold text-sm">Hoy (real)</h3>
           <p className="text-[11px] text-white/50 mt-0.5">{monthLabel(period)} al ritmo actual{r.days_elapsed ? ` · ${r.days_elapsed} de ${r.days_in_month} días` : ''}</p>
         </div>
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[#D7F653] text-[#17181A]">Base</span>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-[var(--accent)] text-white">Base</span>
       </div>
       <div>
         <div className="text-[11px] text-white/50">Utilidad neta proyectada</div>
-        <div className={`text-2xl font-bold tracking-tight tabular-nums ${r.net_profit < 0 ? 'text-red-400' : 'text-[#D7F653]'}`}>{fmtMoney(r.net_profit)}</div>
+        <div className={`text-2xl font-bold tracking-tight tabular-nums ${r.net_profit < 0 ? 'text-red-400' : 'text-[var(--accent)]'}`}>{fmtMoney(r.net_profit)}</div>
         <div className="text-[11px] text-white/50 tabular-nums">Margen {fmtPct(r.margin, 1)}</div>
       </div>
       <div className="grid grid-cols-3 gap-2 text-[12px]">
@@ -490,7 +490,7 @@ const fmtDiff = (row, a, b) => {
   const d = a - b;
   if (Math.abs(d) < (row.pct ? 0.0005 : row.x ? 0.005 : 0.5)) return { text: '=', cls: 'text-gray-400' };
   const text = row.pct ? `${d > 0 ? '+' : '−'}${(Math.abs(d) * 100).toFixed(1).replace('.', ',')} pp` : row.x ? `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(2).replace('.', ',')}` : signed(Math.round(d));
-  const cls = row.good === 'none' ? 'text-gray-400' : (row.good === 'up' ? d > 0 : d < 0) ? 'text-[#16a34a]' : 'text-[#dc2626]';
+  const cls = row.good === 'none' ? 'text-gray-400' : (row.good === 'up' ? d > 0 : d < 0) ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]';
   return { text, cls };
 };
 
@@ -500,23 +500,23 @@ function CompareTable({ baseline, scenarios, loading, onClear }) {
     <div className="glass-solid rounded-2xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-semibold text-sm text-[#17181A] inline-flex items-center gap-1.5"><GitCompare className="w-4 h-4" /> Comparación</h2>
+          <h2 className="font-semibold text-sm text-[var(--ink)] inline-flex items-center gap-1.5"><GitCompare className="w-4 h-4" /> Comparación</h2>
           <p className="text-xs text-gray-400 mt-0.5">Mes completo proyectado. Las diferencias son contra "Hoy (real)".</p>
         </div>
         <div className="flex items-center gap-2">
           {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
-          <button type="button" onClick={onClear} className="text-xs text-gray-500 hover:text-[#17181A]">Limpiar</button>
+          <button type="button" onClick={onClear} className="text-xs text-gray-500 hover:text-[var(--ink)]">Limpiar</button>
         </div>
       </div>
       <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0 mt-4">
         <table className="w-full text-[12px] min-w-[560px]">
           <thead>
             <tr className="text-[10px] uppercase tracking-wide text-gray-400">
-              <th className="text-left font-medium py-2 pr-3 sticky left-0 bg-white/95 backdrop-blur">Concepto</th>
+              <th className="text-left font-medium py-2 pr-3 sticky left-0 bg-[rgb(var(--surface-rgb)/0.95)] backdrop-blur">Concepto</th>
               <th className="text-right font-medium py-2 px-3">Hoy (real)</th>
               {cols.map((s) => (
                 <th key={s.id} className="text-right font-medium py-2 px-3 max-w-[180px]">
-                  <span className="block truncate normal-case tracking-normal text-[#17181A] text-[12px]">{s.name}</span>
+                  <span className="block truncate normal-case tracking-normal text-[var(--ink)] text-[12px]">{s.name}</span>
                   <VisibilityChip visibility={s.visibility} className="mt-0.5" />
                 </th>
               ))}
@@ -527,14 +527,14 @@ function CompareTable({ baseline, scenarios, loading, onClear }) {
               const b = baseline?.[row.key];
               return (
                 <tr key={row.key} className={`border-t border-gray-100 ${row.bold ? 'font-semibold' : ''}`}>
-                  <td className={`py-2.5 pr-3 sticky left-0 bg-white/95 backdrop-blur ${row.bold ? 'text-[#17181A]' : 'text-gray-600'}`}>{row.label}</td>
-                  <td className={`py-2.5 px-3 text-right tabular-nums whitespace-nowrap ${row.key === 'net_profit' ? profitCls(b) : 'text-[#17181A]'}`}>{row.fmt(b)}</td>
+                  <td className={`py-2.5 pr-3 sticky left-0 bg-[rgb(var(--surface-rgb)/0.95)] backdrop-blur ${row.bold ? 'text-[var(--ink)]' : 'text-gray-600'}`}>{row.label}</td>
+                  <td className={`py-2.5 px-3 text-right tabular-nums whitespace-nowrap ${row.key === 'net_profit' ? profitCls(b) : 'text-[var(--ink)]'}`}>{row.fmt(b)}</td>
                   {cols.map((s) => {
                     const v = s.result?.[row.key];
                     const d = fmtDiff(row, v, b);
                     return (
                       <td key={s.id} className="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
-                        <div className={row.key === 'net_profit' ? profitCls(v) : 'text-[#17181A]'}>{row.fmt(v)}</div>
+                        <div className={row.key === 'net_profit' ? profitCls(v) : 'text-[var(--ink)]'}>{row.fmt(v)}</div>
                         {d && <div className={`text-[10px] font-normal ${d.cls}`}>{d.text}</div>}
                       </td>
                     );
@@ -636,7 +636,7 @@ export default function ScenariosTab({ clientId, period, data, api }) {
     <div className="space-y-4 sm:space-y-6" ref={topRef}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h2 className="font-semibold text-base text-[#17181A] inline-flex items-center gap-1.5">
+          <h2 className="font-semibold text-base text-[var(--ink)] inline-flex items-center gap-1.5">
             Escenarios
             <Info text="Simula el mes completo cambiando pauta, ROAS, ticket, margen o costos, y guárdalo con nombre para compararlo después. Nada de esto cambia los datos reales." />
           </h2>
@@ -647,7 +647,7 @@ export default function ScenariosTab({ clientId, period, data, api }) {
         )}
       </div>
 
-      {notice && <div className="text-xs rounded-xl bg-[#17181A] text-white px-4 py-2.5 inline-flex items-center gap-2"><Check className="w-3.5 h-3.5 text-[#D7F653]" />{notice}</div>}
+      {notice && <div className="text-xs rounded-xl bg-[var(--dark)] text-white px-4 py-2.5 inline-flex items-center gap-2"><Check className="w-3.5 h-3.5 text-[var(--accent)]" />{notice}</div>}
 
       {builder && (
         <Builder
@@ -676,7 +676,7 @@ export default function ScenariosTab({ clientId, period, data, api }) {
         ))}
         {!scenarios.length && !builder && (
           <button type="button" onClick={() => openBuilder('create')} className="glass-solid rounded-2xl p-5 text-left border-2 border-dashed border-gray-200 hover:border-gray-400 transition flex flex-col justify-center gap-2 min-h-[180px]">
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#17181A]"><Plus className="w-4 h-4" /> Crea tu primer escenario</span>
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--ink)]"><Plus className="w-4 h-4" /> Crea tu primer escenario</span>
             <span className="text-xs text-gray-500">Por ejemplo: "Pauta 1,5M/día con envío a 3.500" o "Mejorar el margen al 60 %". Guárdalo compartido para que todos lo vean, o privado solo para ti.</span>
           </button>
         )}

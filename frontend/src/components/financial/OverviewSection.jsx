@@ -86,7 +86,7 @@ const OverviewSection = ({ data, loading }) => {
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin datos financieros</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">Sin datos financieros</h3>
           <p className="text-gray-500 max-w-md mx-auto">
             Importa facturas desde Siigo o registra gastos para ver el resumen financiero aquí.
           </p>
@@ -154,7 +154,7 @@ const OverviewSection = ({ data, loading }) => {
           <div className="space-y-4 mt-4">
             <div className="flex justify-between items-center py-3 border-b border-gray-100">
               <span className="text-gray-600">Venta neta</span>
-              <span className="font-semibold text-[#17181A]">{formatCurrency(kpis.netSales)}</span>
+              <span className="font-semibold text-[var(--ink)]">{formatCurrency(kpis.netSales)}</span>
             </div>
             <div className="flex justify-between items-center py-3 border-b border-gray-100">
               <span className="text-gray-600">Gastos</span>
@@ -182,7 +182,7 @@ const OverviewSection = ({ data, loading }) => {
               {expensesByCategory.slice(0, 6).map((cat, idx) => (
                 <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-gray-600 text-sm">{cat.name}</span>
-                  <span className="font-medium text-[#17181A]">{formatCurrency(cat.value)}</span>
+                  <span className="font-medium text-[var(--ink)]">{formatCurrency(cat.value)}</span>
                 </div>
               ))}
               {expensesByCategory.length > 6 && (
@@ -209,7 +209,7 @@ const OverviewSection = ({ data, loading }) => {
           {invoicesSummary ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <div className="text-2xl font-bold text-[#17181A]">{invoicesSummary.total}</div>
+                <div className="text-2xl font-bold text-[var(--ink)]">{invoicesSummary.total}</div>
                 <div className="text-xs text-gray-500 mt-1">Total Facturas</div>
               </div>
               <div className="bg-emerald-50 rounded-xl p-4 text-center">

@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { portalAuthAPI } from '../utils/portalApi';
+import { applyBranding } from '../branding/applyBranding'; // [branding]
 
 const PortalContext = createContext();
 
 export function PortalProvider({ children }) {
   const [client, setClient] = useState(null);
+  const [agency, setAgency] = useState(null); // [branding] { name, logo_url, branding } de la agencia
   const [permissions, setPermissions] = useState(null);
   const [welcomeMessage, setWelcomeMessage] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,14 +22,25 @@ export function PortalProvider({ children }) {
     }
   }, []);
 
+  // [branding] El portal se ve con la marca de la agencia (acento, tema, logo) en vivo.
+  useEffect(() => {
+    if (agency) applyBranding(agency.branding, { scope: 'portal', org: agency });
+  }, [agency]);
+
+  const applyResponse = (response) => {
+    setClient(response.client);
+    setAgency(response.agency || null);
+    setPermissions(response.permissions);
+    // Mensaje del cliente; si no tiene, el de bienvenida configurado por la agencia
+    setWelcomeMessage(response.welcome_message || response.agency?.branding?.portal_welcome || null);
+    setIsAuthenticated(true);
+  };
+
   const validateSession = async () => {
     try {
       const response = await portalAuthAPI.getMe();
-      setClient(response.client);
-      setPermissions(response.permissions);
-      setWelcomeMessage(response.welcome_message);
-      setIsAuthenticated(true);
-    } catch (error) {
+      applyResponse(response);
+    } catch {
       // Invalid token, clear it
       localStorage.removeItem('portalToken');
       setIsAuthenticated(false);
@@ -44,10 +57,7 @@ export function PortalProvider({ children }) {
       localStorage.setItem('portalToken', response.token);
 
       // Update state
-      setClient(response.client);
-      setPermissions(response.permissions);
-      setWelcomeMessage(response.welcome_message);
-      setIsAuthenticated(true);
+      applyResponse(response);
 
       return { success: true, client: response.client };
     } catch (error) {
@@ -61,11 +71,12 @@ export function PortalProvider({ children }) {
   const logout = async () => {
     try {
       await portalAuthAPI.logout();
-    } catch (error) {
+    } catch {
       // Ignore logout errors
     } finally {
       localStorage.removeItem('portalToken');
       setClient(null);
+      setAgency(null);
       setPermissions(null);
       setWelcomeMessage(null);
       setIsAuthenticated(false);
@@ -79,6 +90,7 @@ export function PortalProvider({ children }) {
 
   const value = {
     client,
+    agency,
     permissions,
     welcomeMessage,
     loading,

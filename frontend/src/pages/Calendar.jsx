@@ -173,7 +173,7 @@ const Calendar = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Calendario</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Calendario</h1>
           <p className="text-sm text-gray-500 mt-0.5">Vista de tareas por fecha</p>
         </div>
         <div className="flex items-center gap-2">
@@ -183,7 +183,7 @@ const Calendar = () => {
               onClick={() => setView('month')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'month'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -194,7 +194,7 @@ const Calendar = () => {
               onClick={() => setView('week')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'week'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -206,7 +206,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Navigation */}
-      <div className="bg-white rounded-lg shadow mb-4 p-3 md:p-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-[var(--surface)] rounded-lg shadow mb-4 p-3 md:p-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrev}
@@ -222,7 +222,7 @@ const Calendar = () => {
           </button>
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-sm font-medium text-[#17181A] hover:bg-gray-50 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-sm font-medium text-[var(--ink)] hover:bg-gray-50 rounded-lg transition-colors"
           >
             Hoy
           </button>
@@ -237,7 +237,7 @@ const Calendar = () => {
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white rounded-lg shadow flex-1 overflow-auto flex flex-col">
+      <div className="bg-[var(--surface)] rounded-lg shadow flex-1 overflow-auto flex flex-col">
         {/* Week day headers */}
         <div className="hidden md:grid grid-cols-7 border-b">
           {weekDays.map((day) => (
@@ -288,7 +288,7 @@ const Calendar = () => {
                       onClick={() => setSelectedTask(task)}
                       className={`text-xs p-1.5 rounded cursor-pointer border-l-2 ${
                         statusColors[task.status]
-                      } bg-white shadow-sm hover:shadow transition-shadow`}
+                      } bg-[var(--surface)] shadow-sm hover:shadow transition-shadow`}
                     >
                       <div className="flex items-center gap-1">
                         <span
@@ -330,7 +330,7 @@ const Calendar = () => {
               return (
                 <div key={day.toISOString()} className={`p-3 ${isCurrentDay ? 'bg-gray-50' : ''}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[#17181A] text-[#D7F653]' : 'bg-gray-100 text-gray-700'}`}>
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[var(--dark)] text-[var(--accent)]' : 'bg-gray-100 text-gray-700'}`}>
                       {format(day, 'd')}
                     </span>
                     <span className="text-sm font-medium text-gray-700 capitalize">{format(day, 'EEEE', { locale: es })}</span>
@@ -345,7 +345,7 @@ const Calendar = () => {
                           key={task.id}
                           type="button"
                           onClick={() => setSelectedTask(task)}
-                          className={`w-full text-left text-sm p-2 rounded-lg border-l-2 ${statusColors[task.status]} bg-white border border-gray-100 shadow-sm`}
+                          className={`w-full text-left text-sm p-2 rounded-lg border-l-2 ${statusColors[task.status]} bg-[var(--surface)] border border-gray-100 shadow-sm`}
                         >
                           <div className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${priorityDots[task.priority]}`} />
@@ -368,7 +368,7 @@ const Calendar = () => {
       {/* Task Detail Modal */}
       {selectedTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-lg p-6 w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">
@@ -443,7 +443,7 @@ const Calendar = () => {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setSelectedTask(null)}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-[#17181A] transition-colors"
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-[var(--dark)] transition-colors"
               >
                 Cerrar
               </button>
@@ -453,7 +453,7 @@ const Calendar = () => {
       )}
 
       {/* Legend */}
-      <div className="mt-4 bg-white rounded-lg shadow p-4">
+      <div className="mt-4 bg-[var(--surface)] rounded-lg shadow p-4">
         <div className="flex flex-wrap gap-4 text-sm">
           <span className="text-gray-500 font-medium">Leyenda:</span>
           <div className="flex items-center gap-1">

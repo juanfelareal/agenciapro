@@ -1,29 +1,42 @@
 /**
- * Resúmenes y alertas de Orbit por WhatsApp (Kapso).
+ * Resúmenes y alertas de Orbit por WhatsApp (Kapso) — por organización.
  *
  *  - morning (06:00): rendimiento completo de AYER por marca (Growth vs. demás marcas)
  *  - tasks   (06:00): tareas de hoy y de la semana por persona
  *  - noon    (12:00): ventas de HOY hasta el momento por marca (Growth vs. demás)
- *  - alerts  (cada hora 10:00–21:00): marcas que van muy mal (revisar) o muy bien (escalar)
+ *  - alerts  (cada hora 10:05–21:05): marcas que van muy mal (revisar) o muy bien (escalar)
+ *  - hourly  (cada hora 10:00–21:00, add-on `hourly_reports`): ventas/pedidos/pauta/ROAS de HOY, compacto.
+ *            Si la org tiene hourly, el de las 12:00 reemplaza al `noon` para esos destinatarios.
+ *  - owner   (06:00 y 12:00, add-on `owner_reports`): cada dueño de marca recibe SOLO los datos de su marca,
+ *            firmado por la agencia ("Enviado por {agencia} con Orbit").
+ *
+ * Destinatarios: tabla `whatsapp_briefing_recipients` (una fila por teléfono y org, con los tipos que recibe).
+ * Dueños de marca: tabla `client_owner_reports` (una fila por marca).
+ * Número: compartido de Orbit (env KAPSO_PHONE_NUMBER_ID) o el propio de la org si tiene `dedicated_number`.
  *
  * Entrega: si el destinatario escribió en las últimas 24 h se envía el texto directo;
  * si no, Meta no permite texto libre → se envía la plantilla `resumen_orbit_listo` (botón
  * "Ver resumen") y el reporte queda pendiente; cuando el usuario toca el botón, el webhook
- * entrega todo lo pendiente (ver deliverPendingBriefings).
+ * entrega todo lo pendiente (ver deliverPendingBriefings). Si Kapso no está configurado o el
+ * envío falla, el reporte queda pendiente y se registra en el log (nunca rompe el cron).
  *
  * Env:
- *   WHATSAPP_BRIEFING_RECIPIENTS   teléfonos destino separados por coma (default 573043148428)
- *   WHATSAPP_BRIEFING_NAMES        nombres para saludar, mismo orden (default "Juanfe")
  *   KAPSO_TEMPLATE_BRIEFING        plantilla con botón (default resumen_orbit_listo)
  *   WHATSAPP_ALERT_MIN_SPEND       pauta mínima del día para evaluar alertas (default 50000)
+ *   WHATSAPP_BRIEFING_RECIPIENTS   (legado) se siembra UNA vez en la tabla para KAPSO_ORGANIZATION_ID (ver database.js [briefings])
  */
 import db from '../config/database.js';
 import { pickDailyDisplayRevenue, dailyAdSpend, dailyWhatsappRevenue, dailyWhatsappSpend } from '../utils/revenueMetric.js';
-import { getKapsoConfig, isKapsoConfigured, normalizeWaNumber, getApprovedTemplate } from '../utils/kapsoClient.js';
-import { sendTextAndRecord, sendTemplateAndRecord } from './whatsappService.js';
+import { isKapsoConfigured, normalizeWaNumber, getApprovedTemplate } from '../utils/kapsoClient.js';
+import { sendTextAndRecord, sendTemplateAndRecord, addonOn, loadOrgRow, orgDisplayName, orgPhoneNumberId } from './whatsappService.js';
+import { isModuleEnabled } from './plans.js';
 
 const TZ = 'America/Bogota';
 const MAX_CHARS = 3800; // límite WhatsApp 4096; dejamos margen
+
+/** Tipos que puede recibir un destinatario del equipo */
+export const RECIPIENT_KINDS = ['morning', 'tasks', 'noon', 'alerts', 'hourly'];
+export const DEFAULT_KINDS = ['morning', 'tasks', 'noon', 'alerts'];
 
 // ---------------------------------------------------------------------------
 // Fechas / formato
@@ -33,7 +46,8 @@ export const colombiaDate = (offsetDays = 0) => {
   now.setDate(now.getDate() + offsetDays);
   return now.toLocaleDateString('en-CA');
 };
-export const colombiaHour = () => Number(new Date().toLocaleString('en-US', { timeZone: TZ, hour: 'numeric', hour12: false }));
+export const colombiaHour = () => Number(new Date().toLocaleString('en-US', { timeZone: TZ, hour: 'numeric', hour12: false })) % 24;
+const colombiaClock = () => new Date().toLocaleTimeString('es-CO', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false });
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const DIAS_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -53,10 +67,24 @@ const pctDelta = (cur, prev) => {
   return p >= 0 ? `▲ ${s}` : `▼ ${s}`;
 };
 const brandName = (c) => c.nickname || c.company || c.name;
+const parseJson = (v, fallback = null) => {
+  if (v == null) return fallback;
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch { return fallback; }
+};
+export const parseKinds = (v) => {
+  const arr = parseJson(v, null);
+  if (!Array.isArray(arr)) return [...DEFAULT_KINDS];
+  return arr.map(String).filter((k) => RECIPIENT_KINDS.includes(k));
+};
 
 // ---------------------------------------------------------------------------
 // Datos: métricas por marca
 // ---------------------------------------------------------------------------
+const METRIC_COLS = `c.id, c.nickname, c.company, c.name, c.service_type, ps.portal_revenue_metric,
+           m.shopify_revenue, m.shopify_net_revenue, m.shopify_all_orders_revenue, m.shopify_orders,
+           m.fb_spend, m.ga_spend, m.tt_spend, m.whatsapp_revenue, m.whatsapp_orders, m.fb_spend_whatsapp`;
+
 const brandRow = (r) => {
   const webRevenue = pickDailyDisplayRevenue(r.portal_revenue_metric, r);
   const waRevenue = dailyWhatsappRevenue(r);
@@ -75,11 +103,11 @@ const brandRow = (r) => {
   };
 };
 
+const emptyBrand = (c) => ({ id: c.id, name: brandName(c), growth: c.service_type === 'growth', revenue: 0, spend: 0, orders: 0, webRevenue: 0, waRevenue: 0, waSpend: 0, webSpend: 0, fb: 0, ga: 0, tt: 0, aov: 0, cpo: 0, has_shopify: false, empty: true });
+
 export const loadBrandMetrics = async (orgId, date) => {
   const rows = await db.all(`
-    SELECT c.id, c.nickname, c.company, c.name, c.service_type, ps.portal_revenue_metric,
-           m.shopify_revenue, m.shopify_net_revenue, m.shopify_all_orders_revenue, m.shopify_orders,
-           m.fb_spend, m.ga_spend, m.tt_spend, m.whatsapp_revenue, m.whatsapp_orders, m.fb_spend_whatsapp
+    SELECT ${METRIC_COLS}
     FROM clients c
     JOIN client_daily_metrics m ON m.client_id = c.id AND m.metric_date = ?
     LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
@@ -88,11 +116,24 @@ export const loadBrandMetrics = async (orgId, date) => {
   return rows.map(brandRow).filter((b) => b.revenue > 0 || b.spend > 0 || b.orders > 0);
 };
 
-/** Promedios de los últimos N días (excluyendo `date`) por marca: ventas/día y ROAS blended */
+/** Métricas de UNA marca para la fecha (fila en ceros si no hay datos sincronizados). Null si la marca no es de la org. */
+export const loadClientMetrics = async (orgId, clientId, date) => {
+  const client = await db.get(`SELECT id, nickname, company, name, service_type FROM clients WHERE id = ? AND organization_id = ?`, [clientId, orgId]);
+  if (!client) return null;
+  const row = await db.get(`
+    SELECT ${METRIC_COLS}
+    FROM clients c
+    JOIN client_daily_metrics m ON m.client_id = c.id AND m.metric_date = ?
+    LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
+    WHERE c.id = ? AND c.organization_id = ?
+  `, [date, clientId, orgId]);
+  return row ? brandRow(row) : emptyBrand(client);
+};
+
+/** Promedios de los últimos N días (excluyendo `date`) por marca: ventas/día, pedidos/día y ROAS blended */
 const loadBaselines = async (orgId, date, days = 14) => {
   const rows = await db.all(`
-    SELECT c.id, ps.portal_revenue_metric, m.metric_date, m.shopify_revenue, m.shopify_net_revenue, m.shopify_all_orders_revenue,
-           m.shopify_orders, m.fb_spend, m.ga_spend, m.tt_spend, m.whatsapp_revenue, m.whatsapp_orders, m.fb_spend_whatsapp
+    SELECT ${METRIC_COLS}, m.metric_date
     FROM clients c
     JOIN client_daily_metrics m ON m.client_id = c.id AND m.metric_date >= ? AND m.metric_date < ?
     LEFT JOIN client_portal_settings ps ON ps.client_id = c.id
@@ -107,6 +148,7 @@ const loadBaselines = async (orgId, date, days = 14) => {
   for (const a of Object.values(acc)) {
     a.avgRevenue = a.days ? a.revenue / a.days : 0;
     a.avgSpend = a.days ? a.spend / a.days : 0;
+    a.avgOrders = a.days ? a.orders / a.days : 0;
     a.roas = a.spend ? a.revenue / a.spend : 0;
   }
   return acc;
@@ -157,7 +199,7 @@ const groupSection = (title, brands, { full = false, prevMap = {} } = {}) => {
 };
 
 // ---------------------------------------------------------------------------
-// Reportes
+// Reportes del equipo
 // ---------------------------------------------------------------------------
 
 /** 1) Reporte completo del día anterior por marca */
@@ -186,9 +228,8 @@ export const buildNoonReport = async (orgId, { date = colombiaDate(0) } = {}) =>
   const growth = brands.filter((b) => b.growth);
   const others = brands.filter((b) => !b.growth);
   const all = sumGroup(brands);
-  const hora = new Date().toLocaleTimeString('es-CO', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
   const lines = [
-    `🕛 *Ventas de hoy (${fmtDia(date)}) · corte ${hora}*`,
+    `🕛 *Ventas de hoy (${fmtDia(date)}) · corte ${colombiaClock()}*`,
     '',
     ...groupSection('🚀 *Marcas Growth*', growth),
     '',
@@ -198,6 +239,37 @@ export const buildNoonReport = async (orgId, { date = colombiaDate(0) } = {}) =>
     '_Datos de Shopify y pauta sincronizados cada 5 min._',
   ];
   return lines.join('\n');
+};
+
+/** 5) Cada hora (add-on): ventas, pedidos, pauta y ROAS de HOY por marca, compacto (Growth primero) */
+export const buildHourlyReport = async (orgId, { date = colombiaDate(0), hour = colombiaHour() } = {}) => {
+  const brands = await loadBrandMetrics(orgId, date);
+  const byRevenue = (a, b) => b.revenue - a.revenue;
+  const growth = brands.filter((b) => b.growth).sort(byRevenue);
+  const others = brands.filter((b) => !b.growth).sort(byRevenue);
+  const all = sumGroup(brands);
+  const hh = `${String(hour).padStart(2, '0')}:00`;
+  const line = (b) => `• *${b.name}* — ${money(b.revenue)} · ${b.orders} ped. · pauta ${money(b.spend)} · ROAS ${roasStr(b.revenue, b.spend)}`;
+  const head = [`⏱ *Ventas de hoy · ${hh}*`, `_${fmtDia(date)}_`, ''];
+  const foot = ['', `*Total* — ${money(all.revenue)} · ${all.orders} ped. · pauta ${money(all.spend)} · ROAS ${roasStr(all.revenue, all.spend)}`];
+  if (!brands.length) return [...head, '_Sin ventas ni pauta sincronizadas todavía._', ...foot].join('\n');
+
+  const render = (g, o, hidden) => {
+    const body = [];
+    if (g.length) body.push('🚀 *Growth*', ...g.map(line));
+    if (o.length) { if (g.length) body.push(''); body.push('🏷️ *Otras marcas*', ...o.map(line)); }
+    if (hidden) body.push(`_… y ${hidden} marca${hidden === 1 ? '' : 's'} más_`);
+    return [...head, ...body, ...foot].join('\n');
+  };
+  // Compactar: recortar "otras" (y luego Growth) desde el final hasta caber en MAX_CHARS
+  let g = [...growth]; let o = [...others]; let hidden = 0;
+  let text = render(g, o, hidden);
+  while (text.length > MAX_CHARS && (o.length || g.length > 1)) {
+    if (o.length) o.pop(); else g.pop();
+    hidden += 1;
+    text = render(g, o, hidden);
+  }
+  return text;
 };
 
 /** 2) Tareas de hoy y de la semana por persona */
@@ -300,13 +372,89 @@ export const buildAlertsReport = async (orgId, opts = {}) => {
 };
 
 // ---------------------------------------------------------------------------
+// Reporte al dueño de una marca (add-on owner_reports): SOLO sus datos
+// ---------------------------------------------------------------------------
+
+/**
+ * sub = 'morning' → ayer vs. promedio de 14 días · sub = 'noon' → hoy hasta ahora.
+ * Devuelve null si la marca no pertenece a la organización.
+ */
+export const buildOwnerReport = async (orgId, clientId, { sub = 'morning', date = null } = {}) => {
+  const org = await loadOrgRow(orgId);
+  const agency = orgDisplayName(org);
+  if (sub === 'noon') {
+    const d = date || colombiaDate(0);
+    const b = await loadClientMetrics(orgId, clientId, d);
+    if (!b) return null;
+    return [
+      `*${agency}* · *${b.name}*`,
+      `🕛 Ventas de hoy (${fmtDia(d)}) · corte ${colombiaClock()}`,
+      '',
+      ...(b.empty ? ['_Aún no hay datos sincronizados de hoy._'] : [
+        `Ventas: ${money(b.revenue)}`,
+        `Pedidos: ${b.orders}${b.orders ? ` · ticket ${money(b.aov)}` : ''}`,
+        `Pauta: ${money(b.spend)}`,
+        `ROAS: ${roasStr(b.revenue, b.spend)}`,
+      ]),
+      '',
+      '_Datos de tienda y pauta sincronizados cada 5 min._',
+      `_Enviado por ${agency} con Orbit_`,
+    ].join('\n');
+  }
+  const d = date || colombiaDate(-1);
+  const [b, base] = await Promise.all([loadClientMetrics(orgId, clientId, d), loadBaselines(orgId, d, 14)]);
+  if (!b) return null;
+  const bl = base[Number(clientId)];
+  const hasBase = bl && bl.days >= 3;
+  return [
+    `*${agency}* · *${b.name}*`,
+    `☀️ Resumen ${d === colombiaDate(-1) ? 'de ayer' : 'del'} ${fmtDia(d)}`,
+    '',
+    ...(b.empty ? ['_Sin datos sincronizados para ese día._'] : [
+      `Ventas: ${money(b.revenue)}${hasBase ? ` (${pctDelta(b.revenue, bl.avgRevenue)} vs promedio 14 días)` : ''}`,
+      `Pedidos: ${b.orders}${b.orders ? ` · ticket ${money(b.aov)}` : ''}${hasBase ? ` (prom. ${num(bl.avgOrders)}/día)` : ''}`,
+      `Pauta: ${money(b.spend)}${hasBase ? ` (prom. ${money(bl.avgSpend)}/día)` : ''}`,
+      `ROAS: ${roasStr(b.revenue, b.spend)}${hasBase && bl.spend ? ` (prom. ${roasStr(bl.revenue, bl.spend)})` : ''}`,
+    ]),
+    '',
+    ...(hasBase ? ['_Comparado con el promedio de los últimos 14 días._'] : []),
+    `_Enviado por ${agency} con Orbit_`,
+  ].join('\n');
+};
+
+// ---------------------------------------------------------------------------
+// Destinatarios y dueños
+// ---------------------------------------------------------------------------
+
+/** Destinatarios activos de la org; con `kind`, solo los que reciben ese tipo */
+export const getRecipients = async (orgId, kind = null) => {
+  const rows = await db.all(`
+    SELECT id, team_member_id, client_id, phone, name, kinds, enabled
+    FROM whatsapp_briefing_recipients WHERE organization_id = ? AND enabled = TRUE ORDER BY id ASC
+  `, [orgId]);
+  return rows
+    .map((r) => ({ ...r, phone: normalizeWaNumber(r.phone), kinds: parseKinds(r.kinds) }))
+    .filter((r) => r.phone.length >= 8 && (!kind || r.kinds.includes(kind)));
+};
+
+/** Dueños de marca con reporte activo (marca activa) para la franja `sub` ('morning' | 'noon' | null = todos) */
+export const getOwnerTargets = async (orgId, sub = null) => {
+  const rows = await db.all(`
+    SELECT w.client_id, w.phone, w.name, w.send_morning, w.send_noon,
+           COALESCE(NULLIF(c.nickname, ''), NULLIF(c.company, ''), c.name) AS brand
+    FROM client_owner_reports w
+    JOIN clients c ON c.id = w.client_id AND c.organization_id = w.organization_id
+    WHERE w.organization_id = ? AND w.enabled = TRUE AND c.status = 'active'
+    ORDER BY brand ASC
+  `, [orgId]);
+  return rows
+    .map((r) => ({ ...r, phone: normalizeWaNumber(r.phone) }))
+    .filter((r) => r.phone.length >= 8 && (!sub || (sub === 'morning' ? r.send_morning !== false : r.send_noon !== false)));
+};
+
+// ---------------------------------------------------------------------------
 // Entrega
 // ---------------------------------------------------------------------------
-const recipients = () => {
-  const phones = (process.env.WHATSAPP_BRIEFING_RECIPIENTS || '573043148428').split(',').map((p) => normalizeWaNumber(p.trim())).filter(Boolean);
-  const names = (process.env.WHATSAPP_BRIEFING_NAMES || 'Juanfe').split(',').map((n) => n.trim());
-  return phones.map((phone, i) => ({ phone, name: names[i] || names[0] || '' }));
-};
 
 /** Divide un texto largo en trozos ≤ MAX_CHARS cortando en líneas en blanco */
 export const chunkText = (text, max = MAX_CHARS) => {
@@ -330,26 +478,44 @@ const windowOpenFor = async (orgId, phone) => {
   return row?.last_in ? (Date.now() - new Date(row.last_in).getTime()) < 23.5 * 60 * 60 * 1000 : false;
 };
 
-const KIND_LABEL = { morning: 'resumen de la mañana', tasks: 'resumen de tareas', noon: 'reporte de ventas del mediodía', alerts: 'reporte de alertas', test: 'resumen de prueba' };
+const KIND_LABEL = { morning: 'resumen de la mañana', tasks: 'resumen de tareas', noon: 'reporte de ventas del mediodía', alerts: 'reporte de alertas', hourly: 'reporte de ventas de la hora', test: 'resumen de prueba' };
+export const kindLabel = (kind) => (String(kind).startsWith('owner') ? 'reporte diario de tu marca' : (KIND_LABEL[kind] || 'resumen'));
+
+const savePending = async ({ orgId, phone, kind, text }) =>
+  db.run(`INSERT INTO whatsapp_pending_briefings (organization_id, phone, kind, body) VALUES (?, ?, ?, ?)`, [orgId, phone, kind, text]);
 
 /**
  * Envía `text` al teléfono: directo si hay ventana de 24 h; si no, plantilla con botón y queda pendiente.
  * force=true salta la verificación de ventana (p. ej. pruebas manuales).
+ * phoneNumberId: número propio de la org (add-on) o null para el compartido.
+ * Nunca lanza por fallas de envío: deja el reporte pendiente y devuelve { delivered:false, pending:true, reason }.
  */
-export const deliverBriefing = async ({ orgId, phone, name, kind, text, force = false }) => {
+export const deliverBriefing = async ({ orgId, phone, name, kind, text, force = false, phoneNumberId = null, clientId = null }) => {
   const to = normalizeWaNumber(phone);
   const chunks = chunkText(text);
+  const ctx = { source: 'briefing', kind, ...(clientId ? { client_id: clientId } : {}) };
+  if (!isKapsoConfigured()) {
+    await savePending({ orgId, phone: to, kind, text });
+    console.warn(`[briefings] org ${orgId} → ${to} (${kind}): Kapso no configurado; quedó pendiente`);
+    return { delivered: false, pending: true, reason: 'WhatsApp (Kapso) no está configurado' };
+  }
   const open = force || await windowOpenFor(orgId, to);
   if (open) {
-    const ids = [];
-    for (const body of chunks) {
-      const r = await sendTextAndRecord({ orgId, to, body, context: { source: 'briefing', kind } });
-      ids.push(r.wamid);
+    try {
+      const ids = [];
+      for (const body of chunks) {
+        const r = await sendTextAndRecord({ orgId, to, body, context: ctx, phoneNumberId, clientId });
+        ids.push(r.wamid);
+      }
+      return { delivered: true, parts: chunks.length, wamids: ids };
+    } catch (e) {
+      await savePending({ orgId, phone: to, kind, text }).catch(() => {});
+      console.error(`[briefings] org ${orgId} → ${to} (${kind}) falló el envío directo:`, e.message);
+      return { delivered: false, pending: true, reason: e.message };
     }
-    return { delivered: true, parts: chunks.length, wamids: ids };
   }
   // Sin ventana: guardar pendiente y avisar con plantilla (si está aprobada)
-  await db.run(`INSERT INTO whatsapp_pending_briefings (organization_id, phone, kind, body) VALUES (?, ?, ?, ?)`, [orgId, to, kind, text]);
+  await savePending({ orgId, phone: to, kind, text });
   const tplName = process.env.KAPSO_TEMPLATE_BRIEFING || 'resumen_orbit_listo';
   const tpl = await getApprovedTemplate(tplName, 'es');
   if (!tpl) return { delivered: false, pending: true, reason: `plantilla ${tplName} no aprobada aún` };
@@ -357,16 +523,21 @@ export const deliverBriefing = async ({ orgId, phone, name, kind, text, force = 
     SELECT id FROM whatsapp_messages WHERE organization_id = ? AND phone = ? AND template_name = ? AND created_at > NOW() - INTERVAL '3 hours'
   `, [orgId, to, tpl.name]);
   if (already) return { delivered: false, pending: true, reason: 'aviso ya enviado hace < 3 h' };
-  await sendTemplateAndRecord({
-    orgId, to, name: tpl.name, language: tpl.language || 'es',
-    components: [{ type: 'body', parameters: [{ type: 'text', text: name || 'equipo' }, { type: 'text', text: KIND_LABEL[kind] || 'resumen' }] }],
-    renderedText: `Hola, ${name || 'equipo'} 👋 Tu ${KIND_LABEL[kind] || 'resumen'} de Orbit ya está listo. Toca el botón y te lo envío completo por aquí.`,
-    context: { source: 'briefing', kind, pending: true },
-  });
-  return { delivered: false, pending: true, notified: true };
+  try {
+    await sendTemplateAndRecord({
+      orgId, to, name: tpl.name, language: tpl.language || 'es', phoneNumberId, clientId,
+      components: [{ type: 'body', parameters: [{ type: 'text', text: name || 'equipo' }, { type: 'text', text: kindLabel(kind) }] }],
+      renderedText: `Hola, ${name || 'equipo'} 👋 Tu ${kindLabel(kind)} de Orbit ya está listo. Toca el botón y te lo envío completo por aquí.`,
+      context: { ...ctx, pending: true },
+    });
+    return { delivered: false, pending: true, notified: true };
+  } catch (e) {
+    console.error(`[briefings] org ${orgId} → ${to} (${kind}) falló el aviso con plantilla:`, e.message);
+    return { delivered: false, pending: true, reason: e.message };
+  }
 };
 
-/** Entrega todo lo pendiente de un teléfono (lo llama el webhook cuando el usuario responde) */
+/** Entrega todo lo pendiente de un teléfono en una org (lo llama el webhook cuando el usuario responde) */
 export const deliverPendingBriefings = async (orgId, phone) => {
   const to = normalizeWaNumber(phone);
   const rows = await db.all(`
@@ -374,10 +545,13 @@ export const deliverPendingBriefings = async (orgId, phone) => {
     WHERE organization_id = ? AND phone = ? AND delivered_at IS NULL AND created_at > NOW() - INTERVAL '36 hours'
     ORDER BY created_at ASC
   `, [orgId, to]);
+  if (!rows.length) return 0;
+  const phoneNumberId = orgPhoneNumberId(await loadOrgRow(orgId));
   let sent = 0;
   for (const r of rows) {
     try {
-      for (const body of chunkText(r.body)) await sendTextAndRecord({ orgId, to, body, context: { source: 'briefing', kind: r.kind } });
+      const clientId = String(r.kind).startsWith('owner:') ? Number(String(r.kind).split(':')[1]) || null : null;
+      for (const body of chunkText(r.body)) await sendTextAndRecord({ orgId, to, body, context: { source: 'briefing', kind: r.kind }, phoneNumberId, clientId });
       await db.run(`UPDATE whatsapp_pending_briefings SET delivered_at = CURRENT_TIMESTAMP WHERE id = ?`, [r.id]);
       sent += 1;
     } catch (e) {
@@ -385,28 +559,89 @@ export const deliverPendingBriefings = async (orgId, phone) => {
     }
   }
   // Expirar lo viejo
-  await db.run(`UPDATE whatsapp_pending_briefings SET delivered_at = CURRENT_TIMESTAMP WHERE phone = ? AND delivered_at IS NULL AND created_at <= NOW() - INTERVAL '36 hours'`, [to]).catch(() => {});
+  await db.run(`UPDATE whatsapp_pending_briefings SET delivered_at = CURRENT_TIMESTAMP WHERE organization_id = ? AND phone = ? AND delivered_at IS NULL AND created_at <= NOW() - INTERVAL '36 hours'`, [orgId, to]).catch(() => {});
   return sent;
 };
 
-const BUILDERS = {
-  morning: (orgId, r, opts) => buildMorningReport(orgId, { name: r.name, ...(opts?.date ? { date: opts.date } : {}) }),
-  tasks: (orgId) => buildTasksReport(orgId),
-  noon: (orgId) => buildNoonReport(orgId),
-  alerts: (orgId) => buildAlertsReport(orgId),
+// ---------------------------------------------------------------------------
+// Construcción genérica (vista previa y envío manual)
+// ---------------------------------------------------------------------------
+
+/** kind = morning | tasks | noon | alerts | hourly | owner:<clientId>[:morning|noon] */
+export const parseKind = (raw, { clientId = null, sub = null } = {}) => {
+  const k = String(raw || 'morning').trim();
+  if (k.startsWith('owner')) {
+    const [, idPart, subPart] = k.split(':');
+    const id = Number(clientId || idPart) || null;
+    const s = (sub || subPart || (colombiaHour() >= 12 ? 'noon' : 'morning')) === 'noon' ? 'noon' : 'morning';
+    return { base: 'owner', clientId: id, sub: s, key: id ? `owner:${id}:${s}` : null };
+  }
+  if (!RECIPIENT_KINDS.includes(k)) return null;
+  return { base: k, clientId: null, sub: null, key: k };
 };
 
-/** Construye y envía un tipo de reporte a los destinatarios configurados */
-export const sendBriefing = async (kind, { force = false, to = null, date = null, orgId = getKapsoConfig().organizationId } = {}) => {
-  if (!isKapsoConfigured()) throw new Error('WhatsApp (Kapso) no está configurado');
-  const build = BUILDERS[kind];
-  if (!build) throw new Error(`Tipo de reporte desconocido: ${kind}`);
-  const targets = to ? [{ phone: normalizeWaNumber(to), name: recipients()[0]?.name || '' }] : recipients();
+/** Texto renderizado de cualquier tipo de reporte (sin enviar). Null si no hay contenido (p. ej. alertas sin novedades). */
+export const buildReport = async (orgId, kind, { name = '', date = null, clientId = null, sub = null, hour = null } = {}) => {
+  const k = parseKind(kind, { clientId, sub });
+  if (!k) throw Object.assign(new Error('kind inválido (morning | tasks | noon | alerts | hourly | owner:<clientId>)'), { status: 400 });
+  const d = date ? { date } : {};
+  switch (k.base) {
+    case 'morning': return buildMorningReport(orgId, { name, ...d });
+    case 'tasks': return buildTasksReport(orgId, d);
+    case 'noon': return buildNoonReport(orgId, d);
+    case 'alerts': return buildAlertsReport(orgId, d);
+    case 'hourly': return buildHourlyReport(orgId, { ...d, ...(hour != null ? { hour } : {}) });
+    case 'owner': {
+      if (!k.clientId) throw Object.assign(new Error('clientId es requerido para el reporte al dueño'), { status: 400 });
+      const text = await buildOwnerReport(orgId, k.clientId, { sub: k.sub, date });
+      if (text === null) throw Object.assign(new Error('Marca no encontrada en esta organización'), { status: 404 });
+      return text;
+    }
+    default: return null;
+  }
+};
+
+const addonError = (addon) => {
+  const names = { hourly_reports: 'Reportes cada hora', owner_reports: 'Reporte diario al dueño de cada marca', dedicated_number: 'Número de WhatsApp propio' };
+  const err = new Error(`Activa el add-on "${names[addon] || addon}" en Suscripción`);
+  err.status = 402;
+  err.payload = { error: err.message, upgrade: true, addon };
+  return err;
+};
+
+/**
+ * Construye y envía un tipo de reporte a los destinatarios configurados de la org
+ * (o solo a `to`). Para `owner:<clientId>` envía al dueño configurado (o a `to`).
+ */
+export const sendBriefing = async (kind, { orgId, force = false, to = null, date = null, clientId = null, sub = null } = {}) => {
+  if (!orgId) throw new Error('orgId es requerido');
+  const k = parseKind(kind, { clientId, sub });
+  if (!k) throw Object.assign(new Error(`Tipo de reporte desconocido: ${kind}`), { status: 400 });
+  const org = await loadOrgRow(orgId);
+  if (!org) throw Object.assign(new Error('Organización no encontrada'), { status: 404 });
+  const phoneNumberId = orgPhoneNumberId(org);
+  if (k.base === 'hourly' && !addonOn(org, 'hourly_reports')) throw addonError('hourly_reports');
+  if (k.base === 'owner' && !addonOn(org, 'owner_reports')) throw addonError('owner_reports');
+
+  let targets;
+  if (k.base === 'owner') {
+    const owners = (await getOwnerTargets(orgId)).filter((o) => Number(o.client_id) === k.clientId);
+    targets = to ? [{ phone: normalizeWaNumber(to), name: owners[0]?.name || '' }] : owners.map((o) => ({ phone: o.phone, name: o.name || '' }));
+    if (!targets.length) throw Object.assign(new Error('Esa marca no tiene un dueño con reporte activo; configura su teléfono primero'), { status: 400 });
+  } else {
+    const all = await getRecipients(orgId, null);
+    if (to) {
+      const p = normalizeWaNumber(to);
+      targets = [{ phone: p, name: all.find((r) => r.phone === p)?.name || '' }];
+    } else {
+      targets = all.filter((r) => r.kinds.includes(k.base));
+    }
+  }
   const results = [];
   for (const r of targets) {
-    const text = await build(orgId, r, { date });
+    const text = await buildReport(orgId, k.key, { name: r.name, date, clientId: k.clientId, sub: k.sub });
     if (!text) { results.push({ phone: r.phone, skipped: 'sin contenido' }); continue; }
-    const res = await deliverBriefing({ orgId, phone: r.phone, name: r.name, kind, text, force });
+    const res = await deliverBriefing({ orgId, phone: r.phone, name: r.name, kind: k.key, text, force, phoneNumberId, clientId: k.clientId });
     results.push({ phone: r.phone, ...res, chars: text.length });
   }
   return results;
@@ -425,26 +660,123 @@ const claimRun = async (kind, key) => {
   }
 };
 
-export const runScheduled = async (kind) => {
-  if (!isKapsoConfigured()) return;
-  const orgId = getKapsoConfig().organizationId;
-  const today = colombiaDate(0);
+/** Organizaciones con al menos un destinatario o un dueño de marca activo */
+const listBriefingOrgs = async () => db.all(`
+  SELECT o.id, o.name, o.plan, o.plan_status, o.billing_cycle, o.addons, o.kapso_phone_number_id, o.branding
+  FROM organizations o
+  WHERE EXISTS (SELECT 1 FROM whatsapp_briefing_recipients r WHERE r.organization_id = o.id AND r.enabled = TRUE)
+     OR EXISTS (SELECT 1 FROM client_owner_reports w WHERE w.organization_id = o.id AND w.enabled = TRUE)
+  ORDER BY o.id ASC
+`);
+
+/** Reportes a los dueños de marca de una org para la franja `sub` (06:00 morning / 12:00 noon) */
+const runOwnerReports = async (org, sub, { today, phoneNumberId }) => {
+  if (!addonOn(org, 'owner_reports')) return { owners: 0, skipped: 'sin add-on owner_reports' };
+  const owners = await getOwnerTargets(org.id, sub);
+  let sent = 0;
+  for (const o of owners) {
+    const key = `owner:${o.client_id}:${sub}`;
+    if (!(await claimRun(key, today))) continue;
+    try {
+      const text = await buildOwnerReport(org.id, o.client_id, { sub });
+      if (!text) continue;
+      const r = await deliverBriefing({ orgId: org.id, phone: o.phone, name: o.name, kind: key, text, phoneNumberId, clientId: o.client_id });
+      sent += 1;
+      console.log(`[briefings] owner ${o.brand} (org ${org.id}) ${sub}:`, JSON.stringify(r));
+    } catch (e) {
+      console.error(`[briefings] owner ${o.client_id} (org ${org.id}):`, e.message);
+    }
+  }
+  return { owners: sent, candidates: owners.length };
+};
+
+const runScheduledForOrg = async (org, kind, { today, hour }) => {
+  const orgId = org.id;
+  const phoneNumberId = orgPhoneNumberId(org);
+  const hourlyOn = addonOn(org, 'hourly_reports');
+
   if (kind === 'alerts') {
-    const hour = colombiaHour();
+    const recipients = await getRecipients(orgId, 'alerts');
+    if (!recipients.length) return null;
     const alerts = await computeAlerts(orgId, { date: today, hour });
     const fresh = [];
     for (const a of alerts) {
-      if (await claimRun(`alert:${a.kind}:${a.client_id}`, today)) fresh.push(a);
+      if (await claimRun(`alert:${orgId}:${a.kind}:${a.client_id}`, today)) fresh.push(a);
     }
-    if (!fresh.length) return { kind, sent: 0 };
+    if (!fresh.length) return { sent: 0 };
     const text = [`🚨 *Alertas (${fmtDia(today)} · ${hour}:00)*`, '', ...fresh.map((a) => a.text), '', '_Comparado con el promedio de los últimos 14 días, prorrateado a la hora actual._'].join('\n');
-    for (const r of recipients()) await deliverBriefing({ orgId, phone: r.phone, name: r.name, kind: 'alerts', text });
-    return { kind, sent: fresh.length };
+    for (const r of recipients) await deliverBriefing({ orgId, phone: r.phone, name: r.name, kind: 'alerts', text, phoneNumberId });
+    return { sent: fresh.length, recipients: recipients.length };
   }
-  if (!(await claimRun(kind, today))) return { kind, skipped: 'ya enviado hoy' };
-  const results = await sendBriefing(kind, { orgId });
-  console.log(`[briefings] ${kind} ${today}:`, JSON.stringify(results));
-  return { kind, results };
+
+  if (kind === 'hourly') {
+    if (!hourlyOn) return null;
+    const recipients = await getRecipients(orgId, 'hourly');
+    if (!recipients.length) return null;
+    if (!(await claimRun(`hourly:${orgId}`, `${today}:${hour}`))) return { skipped: 'ya enviado esta hora' };
+    const text = await buildHourlyReport(orgId, { date: today, hour });
+    const results = [];
+    for (const r of recipients) results.push({ phone: r.phone, ...(await deliverBriefing({ orgId, phone: r.phone, name: r.name, kind: 'hourly', text, phoneNumberId })) });
+    return { results };
+  }
+
+  if (kind === 'noon') {
+    // Quien recibe el reporte cada hora ya tiene el de las 12:00: no se le manda el noon aparte
+    const recipients = (await getRecipients(orgId, 'noon')).filter((r) => !(hourlyOn && r.kinds.includes('hourly')));
+    const out = {};
+    if (recipients.length && await claimRun(`noon:${orgId}`, today)) {
+      const text = await buildNoonReport(orgId, { date: today });
+      out.results = [];
+      for (const r of recipients) out.results.push({ phone: r.phone, ...(await deliverBriefing({ orgId, phone: r.phone, name: r.name, kind: 'noon', text, phoneNumberId })) });
+    }
+    out.owner = await runOwnerReports(org, 'noon', { today, phoneNumberId });
+    return out;
+  }
+
+  if (kind === 'morning' || kind === 'tasks') {
+    const recipients = await getRecipients(orgId, kind);
+    const out = {};
+    if (recipients.length && await claimRun(`${kind}:${orgId}`, today)) {
+      out.results = [];
+      const shared = kind === 'tasks' ? await buildTasksReport(orgId, { date: today }) : null;
+      for (const r of recipients) {
+        const text = shared ?? await buildMorningReport(orgId, { name: r.name });
+        if (!text) { out.results.push({ phone: r.phone, skipped: 'sin contenido' }); continue; }
+        out.results.push({ phone: r.phone, ...(await deliverBriefing({ orgId, phone: r.phone, name: r.name, kind, text, phoneNumberId })) });
+      }
+    }
+    if (kind === 'morning') out.owner = await runOwnerReports(org, 'morning', { today, phoneNumberId });
+    return Object.keys(out).length ? out : null;
+  }
+  throw new Error(`Tipo de reporte programado desconocido: ${kind}`);
 };
 
-export default { buildMorningReport, buildNoonReport, buildTasksReport, buildAlertsReport, computeAlerts, sendBriefing, runScheduled, deliverPendingBriefings, chunkText };
+/**
+ * Cron: recorre todas las organizaciones con el módulo `whatsapp` encendido y al menos un
+ * destinatario (o dueño de marca) y envía el tipo `kind` por organización.
+ */
+export const runScheduled = async (kind) => {
+  if (!isKapsoConfigured()) return { kind, skipped: 'Kapso no configurado' };
+  const today = colombiaDate(0);
+  const hour = colombiaHour();
+  const orgs = await listBriefingOrgs();
+  const out = [];
+  for (const org of orgs) {
+    try {
+      if (!(await isModuleEnabled(org.id, 'whatsapp'))) { out.push({ orgId: org.id, skipped: 'módulo whatsapp apagado' }); continue; }
+      const r = await runScheduledForOrg(org, kind, { today, hour });
+      if (r) out.push({ orgId: org.id, ...r });
+    } catch (e) {
+      console.error(`[briefings] ${kind} org ${org.id}:`, e.message);
+      out.push({ orgId: org.id, error: e.message });
+    }
+  }
+  if (out.length) console.log(`[briefings] ${kind} ${today} ${hour}:00 →`, JSON.stringify(out).slice(0, 1500));
+  return { kind, orgs: out };
+};
+
+export default {
+  buildMorningReport, buildNoonReport, buildTasksReport, buildAlertsReport, buildHourlyReport, buildOwnerReport, buildReport,
+  computeAlerts, sendBriefing, runScheduled, deliverBriefing, deliverPendingBriefings, chunkText,
+  getRecipients, getOwnerTargets, parseKind, parseKinds, RECIPIENT_KINDS, DEFAULT_KINDS,
+};

@@ -3,8 +3,16 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import db from '../config/database.js';
 import { teamAuthMiddleware } from '../middleware/teamAuth.js';
+import authRecoveryRouter from './auth-recovery.js'; // [email]
+import { sendTemplate } from '../services/email.js'; // [email]
+import { isPlatformAdminEmail, TRIAL_DAYS } from '../config/planCatalog.js'; // [modules]
+import { checkLimit } from '../services/plans.js'; // [modules]
+// [onboarding] registro autoservicio: plan, trial, módulos y marca iniciales
+import { ensureOnboardingColumns, buildInitialSettings, normalizePlan, trialEndsAt } from '../services/orgOnboarding.js';
+import { normalizeBranding } from '../utils/branding.js'; // [branding]
 
 const router = express.Router();
+router.use(authRecoveryRouter); // [email] POST /forgot-pin y /reset-pin con código (antes del handler legado)
 
 /**
  * Generate a secure session token
@@ -12,6 +20,11 @@ const router = express.Router();
 function generateSessionToken() {
   return crypto.randomBytes(32).toString('hex');
 }
+
+/** Días de prueba de una organización nueva (ver POST /register) */
+
+/** Roles válidos de membresía (evita que un body arbitrario cree roles desconocidos) */
+const VALID_ROLES = ['admin', 'manager', 'member'];
 
 /**
  * Generate a URL-friendly slug from a name
@@ -145,7 +158,8 @@ router.post('/login', async (req, res) => {
     // Get organizations this user belongs to
     const memberships = await db.all(`
       SELECT tm.id as team_member_id, tm.role, tm.position, tm.permissions,
-             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url
+             o.id as org_id, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url,
+             o.branding as org_branding
       FROM team_members tm
       JOIN organizations o ON tm.organization_id = o.id
       WHERE tm.user_id = ? AND tm.status = 'active'
@@ -205,7 +219,8 @@ router.post('/login', async (req, res) => {
         id: currentOrg.org_id,
         name: currentOrg.org_name,
         slug: currentOrg.org_slug,
-        logo_url: currentOrg.org_logo_url
+        logo_url: currentOrg.org_logo_url,
+        branding: normalizeBranding(currentOrg.org_branding, { logo_url: currentOrg.org_logo_url }) // [branding]
       },
       organizations
     });
@@ -387,7 +402,7 @@ router.post('/select-org', teamAuthMiddleware, async (req, res) => {
 
     // Verify user has membership in this org
     const membership = await db.get(`
-      SELECT tm.*, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url
+      SELECT tm.*, o.name as org_name, o.slug as org_slug, o.logo_url as org_logo_url, o.branding as org_branding
       FROM team_members tm
       JOIN organizations o ON tm.organization_id = o.id
       WHERE tm.user_id = ? AND tm.organization_id = ? AND tm.status = 'active'
@@ -423,7 +438,8 @@ router.post('/select-org', teamAuthMiddleware, async (req, res) => {
         id: org_id,
         name: membership.org_name,
         slug: membership.org_slug,
-        logo_url: membership.org_logo_url
+        logo_url: membership.org_logo_url,
+        branding: normalizeBranding(membership.org_branding, { logo_url: membership.org_logo_url }) // [branding]
       }
     });
   } catch (error) {
@@ -482,10 +498,12 @@ router.get('/me', teamAuthMiddleware, async (req, res) => {
         position: req.teamMember.position,
         permissions: req.teamMember.permissions,
         avatar_url: req.user?.avatar_url || null,
-        phone: (await db.get('SELECT phone FROM team_members WHERE id = ?', [req.teamMember.id]))?.phone || null
+        phone: (await db.get('SELECT phone FROM team_members WHERE id = ?', [req.teamMember.id]))?.phone || null,
+        is_platform_admin: isPlatformAdminEmail(req.user?.email || req.teamMember.email) // [modules]
       },
       current_org: req.currentOrg || null,
-      organizations
+      organizations,
+      is_platform_admin: isPlatformAdminEmail(req.user?.email || req.teamMember.email) // [modules]
     });
   } catch (error) {
     console.error('Error getting user info:', error);
@@ -571,7 +589,7 @@ router.post('/restore-all-sessions', async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, pin, org_name, logo_base64, onboarding } = req.body;
+    const { name, email, pin, org_name, logo_base64, onboarding, plan, branding, modules, agency_type, team_size } = req.body; // [onboarding]
 
     if (!name || !email || !pin || !org_name) {
       return res.status(400).json({ error: 'Nombre, email, PIN y nombre de organizacion son requeridos' });
@@ -593,20 +611,15 @@ router.post('/register', async (req, res) => {
       logoUrl = logo_base64;
     }
 
-    // Build settings with onboarding data
+    // [onboarding] Build settings (onboarding + módulos + marca) y plan elegido con trial de 14 días
     let settings = null;
-    if (onboarding && typeof onboarding === 'object') {
-      settings = JSON.stringify({
-        onboarding: {
-          business_type: onboarding.business_type || null,
-          team_size: onboarding.team_size || null,
-          goals: onboarding.goals || [],
-          alternatives: onboarding.alternatives || [],
-          how_found_us: onboarding.how_found_us || null,
-          completed_at: new Date().toISOString()
-        }
-      });
+    if ((onboarding && typeof onboarding === 'object') || plan || modules || branding || agency_type) {
+      settings = JSON.stringify(buildInitialSettings({ onboarding, modules, branding, agencyType: agency_type, teamSize: team_size }));
     }
+    const planSelected = normalizePlan(plan);
+    // [modules][onboarding] toda organización nueva arranca en prueba de 14 días (plan Growth si no eligió)
+    const orgTrialEndsAt = trialEndsAt().toISOString();
+    await ensureOnboardingColumns();
 
     const emailLower = email.toLowerCase().trim();
 
@@ -634,13 +647,27 @@ router.post('/register', async (req, res) => {
     `, [emailLower, name, pinHash]);
     const userId = userResult.lastInsertRowid;
 
-    // Create organization with optional logo and settings
+    // Create organization with optional logo and settings.
+    // Toda organización nueva arranca VACÍA y aislada (ningún seed copia datos de
+    // otra org; los defaults estructurales —etapas de proyecto, etc.— se crean por
+    // org en initializeDatabase) y en plan 'trial' con 14 días de prueba.
     const orgResult = await db.run(`
-      INSERT INTO organizations (name, slug, plan, logo_url, settings)
-      VALUES (?, ?, 'free', ?, ?)
+      INSERT INTO organizations (name, slug, plan, logo_url, settings, plan_selected, trial_ends_at, plan_status)
+      VALUES (?, ?, 'trial', ?, ?, ?, ?, 'trial')
       RETURNING id
-    `, [org_name, slug, logoUrl, settings]);
+    `, [org_name, slug, logoUrl, settings, planSelected || 'growth', orgTrialEndsAt]); // [onboarding][modules] prueba de 14 días
+
     const orgId = orgResult.lastInsertRowid;
+
+    // [modules] Los módulos elegidos en el registro quedan como overrides del plan (solo apagan; nunca
+    // encienden uno fuera del plan). Se guardan en organizations.modules, que es lo que lee services/plans.js.
+    try {
+      const chosen = settings ? JSON.parse(settings)?.modules : null;
+      if (chosen && typeof chosen === 'object') {
+        const overrides = Object.fromEntries(Object.entries(chosen).filter(([, v]) => v === false));
+        if (Object.keys(overrides).length) await db.run('UPDATE organizations SET modules = ? WHERE id = ?', [JSON.stringify(overrides), orgId]);
+      }
+    } catch (e) { console.warn('[register] módulos iniciales no aplicados:', e.message); }
 
     // Create admin membership
     await db.run(`
@@ -663,6 +690,14 @@ router.post('/register', async (req, res) => {
       FROM team_members WHERE user_id = ? AND organization_id = ?
     `, [userId, orgId]);
 
+    // [email] Bienvenida a la agencia recién registrada (no bloqueante)
+    sendTemplate({
+      orgId,
+      to: emailLower,
+      template: 'trial-welcome',
+      data: { adminName: name, appUrl: (process.env.FRONTEND_URL || 'https://orbit.larealmarketing.com').replace(/\/$/, '') + '/app' },
+    }).catch((e) => console.error('[register] trial-welcome email error:', e.message));
+
     res.status(201).json({
       token: sessionToken,
       expires_at: sessionExpires.toISOString(),
@@ -679,7 +714,10 @@ router.post('/register', async (req, res) => {
         id: orgId,
         name: org_name,
         slug: slug,
-        logo_url: logoUrl
+        logo_url: logoUrl,
+        plan: 'trial', // [onboarding]
+        plan_selected: planSelected || 'growth',
+        trial_ends_at: orgTrialEndsAt
       },
       organizations: [{
         id: orgId,
@@ -713,6 +751,9 @@ router.post('/invite', teamAuthMiddleware, async (req, res) => {
     if (req.teamMember.role !== 'admin') {
       return res.status(403).json({ error: 'Solo administradores pueden invitar miembros' });
     }
+    if (!req.orgId) {
+      return res.status(401).json({ error: 'No hay una organización activa en la sesión.' });
+    }
 
     const emailLower = email.toLowerCase().trim();
 
@@ -736,14 +777,23 @@ router.post('/invite', teamAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Este usuario ya es miembro de esta organización' });
     }
 
+    const userLimit = await checkLimit(req.orgId, 'users'); // [modules]
+    if (!userLimit.allowed) return res.status(402).json(userLimit.payload); // [modules]
+    const memberRole = VALID_ROLES.includes(role) ? role : 'member';
+
     // Create membership (no PIN — user sets it on first login)
     const result = await db.run(`
       INSERT INTO team_members (name, email, role, status, user_id, organization_id)
       VALUES (?, ?, ?, 'active', ?, ?)
       RETURNING id
-    `, [name, emailLower, role || 'member', user.id, req.orgId]);
+    `, [name, emailLower, memberRole, user.id, req.orgId]);
 
-    const member = await db.get('SELECT * FROM team_members WHERE id = ?', [result.lastInsertRowid]);
+    // Siempre acotado a la org activa (y sin exponer pin_hash)
+    const member = await db.get(
+      'SELECT * FROM team_members WHERE id = ? AND organization_id = ?',
+      [result.lastInsertRowid, req.orgId]
+    );
+    if (member) delete member.pin_hash;
 
     res.status(201).json({
       success: true,

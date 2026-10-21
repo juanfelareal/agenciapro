@@ -5,12 +5,13 @@ import ZernioIntegration from '../integrations/zernio.js';
 const router = express.Router();
 
 // Helper to get Zernio instance
-async function getZernioInstance() {
+async function getZernioInstance(orgId) {
+  if (!orgId) return null;
   const settings = await db.prepare(`
     SELECT * FROM zernio_settings
-    WHERE is_active = 1
+    WHERE is_active = 1 AND organization_id = ?
     ORDER BY id DESC LIMIT 1
-  `).get();
+  `).get(orgId);
 
   if (!settings || !settings.api_key) {
     return null;
@@ -22,7 +23,7 @@ async function getZernioInstance() {
 // Middleware to require Zernio connection
 async function requireZernio(req, res, next) {
   try {
-    const zernio = await getZernioInstance();
+    const zernio = await getZernioInstance(req.orgId);
     if (!zernio) {
       return res.status(400).json({
         error: 'Zernio not configured',
@@ -45,9 +46,9 @@ router.get('/settings', async (req, res) => {
       SELECT id, is_active, last_sync_at, last_error, created_at, updated_at,
              CASE WHEN api_key IS NOT NULL AND api_key != '' THEN 1 ELSE 0 END as is_configured
       FROM zernio_settings
-      WHERE is_active = 1
+      WHERE is_active = 1 AND organization_id = ?
       ORDER BY id DESC LIMIT 1
-    `).get();
+    `).get(req.orgId);
 
     res.json(settings || { is_configured: false });
   } catch (error) {
@@ -74,14 +75,14 @@ router.post('/settings', async (req, res) => {
       });
     }
 
-    // Deactivate any existing settings
-    await db.prepare('UPDATE zernio_settings SET is_active = 0').run();
+    // Deactivate any existing settings (solo las de esta organización)
+    await db.prepare('UPDATE zernio_settings SET is_active = 0 WHERE organization_id = ?').run(req.orgId);
 
     // Insert new settings
     const result = await db.prepare(`
-      INSERT INTO zernio_settings (api_key, is_active, last_sync_at, created_at, updated_at)
-      VALUES (?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).run(api_key);
+      INSERT INTO zernio_settings (organization_id, api_key, is_active, last_sync_at, created_at, updated_at)
+      VALUES (?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).run(req.orgId, api_key);
 
     res.json({
       success: true,
@@ -97,7 +98,7 @@ router.post('/settings', async (req, res) => {
 // Test Zernio connection
 router.post('/test', async (req, res) => {
   try {
-    const zernio = await getZernioInstance();
+    const zernio = await getZernioInstance(req.orgId);
     if (!zernio) {
       return res.json({ success: false, error: 'Zernio not configured' });
     }
@@ -108,13 +109,13 @@ router.post('/test', async (req, res) => {
     if (result.success) {
       await db.prepare(`
         UPDATE zernio_settings SET last_sync_at = CURRENT_TIMESTAMP, last_error = NULL, updated_at = CURRENT_TIMESTAMP
-        WHERE is_active = 1
-      `).run();
+        WHERE is_active = 1 AND organization_id = ?
+      `).run(req.orgId);
     } else {
       await db.prepare(`
         UPDATE zernio_settings SET last_error = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE is_active = 1
-      `).run(result.error);
+        WHERE is_active = 1 AND organization_id = ?
+      `).run(result.error, req.orgId);
     }
 
     res.json(result);
@@ -126,7 +127,7 @@ router.post('/test', async (req, res) => {
 // Disconnect Zernio
 router.delete('/settings', async (req, res) => {
   try {
-    await db.prepare('UPDATE zernio_settings SET is_active = 0, updated_at = CURRENT_TIMESTAMP').run();
+    await db.prepare('UPDATE zernio_settings SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE organization_id = ?').run(req.orgId);
     res.json({ success: true, message: 'Zernio disconnected' });
   } catch (error) {
     res.status(500).json({ error: error.message });

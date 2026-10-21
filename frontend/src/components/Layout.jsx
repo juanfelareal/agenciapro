@@ -33,25 +33,39 @@ import {
   Lightbulb,
   Menu,
   X,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useOrgPlan } from '../hooks/useOrgPlan'; // [modules]
+import { PlanChip, TrialBanner, UpgradeToast } from './plan/PlanWidgets'; // [modules]
 import { orbitFeedbackAPI, newsAPI, whatsappAPI, tasksAPI } from '../utils/api';
 import NotificationBell from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
 import OrgSwitcher from './OrgSwitcher';
 import OrbitLogo from './OrbitLogo';
+import { useBranding } from '../branding/useBranding'; // [branding]
 import useIsMobile from '../hooks/useIsMobile';
+import Tour from './onboarding/Tour';
+import { TOUR_MENU_EVENT } from './onboarding/onboardingApi';
 
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, currentOrg, hasPermission, logout } = useAuth();
+  const { isModuleEnabled, isPlatformAdmin } = useOrgPlan(); // [modules] módulos de la org = capa sobre los permisos
+  const brandLogo = useBranding().logo('sidebar'); // [branding] logo claro u oscuro según barra/tema
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Móvil: el sidebar es un drawer (cerrado por defecto) y nunca se muestra colapsado
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
   const collapsedUI = sidebarCollapsed && !isMobile;
+  // [onboarding] El tour abre/cierra el drawer en móvil para enfocar ítems del menú
+  useEffect(() => {
+    const onTourMenu = (e) => setMobileOpen(!!e.detail?.open);
+    window.addEventListener(TOUR_MENU_EVENT, onTourMenu);
+    return () => window.removeEventListener(TOUR_MENU_EVENT, onTourMenu);
+  }, []);
   const [finanzasExpanded, setFinanzasExpanded] = useState(false);
   // Chat oculto del sidebar — sin polling de no-leídos (módulo en pausa)
   const chatUnreadCount = 0;
@@ -152,49 +166,53 @@ const Layout = ({ children }) => {
   };
 
   // Items principales (sin submenú)
+  // [modules] `module` = clave del módulo de la organización; si está apagado, el ítem se oculta aunque haya permiso
   const mainNavigation = [
-    { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard' },
-    { name: 'Novedades', path: '/app/novedades', icon: Megaphone, permission: null, badge: 'news' },
-    { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients' },
-    { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm' },
-    { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients' },
-    { name: 'WhatsApp', path: '/app/whatsapp', icon: MessageCircle, permission: 'clients', badge: 'whatsapp' },
-    { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc' },
-    { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos' },
-    { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects' },
-    { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas' },
-    { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks', badge: 'tasks' },
-    { name: 'Reuniones', path: '/app/reuniones', icon: ClipboardList, permission: 'tasks' },
+    { name: 'Dashboard', path: '/app', icon: LayoutDashboard, permission: 'dashboard', module: 'dashboard' },
+    { name: 'Novedades', path: '/app/novedades', icon: Megaphone, permission: null, badge: 'news', module: 'novedades' },
+    { name: 'Clientes', path: '/app/clients', icon: Users, permission: 'clients', module: 'clients' },
+    { name: 'CRM', path: '/app/crm', icon: Target, permission: 'crm', module: 'crm' },
+    { name: 'Email Marketing', path: '/app/email-marketing', icon: Mail, permission: 'clients', module: 'email_marketing' },
+    { name: 'WhatsApp', path: '/app/whatsapp', icon: MessageCircle, permission: 'clients', badge: 'whatsapp', module: 'whatsapp' },
+    { name: 'UGC', path: '/app/ugc', icon: Video, permission: 'ugc', module: 'ugc' },
+    { name: 'Documentos', path: '/app/documentos', icon: FileSignature, permission: 'documentos', module: 'documentos' },
+    { name: 'Proyectos', path: '/app/projects', icon: FolderKanban, permission: 'projects', module: 'projects' },
+    { name: 'Plantillas', path: '/app/plantillas-proyecto', icon: Copy, permission: 'plantillas', module: 'plantillas' },
+    { name: 'Tareas', path: '/app/tasks', icon: CheckSquare, permission: 'tasks', badge: 'tasks', module: 'tasks' },
+    { name: 'Reuniones', path: '/app/reuniones', icon: ClipboardList, permission: 'tasks', module: 'reuniones' },
   ];
 
   // Submenú de Finanzas
   const finanzasSubItems = [
-    { name: 'Dashboard', path: '/app/finanzas-dashboard', icon: BarChart3, permission: 'invoices' },
-    { name: 'Facturas', path: '/app/invoices', icon: FileText, permission: 'invoices' },
-    { name: 'Cartera', path: '/app/cartera', icon: Receipt, permission: 'invoices' },
-    { name: 'Gastos', path: '/app/expenses', icon: CreditCard, permission: 'expenses' },
-    { name: 'Comisiones', path: '/app/comisiones', icon: Percent, permission: 'comisiones' },
-    { name: 'Siigo', path: '/app/siigo', icon: Link2, permission: 'siigo' },
+    { name: 'Dashboard', path: '/app/finanzas-dashboard', icon: BarChart3, permission: 'invoices', module: 'finanzas' },
+    { name: 'Facturas', path: '/app/invoices', icon: FileText, permission: 'invoices', module: 'invoices' },
+    { name: 'Cartera', path: '/app/cartera', icon: Receipt, permission: 'invoices', module: 'invoices' },
+    { name: 'Gastos', path: '/app/expenses', icon: CreditCard, permission: 'expenses', module: 'expenses' },
+    { name: 'Comisiones', path: '/app/comisiones', icon: Percent, permission: 'comisiones', module: 'comisiones' },
+    { name: 'Siigo', path: '/app/siigo', icon: Link2, permission: 'siigo', module: 'siigo' },
   ];
 
   // Items después de Finanzas
   const bottomNavigation = [
-    { name: 'Métricas', path: '/app/metricas', icon: BarChart3, permission: 'metricas' },
-    { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes' },
-    { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas' },
-    { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios' },
+    { name: 'Métricas', path: '/app/metricas', icon: BarChart3, permission: 'metricas', module: 'metricas' },
+    { name: 'Reportes', path: '/app/reportes', icon: BarChart3, permission: 'reportes', module: 'reportes' },
+    { name: 'Bloc de Notas', path: '/app/notas', icon: StickyNote, permission: 'notas', module: 'notas' },
+    { name: 'Formularios', path: '/app/formularios', icon: ClipboardList, permission: 'formularios', module: 'formularios' },
     { name: 'Anuncios', path: '/app/anuncios', icon: Megaphone, permission: null },
     // Chat interno oculto del sidebar (2026-07-03): ~10 mensajes/mes — el equipo vive en WhatsApp.
     // La ruta /app/chat sigue funcionando por URL directa y los datos quedan intactos.
-    { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops' },
+    { name: 'SOPs', path: '/app/sops', icon: BookOpen, permission: 'sops', module: 'sops' },
     { name: 'Briefs', path: '/app/briefs', icon: FileCode2, permission: null },
-    { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team' },
+    { name: 'Equipo', path: '/app/team', icon: UsersRound, permission: 'team', module: 'team' },
+    // [modules] Panel de plataforma: solo platform admins (LA REAL)
+    ...(isPlatformAdmin ? [{ name: 'Plataforma', path: '/app/plataforma', icon: Building2, permission: null }] : []),
   ];
 
-  // Filtrar por permisos
-  const filteredMain = mainNavigation.filter((item) => !item.permission || hasPermission(item.permission));
-  const filteredFinanzas = finanzasSubItems.filter((item) => hasPermission(item.permission));
-  const filteredBottom = bottomNavigation.filter((item) => !item.permission || hasPermission(item.permission));
+  // Filtrar por permisos y por módulos de la organización [modules]
+  const visible = (item) => (!item.permission || hasPermission(item.permission)) && (!item.module || isModuleEnabled(item.module));
+  const filteredMain = mainNavigation.filter(visible);
+  const filteredFinanzas = finanzasSubItems.filter((item) => hasPermission(item.permission) && (!item.module || isModuleEnabled(item.module)));
+  const filteredBottom = bottomNavigation.filter(visible);
 
   const isActive = (path) => {
     if (path === '/app') {
@@ -234,13 +252,14 @@ const Layout = ({ children }) => {
         className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
           item.badge === 'news'
             ? (active
-              ? 'bg-[#D7F653] text-[#17181A] font-semibold'
-              : 'bg-[#D7F653]/30 text-[#17181A] font-semibold hover:bg-[#D7F653]/60')
+              ? 'bg-[var(--accent)] text-white font-semibold'
+              : 'bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--ink)] font-semibold hover:bg-[rgb(var(--accent-rgb)/0.2)]')
             : (active
-              ? 'bg-[#17181A] text-[#D7F653]'
-              : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60')
+              ? 'bg-[var(--dark)] text-[var(--accent)]'
+              : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]')
         }`}
         title={collapsedUI ? item.name : ''}
+        data-tour={item.path === '/app' ? 'dashboard' : item.path.replace('/app/', '')} /* [onboarding] */
       >
         <Icon size={20} className="flex-shrink-0" />
         {!collapsedUI && <span className="truncate flex-1">{item.name}</span>}
@@ -262,7 +281,7 @@ const Layout = ({ children }) => {
           </span>
         )}
         {collapsedUI && item.badge === 'news' && newsUnreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 ring-2 ring-white rounded-full" />
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 ring-2 ring-[var(--surface)] rounded-full" />
         )}
         {/* WhatsApp sin leer: badge verde (expandido) o punto verde (colapsado) */}
         {!collapsedUI && item.badge === 'whatsapp' && waUnreadCount > 0 && (
@@ -274,7 +293,7 @@ const Layout = ({ children }) => {
           </span>
         )}
         {collapsedUI && item.badge === 'whatsapp' && waUnreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 ring-2 ring-white rounded-full" />
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 ring-2 ring-[var(--surface)] rounded-full" />
         )}
         {/* Tareas asignadas sin ver: badge azul (expandido) o punto azul (colapsado) */}
         {!collapsedUI && item.badge === 'tasks' && taskAlertCount > 0 && (
@@ -286,12 +305,12 @@ const Layout = ({ children }) => {
           </span>
         )}
         {collapsedUI && item.badge === 'tasks' && taskAlertCount > 0 && (
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-sky-500 ring-2 ring-white rounded-full" />
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-sky-500 ring-2 ring-[var(--surface)] rounded-full" />
         )}
 
         {/* Tooltip for collapsed state */}
         {collapsedUI && (
-          <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+          <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
             {item.name}{item.badge === 'news' && newsUnreadCount > 0 ? ` · ${newsUnreadCount} sin leer` : ''}{item.badge === 'whatsapp' && waUnreadCount > 0 ? ` · ${waUnreadCount} sin leer` : ''}{item.badge === 'tasks' && taskAlertCount > 0 ? ` · ${taskAlertCount} nueva${taskAlertCount === 1 ? '' : 's'}` : ''}
           </div>
         )}
@@ -314,18 +333,18 @@ const Layout = ({ children }) => {
         }`}
       >
         {/* Logo Section */}
-        <div className="h-16 flex items-center px-3 border-b border-white/60">
+        <div className="h-16 flex items-center px-3 border-b border-[rgb(var(--ink-rgb)/0.09)]">
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="md:hidden mr-2 p-2 -ml-1 rounded-lg text-gray-500 hover:bg-white/60"
+            className="md:hidden mr-2 p-2 -ml-1 rounded-lg text-gray-500 hover:bg-[rgb(var(--ink-rgb)/0.04)]"
             aria-label="Cerrar menú"
           >
             <X size={20} />
           </button>
-          {currentOrg?.logo_url ? (
+          {brandLogo ? ( // [branding]
             <img
-              src={currentOrg.logo_url}
+              src={brandLogo}
               alt={currentOrg.name || 'Logo'}
               className={collapsedUI ? 'w-10 h-10 object-contain rounded-lg' : 'h-10 max-w-full object-contain object-left'}
             />
@@ -336,26 +355,26 @@ const Layout = ({ children }) => {
 
         {/* Organization Switcher */}
         {!collapsedUI && currentOrg && (
-          <div className="px-3 py-2 border-b border-white/60">
+          <div className="px-3 py-2 border-b border-[rgb(var(--ink-rgb)/0.09)]">
             <OrgSwitcher />
           </div>
         )}
 
         {/* User Info */}
         {!collapsedUI && user && (
-          <div className="p-3 border-b border-white/60">
+          <div className="p-3 border-b border-[rgb(var(--ink-rgb)/0.09)]">
             <div className="flex items-center gap-3">
               {user.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
               ) : (
                 <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[#D7F653] font-semibold text-sm flex-shrink-0 bg-[#17181A]"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--accent)] font-semibold text-sm flex-shrink-0 bg-[var(--dark)]"
                 >
                   {getUserInitials(user.name)}
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-[#17181A] truncate">{user.name}</p>
+                <p className="text-sm font-medium text-[var(--ink)] truncate">{user.name}</p>
                 <p className="text-xs text-gray-500 truncate">{user.position || user.role}</p>
               </div>
             </div>
@@ -373,10 +392,11 @@ const Layout = ({ children }) => {
               <div>
                 <button
                   onClick={() => setFinanzasExpanded(!finanzasExpanded)}
+                  data-tour="finanzas"
                   className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                     isFinanzasActive
-                      ? 'bg-[#17181A] text-[#D7F653]'
-                      : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+                      ? 'bg-[var(--dark)] text-[var(--accent)]'
+                      : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
                   }`}
                   title={collapsedUI ? 'Finanzas' : ''}
                 >
@@ -395,7 +415,7 @@ const Layout = ({ children }) => {
 
                   {/* Tooltip for collapsed state */}
                   {collapsedUI && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                       Finanzas
                     </div>
                   )}
@@ -403,7 +423,7 @@ const Layout = ({ children }) => {
 
                 {/* Submenú */}
                 {(finanzasExpanded || collapsedUI) && !collapsedUI && (
-                  <div className="mt-1 ml-3 pl-3 border-l border-white/70 space-y-1">
+                  <div className="mt-1 ml-3 pl-3 border-l border-[rgb(var(--ink-rgb)/0.09)] space-y-1">
                     {filteredFinanzas.map((item) => {
                       const Icon = item.icon;
                       const active = isActive(item.path);
@@ -413,8 +433,8 @@ const Layout = ({ children }) => {
                           to={item.path}
                           className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                             active
-                              ? 'bg-white/70 text-[#17181A]'
-                              : 'text-gray-500 hover:text-[#17181A] hover:bg-white/50'
+                              ? 'bg-[rgb(var(--ink-rgb)/0.06)] text-[var(--ink)]'
+                              : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
                           }`}
                         >
                           <Icon size={18} className="flex-shrink-0" />
@@ -437,7 +457,7 @@ const Layout = ({ children }) => {
                           key={item.path}
                           to={item.path}
                           className={`flex items-center gap-2 px-3 py-2 text-sm ${
-                            active ? 'text-[#17181A] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
+                            active ? 'text-[var(--ink)] bg-gray-50' : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
                           <Icon size={16} />
@@ -452,18 +472,23 @@ const Layout = ({ children }) => {
 
             {/* Bottom navigation items */}
             {filteredBottom.map(renderNavItem)}
+
+            {/* [modules] Chip de plan: "Prueba · 9 días" o nombre del plan → Suscripción */}
+            <div className="pt-2">
+              <PlanChip collapsed={collapsedUI} active={isActive('/app/suscripcion')} />
+            </div>
           </div>
         </nav>
 
         {/* Bottom Actions */}
-        <div className="p-3 space-y-1 border-t border-white/60" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
+        <div className="p-3 space-y-1 border-t border-[rgb(var(--ink-rgb)/0.09)]" onClick={(e) => { if (e.target.closest('a')) setMobileOpen(false); }}>
           {/* Mejoras de Orbit */}
           <Link
             to="/app/mejoras"
             className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               isActive('/app/mejoras')
-                ? 'bg-[#17181A] text-[#D7F653]'
-                : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+                ? 'bg-[var(--dark)] text-[var(--accent)]'
+                : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
             }`}
             title={collapsedUI ? 'Mejoras de Orbit' : ''}
           >
@@ -471,16 +496,16 @@ const Layout = ({ children }) => {
             {!collapsedUI && <span className="truncate flex-1">Mejoras de Orbit</span>}
             {!collapsedUI && newFeedbackCount > 0 && (
               <span className={`ml-auto text-[11px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center ${
-                isActive('/app/mejoras') ? 'bg-[#D7F653] text-[#17181A]' : 'bg-[#17181A] text-[#D7F653]'
+                isActive('/app/mejoras') ? 'bg-[var(--accent)] text-white' : 'bg-[var(--dark)] text-[var(--accent)]'
               }`}>
                 {newFeedbackCount > 99 ? '99+' : newFeedbackCount}
               </span>
             )}
             {collapsedUI && newFeedbackCount > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#D7F653] ring-2 ring-white rounded-full" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--accent)] ring-2 ring-[var(--surface)] rounded-full" />
             )}
             {collapsedUI && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mejoras de Orbit{newFeedbackCount > 0 ? ` · ${newFeedbackCount} nuevas` : ''}
               </div>
             )}
@@ -491,15 +516,16 @@ const Layout = ({ children }) => {
             to="/app/settings"
             className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
               isActive('/app/settings')
-                ? 'bg-[#17181A] text-[#D7F653]'
-                : 'text-gray-500 hover:text-[#17181A] hover:bg-white/60'
+                ? 'bg-[var(--dark)] text-[var(--accent)]'
+                : 'text-gray-500 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)]'
             }`}
             title={collapsedUI ? 'Mi Cuenta' : ''}
+            data-tour="settings"
           >
             <Settings size={20} className="flex-shrink-0" />
             {!collapsedUI && <span>Mi Cuenta</span>}
             {collapsedUI && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[#17181A] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--dark)] text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                 Mi Cuenta
               </div>
             )}
@@ -518,7 +544,7 @@ const Layout = ({ children }) => {
           {/* Collapse Button */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[#17181A] hover:bg-gray-100 transition-all duration-150"
+            className="hidden md:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-[var(--ink)] hover:bg-gray-100 transition-all duration-150"
           >
             {collapsedUI ? (
               <ChevronRight size={20} />
@@ -538,37 +564,40 @@ const Layout = ({ children }) => {
           collapsedUI ? 'md:ml-[104px]' : 'md:ml-[252px]'
         }`}
       >
+        {/* [modules] Banda: prueba terminada / pago pendiente / cancelado */}
+        <TrialBanner />
+
         {/* Top Header Bar - Clean white.
             Altura h-16 para que coincida con el header del sidebar (también h-16);
             así las dos border-b se alinean en la misma línea horizontal. */}
-        <header className="sticky top-0 z-30 h-14 md:h-16 px-3 md:px-6 flex items-center justify-between md:justify-end bg-transparent" style={{ background: 'linear-gradient(180deg, rgba(243,244,239,0.92) 0%, rgba(243,244,239,0.7) 70%, transparent 100%)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+        <header className="sticky top-0 z-30 h-14 md:h-16 px-3 md:px-6 flex items-center justify-between md:justify-end bg-transparent" style={{ background: 'linear-gradient(180deg, rgb(var(--bg-rgb) / 0.92) 0%, rgb(var(--bg-rgb) / 0.7) 70%, transparent 100%)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} /* [branding] */>
           {/* Móvil: botón de menú + logo */}
           <div className="flex items-center gap-2 md:hidden min-w-0">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="relative p-2 rounded-xl text-[#17181A] hover:bg-white/70 active:bg-white"
+              className="relative p-2 rounded-xl text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.04)] active:bg-[var(--surface)]"
               aria-label="Abrir menú"
             >
               <Menu size={22} />
               {(newsUnreadCount > 0 || waUnreadCount > 0) && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#F3F4EF]" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[var(--bg)]" />
               )}
             </button>
-            {currentOrg?.logo_url ? (
-              <img src={currentOrg.logo_url} alt={currentOrg.name || 'Logo'} className="h-8 max-w-[120px] object-contain" />
+            {brandLogo ? ( // [branding]
+              <img src={brandLogo} alt={currentOrg.name || 'Logo'} className="h-8 max-w-[120px] object-contain" />
             ) : (
               <OrbitLogo size={28} showText />
             )}
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <GlobalSearch />
+            <div data-tour="search" className="flex"><GlobalSearch /></div>
             <NotificationBell />
 
             {/* User Avatar */}
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-[#17181A]">
+                <p className="text-sm font-medium text-[var(--ink)]">
                   {user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -582,7 +611,7 @@ const Layout = ({ children }) => {
               {user?.avatar_url ? (
                 <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-xl object-cover" />
               ) : (
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[#D7F653] font-semibold text-sm bg-[#17181A]">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--accent)] font-semibold text-sm bg-[var(--dark)]">
                   {getUserInitials(user?.name || 'U')}
                 </div>
               )}
@@ -595,6 +624,10 @@ const Layout = ({ children }) => {
           <div className="page-container animate-fade-in">{children}</div>
         </main>
       </div>
+
+      {/* [modules] Aviso global de 402 (límite del plan / prueba vencida) */}
+      <UpgradeToast />
+      <Tour />{/* [onboarding] tour guiado (?tour=1 / primera vez / Mi Cuenta) */}
     </div>
   );
 };

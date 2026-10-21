@@ -45,6 +45,13 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // uploaded_by must belong to this org; otherwise use the session member
+    let uploaderId = req.teamMember?.id || null;
+    if (uploaded_by) {
+      const member = await db.get('SELECT id FROM team_members WHERE id = ? AND organization_id = ?', [Number(uploaded_by), req.orgId]);
+      if (member) uploaderId = member.id;
+    }
+
     const publicPath = `/uploads/task-files/${path.basename(req.file.path)}`;
 
     const result = await db.run(`
@@ -56,7 +63,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       publicPath,
       req.file.size,
       req.file.mimetype,
-      uploaded_by ? Number(uploaded_by) : null,
+      uploaderId,
       req.orgId,
     ]);
 
@@ -64,8 +71,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       SELECT tf.*, tm.name as uploaded_by_name
       FROM task_files tf
       LEFT JOIN team_members tm ON tf.uploaded_by = tm.id
-      WHERE tf.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE tf.id = ? AND tf.organization_id = ?
+    `, [result.lastInsertRowid, req.orgId]);
 
     res.status(201).json(file);
   } catch (error) {
@@ -121,17 +128,24 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // uploaded_by must belong to this org; otherwise use the session member
+    let uploaderId = req.teamMember?.id || null;
+    if (uploaded_by) {
+      const member = await db.get('SELECT id FROM team_members WHERE id = ? AND organization_id = ?', [Number(uploaded_by), req.orgId]);
+      if (member) uploaderId = member.id;
+    }
+
     const result = await db.run(`
       INSERT INTO task_files (task_id, file_name, file_path, file_size, file_type, description, uploaded_by, organization_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [task_id, file_name, file_path, file_size, file_type, description || null, uploaded_by, req.orgId]);
+    `, [task_id, file_name, file_path, file_size, file_type, description || null, uploaderId, req.orgId]);
 
     const file = await db.get(`
       SELECT tf.*, tm.name as uploaded_by_name
       FROM task_files tf
       LEFT JOIN team_members tm ON tf.uploaded_by = tm.id
-      WHERE tf.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE tf.id = ? AND tf.organization_id = ?
+    `, [result.lastInsertRowid, req.orgId]);
 
     res.status(201).json(file);
   } catch (error) {
@@ -165,8 +179,8 @@ router.patch('/:id', async (req, res) => {
       SELECT tf.*, tm.name as uploaded_by_name
       FROM task_files tf
       LEFT JOIN team_members tm ON tf.uploaded_by = tm.id
-      WHERE tf.id = ?
-    `, [req.params.id]);
+      WHERE tf.id = ? AND tf.organization_id = ?
+    `, [req.params.id, req.orgId]);
 
     res.json(updated);
   } catch (error) {

@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
+import { findRowInOrg } from '../utils/tenant.js';
 
 const router = express.Router();
 
@@ -55,6 +56,10 @@ router.post('/', async (req, res) => {
     const { client_id, title, html_content, visible_to_client, month } = req.body;
     if (!client_id || !title) return res.status(400).json({ error: 'client_id and title are required' });
 
+    // El cliente debe ser de la organización
+    const client = await findRowInOrg(db, 'clients', client_id, req.orgId, { columns: 'id' });
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+
     const result = await db.prepare(`
       INSERT INTO briefs (client_id, title, html_content, visible_to_client, month, organization_id, created_by)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -74,6 +79,12 @@ router.put('/:id', async (req, res) => {
 
     const existing = await db.prepare('SELECT * FROM briefs WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!existing) return res.status(404).json({ error: 'Brief not found' });
+
+    // Si cambia el cliente, debe ser de la organización
+    if (client_id !== undefined && client_id !== null) {
+      const client = await findRowInOrg(db, 'clients', client_id, req.orgId, { columns: 'id' });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+    }
 
     await db.prepare(`
       UPDATE briefs SET

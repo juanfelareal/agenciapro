@@ -93,7 +93,7 @@ export default function PortalReports() {
                       href={fileUrl(r.file_path)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block bg-white border border-ink-100 rounded-2xl p-4 hover:border-ink-300 transition-colors group"
+                      className="block bg-[var(--surface)] border border-ink-100 rounded-2xl p-4 hover:border-ink-300 transition-colors group"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3 min-w-0">

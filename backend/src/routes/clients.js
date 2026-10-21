@@ -4,6 +4,7 @@ import db from '../config/database.js';
 import { invalidateVisibilityCache } from '../middleware/clientVisibility.js';
 import axios from 'axios';
 import { createRecurringInvoice } from '../utils/recurringInvoices.js';
+import { checkLimit } from '../services/plans.js'; // [modules]
 
 const router = express.Router();
 
@@ -54,7 +55,13 @@ router.put('/:id/visibility', async (req, res) => {
     const client = await db.prepare('SELECT id FROM clients WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
     const raw = req.body?.member_ids;
-    const ids = Array.isArray(raw) ? Array.from(new Set(raw.map(Number).filter(Number.isFinite))) : [];
+    let ids = Array.isArray(raw) ? Array.from(new Set(raw.map(Number).filter(Number.isFinite))) : [];
+    // Solo miembros de ESTA organización pueden quedar en la lista
+    if (ids.length) {
+      const members = await db.all(`SELECT id FROM team_members WHERE organization_id = ? AND id IN (${ids.map(() => '?').join(',')})`, [req.orgId, ...ids]);
+      const valid = new Set(members.map((m) => Number(m.id)));
+      ids = ids.filter((id) => valid.has(id));
+    }
     // El dueño siempre conserva acceso
     if (ids.length && !ids.includes(req.teamMember.id)) ids.push(req.teamMember.id);
     await db.run('UPDATE clients SET visible_to_member_ids = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [ids.length ? JSON.stringify(ids) : null, client.id]);
@@ -208,6 +215,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Company name is required' });
     }
 
+    const brandLimit = await checkLimit(req.orgId, 'brands'); // [modules] límite de marcas del plan
+    if (!brandLimit.allowed) return res.status(402).json(brandLimit.payload); // [modules]
+
     // Validate recurring billing fields
     if (is_recurring) {
       if (!billing_day || billing_day < 1 || billing_day > 28) {
@@ -229,10 +239,10 @@ router.post('/', async (req, res) => {
     let portalInfo = null;
     try {
       await db.prepare(`
-        INSERT INTO client_portal_settings (client_id, can_view_projects, can_view_tasks, can_view_invoices, can_view_metrics, can_approve_tasks, can_comment_tasks, can_view_team, can_download_files, can_view_forms)
-        VALUES (?, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+        INSERT INTO client_portal_settings (client_id, can_view_projects, can_view_tasks, can_view_invoices, can_view_metrics, can_approve_tasks, can_comment_tasks, can_view_team, can_download_files, can_view_forms, organization_id)
+        VALUES (?, 1, 1, 1, 1, 1, 1, 1, 1, 1, ?)
         ON CONFLICT (client_id) DO NOTHING
-      `).run(client.id);
+      `).run(client.id, req.orgId);
 
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       let inviteCode = '';

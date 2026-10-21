@@ -9,8 +9,8 @@ function MetricCard({
   subtitle,
   value,
   icon: Icon,
-  iconBgColor = 'bg-[#D7F653]/20',
-  iconColor = 'text-[#65A30D]',
+  iconBgColor = 'bg-[rgb(var(--accent-rgb)/0.12)]',
+  iconColor = 'text-[var(--accent-deep)]',
   change = null,
   changeLabel = '',
   compareValue = null,
@@ -19,7 +19,7 @@ function MetricCard({
   prefix = '',
   suffix = '',
   loading = false,
-  valueColor = 'text-[#17181A]'
+  valueColor = 'text-[var(--ink)]'
 }) {
   // Format value based on type
   const formatValue = (val) => {

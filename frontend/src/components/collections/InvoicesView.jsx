@@ -42,7 +42,7 @@ const InvoicesView = ({
       <div className="px-6 py-4 border-b border-gray-100 space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-[#17181A]">Facturas pendientes</h2>
+            <h2 className="text-lg font-bold text-[var(--ink)]">Facturas pendientes</h2>
             <p className="text-xs text-gray-400 mt-0.5">Más antigua primero · {rows.length} de {invoices.length} facturas</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
@@ -53,13 +53,13 @@ const InvoicesView = ({
                 value={filters.search}
                 onChange={(e) => setFilter({ search: e.target.value })}
                 placeholder="Factura o cliente…"
-                className="pl-8 pr-3 py-2 border border-gray-200 rounded-xl text-sm w-full sm:w-52 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                className="pl-8 pr-3 py-2 border border-gray-200 rounded-xl text-sm w-full sm:w-52 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
               />
             </div>
             <select
               value={filters.client_id}
               onChange={(e) => setFilter({ client_id: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
             >
               <option value="">Todos los clientes</option>
               {clientOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
@@ -72,7 +72,7 @@ const InvoicesView = ({
           <button
             type="button"
             onClick={() => setFilter({ bucket: '' })}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!filters.bucket ? 'bg-[#17181A] text-white border-[#17181A]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${!filters.bucket ? 'bg-[var(--dark)] text-white border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-300'}`}
           >
             Todas
           </button>
@@ -81,19 +81,19 @@ const InvoicesView = ({
               key={b}
               type="button"
               onClick={() => setFilter({ bucket: filters.bucket === b ? '' : b })}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${filters.bucket === b ? 'bg-[#17181A] text-white border-[#17181A]' : `${BUCKET_STYLES[b].badge} hover:opacity-80`}`}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${filters.bucket === b ? 'bg-[var(--dark)] text-white border-[var(--ink)]' : `${BUCKET_STYLES[b].badge} hover:opacity-80`}`}
             >
               {BUCKET_STYLES[b].label}
             </button>
           ))}
           {filters.month && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-[#D7F653]/40 text-[#17181A] border border-[#D7F653]">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-[rgb(var(--accent-rgb)/0.15)] text-[var(--accent-deep)] border border-[rgb(var(--accent-rgb)/0.4)]">
               Emitidas en {formatMonth(filters.month)}
               <button type="button" onClick={() => setFilter({ month: '' })} className="hover:text-red-600" title="Quitar filtro de mes"><X size={12} /></button>
             </span>
           )}
           {hasFilters && (
-            <button type="button" onClick={() => onFiltersChange({ ...EMPTY_INVOICE_FILTERS })} className="text-xs text-gray-400 hover:text-[#17181A] underline ml-1">
+            <button type="button" onClick={() => onFiltersChange({ ...EMPTY_INVOICE_FILTERS })} className="text-xs text-gray-400 hover:text-[var(--ink)] underline ml-1">
               Limpiar filtros
             </button>
           )}
@@ -101,7 +101,7 @@ const InvoicesView = ({
       </div>
 
       {loading ? (
-        <div className="p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#17181A]"></div></div>
+        <div className="p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--ink)]"></div></div>
       ) : invoices.length === 0 ? (
         <div className="p-12 text-center">
           <CheckCircle size={48} className="text-green-400 mx-auto mb-3" />
@@ -131,9 +131,9 @@ const InvoicesView = ({
                 const status = statusMeta(inv.collection_status);
                 const saving = savingId === inv.id;
                 return (
-                  <tr key={inv.id} className={`hover:bg-white/60 transition-colors ${saving ? 'opacity-60' : ''}`}>
+                  <tr key={inv.id} className={`hover:bg-[rgb(var(--ink-rgb)/0.04)] transition-colors ${saving ? 'opacity-60' : ''}`}>
                     <td className="px-5 py-3">
-                      <p className="text-sm font-semibold text-[#17181A] whitespace-nowrap">{inv.invoice_number}</p>
+                      <p className="text-sm font-semibold text-[var(--ink)] whitespace-nowrap">{inv.invoice_number}</p>
                       {inv.last_reminder_at && (
                         <p className="text-[11px] text-emerald-600 inline-flex items-center gap-1 mt-0.5"><Mail size={10} /> cobrado {formatDateShort(inv.last_reminder_at)}</p>
                       )}
@@ -149,7 +149,7 @@ const InvoicesView = ({
                         type="date"
                         value={inv.promise_date || ''}
                         onChange={(e) => onUpdateInvoice(inv, { promise_date: e.target.value || null })}
-                        className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#D7F653] w-[130px]"
+                        className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-[var(--surface)] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] w-[130px]"
                         title="Promesa de pago"
                       />
                     </td>
@@ -157,12 +157,12 @@ const InvoicesView = ({
                       <select
                         value={inv.collection_status || 'pending'}
                         onChange={(e) => onUpdateInvoice(inv, { collection_status: e.target.value })}
-                        className={`px-2 py-1 rounded-lg text-xs font-medium border-0 focus:outline-none focus:ring-2 focus:ring-[#D7F653] cursor-pointer ${status.className}`}
+                        className={`px-2 py-1 rounded-lg text-xs font-medium border-0 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] cursor-pointer ${status.className}`}
                       >
                         {COLLECTION_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                       </select>
                     </td>
-                    <td className="px-3 py-3 text-sm font-semibold text-[#17181A] text-right whitespace-nowrap">
+                    <td className="px-3 py-3 text-sm font-semibold text-[var(--ink)] text-right whitespace-nowrap">
                       {formatCurrency(inv.pending_amount ?? inv.amount)}
                       {inv.siigo_total != null && Number(inv.pending_amount) < Number(inv.siigo_total) && (
                         <span className="block text-[10px] font-medium text-amber-600">pago parcial · total {formatCurrency(inv.siigo_total)}</span>
@@ -174,7 +174,7 @@ const InvoicesView = ({
                         <button
                           type="button"
                           onClick={() => onCollectInvoice(inv)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#17181A] text-[#D7F653] text-xs font-medium hover:bg-[#2D2D4E] transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[var(--dark)] text-[var(--accent)] text-xs font-medium hover:bg-[#1C1D1F] transition-colors"
                           title="Cobrar esta factura"
                         >
                           <Send size={12} />
@@ -193,7 +193,7 @@ const InvoicesView = ({
                             href={inv.pdf_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-[#17181A] hover:bg-gray-100 transition-colors"
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--ink)] hover:bg-gray-100 transition-colors"
                             title="Ver PDF (Siigo)"
                           >
                             <FileText size={16} />
@@ -212,7 +212,7 @@ const InvoicesView = ({
                 <td colSpan={7} className="px-5 py-3 font-semibold text-gray-600">
                   {rows.length} factura{rows.length !== 1 ? 's' : ''}{hasFilters ? ' (filtradas)' : ''}
                 </td>
-                <td className="px-3 py-3 text-right font-bold text-[#17181A] whitespace-nowrap">{formatCurrency(total)}</td>
+                <td className="px-3 py-3 text-right font-bold text-[var(--ink)] whitespace-nowrap">{formatCurrency(total)}</td>
                 <td></td>
               </tr>
             </tfoot>

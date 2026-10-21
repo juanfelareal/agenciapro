@@ -13,7 +13,7 @@ const forecastLabel = (f) => {
 const MonthlyView = ({ data, loading = false, onSelectMonth, onGoToInvoices }) => {
   if (loading || !data) {
     return (
-      <div className="glass-card p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#17181A]"></div></div>
+      <div className="glass-card p-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--ink)]"></div></div>
     );
   }
 
@@ -33,7 +33,7 @@ const MonthlyView = ({ data, loading = false, onSelectMonth, onGoToInvoices }) =
     <div className="space-y-6">
       <div className="glass-card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-[#17181A]">Cartera por mes de emisión</h2>
+          <h2 className="text-lg font-bold text-[var(--ink)]">Cartera por mes de emisión</h2>
           <p className="text-xs text-gray-400 mt-0.5">Últimos 12 meses · clic en un mes para ver sus facturas pendientes</p>
         </div>
 
@@ -61,17 +61,17 @@ const MonthlyView = ({ data, loading = false, onSelectMonth, onGoToInvoices }) =
                     <tr
                       key={m.month}
                       onClick={() => clickable && onSelectMonth(m.month)}
-                      className={`transition-colors ${clickable ? 'cursor-pointer hover:bg-white/60' : ''} ${isCurrent ? 'bg-[#D7F653]/10' : ''} ${m.invoice_count === 0 ? 'text-gray-300' : ''}`}
+                      className={`transition-colors ${clickable ? 'cursor-pointer hover:bg-[rgb(var(--ink-rgb)/0.04)]' : ''} ${isCurrent ? 'bg-[rgb(var(--accent-rgb)/0.08)]' : ''} ${m.invoice_count === 0 ? 'text-gray-300' : ''}`}
                       title={clickable ? 'Ver facturas pendientes de este mes' : undefined}
                     >
-                      <td className="px-6 py-3 text-sm font-semibold capitalize text-[#17181A]">
+                      <td className="px-6 py-3 text-sm font-semibold capitalize text-[var(--ink)]">
                         {formatMonth(m.month)}
                         {isCurrent && <span className="ml-2 text-[10px] uppercase tracking-wider text-gray-400 font-medium">actual</span>}
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-600 text-center">{m.invoice_count || '-'}</td>
                       <td className="px-3 py-3 text-sm text-gray-700 text-right whitespace-nowrap">{m.invoiced ? formatCurrency(m.invoiced) : '-'}</td>
                       <td className="px-3 py-3 text-sm text-emerald-700 text-right whitespace-nowrap">{m.collected ? formatCurrency(m.collected) : '-'}</td>
-                      <td className={`px-3 py-3 text-sm text-right whitespace-nowrap font-semibold ${m.pending > 0 ? 'text-[#17181A]' : 'text-gray-300'}`}>{m.pending ? formatCurrency(m.pending) : '-'}</td>
+                      <td className={`px-3 py-3 text-sm text-right whitespace-nowrap font-semibold ${m.pending > 0 ? 'text-[var(--ink)]' : 'text-gray-300'}`}>{m.pending ? formatCurrency(m.pending) : '-'}</td>
                       <td className="px-3 py-3">
                         {m.invoiced > 0 ? (
                           <div className="flex items-center gap-2">
@@ -91,9 +91,9 @@ const MonthlyView = ({ data, loading = false, onSelectMonth, onGoToInvoices }) =
                 <tr className="bg-gray-50/70 text-sm font-semibold">
                   <td className="px-6 py-3 text-gray-600">Total 12 meses</td>
                   <td className="px-3 py-3 text-center text-gray-600">{totals.invoice_count}</td>
-                  <td className="px-3 py-3 text-right text-[#17181A] whitespace-nowrap">{formatCurrency(totals.invoiced)}</td>
+                  <td className="px-3 py-3 text-right text-[var(--ink)] whitespace-nowrap">{formatCurrency(totals.invoiced)}</td>
                   <td className="px-3 py-3 text-right text-emerald-700 whitespace-nowrap">{formatCurrency(totals.collected)}</td>
-                  <td className="px-3 py-3 text-right text-[#17181A] whitespace-nowrap">{formatCurrency(totals.pending)}</td>
+                  <td className="px-3 py-3 text-right text-[var(--ink)] whitespace-nowrap">{formatCurrency(totals.pending)}</td>
                   <td className="px-3 py-3 text-xs text-gray-600">{totalPct}% cobrado</td>
                   <td></td>
                 </tr>
@@ -108,7 +108,7 @@ const MonthlyView = ({ data, loading = false, onSelectMonth, onGoToInvoices }) =
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
           <TrendingUp size={18} className="text-[#4d7c0f]" />
           <div>
-            <h2 className="text-lg font-bold text-[#17181A]">Proyección de caja</h2>
+            <h2 className="text-lg font-bold text-[var(--ink)]">Proyección de caja</h2>
             <p className="text-xs text-gray-400 mt-0.5">Pendiente por semana según promesa de pago; si no hay, por fecha de vencimiento</p>
           </div>
         </div>
@@ -124,18 +124,18 @@ const MonthlyView = ({ data, loading = false, onSelectMonth, onGoToInvoices }) =
               return (
                 <div key={`${f.kind}-${f.week_start || ''}`} className={`px-6 py-3.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 ${isNoDate ? 'bg-gray-50/50' : ''}`}>
                   <div className="sm:w-56 shrink-0">
-                    <p className={`text-sm font-semibold ${isOverdue ? 'text-red-600' : isNoDate ? 'text-gray-500' : 'text-[#17181A]'}`}>{title}</p>
+                    <p className={`text-sm font-semibold ${isOverdue ? 'text-red-600' : isNoDate ? 'text-gray-500' : 'text-[var(--ink)]'}`}>{title}</p>
                     <p className="text-xs text-gray-400">{subtitle}</p>
                   </div>
                   <div className="flex-1 flex items-center gap-3">
                     <div className="flex-1 h-2.5 rounded-full bg-gray-100 overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${isOverdue ? 'bg-red-400' : isNoDate ? 'bg-gray-300' : 'bg-[#D7F653]'}`}
+                        className={`h-full rounded-full ${isOverdue ? 'bg-red-400' : isNoDate ? 'bg-gray-300' : 'bg-[var(--accent)]'}`}
                         style={{ width: `${Math.max(2, (f.amount / maxForecast) * 100)}%` }}
                       />
                     </div>
                     <div className="text-right w-36 shrink-0">
-                      <p className="text-sm font-bold text-[#17181A] whitespace-nowrap">{formatCurrency(f.amount)}</p>
+                      <p className="text-sm font-bold text-[var(--ink)] whitespace-nowrap">{formatCurrency(f.amount)}</p>
                       <p className="text-[11px] text-gray-400">
                         {f.count} fact.{f.kind === 'week' && f.with_promise > 0 ? ` · ${f.with_promise} con promesa` : ''}
                       </p>

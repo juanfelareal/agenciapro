@@ -95,6 +95,9 @@ router.post('/', async (req, res) => {
 
     if (Array.isArray(client_ids) && client_ids.length > 0) {
       for (const clientId of client_ids) {
+        // Guard: only assign clients from the same org
+        const c = await db.get(`SELECT id FROM clients WHERE id = ? AND organization_id = ?`, [clientId, orgId]);
+        if (!c) continue;
         await db.run(
           `INSERT INTO client_group_members (group_id, client_id)
            VALUES (?, ?) ON CONFLICT (group_id, client_id) DO NOTHING`,

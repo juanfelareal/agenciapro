@@ -5,6 +5,9 @@ import Login from './pages/Login';
 import Landing from './pages/Landing';
 import SelectOrganization from './pages/SelectOrganization';
 import Register from './pages/Register';
+import ForgotPin from './pages/ForgotPin'; // [email]
+import AcceptInvite from './pages/AcceptInvite'; // [email]
+import EmailTemplatesPreview from './pages/EmailTemplatesPreview'; // [email]
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Projects from './pages/Projects';
@@ -44,6 +47,8 @@ import SiigoSettings from './pages/SiigoSettings';
 import SiigoCustomers from './pages/SiigoCustomers';
 import SiigoInvoices from './pages/SiigoInvoices';
 import Settings from './pages/Settings';
+import OrgBranding from './pages/OrgBranding'; // [branding]
+import WhatsappReports from './pages/WhatsappReports'; // [briefings]
 import ClientCalls from './pages/ClientCalls';
 import ClientDocuments from './pages/ClientDocuments';
 import ClientReports from './pages/ClientReports';
@@ -62,6 +67,10 @@ import UGCRegister from './pages/UGCRegister';
 import DocumentTemplates from './pages/DocumentTemplates';
 import FinancialDashboard from './pages/FinancialDashboard';
 import ClientFinancialDashboard from './pages/ClientFinancialDashboard';
+// [modules] Planes, módulos por organización y panel de plataforma
+import OrgModules from './pages/OrgModules';
+import Subscription from './pages/Subscription';
+import Platform from './pages/Platform';
 
 // Portal imports
 import PortalLayout from './components/portal/PortalLayout';
@@ -102,6 +111,9 @@ function App() {
 
         {/* Register page - no layout */}
         <Route path="/register" element={<Register />} />
+        {/* [email] Recuperar PIN e invitación al equipo por enlace */}
+        <Route path="/recuperar-pin" element={<ForgotPin />} />
+        <Route path="/invitacion/:token" element={<AcceptInvite />} />
 
         {/* Landing page - no layout */}
         <Route path="/landing" element={<Landing />} />
@@ -607,6 +619,13 @@ function App() {
                 <Route path="mejoras" element={<ProtectedRoute><OrbitFeedback /></ProtectedRoute>} />
                 <Route path="novedades" element={<ProtectedRoute><News /></ProtectedRoute>} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="configuracion/correos" element={<EmailTemplatesPreview />} /> {/* [email] */}
+                {/* [modules] Módulos, suscripción y panel de plataforma */}
+                <Route path="configuracion/modulos" element={<ProtectedRoute><OrgModules /></ProtectedRoute>} />
+                <Route path="suscripcion" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+                <Route path="plataforma" element={<ProtectedRoute><Platform /></ProtectedRoute>} />
+                <Route path="configuracion/marca" element={<OrgBranding />} /> {/* [branding] solo admin (lo valida la página) */}
+                <Route path="configuracion/whatsapp" element={<ProtectedRoute><WhatsappReports /></ProtectedRoute>} /> {/* [briefings] */}
               </Routes>
             </Layout>
           }

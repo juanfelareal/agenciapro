@@ -214,7 +214,7 @@ export default function DocumentTemplates() {
             </div>
           ) : (
             templates.map((template) => (
-              <div key={template.id} className="bg-white border border-ink-200 rounded-xl p-4">
+              <div key={template.id} className="bg-[var(--surface)] border border-ink-200 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-ink-100 rounded-xl flex items-center justify-center">
@@ -271,7 +271,7 @@ export default function DocumentTemplates() {
 
       {/* Signatures Tab */}
       {activeTab === 'signatures' && (
-        <div className="bg-white border border-ink-200 rounded-xl overflow-x-auto">
+        <div className="bg-[var(--surface)] border border-ink-200 rounded-xl overflow-x-auto">
           <table className="w-full">
             <thead className="bg-ink-50">
               <tr>
@@ -330,7 +330,7 @@ export default function DocumentTemplates() {
       {/* Template Modal */}
       {showTemplateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-ink-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-ink-900">
                 {editingTemplate ? 'Editar plantilla' : 'Nueva plantilla'}
@@ -423,7 +423,7 @@ export default function DocumentTemplates() {
       {/* Assign Modal */}
       {showAssignModal && selectedTemplate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="p-6 border-b border-ink-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-ink-900">Asignar documento</h2>
               <button onClick={() => setShowAssignModal(false)} className="text-ink-400 hover:text-ink-600">
@@ -502,13 +502,13 @@ function ClientPreviewModal({ preview, clients, clientId, onClientChange, onClos
   const html = renderForClient(preview.content, client);
   const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>body{margin:0;padding:8px;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;color:#1a1a1a;line-height:1.6}img{max-width:100%}table{border-collapse:collapse}</style>
+    <style>body{margin:0;padding:8px;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;color:#121212;line-height:1.6}img{max-width:100%}table{border-collapse:collapse}</style>
     </head><body>${html}</body></html>`;
   const signerName = client ? (client.name || '') : '';
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-6" onClick={onClose}>
-      <div className="bg-[#F5F5F3] rounded-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-white border-b border-ink-200">
+      <div className="bg-[var(--bg)] rounded-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-[var(--surface)] border-b border-ink-200">
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-ink-500" />
             <div>
@@ -517,7 +517,7 @@ function ClientPreviewModal({ preview, clients, clientId, onClientChange, onClos
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <select value={clientId} onChange={(e) => onClientChange(e.target.value)} className="px-3 py-1.5 border border-ink-200 rounded-lg text-sm bg-white">
+            <select value={clientId} onChange={(e) => onClientChange(e.target.value)} className="px-3 py-1.5 border border-ink-200 rounded-lg text-sm bg-[var(--surface)]">
               <option value="">Cliente de muestra</option>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.nickname || c.company || c.name}</option>)}
             </select>
@@ -537,12 +537,12 @@ function ClientPreviewModal({ preview, clients, clientId, onClientChange, onClos
             </div>
 
             {/* Documento */}
-            <div className="bg-white border border-ink-200 rounded-xl p-2 sm:p-4 mb-6">
+            <div className="bg-[var(--surface)] border border-ink-200 rounded-xl p-2 sm:p-4 mb-6">
               <iframe title="Vista previa del documento" sandbox="" srcDoc={srcDoc} className="w-full border-0 rounded-lg" style={{ minHeight: '60vh' }} />
             </div>
 
             {/* Bloque de firma (maqueta, deshabilitado) */}
-            <div className="bg-white border border-ink-200 rounded-xl p-6 opacity-95">
+            <div className="bg-[var(--surface)] border border-ink-200 rounded-xl p-6 opacity-95">
               <h2 className="text-lg font-semibold text-ink-900 mb-4">Firma del documento</h2>
               <div className="grid gap-4 md:grid-cols-2 mb-6">
                 <label className="text-sm text-ink-600">Nombre completo *

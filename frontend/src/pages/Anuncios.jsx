@@ -222,7 +222,7 @@ function AdsTab({ ads, loading, search, setSearch, platformFilter, setPlatformFi
         <select
           value={platformFilter}
           onChange={(e) => setPlatformFilter(e.target.value)}
-          className="px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none bg-white"
+          className="px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none bg-[var(--surface)]"
         >
           <option value="">Todas las plataformas</option>
           {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
@@ -344,7 +344,7 @@ function AdCard({ ad, onEdit, onDelete }) {
 
 function EmptyState({ onNew }) {
   return (
-    <div className="bg-white border border-dashed border-gray-300 rounded-xl py-16 text-center">
+    <div className="bg-[var(--surface)] border border-dashed border-gray-300 rounded-xl py-16 text-center">
       <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
         <Megaphone className="w-6 h-6 text-indigo-600" />
       </div>
@@ -427,8 +427,8 @@ function AdModal({ ad, clients, groups, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-2 rounded-t-xl">
+      <div className="bg-[var(--surface)] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-[var(--surface)] border-b border-gray-200 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-2 rounded-t-xl">
           <h2 className="text-lg font-semibold text-gray-900">
             {editing ? 'Editar anuncio' : 'Nuevo anuncio referente'}
           </h2>
@@ -483,7 +483,7 @@ function AdModal({ ad, clients, groups, onClose, onSaved }) {
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none bg-white"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none bg-[var(--surface)]"
               >
                 <option value="">Auto-detectar</option>
                 {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
@@ -573,7 +573,7 @@ function AdModal({ ad, clients, groups, onClose, onSaved }) {
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 md:px-6 py-3 flex flex-wrap items-center justify-end gap-2 rounded-b-xl">
+        <div className="sticky bottom-0 bg-[var(--surface)] border-t border-gray-200 px-4 md:px-6 py-3 flex flex-wrap items-center justify-end gap-2 rounded-b-xl">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
@@ -614,7 +614,7 @@ function GroupsTab({ groups, loading, onNew, onEdit, onDelete }) {
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 text-gray-400 animate-spin" /></div>
       ) : groups.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-xl py-16 text-center">
+        <div className="bg-[var(--surface)] border border-dashed border-gray-300 rounded-xl py-16 text-center">
           <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
             <Users className="w-6 h-6 text-indigo-600" />
           </div>
@@ -720,8 +720,8 @@ function GroupModal({ group, clients, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-2 rounded-t-xl">
+      <div className="bg-[var(--surface)] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-[var(--surface)] border-b border-gray-200 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-2 rounded-t-xl">
           <h2 className="text-lg font-semibold text-gray-900">
             {editing ? 'Editar grupo' : 'Nuevo grupo de clientes'}
           </h2>
@@ -805,7 +805,7 @@ function GroupModal({ group, clients, onClose, onSaved }) {
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 md:px-6 py-3 flex flex-wrap items-center justify-end gap-2 rounded-b-xl">
+        <div className="sticky bottom-0 bg-[var(--surface)] border-t border-gray-200 px-4 md:px-6 py-3 flex flex-wrap items-center justify-end gap-2 rounded-b-xl">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
           <button
             onClick={handleSave}

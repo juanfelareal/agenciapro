@@ -48,7 +48,7 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
   return (
     <div className="glass-card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-[#17181A] flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-[var(--ink)] flex items-center gap-2">
           <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
             <Mail className="w-4 h-4 text-pink-600" />
           </div>
@@ -228,7 +228,7 @@ export default function PortalEmailMarketingSection({ getApiParams }) {
   );
 }
 
-const Stat = ({ label, value, sub, accent = 'text-[#17181A]' }) => (
+const Stat = ({ label, value, sub, accent = 'text-[var(--ink)]' }) => (
   <div className="bg-gray-50 rounded-xl p-3">
     <p className="text-xs text-gray-500">{label}</p>
     <p className={`text-lg font-bold ${accent}`}>{value}</p>

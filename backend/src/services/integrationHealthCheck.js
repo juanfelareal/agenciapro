@@ -11,7 +11,11 @@ import { testFacebookConnectionWithFallback } from '../utils/facebookClient.js';
  * Updates status / last_error so the UI can surface stale tokens before
  * the user notices in production.
  */
-export async function runIntegrationHealthCheck() {
+export async function runIntegrationHealthCheck(orgId = null) {
+  // orgId: desde una ruta autenticada solo se revisan las integraciones de ESA organización;
+  // el cron (sin orgId) recorre todas, pero siempre credencial por credencial (nunca mezcla clientes).
+  const orgFilter = orgId ? 'AND c.organization_id = ?' : '';
+  const orgParams = orgId ? [orgId] : [];
   const startedAt = new Date();
   const summary = { facebook: { ok: 0, fail: 0 }, google: { ok: 0, fail: 0 }, tiktok: { ok: 0, fail: 0 }, shopify: { ok: 0, fail: 0 }, woocommerce: { ok: 0, fail: 0 }, siigo: { ok: 0, fail: 0 } };
   const failures = [];
@@ -22,7 +26,8 @@ export async function runIntegrationHealthCheck() {
            c.organization_id, c.name as client_name, c.company
     FROM client_facebook_credentials cfc
     JOIN clients c ON cfc.client_id = c.id
-  `).all();
+    WHERE 1 = 1 ${orgFilter}
+  `).all(...orgParams);
 
   for (const a of fbAccounts) {
     try {
@@ -66,7 +71,8 @@ export async function runIntegrationHealthCheck() {
            c.organization_id, c.name as client_name, c.company
     FROM client_google_ads_credentials cgc
     JOIN clients c ON cgc.client_id = c.id
-  `).all();
+    WHERE 1 = 1 ${orgFilter}
+  `).all(...orgParams);
 
   for (const a of gaAccounts) {
     const refreshToken = a.refresh_token || process.env.GOOGLE_ADS_REFRESH_TOKEN;
@@ -111,7 +117,8 @@ export async function runIntegrationHealthCheck() {
            c.organization_id, c.name as client_name, c.company
     FROM client_tiktok_credentials ctc
     JOIN clients c ON ctc.client_id = c.id
-  `).all();
+    WHERE 1 = 1 ${orgFilter}
+  `).all(...orgParams);
 
   for (const a of ttAccounts) {
     const token = a.access_token || process.env.TIKTOK_SYSTEM_ACCESS_TOKEN;
@@ -156,8 +163,8 @@ export async function runIntegrationHealthCheck() {
            c.organization_id, c.name as client_name, c.company
     FROM client_woocommerce_credentials w
     JOIN clients c ON w.client_id = c.id
-    WHERE w.consumer_key IS NOT NULL AND w.consumer_secret IS NOT NULL
-  `).all();
+    WHERE w.consumer_key IS NOT NULL AND w.consumer_secret IS NOT NULL ${orgFilter}
+  `).all(...orgParams);
   for (const w of wooAccounts) {
     try {
       const woo = new WooCommerceIntegration(w.store_url, w.consumer_key, w.consumer_secret);
@@ -184,8 +191,8 @@ export async function runIntegrationHealthCheck() {
            c.organization_id, c.name as client_name, c.company
     FROM client_shopify_credentials csc
     JOIN clients c ON csc.client_id = c.id
-    WHERE csc.access_token IS NOT NULL
-  `).all();
+    WHERE csc.access_token IS NOT NULL ${orgFilter}
+  `).all(...orgParams);
 
   for (const s of shopifyAccounts) {
     try {
@@ -224,9 +231,9 @@ export async function runIntegrationHealthCheck() {
   }
 
   // -------- Siigo (per organization) --------
-  const siigoOrgs = await db.prepare(
-    'SELECT DISTINCT organization_id FROM siigo_settings WHERE is_active = 1'
-  ).all();
+  const siigoOrgs = orgId
+    ? await db.prepare('SELECT DISTINCT organization_id FROM siigo_settings WHERE is_active = 1 AND organization_id = ?').all(orgId)
+    : await db.prepare('SELECT DISTINCT organization_id FROM siigo_settings WHERE is_active = 1').all();
 
   for (const row of siigoOrgs) {
     try {
@@ -269,7 +276,7 @@ export async function runIntegrationHealthCheck() {
  * Refreshes Facebook tokens that are expiring within the next 7 days.
  * Facebook long-lived tokens (60 days) can be exchanged for new ones while still valid.
  */
-export async function refreshExpiringFacebookTokens() {
+export async function refreshExpiringFacebookTokens(orgId = null) {
   const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;
   const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET;
 
@@ -289,7 +296,8 @@ export async function refreshExpiringFacebookTokens() {
       AND cfc.expires_at IS NOT NULL
       AND cfc.expires_at < ?
       AND cfc.expires_at > CURRENT_TIMESTAMP
-  `).all(sevenDaysFromNow.toISOString());
+      ${orgId ? 'AND c.organization_id = ?' : ''}
+  `).all(...(orgId ? [sevenDaysFromNow.toISOString(), orgId] : [sevenDaysFromNow.toISOString()]));
 
   console.log(`[TokenRefresh] Found ${expiringTokens.length} Facebook tokens expiring within 7 days`);
 

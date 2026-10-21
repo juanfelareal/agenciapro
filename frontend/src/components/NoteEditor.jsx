@@ -298,7 +298,7 @@ const NoteEditor = ({
 
   return (
     <>
-      <div className={`border border-slate-200 rounded-lg bg-white overflow-hidden ${readOnly ? 'border-transparent' : ''}`}>
+      <div className={`border border-slate-200 rounded-lg bg-[var(--surface)] overflow-hidden ${readOnly ? 'border-transparent' : ''}`}>
         {!readOnly && (
           <EditorToolbar
             editor={editor}

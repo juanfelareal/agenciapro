@@ -92,7 +92,7 @@ const StepCard = ({ step, index, totalSteps, onChange, onDelete, onMoveUp, onMov
   const [showVideoInput, setShowVideoInput] = useState(!!step.video_url);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+    <div className="bg-[var(--surface)] border border-slate-200 rounded-lg overflow-hidden">
       {/* Step Header */}
       <div className="flex items-center gap-3 p-3 bg-slate-50 border-b border-slate-200">
         <div className="flex items-center gap-1 text-slate-400">
@@ -108,7 +108,7 @@ const StepCard = ({ step, index, totalSteps, onChange, onDelete, onMoveUp, onMov
           value={step.title}
           onChange={(e) => onChange({ ...step, title: e.target.value })}
           placeholder={`Título del paso ${index + 1}`}
-          className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-300"
+          className="flex-1 px-3 py-1.5 bg-[var(--surface)] border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-300"
         />
 
         <div className="flex items-center gap-1">

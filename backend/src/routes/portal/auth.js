@@ -2,8 +2,30 @@ import express from 'express';
 import crypto from 'crypto';
 import db from '../../config/database.js';
 import { clientAuthMiddleware } from '../../middleware/clientAuth.js';
+import { normalizeBranding } from '../../utils/branding.js'; // [branding]
 
 const router = express.Router();
+
+/**
+ * [branding] Agencia dueña del cliente: nombre, logo y marca (acento, tema…)
+ * para que el portal se vea con la identidad de la agencia.
+ */
+async function getAgencyForClient(clientId) {
+  try {
+    const org = await db.get(`
+      SELECT o.name, o.logo_url, o.branding
+      FROM clients c
+      JOIN organizations o ON o.id = c.organization_id
+      WHERE c.id = ?
+    `, [clientId]);
+    if (!org) return null;
+    const branding = normalizeBranding(org.branding, { logo_url: org.logo_url });
+    return { name: org.name, logo_url: branding.logo_url || org.logo_url || null, branding };
+  } catch (e) {
+    console.error('Portal agency branding lookup failed:', e.message);
+    return null;
+  }
+}
 
 /**
  * Generate a secure session token
@@ -29,7 +51,8 @@ router.post('/login', async (req, res) => {
 
     // Find the invite token
     const invite = await db.get(`
-      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email, c.logo_url as client_logo_url
+      SELECT cat.*, c.name as client_name, c.nickname as client_nickname, c.company, c.email, c.logo_url as client_logo_url,
+             c.organization_id as client_org_id
       FROM client_access_tokens cat
       JOIN clients c ON cat.client_id = c.id
       WHERE cat.token = ?
@@ -45,10 +68,12 @@ router.post('/login', async (req, res) => {
     const sessionToken = generateSessionToken();
 
     // Create session
+    // La sesión hereda la organización del cliente (nunca NULL: el backfill de arranque la asignaría a la org 1)
+    const clientOrgId = invite.client_org_id || invite.organization_id || null;
     await db.run(`
-      INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, last_used_at)
-      VALUES (?, ?, 'session', 'active', NULL, CURRENT_TIMESTAMP)
-    `, [invite.client_id, sessionToken]);
+      INSERT INTO client_access_tokens (client_id, token, token_type, status, expires_at, last_used_at, organization_id)
+      VALUES (?, ?, 'session', 'active', NULL, CURRENT_TIMESTAMP, ?)
+    `, [invite.client_id, sessionToken, clientOrgId]);
 
     // Get portal settings
     let settings = await db.get(`
@@ -57,12 +82,13 @@ router.post('/login', async (req, res) => {
 
     // Create default settings if not exist
     if (!settings) {
-      await db.run(`INSERT INTO client_portal_settings (client_id) VALUES (?)`, [invite.client_id]);
+      await db.run(`INSERT INTO client_portal_settings (client_id, organization_id) VALUES (?, ?)`, [invite.client_id, clientOrgId]);
       settings = await db.get(`SELECT * FROM client_portal_settings WHERE client_id = ?`, [invite.client_id]);
     }
 
     // Helper to default to true for backwards compatibility (new fields may be null)
     const toBool = (val, defaultVal = true) => val === null || val === undefined ? defaultVal : !!val;
+    const agency = await getAgencyForClient(invite.client_id); // [branding]
 
     res.json({
       token: sessionToken,
@@ -74,6 +100,7 @@ router.post('/login', async (req, res) => {
         email: invite.email,
         logo_url: invite.client_logo_url || null
       },
+      agency, // [branding] { name, logo_url, branding }
       permissions: {
         can_view_dashboard: toBool(settings.can_view_dashboard),
         can_view_projects: toBool(settings.can_view_projects),
@@ -143,6 +170,7 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
     // Helper to default to true for backwards compatibility (new fields may be null)
     const toBool = (val, defaultVal = true) => val === null || val === undefined ? defaultVal : !!val;
     const p = req.client.permissions;
+    const agency = await getAgencyForClient(req.client.id); // [branding]
 
     res.json({
       client: {
@@ -153,6 +181,7 @@ router.get('/me', clientAuthMiddleware, async (req, res) => {
         email: req.client.email,
         logo_url: req.client.logo_url || null
       },
+      agency, // [branding] { name, logo_url, branding }
       permissions: {
         can_view_dashboard: toBool(p.can_view_dashboard),
         can_view_projects: toBool(p.can_view_projects),

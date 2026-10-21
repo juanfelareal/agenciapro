@@ -110,7 +110,7 @@ export default function PortalPaymentProofs() {
             const isPaid = inv.status === 'paid';
             const hasProofs = inv.proofs?.length > 0;
             return (
-              <div key={inv.id} className="bg-white border border-ink-100 rounded-2xl p-5">
+              <div key={inv.id} className="bg-[var(--surface)] border border-ink-100 rounded-2xl p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export default function PortalPaymentProofs() {
                             href={fileUrl(p.file_path)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2 rounded-lg hover:bg-white text-ink-500 hover:text-ink-900"
+                            className="p-2 rounded-lg hover:bg-[var(--surface)] text-ink-500 hover:text-ink-900"
                             title="Descargar / ver"
                           >
                             <Download size={16} />
@@ -179,7 +179,7 @@ export default function PortalPaymentProofs() {
                   <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-colors ${
                     uploadingFor === inv.id
                       ? 'bg-ink-100 text-ink-400 cursor-wait'
-                      : 'bg-[#17181A] text-white hover:bg-[#26282C]'
+                      : 'bg-[var(--dark)] text-white hover:bg-[#1C1D1F]'
                   }`}>
                     {uploadingFor === inv.id ? (
                       <Loader2 size={16} className="animate-spin" />

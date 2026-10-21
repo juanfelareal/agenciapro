@@ -21,7 +21,8 @@ const dbUrl = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
 
 const pool = new Pool({
   connectionString: dbUrl,
-  ssl: { rejectUnauthorized: false }
+  // Mismo criterio que database.js: SSL solo en producción (una base local no lo soporta)
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 async function migrate() {
@@ -200,20 +201,29 @@ async function migrate() {
         console.log(`  ⏭️  User already exists: ${member.email} (user_id=${userId})`);
       }
 
-      // Link team_member to user and org
+      // Link team_member to user; la org solo se asigna si el miembro no tiene una
+      // (multi-tenant: nunca mover un miembro de otra organización a LA REAL).
       await client.query(`
-        UPDATE team_members SET user_id = $1, organization_id = $2 WHERE id = $3
+        UPDATE team_members SET user_id = $1, organization_id = COALESCE(organization_id, $2) WHERE id = $3
       `, [userId, orgId, member.id]);
     }
 
-    // 4c. Set organization_id = orgId on all root tables
-    for (const table of rootTables) {
-      const result = await client.query(`
-        UPDATE ${table} SET organization_id = $1 WHERE organization_id IS NULL
-      `, [orgId]);
-      if (result.rowCount > 0) {
-        console.log(`  ✅ ${table}: ${result.rowCount} rows updated with org_id=${orgId}`);
+    // 4c. Set organization_id = orgId on all root tables.
+    // SOLO en instalaciones mono-tenant (una sola organización). Con varias orgs,
+    // asignar huérfanos a LA REAL filtraría datos de otra organización; en ese caso
+    // el backfill por padre de initializeDatabase es el único que corre.
+    const orgCount = await client.query(`SELECT COUNT(*)::int AS n FROM organizations`);
+    if (orgCount.rows[0].n <= 1) {
+      for (const table of rootTables) {
+        const result = await client.query(`
+          UPDATE ${table} SET organization_id = $1 WHERE organization_id IS NULL
+        `, [orgId]);
+        if (result.rowCount > 0) {
+          console.log(`  ✅ ${table}: ${result.rowCount} rows updated with org_id=${orgId}`);
+        }
       }
+    } else {
+      console.log('  ⏭️  Varias organizaciones: no se asignan filas huérfanas a LA REAL');
     }
 
     // 4d. Copy team_session_tokens → user_session_tokens

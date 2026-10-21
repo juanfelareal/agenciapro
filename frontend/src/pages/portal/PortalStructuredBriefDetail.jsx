@@ -119,7 +119,7 @@ export default function PortalStructuredBriefDetail() {
 
       {/* Progress bar */}
       {brief.generated_project_id && totalTasks > 0 && (
-        <div className="bg-white rounded-2xl border border-ink-100 p-4">
+        <div className="bg-[var(--surface)] rounded-2xl border border-ink-100 p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-ink-900">Progreso del proyecto</span>
             <span className="text-sm text-ink-500">{completedTasks} de {totalTasks} tareas completadas</span>
@@ -141,7 +141,7 @@ export default function PortalStructuredBriefDetail() {
           const sectionTotal = section.tasks?.length || 0;
 
           return (
-            <div key={section.id} className="bg-white rounded-2xl border border-ink-100 overflow-hidden">
+            <div key={section.id} className="bg-[var(--surface)] rounded-2xl border border-ink-100 overflow-hidden">
               {/* Section header */}
               <div
                 onClick={() => toggleSection(section.id)}
@@ -209,7 +209,7 @@ export default function PortalStructuredBriefDetail() {
                               className={`p-3 rounded-xl border ${
                                 task.task_status === 'done'
                                   ? 'bg-emerald-50/50 border-emerald-100'
-                                  : 'bg-white border-ink-100'
+                                  : 'bg-[var(--surface)] border-ink-100'
                               }`}
                             >
                               <div className="flex items-start gap-3">

@@ -69,9 +69,11 @@ export const useCollaboration = (noteId, user) => {
       console.log('[Collab] Connected to server');
       setConnected(true);
 
-      // Join the note room
+      // Join the note room (el backend exige el token de sesión para verificar
+      // que la nota pertenece a la organización del usuario)
       socket.emit('join-note', {
         noteId,
+        token: localStorage.getItem('token'),
         user: {
           name: user?.name || 'Anonymous',
           color: user?.color || getRandomColor(),

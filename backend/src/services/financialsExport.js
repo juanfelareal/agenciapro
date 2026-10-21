@@ -9,6 +9,7 @@
 import * as XLSX from 'xlsx';
 import db from '../config/database.js';
 import { computeFinancials } from './clientFinancialsService.js';
+import { normalizeBranding } from '../utils/branding.js'; // [branding]
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const FMT_MONEY = '#,##0;-#,##0';
@@ -30,6 +31,18 @@ export function financialsExportFilename(brand, period) {
 }
 
 /** Nombre visible de la marca (nickname > company > name). */
+/** [branding] Nombre y pie de informes de la agencia (organización) dueña del dato. */
+export async function getAgencyBrand(orgId) {
+  try {
+    const org = await db.get('SELECT name, logo_url, branding FROM organizations WHERE id = ?', [orgId]);
+    if (!org) return null;
+    const b = normalizeBranding(org.branding, { logo_url: org.logo_url });
+    return { name: org.name, logo_url: b.logo_url, accent: b.accent, report_footer: b.report_footer };
+  } catch {
+    return null;
+  }
+}
+
 export async function getClientBrandName(clientId, orgId) {
   const row = await db.get('SELECT name, nickname, company FROM clients WHERE id = ? AND organization_id = ?', [clientId, orgId]);
   return row?.nickname || row?.company || row?.name || 'cliente';
@@ -60,13 +73,15 @@ const KIND_LABEL = { percent: 'Porcentaje', per_order: 'Por pedido', per_unit: '
 const BASE_LABEL = { revenue: 'Venta neta', net_revenue: 'Venta neta − costo de producto', gross_revenue: 'Venta total pagada (con IVA y envío)' };
 
 // ─── Hojas ───
-function buildResumen(data, brand) {
+function buildResumen(data, brand, agency = null) {
   const t = data.totals || {};
   const be = data.break_even || {};
   const proj = data.projection || {};
   const costsTotal = (t.cogs || 0) + (t.ad_spend || 0) + (t.variable_costs || 0) + (t.fixed_costs || 0);
   const rows = [
     [text(`Finanzas — ${brand}`), text(monthLabel(data.period))],
+    // [branding] Agencia que prepara el informe (nombre de la organización + pie configurado)
+    ...(agency?.name ? [[text('Preparado por'), text(agency.name), text(agency.report_footer || '')]] : []),
     [text('Periodo'), text(`${data.start} a ${data.end}`)],
     [text('Días transcurridos'), int(data.days_elapsed), text(`de ${data.days_in_month}`)],
     [text('Base'), text('Venta neta confirmada, todo sin IVA')],
@@ -203,17 +218,19 @@ function buildCostosVariables(data) {
  *   `brand` (opcional) = nombre de la marca para el encabezado (si no, se lee de la tabla clients).
  * @returns {Promise<Buffer>}
  */
-export async function buildFinancialsWorkbook({ clientId, orgId, period, data = null, brand = null }) {
+export async function buildFinancialsWorkbook({ clientId, orgId, period, data = null, brand = null, agency = null }) {
   const financials = data || await computeFinancials({ clientId: Number(clientId), orgId, period, light: true });
   const brandName = brand || (clientId && orgId ? await getClientBrandName(clientId, orgId) : 'cliente');
+  // [branding] Marca de la agencia (nombre + pie de informes). Si no la pasan, se lee de la organización.
+  const agencyBrand = agency || (orgId ? await getAgencyBrand(orgId) : null);
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, buildResumen(financials, brandName), 'Resumen');
+  XLSX.utils.book_append_sheet(wb, buildResumen(financials, brandName, agencyBrand), 'Resumen');
   XLSX.utils.book_append_sheet(wb, buildDiario(financials), 'Diario');
   XLSX.utils.book_append_sheet(wb, buildProductos(financials), 'Productos');
   XLSX.utils.book_append_sheet(wb, buildCostosFijos(financials), 'Costos fijos');
   XLSX.utils.book_append_sheet(wb, buildCostosVariables(financials), 'Costos variables');
-  wb.Props = { Title: `Finanzas ${brandName} ${monthLabel(period)}`, Author: 'Orbit', CreatedDate: new Date() };
+  wb.Props = { Title: `Finanzas ${brandName} ${monthLabel(period)}`, Author: agencyBrand?.name || 'Orbit', CreatedDate: new Date() };
 
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', cellStyles: false });
 }

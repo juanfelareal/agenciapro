@@ -73,7 +73,7 @@ export default function AssignedAlerts({ onOpenTask }) {
       {visible.length >= 3 && (
         <div className="flex items-center justify-between px-1">
           <span className="text-xs font-medium text-gray-500">{visible.length} tareas nuevas asignadas a ti</span>
-          <button type="button" onClick={dismissAll} className="text-xs text-gray-500 hover:text-[#17181A] underline underline-offset-2">Quitar todos los avisos</button>
+          <button type="button" onClick={dismissAll} className="text-xs text-gray-500 hover:text-[var(--ink)] underline underline-offset-2">Quitar todos los avisos</button>
         </div>
       )}
       {visible.map((item) => {
@@ -91,7 +91,7 @@ export default function AssignedAlerts({ onOpenTask }) {
           >
             <span className="shrink-0 w-8 h-8 rounded-full bg-sky-500 text-white flex items-center justify-center"><UserPlus size={15} /></span>
             <div className="flex-1 min-w-0">
-              <div className="text-sm text-[#17181A] truncate">
+              <div className="text-sm text-[var(--ink)] truncate">
                 {item.assigned_by_name
                   ? <><span className="font-semibold">{firstName(item.assigned_by_name)}</span> te asignó: </>
                   : <span className="font-semibold">Te asignaron: </span>}
@@ -108,7 +108,7 @@ export default function AssignedAlerts({ onOpenTask }) {
             <button
               type="button"
               onClick={(e) => dismiss(item, e)}
-              className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-[#17181A] hover:bg-white/80"
+              className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.03)]"
               title="Quitar aviso"
               aria-label="Quitar aviso"
             >

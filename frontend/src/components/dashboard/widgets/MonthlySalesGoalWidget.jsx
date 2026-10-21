@@ -145,8 +145,8 @@ const MonthlySalesGoalWidget = () => {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#7A7772' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#7A7772' }} axisLine={false} tickLine={false} />
               <Tooltip
                 formatter={(value, name) => [formatCurrencyFull(value), name]}
                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }}
@@ -267,7 +267,7 @@ const MonthlySalesGoalWidget = () => {
 
       {showGoalsModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-xl">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-xl">
             <div className="flex justify-between items-center p-6 pb-4 border-b border-ink-100">
               <h2 className="text-xl font-semibold text-ink-900">Editar metas {year}</h2>
               <button onClick={() => setShowGoalsModal(false)} className="p-2 hover:bg-ink-100 rounded-xl">
@@ -303,7 +303,7 @@ const MonthlySalesGoalWidget = () => {
               <button
                 onClick={handleSaveGoals}
                 disabled={savingGoals}
-                className="px-4 py-2 text-sm font-medium bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] flex items-center gap-2"
               >
                 <Save size={16} />
                 {savingGoals ? 'Guardando…' : 'Guardar metas'}

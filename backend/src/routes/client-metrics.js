@@ -946,7 +946,7 @@ router.post('/sync/:clientId', async (req, res) => {
       days
     });
 
-    syncClientDateRange(parseInt(clientId), startDate, endDate)
+    syncClientDateRange(parseInt(clientId), startDate, endDate, orgId)
       .then(result => {
         console.log(`✅ Client ${clientId} sync done: ${result.recordsProcessed} days processed`);
       })
@@ -974,8 +974,8 @@ router.post('/sync-all', async (req, res) => {
       status: 'running'
     });
 
-    // Run sync in background (not awaited)
-    syncAllClientsSmart(start_date, end_date)
+    // Run sync in background (not awaited) — solo los clientes de esta organización
+    syncAllClientsSmart(start_date, end_date, req.orgId)
       .then(result => {
         console.log(`✅ Background sync done: ${result.daysProcessed} days synced, ${result.daysSkipped} skipped, ${result.errors.length} errors`);
       })

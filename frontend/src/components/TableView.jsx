@@ -194,14 +194,14 @@ const TableView = ({ projectId }) => {
                   {task.assignees.slice(0, 3).map((a) => (
                     <span
                       key={a.id}
-                      className="w-5 h-5 rounded-full bg-[#17181A] text-[#D7F653] flex items-center justify-center text-[9px] font-medium ring-1 ring-white"
+                      className="w-5 h-5 rounded-full bg-[var(--dark)] text-[var(--accent)] flex items-center justify-center text-[9px] font-medium ring-1 ring-[var(--surface)]"
                       title={a.name}
                     >
                       {a.name.charAt(0).toUpperCase()}
                     </span>
                   ))}
                   {task.assignees.length > 3 && (
-                    <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] ring-1 ring-white">
+                    <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] ring-1 ring-[var(--surface)]">
                       +{task.assignees.length - 3}
                     </span>
                   )}
@@ -305,7 +305,7 @@ const TableView = ({ projectId }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-[var(--surface)] rounded-lg shadow">
       {/* Table Header */}
       <div className="p-4 border-b flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-800">Vista de Tabla</h3>
@@ -392,7 +392,7 @@ const TableView = ({ projectId }) => {
       {/* Comments Modal */}
       {showCommentsModal && selectedTaskForComments && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl h-[80vh] flex flex-col">
+          <div className="bg-[var(--surface)] rounded-lg w-full max-w-2xl h-[80vh] flex flex-col">
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-xl font-bold">Comentarios - {selectedTaskForComments.title}</h2>
               <button onClick={handleCloseComments}>
@@ -412,7 +412,7 @@ const TableView = ({ projectId }) => {
       {/* Task Modal */}
       {showTaskModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div className="bg-[var(--surface)] rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-2xl font-bold">
                 {editingTask ? 'Editar Tarea' : 'Nueva Tarea'}

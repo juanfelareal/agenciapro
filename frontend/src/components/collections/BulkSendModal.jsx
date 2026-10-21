@@ -48,9 +48,9 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-          <h3 className="text-lg font-bold text-[#17181A]">{result ? 'Cobro masivo completado' : 'Cobrar a todos'}</h3>
+          <h3 className="text-lg font-bold text-[var(--ink)]">{result ? 'Cobro masivo completado' : 'Cobrar a todos'}</h3>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
@@ -70,12 +70,12 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
 
             {result.results?.length > 0 && (
               <div>
-                <p className="text-sm font-semibold text-[#17181A] mb-2">Clientes {result.scheduled > 0 ? 'programados' : 'cobrados'}</p>
+                <p className="text-sm font-semibold text-[var(--ink)] mb-2">Clientes {result.scheduled > 0 ? 'programados' : 'cobrados'}</p>
                 <div className="space-y-1.5">
                   {result.results.map((r) => (
                     <div key={r.client_id} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg bg-gray-50">
                       <span className="flex items-center gap-2 text-gray-700"><CheckCircle size={14} className="text-emerald-500" />{r.client_name} <span className="text-gray-400 text-xs">{r.email}</span></span>
-                      <span className="font-semibold text-[#17181A]">{formatCurrency(r.total_owed)}</span>
+                      <span className="font-semibold text-[var(--ink)]">{formatCurrency(r.total_owed)}</span>
                     </div>
                   ))}
                 </div>
@@ -84,7 +84,7 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
 
             {result.skipped?.length > 0 && (
               <div>
-                <p className="text-sm font-semibold text-[#17181A] mb-2">Omitidos y por qué</p>
+                <p className="text-sm font-semibold text-[var(--ink)] mb-2">Omitidos y por qué</p>
                 <div className="space-y-1.5">
                   {result.skipped.map((s) => (
                     <div key={s.client_id} className="flex items-start gap-2 text-sm px-3 py-2 rounded-lg bg-amber-50 text-amber-800">
@@ -97,7 +97,7 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
             )}
 
             <div className="flex justify-end pt-2">
-              <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium">Cerrar</button>
+              <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium">Cerrar</button>
             </div>
           </div>
         ) : (
@@ -115,11 +115,11 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
               ) : (
                 <div className="border border-gray-100 rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button type="button" onClick={toggleAll} className="flex items-center gap-2 hover:text-[#17181A]">
+                    <button type="button" onClick={toggleAll} className="flex items-center gap-2 hover:text-[var(--ink)]">
                       {allSelected ? <CheckSquare size={15} /> : <Square size={15} />}
                       {selectedClients.length} de {withEmail.length} clientes
                     </button>
-                    <span className="text-[#17181A] font-bold normal-case tracking-normal text-sm">{formatCurrency(selectedTotal)}</span>
+                    <span className="text-[var(--ink)] font-bold normal-case tracking-normal text-sm">{formatCurrency(selectedTotal)}</span>
                   </div>
                   <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
                     {withEmail.map((d) => {
@@ -132,13 +132,13 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
                           className={`w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${checked ? '' : 'opacity-50'}`}
                         >
                           <span className="flex items-center gap-2 min-w-0">
-                            {checked ? <CheckSquare size={15} className="text-[#17181A] shrink-0" /> : <Square size={15} className="text-gray-300 shrink-0" />}
+                            {checked ? <CheckSquare size={15} className="text-[var(--ink)] shrink-0" /> : <Square size={15} className="text-gray-300 shrink-0" />}
                             <span className="min-w-0">
-                              <span className="block text-sm font-medium text-[#17181A] truncate">{d.client_name}</span>
+                              <span className="block text-sm font-medium text-[var(--ink)] truncate">{d.client_name}</span>
                               <span className="block text-xs text-gray-400 truncate">{d.client_email} · {d.invoice_count} factura{d.invoice_count !== 1 ? 's' : ''}</span>
                             </span>
                           </span>
-                          <span className="text-sm font-semibold text-[#17181A] whitespace-nowrap ml-3">{formatCurrency(d.total_owed)}</span>
+                          <span className="text-sm font-semibold text-[var(--ink)] whitespace-nowrap ml-3">{formatCurrency(d.total_owed)}</span>
                         </button>
                       );
                     })}
@@ -160,14 +160,14 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
                   <button
                     type="button"
                     onClick={() => setMode('now')}
-                    className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${mode === 'now' ? 'bg-[#17181A] text-[#D7F653] border-[#17181A]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                    className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${mode === 'now' ? 'bg-[var(--dark)] text-[var(--accent)] border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-300'}`}
                   >
                     <Send size={15} /> Enviar ahora
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode('schedule')}
-                    className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${mode === 'schedule' ? 'bg-[#17181A] text-[#D7F653] border-[#17181A]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
+                    className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all ${mode === 'schedule' ? 'bg-[var(--dark)] text-[var(--accent)] border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-300'}`}
                   >
                     <Clock size={15} /> Programar para…
                   </button>
@@ -192,7 +192,7 @@ const BulkSendModal = ({ debtors = [], onClose, onDone }) => {
                 type="button"
                 onClick={submit}
                 disabled={sending || selectedClients.length === 0 || (mode === 'schedule' && !scheduleDate)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#17181A] text-[#D7F653] text-sm font-medium hover:bg-[#2D2D4E] disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark)] text-[var(--accent)] text-sm font-medium hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors"
               >
                 {mode === 'schedule' ? <Clock size={16} /> : <Send size={16} />}
                 {sending ? 'Procesando…' : mode === 'schedule' ? `Programar ${selectedClients.length} correo${selectedClients.length !== 1 ? 's' : ''}` : `Enviar a ${selectedClients.length} cliente${selectedClients.length !== 1 ? 's' : ''}`}

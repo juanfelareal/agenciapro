@@ -75,7 +75,7 @@ const SalesSection = ({ data, loading }) => {
           <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-emerald-500" />
           </div>
-          <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin datos de ventas</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">Sin datos de ventas</h3>
           <p className="text-gray-500 max-w-md mx-auto">
             Sincroniza con Siigo o crea facturas para ver las ventas aquí.
           </p>
@@ -131,7 +131,7 @@ const SalesSection = ({ data, loading }) => {
                   <div key={idx}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-gray-600 truncate max-w-[60%]">{client.name}</span>
-                      <span className="font-semibold text-[#17181A]">{formatCurrency(client.total)}</span>
+                      <span className="font-semibold text-[var(--ink)]">{formatCurrency(client.total)}</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -165,11 +165,11 @@ const SalesSection = ({ data, loading }) => {
               {recentInvoices.map((inv, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <div className="text-sm font-medium text-[#17181A]">{inv.number || `FAC-${inv.id}`}</div>
+                    <div className="text-sm font-medium text-[var(--ink)]">{inv.number || `FAC-${inv.id}`}</div>
                     <div className="text-xs text-gray-500">{inv.client_name || 'Sin cliente'}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-[#17181A]">{formatCurrency(inv.amount || 0)}</div>
+                    <div className="font-semibold text-[var(--ink)]">{formatCurrency(inv.amount || 0)}</div>
                     <div className={`text-xs ${
                       inv.status === 'paid' ? 'text-emerald-600' :
                       inv.status === 'invoiced' ? 'text-amber-600' : 'text-gray-500'

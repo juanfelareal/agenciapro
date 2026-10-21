@@ -152,7 +152,7 @@ const UGCRegister = () => {
   if (error && !orgInfo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <div className="bg-[var(--surface)] rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Inválido</h1>
           <p className="text-gray-600">{error}</p>
@@ -164,7 +164,7 @@ const UGCRegister = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <div className="bg-[var(--surface)] rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">¡Registro Exitoso!</h1>
           <p className="text-gray-600 mb-6">
@@ -193,7 +193,7 @@ const UGCRegister = () => {
           </div>
 
           {/* How it works */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-[var(--surface)] rounded-2xl shadow-lg p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-yellow-500" />
               ¿Cómo funciona?
@@ -247,7 +247,7 @@ const UGCRegister = () => {
           </div>
 
           {/* Privacy */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-[var(--surface)] rounded-2xl shadow-lg p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
               <Shield className="w-5 h-5 text-green-600" />
               Privacidad de tus datos
@@ -471,7 +471,7 @@ const UGCRegister = () => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Género</label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm"
               value={formData.traits.gender}
               onChange={(e) => setFormData({
                 ...formData,
@@ -488,7 +488,7 @@ const UGCRegister = () => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Cabello</label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm"
               value={formData.traits.hair_color}
               onChange={(e) => setFormData({
                 ...formData,
@@ -507,7 +507,7 @@ const UGCRegister = () => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Ojos</label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm"
               value={formData.traits.eye_color}
               onChange={(e) => setFormData({
                 ...formData,
@@ -525,7 +525,7 @@ const UGCRegister = () => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Contextura</label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm"
               value={formData.traits.body_type}
               onChange={(e) => setFormData({
                 ...formData,
@@ -705,7 +705,7 @@ const UGCRegister = () => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Videos por semana</label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm"
               value={formData.availability.videos_per_week}
               onChange={(e) => setFormData({
                 ...formData,
@@ -722,7 +722,7 @@ const UGCRegister = () => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Tiempo de entrega</label>
             <select
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm"
               value={formData.availability.delivery_time}
               onChange={(e) => setFormData({
                 ...formData,
@@ -753,7 +753,7 @@ const UGCRegister = () => {
               <label className="block text-xs text-gray-500 mb-1">Departamento *</label>
               <select
                 required
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm"
                 value={formData.department}
                 onChange={(e) => handleDepartmentChange(e.target.value)}
               >
@@ -768,7 +768,7 @@ const UGCRegister = () => {
               <select
                 required
                 disabled={!formData.department}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-white text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-black focus:border-black bg-[var(--surface)] text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               >
@@ -883,7 +883,7 @@ const UGCRegister = () => {
         </div>
 
         {/* Form Card */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6">
+        <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-2xl shadow-lg p-6">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 mb-4">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />

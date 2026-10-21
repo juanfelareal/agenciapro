@@ -37,7 +37,7 @@ export default function MoneyFlow({ data }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
           <div className="flex items-center gap-1.5">
-            <h2 className="font-semibold text-sm text-[#17181A]">A dónde se fue la plata</h2>
+            <h2 className="font-semibold text-sm text-[var(--ink)]">A dónde se fue la plata</h2>
             <Info text="De cada peso vendido en el mes, qué parte se va en cada costo y qué parte queda como utilidad." />
           </div>
           <p className="text-xs text-gray-400 mt-0.5">Porcentajes sobre la venta neta del mes.</p>
@@ -46,7 +46,7 @@ export default function MoneyFlow({ data }) {
             <p className="text-sm text-gray-400 py-8 text-center">Sin ventas registradas en este mes.</p>
           ) : (
             <div className="mt-4 space-y-3 text-[13px]">
-              <div className="flex justify-between font-medium text-[#17181A]"><span>Ventas netas</span><span className="tabular-nums">{fmtMoney(revenue)}</span></div>
+              <div className="flex justify-between font-medium text-[var(--ink)]"><span>Ventas netas</span><span className="tabular-nums">{fmtMoney(revenue)}</span></div>
               <div className="h-3 rounded-full bg-gray-100 overflow-hidden flex gap-[2px]">
                 {parts.filter((p) => share(p.value) > 0).map((p) => (
                   <span key={p.key} title={p.label} style={{ width: `${share(p.value) * scale * 100}%`, background: p.color }} className="h-full first:rounded-l-full last:rounded-r-full" />
@@ -62,12 +62,12 @@ export default function MoneyFlow({ data }) {
                       <Info text={p.info} />
                     </span>
                     <span className="tabular-nums whitespace-nowrap">
-                      <span className="text-[#17181A] font-medium">{fmtMoney(p.value)}</span>
+                      <span className="text-[var(--ink)] font-medium">{fmtMoney(p.value)}</span>
                       <span className="text-gray-400 ml-2 inline-block w-12 text-right">{fmtPct(share(p.value), 0)}</span>
                     </span>
                   </li>
                 ))}
-                <li className={`flex items-center justify-between gap-3 pt-2 border-t border-gray-100 font-semibold ${positive ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
+                <li className={`flex items-center justify-between gap-3 pt-2 border-t border-gray-100 font-semibold ${positive ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]'}`}>
                   <span className="inline-flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: positive ? COLORS.profit : COLORS.loss }} />
                     {positive ? 'Utilidad' : 'Pérdida'}
@@ -84,7 +84,7 @@ export default function MoneyFlow({ data }) {
 
         <div>
           <div className="flex items-center gap-1.5">
-            <h2 className="font-semibold text-sm text-[#17181A]">Estado de resultados</h2>
+            <h2 className="font-semibold text-sm text-[var(--ink)]">Estado de resultados</h2>
             <Info text="El mismo cálculo, línea por línea: de la venta neta se restan los costos hasta llegar a la utilidad." />
           </div>
           <p className="text-xs text-gray-400 mt-0.5">{data.is_current_month ? `Del 1 al ${data.days_elapsed} de este mes` : 'Mes completo'} · sin IVA</p>
@@ -93,7 +93,7 @@ export default function MoneyFlow({ data }) {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.label} className={`${r.result ? 'border-t-2 border-gray-200' : 'border-t border-gray-100'} ${r.bold || r.result ? 'font-semibold' : ''}`}>
-                  <td className={`py-2.5 pr-3 ${r.muted ? 'text-gray-500' : 'text-[#17181A]'}`}>
+                  <td className={`py-2.5 pr-3 ${r.muted ? 'text-gray-500' : 'text-[var(--ink)]'}`}>
                     <span className="inline-flex items-center gap-1.5">
                       {r.label}
                       {r.info && <Info text={r.info} />}
@@ -108,7 +108,7 @@ export default function MoneyFlow({ data }) {
                       </div>
                     )}
                   </td>
-                  <td className={`py-2.5 text-right tabular-nums whitespace-nowrap ${r.result ? (r.value >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]') : r.muted ? 'text-gray-500' : 'text-[#17181A]'}`}>
+                  <td className={`py-2.5 text-right tabular-nums whitespace-nowrap ${r.result ? (r.value >= 0 ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]') : r.muted ? 'text-gray-500' : 'text-[var(--ink)]'}`}>
                     {fmtMoney(r.value)}
                     {r.pct !== undefined && <span className="text-gray-400 font-normal ml-2 inline-block w-14 text-right">{fmtPct(r.pct, 1)}</span>}
                   </td>

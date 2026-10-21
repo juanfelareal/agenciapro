@@ -236,7 +236,7 @@ const SiigoCustomers = () => {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#17181A]">Clientes en Siigo</h1>
+            <h1 className="text-2xl font-semibold text-[var(--ink)]">Clientes en Siigo</h1>
             <p className="text-gray-500 text-sm mt-1">
               {customers.length} clientes encontrados - Selecciona los que deseas importar
             </p>
@@ -298,8 +298,8 @@ const SiigoCustomers = () => {
       {/* Selection Bar */}
       {selectedIds.size > 0 && (
         <div className="bg-gray-50 border border-primary-200 rounded-xl p-4 flex items-center gap-4">
-          <CheckSquare className="text-[#17181A]" size={20} />
-          <span className="font-medium text-[#17181A]">
+          <CheckSquare className="text-[var(--ink)]" size={20} />
+          <span className="font-medium text-[var(--ink)]">
             {selectedIds.size} cliente(s) seleccionado(s)
           </span>
           <button
@@ -330,11 +330,11 @@ const SiigoCustomers = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left w-12">
-                  <button onClick={toggleSelectAll} className="text-gray-500 hover:text-[#17181A]">
+                  <button onClick={toggleSelectAll} className="text-gray-500 hover:text-[var(--ink)]">
                     {isAllSelected ? (
-                      <CheckSquare size={18} className="text-[#17181A]" />
+                      <CheckSquare size={18} className="text-[var(--ink)]" />
                     ) : isSomeSelected ? (
-                      <MinusSquare size={18} className="text-[#17181A]" />
+                      <MinusSquare size={18} className="text-[var(--ink)]" />
                     ) : (
                       <Square size={18} />
                     )}
@@ -386,10 +386,10 @@ const SiigoCustomers = () => {
                             e.stopPropagation();
                             toggleSelect(customer.id);
                           }}
-                          className="text-gray-400 hover:text-[#17181A]"
+                          className="text-gray-400 hover:text-[var(--ink)]"
                         >
                           {isSelected ? (
-                            <CheckSquare size={18} className="text-[#17181A]" />
+                            <CheckSquare size={18} className="text-[var(--ink)]" />
                           ) : (
                             <Square size={18} />
                           )}
@@ -409,7 +409,7 @@ const SiigoCustomers = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-[#17181A]">{name}</p>
+                            <p className="font-medium text-[var(--ink)]">{name}</p>
                             {customer.commercial_name && customer.commercial_name !== name && (
                               <p className="text-xs text-gray-500">{customer.commercial_name}</p>
                             )}

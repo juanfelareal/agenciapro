@@ -230,7 +230,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
       {/* Header + filter */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50">
         <div>
-          <h3 className="text-sm font-semibold text-[#17181A]">Detalle por campaña</h3>
+          <h3 className="text-sm font-semibold text-[var(--ink)]">Detalle por campaña</h3>
           <p className="text-xs text-gray-500 mt-0.5">
             {campaigns.list.length} campaña{campaigns.list.length !== 1 ? 's' : ''} con inversión · Click para expandir
           </p>
@@ -239,7 +239,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
           <select
             value={objectiveFilter}
             onChange={(e) => setObjectiveFilter(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-[var(--surface)]"
             title="Filtrar por objetivo de campaña"
           >
             <option value="all">Todos los objetivos</option>
@@ -250,7 +250,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-[var(--surface)]"
             title="Filtrar por estado"
           >
             <option value="all">Todas</option>
@@ -295,7 +295,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                       <div className="flex items-center gap-2">
                         {isOpen ? <ChevronDown size={16} className="text-gray-400 shrink-0" /> : <ChevronRight size={16} className="text-gray-400 shrink-0" />}
                         <div className="min-w-0">
-                          <p className="font-medium text-[#17181A] truncate">{c.campaign_name}</p>
+                          <p className="font-medium text-[var(--ink)] truncate">{c.campaign_name}</p>
                           <div className="h-1 mt-1.5 bg-gray-100 rounded-full overflow-hidden" style={{ width: 140 }}>
                             <div className="h-full bg-blue-500" style={{ width: `${Math.min(pct, 100)}%` }} />
                           </div>
@@ -311,7 +311,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                       )}
                     </td>
                     <td className="py-3 px-3">{statusBadge(c.status)}</td>
-                    <td className="py-3 px-3 text-right font-semibold text-[#17181A]">{fmtCurrency(c.spend)}</td>
+                    <td className="py-3 px-3 text-right font-semibold text-[var(--ink)]">{fmtCurrency(c.spend)}</td>
                     <td className="py-3 px-3 text-right">{fmtInt(c.conversions)}</td>
                     {campaigns.hasMessagingData && (
                       <>
@@ -354,7 +354,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
                         </tr>
 
                         {adsetOpen && a.ads.map((ad) => (
-                          <tr key={ad.ad_id} className="border-b border-gray-50 hover:bg-gray-50/80 bg-white">
+                          <tr key={ad.ad_id} className="border-b border-gray-50 hover:bg-gray-50/80 bg-[var(--surface)]">
                             <td className="py-2 pl-20 pr-4">
                               <p className="text-sm text-gray-600 truncate">{ad.ad_name}</p>
                             </td>
@@ -394,7 +394,7 @@ export default function FacebookCampaignsBreakdown({ startDate, endDate }) {
           </tbody>
           {campaigns.list.length > 0 && (
             <tfoot>
-              <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold text-[#17181A]">
+              <tr className="border-t-2 border-gray-200 bg-gray-50 font-semibold text-[var(--ink)]">
                 <td className="py-3 px-4">
                   Total
                   <span className="ml-2 text-xs font-normal text-gray-500">

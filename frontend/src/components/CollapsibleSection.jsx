@@ -36,7 +36,7 @@ export default function CollapsibleSection({
               <Icon className={`w-4 h-4 ${iconColor}`} />
             </div>
           )}
-          <h2 className="text-lg font-semibold text-[#17181A]">{title}</h2>
+          <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
         </div>
         {open ? (
           <ChevronDown className="w-5 h-5 text-gray-400" />

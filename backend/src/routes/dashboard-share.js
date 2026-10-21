@@ -134,7 +134,7 @@ router.get('/public/:token', async (req, res) => {
     const shareToken = await db.get(`
       SELECT dst.*, c.name as client_name, c.company as client_company
       FROM dashboard_share_tokens dst
-      JOIN clients c ON dst.client_id = c.id
+      JOIN clients c ON dst.client_id = c.id AND c.organization_id = dst.organization_id
       WHERE dst.token = ? AND dst.status = 'active'
     `, [req.params.token]);
 
@@ -235,10 +235,10 @@ router.get('/public/:token', async (req, res) => {
     // AI Insight
     const insight = await db.get(`
       SELECT * FROM ai_insights
-      WHERE client_id = ?
+      WHERE client_id = ? AND organization_id = ?
       ORDER BY created_at DESC
       LIMIT 1
-    `, [clientId]);
+    `, [clientId, shareToken.organization_id]);
 
     // Build response — parseFloat needed because pg driver returns SUM() as string
     const p = (v) => parseFloat(v) || 0;

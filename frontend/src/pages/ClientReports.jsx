@@ -120,13 +120,13 @@ export default function ClientReports() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Reportes</h1>
+            <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Reportes</h1>
             <p className="text-sm text-gray-500 mt-0.5">{client?.company || client?.name}</p>
           </div>
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors text-sm font-medium"
         >
           <Upload size={16} />
           Subir reporte
@@ -157,7 +157,7 @@ export default function ClientReports() {
                     <div className="flex items-center gap-2">
                       <FileText size={16} className="text-red-500" />
                       <div>
-                        <p className="text-sm font-medium text-[#17181A]">{r.title}</p>
+                        <p className="text-sm font-medium text-[var(--ink)]">{r.title}</p>
                         <p className="text-xs text-gray-400">{r.file_name} · {formatSize(r.file_size)}</p>
                       </div>
                     </div>
@@ -179,7 +179,7 @@ export default function ClientReports() {
                       href={fileUrl(r.file_path)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-[#17181A] p-1.5 rounded-lg hover:bg-gray-100 inline-block"
+                      className="text-gray-400 hover:text-[var(--ink)] p-1.5 rounded-lg hover:bg-gray-100 inline-block"
                       title="Descargar"
                     >
                       <Download size={16} />
@@ -201,9 +201,9 @@ export default function ClientReports() {
 
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-[#17181A]">Subir reporte</h2>
+              <h2 className="text-xl font-semibold text-[var(--ink)]">Subir reporte</h2>
               <button onClick={() => setShowUploadModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
                 <X size={20} className="text-gray-500" />
               </button>
@@ -283,7 +283,7 @@ export default function ClientReports() {
                 <button
                   type="submit"
                   disabled={uploading || !selectedFile}
-                  className="px-4 py-2 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] text-sm font-medium flex items-center gap-2 disabled:opacity-50"
                 >
                   {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                   {uploading ? 'Subiendo…' : 'Subir'}

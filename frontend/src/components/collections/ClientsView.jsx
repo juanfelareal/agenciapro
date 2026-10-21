@@ -10,12 +10,12 @@ const SORTS = {
 
 const SortIcon = ({ active, dir }) => {
   if (!active) return <ArrowUpDown size={12} className="text-gray-300" />;
-  return dir === 'desc' ? <ArrowDown size={12} className="text-[#17181A]" /> : <ArrowUp size={12} className="text-[#17181A]" />;
+  return dir === 'desc' ? <ArrowDown size={12} className="text-[var(--ink)]" /> : <ArrowUp size={12} className="text-[var(--ink)]" />;
 };
 
 const SortableTh = ({ k, sortKey, sortDir, onToggle, children, className = '' }) => (
   <th className={`px-4 py-3 ${className}`}>
-    <button type="button" onClick={() => onToggle(k)} className="inline-flex items-center gap-1 hover:text-[#17181A] transition-colors uppercase tracking-wider">
+    <button type="button" onClick={() => onToggle(k)} className="inline-flex items-center gap-1 hover:text-[var(--ink)] transition-colors uppercase tracking-wider">
       {children}
       <SortIcon active={sortKey === k} dir={sortDir} />
     </button>
@@ -49,7 +49,7 @@ const ClientsView = ({ clients = [], onCollect, onOpenDetail }) => {
     <div className="glass-card overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#17181A]">Clientes con saldo pendiente</h2>
+          <h2 className="text-lg font-bold text-[var(--ink)]">Clientes con saldo pendiente</h2>
           <p className="text-xs text-gray-400 mt-0.5">{rows.length} de {clients.length} cliente{clients.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="relative">
@@ -59,7 +59,7 @@ const ClientsView = ({ clients = [], onCollect, onOpenDetail }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar cliente…"
-            className="pl-8 pr-3 py-2 border border-gray-200 rounded-xl text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+            className="pl-8 pr-3 py-2 border border-gray-200 rounded-xl text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
           />
         </div>
       </div>
@@ -93,10 +93,10 @@ const ClientsView = ({ clients = [], onCollect, onOpenDetail }) => {
                 const bStyle = bucket ? BUCKET_STYLES[bucket] : null;
                 const status = statusMeta(client.collection_status);
                 return (
-                  <tr key={client.client_id} className="hover:bg-white/60 transition-colors">
+                  <tr key={client.client_id} className="hover:bg-[rgb(var(--ink-rgb)/0.04)] transition-colors">
                     <td className="px-6 py-3.5">
                       <button type="button" onClick={() => onOpenDetail(client.client_id)} className="text-left">
-                        <p className="text-sm font-semibold text-[#17181A] hover:underline">{client.client_name}</p>
+                        <p className="text-sm font-semibold text-[var(--ink)] hover:underline">{client.client_name}</p>
                         <p className="text-xs text-gray-400 truncate max-w-[220px]">{client.client_email || 'Sin email'}</p>
                       </button>
                     </td>
@@ -121,14 +121,14 @@ const ClientsView = ({ clients = [], onCollect, onOpenDetail }) => {
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <p className="text-base font-bold text-[#17181A] whitespace-nowrap">{formatCurrency(client.total_owed)}</p>
+                      <p className="text-base font-bold text-[var(--ink)] whitespace-nowrap">{formatCurrency(client.total_owed)}</p>
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => onCollect(client)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#17181A] text-[#D7F653] text-xs font-medium hover:bg-[#2D2D4E] transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--dark)] text-[var(--accent)] text-xs font-medium hover:bg-[#1C1D1F] transition-colors"
                           title="Enviar estado de cuenta"
                         >
                           <Send size={13} />
@@ -137,7 +137,7 @@ const ClientsView = ({ clients = [], onCollect, onOpenDetail }) => {
                         <button
                           type="button"
                           onClick={() => onOpenDetail(client.client_id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-[#17181A] hover:bg-gray-100 transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 transition-colors"
                           title="Ver detalle"
                         >
                           <ChevronRight size={18} />

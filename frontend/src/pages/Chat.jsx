@@ -302,14 +302,14 @@ const Chat = () => {
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] -mx-4 -my-5 md:-mx-6 md:-my-8">
       {/* Sidebar - Conversation List (en móvil solo cuando no hay conversación abierta) */}
-      <div className={`w-full md:w-[320px] border-r border-gray-200 bg-white flex-col flex-shrink-0 ${conversationId ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-[320px] border-r border-gray-200 bg-[var(--surface)] flex-col flex-shrink-0 ${conversationId ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-lg font-bold text-gray-800">Chat</h1>
             <button
               onClick={() => setShowNewModal(true)}
-              className="p-2 bg-[#17181A] text-white rounded-lg hover:bg-[#2A2A3E] transition-colors"
+              className="p-2 bg-[var(--dark)] text-white rounded-lg hover:bg-[#1C1D1F] transition-colors"
             >
               <Plus size={16} />
             </button>
@@ -321,7 +321,7 @@ const Chat = () => {
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="Buscar conversación..."
-              className="w-full pl-9 pr-3 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20"
+              className="w-full pl-9 pr-3 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)]"
             />
           </div>
         </div>
@@ -345,14 +345,14 @@ const Chat = () => {
                   key={conv.id}
                   onClick={() => navigate(`/app/chat/${conv.id}`)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                    active ? 'bg-[#17181A]/5 border-r-2 border-[#17181A]' : 'hover:bg-gray-50'
+                    active ? 'bg-[rgb(var(--ink-rgb)/0.05)] border-r-2 border-[var(--ink)]' : 'hover:bg-gray-50'
                   }`}
                 >
                   <div className="relative flex-shrink-0">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
                       conv.type === 'group'
                         ? 'bg-purple-100 text-purple-700'
-                        : 'bg-[#17181A] text-white'
+                        : 'bg-[var(--dark)] text-white'
                     }`}>
                       {conv.type === 'group' ? <Hash size={16} /> : getInitials(name)}
                     </div>
@@ -403,7 +403,7 @@ const Chat = () => {
         ) : (
           <>
             {/* Chat Header */}
-            <div className="px-3 md:px-6 py-3 bg-white border-b flex items-center gap-3">
+            <div className="px-3 md:px-6 py-3 bg-[var(--surface)] border-b flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => navigate('/app/chat')}
@@ -415,7 +415,7 @@ const Chat = () => {
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
                 currentConversation?.type === 'group'
                   ? 'bg-purple-100 text-purple-700'
-                  : 'bg-[#17181A] text-white'
+                  : 'bg-[var(--dark)] text-white'
               }`}>
                 {currentConversation?.type === 'group'
                   ? <Hash size={14} />
@@ -480,7 +480,7 @@ const Chat = () => {
               {showScrollBtn && (
                 <button
                   onClick={scrollToBottom}
-                  className="absolute bottom-4 right-6 p-2 bg-white shadow-lg border rounded-full hover:bg-gray-50"
+                  className="absolute bottom-4 right-6 p-2 bg-[var(--surface)] shadow-lg border rounded-full hover:bg-gray-50"
                 >
                   <ArrowDown size={16} />
                 </button>
@@ -498,7 +498,7 @@ const Chat = () => {
 
             {/* Image preview */}
             {pendingImage && (
-              <div className="px-6 py-2 bg-white border-t">
+              <div className="px-6 py-2 bg-[var(--surface)] border-t">
                 <div className="relative inline-block">
                   <img
                     src={pendingImage.preview}
@@ -516,7 +516,7 @@ const Chat = () => {
             )}
 
             {/* Input */}
-            <div className="px-6 py-3 bg-white border-t relative">
+            <div className="px-6 py-3 bg-[var(--surface)] border-t relative">
               {mentionQuery !== null && (
                 <MentionAutocomplete
                   query={mentionQuery}
@@ -547,13 +547,13 @@ const Chat = () => {
                   onPaste={handlePaste}
                   placeholder="Escribe un mensaje... (# para mencionar)"
                   rows={1}
-                  className="flex-1 resize-none px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 max-h-32"
+                  className="flex-1 resize-none px-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] max-h-32"
                   style={{ minHeight: '40px' }}
                 />
                 <button
                   onClick={handleSend}
                   disabled={(!inputValue.trim() && !pendingImage) || uploading}
-                  className="p-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#2A2A3E] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   {uploading ? (
                     <div className="w-[18px] h-[18px] border-2 border-white/30 border-t-white rounded-full animate-spin" />

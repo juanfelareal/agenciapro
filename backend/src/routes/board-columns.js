@@ -64,17 +64,18 @@ router.post('/', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO board_columns (project_id, column_name, column_type, column_order, settings)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO board_columns (project_id, column_name, column_type, column_order, settings, organization_id)
+      VALUES (?, ?, ?, ?, ?, ?)
     `).run(
       project_id,
       column_name,
       column_type,
       column_order || 0,
-      settings ? JSON.stringify(settings) : null
+      settings ? JSON.stringify(settings) : null,
+      req.orgId
     );
 
-    const column = await db.prepare('SELECT * FROM board_columns WHERE id = ?').get(result.lastInsertRowid);
+    const column = await db.prepare('SELECT * FROM board_columns WHERE id = ? AND organization_id = ?').get(result.lastInsertRowid, req.orgId);
     res.status(201).json(column);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -101,16 +102,17 @@ router.put('/:id', async (req, res) => {
       UPDATE board_columns
       SET column_name = ?, column_type = ?, column_order = ?, settings = ?,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = ? AND organization_id = ?
     `).run(
       column_name,
       column_type,
       column_order,
       settings ? JSON.stringify(settings) : null,
-      req.params.id
+      req.params.id,
+      req.orgId
     );
 
-    const updated = await db.prepare('SELECT * FROM board_columns WHERE id = ?').get(req.params.id);
+    const updated = await db.prepare('SELECT * FROM board_columns WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -144,8 +146,7 @@ router.get('/values/task/:taskId', async (req, res) => {
     // Verify task belongs to org via project
     const task = await db.prepare(`
       SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
+      WHERE t.id = ? AND t.organization_id = ?
     `).get(req.params.taskId, req.orgId);
 
     if (!task) {
@@ -156,8 +157,9 @@ router.get('/values/task/:taskId', async (req, res) => {
       SELECT bcv.*, bc.column_name, bc.column_type, bc.settings
       FROM board_column_values bcv
       JOIN board_columns bc ON bcv.column_id = bc.id
-      WHERE bcv.task_id = ?
-    `).all(req.params.taskId);
+      JOIN projects p ON bc.project_id = p.id
+      WHERE bcv.task_id = ? AND p.organization_id = ?
+    `).all(req.params.taskId, req.orgId);
 
     res.json(values);
   } catch (error) {
@@ -177,8 +179,7 @@ router.post('/values', async (req, res) => {
     // Verify task belongs to org via project
     const task = await db.prepare(`
       SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
+      WHERE t.id = ? AND t.organization_id = ?
     `).get(task_id, req.orgId);
 
     if (!task) {

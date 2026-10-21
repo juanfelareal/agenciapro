@@ -13,6 +13,13 @@ import { processRecurringInvoices } from './src/utils/recurringInvoices.js';
 
 // Import auth middleware
 import { teamAuthMiddleware } from './src/middleware/teamAuth.js';
+// [modules] Módulos por organización, planes y panel de plataforma
+import { requireModule } from './src/middleware/requireModule.js';
+import orgRoutes from './src/routes/org.js';
+import orgBillingRoutes from './src/routes/org-billing.js'; // [billing]
+import boldWebhookRoutes from './src/routes/webhooks-bold.js'; // [billing]
+import { runBillingDaily } from './src/services/billingCron.js'; // [billing]
+import platformRoutes from './src/routes/platform.js';
 
 // Import routes
 import authRoutes from './src/routes/auth.js';
@@ -66,6 +73,7 @@ import zernioRoutes from './src/routes/zernio.js';
 // Client Portal
 import portalRoutes from './src/routes/portal/index.js';
 import portalAdminRoutes from './src/routes/portal-admin.js';
+import orgBrandingRoutes from './src/routes/org-branding.js'; // [branding]
 // Note sharing (public links)
 import noteShareRoutes from './src/routes/note-share.js';
 // Real-time Collaboration
@@ -74,6 +82,9 @@ import { setupCollaboration } from './src/services/collaborationService.js';
 import { generateAllWeeklyInsights } from './src/services/insightService.js';
 // Scheduled collection reminders
 import { processScheduledReminders } from './src/services/scheduledReminders.js';
+import orgEmailsRoutes from './src/routes/org-emails.js'; // [email]
+import { requireAdmin } from './src/middleware/teamAuth.js'; // [email]
+import { sendTrialEndingEmails } from './src/services/trialEmails.js'; // [email]
 // Dashboard Share (public links for dashboards)
 import dashboardShareRoutes from './src/routes/dashboard-share.js';
 // CRM
@@ -124,6 +135,8 @@ import portalDocumentsRoutes from './src/routes/portal/documents.js';
 import payrollRoutes from './src/routes/payroll.js';
 // Bank Statements (Extractos Bancolombia CSV)
 import bankStatementsRoutes from './src/routes/bank-statements.js';
+// [onboarding] Onboarding de la organización (checklist, tour, módulos/marca mínimos)
+import orgOnboardingRoutes from './src/routes/org-onboarding.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -138,6 +151,7 @@ console.log('  - NODE_ENV:', process.env.NODE_ENV || 'not set');
 app.use(cors());
 // Webhook de WhatsApp (Kapso): necesita el cuerpo crudo para verificar la firma HMAC → va ANTES de express.json()
 app.use('/api/whatsapp/webhook', whatsappWebhookRoutes);
+app.use('/api/webhooks/bold', boldWebhookRoutes); // [billing] cuerpo crudo para la firma de Bold
 app.use(express.json({ limit: '2mb' }));
 
 // Serve uploaded files
@@ -206,14 +220,18 @@ app.use('/api/auth', authRoutes);
 
 // Team routes (handles its own auth internally for legacy compat)
 app.use('/api/team', teamRoutes);
+// [modules] Plan/módulos de la org actual y panel de plataforma (LA REAL)
+app.use('/api/org/billing', teamAuthMiddleware, orgBillingRoutes); // [billing]
+app.use('/api/org', teamAuthMiddleware, orgRoutes);
+app.use('/api/platform', teamAuthMiddleware, platformRoutes);
 
 // All internal routes — protected by teamAuthMiddleware
 app.use('/api/clients', teamAuthMiddleware, clientRoutes);
 app.use('/api/projects', teamAuthMiddleware, projectRoutes);
 app.use('/api/project-stages', teamAuthMiddleware, projectStagesRoutes);
 app.use('/api/tasks', teamAuthMiddleware, taskRoutes);
-app.use('/api/invoices', teamAuthMiddleware, invoiceRoutes);
-app.use('/api/expenses', teamAuthMiddleware, expenseRoutes);
+app.use('/api/invoices', teamAuthMiddleware, requireModule('invoices'), invoiceRoutes); // [modules]
+app.use('/api/expenses', teamAuthMiddleware, requireModule('expenses'), expenseRoutes); // [modules]
 app.use('/api/dashboard', teamAuthMiddleware, dashboardRoutes);
 app.use('/api/sales-goals', teamAuthMiddleware, salesGoalsRoutes);
 // Monday.com style routes
@@ -222,12 +240,12 @@ app.use('/api/task-dependencies', teamAuthMiddleware, taskDependencyRoutes);
 app.use('/api/task-comments', teamAuthMiddleware, taskCommentRoutes);
 app.use('/api/task-files', teamAuthMiddleware, taskFileRoutes);
 app.use('/api/notifications', teamAuthMiddleware, notificationRoutes);
-app.use('/api/commissions', teamAuthMiddleware, commissionRoutes);
+app.use('/api/commissions', teamAuthMiddleware, requireModule('comisiones'), commissionRoutes); // [modules]
 // ClickUp-style routes
 app.use('/api/subtasks', teamAuthMiddleware, subtaskRoutes);
 app.use('/api/tags', teamAuthMiddleware, tagRoutes);
 app.use('/api/search', teamAuthMiddleware, searchRoutes);
-app.use('/api/automations', teamAuthMiddleware, automationRoutes);
+app.use('/api/automations', teamAuthMiddleware, requireModule('automatizaciones'), automationRoutes); // [modules]
 app.use('/api/reports', teamAuthMiddleware, reportRoutes);
 // Notes (Bloc de notas)
 app.use('/api/notes', teamAuthMiddleware, noteRoutes);
@@ -236,7 +254,7 @@ app.use('/api/note-folders', teamAuthMiddleware, noteFolderRoutes);
 // Platform integrations (Facebook Ads & Shopify metrics)
 app.use('/api/platform-credentials', teamAuthMiddleware, platformCredentialsRoutes);
 app.use('/api/client-metrics', teamAuthMiddleware, clientMetricsRoutes);
-app.use('/api/growth', teamAuthMiddleware, growthRoutes);
+app.use('/api/growth', teamAuthMiddleware, requireModule('finanzas'), growthRoutes); // [modules]
 // Facebook OAuth: callback must be public (redirect from Facebook has no auth token)
 // The callback route uses state parameter for verification instead
 app.use('/api/oauth/facebook', (req, res, next) => {
@@ -267,16 +285,19 @@ app.use('/api/oauth/woocommerce', (req, res, next) => {
 // PDF Analysis (RUT extraction with Claude AI)
 app.use('/api/pdf', teamAuthMiddleware, pdfAnalysisRoutes);
 // SOPs (Standard Operating Procedures)
-app.use('/api/sops', teamAuthMiddleware, sopsRoutes);
+app.use('/api/sops', teamAuthMiddleware, requireModule('sops'), sopsRoutes); // [modules]
 // Project Templates
 app.use('/api/project-templates', teamAuthMiddleware, projectTemplatesRoutes);
 // Time Tracking
 // Siigo Integration
-app.use('/api/siigo', teamAuthMiddleware, siigoRoutes);
+app.use('/api/siigo', teamAuthMiddleware, requireModule('siigo'), siigoRoutes); // [modules]
 // Zernio Integration (Social Media Management)
 app.use('/api/zernio', teamAuthMiddleware, zernioRoutes);
 // Portal admin (internal — needs team auth)
 app.use('/api/portal-admin', teamAuthMiddleware, portalAdminRoutes);
+// [email] Vista previa de plantillas de correo con la marca de la org (solo admins)
+app.use('/api/org/emails', teamAuthMiddleware, requireAdmin, orgEmailsRoutes);
+app.use('/api/org/branding', teamAuthMiddleware, orgBrandingRoutes); // [branding]
 // Client Portal (public portal — uses its own clientAuthMiddleware)
 app.use('/api/portal', portalRoutes);
 // Note sharing (has both authenticated and public routes internally)
@@ -288,7 +309,7 @@ app.use('/api/crm', crmRoutes);
 // Screen Studio video proxy (no auth needed — public share links)
 app.use('/api/screenstudio', screenstudioRoutes);
 // Forms (Formularios)
-app.use('/api/forms', teamAuthMiddleware, formRoutes);
+app.use('/api/forms', teamAuthMiddleware, requireModule('formularios'), formRoutes); // [modules]
 // Form sharing (public — no auth needed)
 app.use('/api/form-share', formShareRoutes);
 // Invoice PDF public viewer (token-verified, no auth needed)
@@ -301,7 +322,7 @@ app.use('/api/client-logbook', teamAuthMiddleware, clientLogbookRoutes);
 app.use('/api/orbit-feedback', teamAuthMiddleware, orbitFeedbackRoutes);
 app.use('/api/news', teamAuthMiddleware, newsRoutes);
 // WhatsApp (Kapso): bandeja, envío y plantillas
-app.use('/api/whatsapp', teamAuthMiddleware, whatsappRoutes);
+app.use('/api/whatsapp', teamAuthMiddleware, requireModule('whatsapp'), whatsappRoutes); // [modules] (el webhook va aparte, sin auth)
 // Ventas por WhatsApp (canal reportado) + campañas por canal
 app.use('/api/whatsapp-sales', teamAuthMiddleware, whatsappSalesRoutes);
 // Client Documents
@@ -310,7 +331,7 @@ app.use('/api/client-documents', teamAuthMiddleware, clientDocumentsRoutes);
 import clientReportsRoutes from './src/routes/client-reports.js';
 app.use('/api/client-reports', teamAuthMiddleware, clientReportsRoutes);
 import emailMarketingRoutes from './src/routes/email-marketing.js';
-app.use('/api/email-marketing', teamAuthMiddleware, emailMarketingRoutes);
+app.use('/api/email-marketing', teamAuthMiddleware, requireModule('email_marketing'), emailMarketingRoutes); // [modules]
 // Ad Creative Tagging
 app.use('/api/ad-tags', teamAuthMiddleware, adTagRoutes);
 // Chat
@@ -329,16 +350,19 @@ app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
 // UGC (User Generated Content) - Creator Management
 app.use('/api/ugc', ugcPublicRoutes);  // Public registration FIRST (no auth)
 app.use('/api/ugc/contracts', ugcContractsPublicRoutes);  // Public contract signing (no auth)
-app.use('/api/ugc', teamAuthMiddleware, ugcRoutes);  // Authenticated routes after
+app.use('/api/ugc', teamAuthMiddleware, requireModule('ugc'), ugcRoutes);  // Authenticated routes after // [modules]
 
 // Document Signing (NDA, Contracts)
 app.use('/api/document-templates', teamAuthMiddleware, documentTemplatesRoutes);
 
 // Payroll (Nómina - Aleluya integration)
-app.use('/api/payroll', teamAuthMiddleware, payrollRoutes);
+app.use('/api/payroll', teamAuthMiddleware, requireModule('payroll'), payrollRoutes); // [modules]
 
 // Bank Statements (Extractos Bancolombia CSV)
 app.use('/api/bank-statements', teamAuthMiddleware, bankStatementsRoutes);
+
+// [onboarding] /api/org/onboarding*, /api/org/modules, /api/org/branding
+app.use('/api/org', teamAuthMiddleware, orgOnboardingRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -391,19 +415,22 @@ cron.schedule('*/5 * * * *', async () => {
 
 console.log('✅ Metrics sync cron job scheduled (every 5 minutes, Colombia time)');
 
-// Resúmenes de Orbit por WhatsApp (Kapso): 06:00 rendimiento de ayer + tareas, 12:00 ventas de hoy, alertas cada hora 10–21
+// Resúmenes de Orbit por WhatsApp (Kapso), por organización: 06:00 rendimiento de ayer + tareas (+ reporte al dueño de
+// cada marca), 12:00 ventas de hoy (+ dueños), alertas cada hora 10:05–21:05 y, para orgs con el add-on
+// `hourly_reports`, ventas de hoy cada hora 10:00–21:00 (a las 12:00 reemplaza al noon para esos destinatarios).
 const briefingJob = (kind) => async () => {
   try {
     const r = await runWhatsAppBriefing(kind);
-    if (r) console.log(`📲 WhatsApp briefing ${kind}:`, JSON.stringify(r).slice(0, 300));
+    if (r && !r.skipped && r.orgs?.length) console.log(`📲 WhatsApp briefing ${kind}:`, JSON.stringify(r).slice(0, 400));
   } catch (error) {
     console.error(`❌ WhatsApp briefing ${kind}:`, error.message);
   }
 };
 cron.schedule('0 6 * * *', async () => { await briefingJob('morning')(); await briefingJob('tasks')(); }, { scheduled: true, timezone: 'America/Bogota' });
 cron.schedule('0 12 * * *', briefingJob('noon'), { scheduled: true, timezone: 'America/Bogota' });
+cron.schedule('0 10-21 * * *', briefingJob('hourly'), { scheduled: true, timezone: 'America/Bogota' });
 cron.schedule('5 10-21 * * *', briefingJob('alerts'), { scheduled: true, timezone: 'America/Bogota' });
-console.log('✅ WhatsApp briefings scheduled (06:00 morning+tasks, 12:00 noon, alerts hourly 10-21, Colombia time)');
+console.log('✅ WhatsApp briefings scheduled per org (06:00 morning+tasks+owners, 12:00 noon+owners, hourly 10-21 add-on, alerts hourly 10-21, Colombia time)');
 
 // Setup cron job for weekly AI insights
 // Runs every Monday at 7:00 AM
@@ -425,6 +452,9 @@ console.log('✅ Weekly AI insights cron job scheduled (Monday 7:00 AM Colombia 
 // Setup cron job for daily integration health check (Facebook, Shopify, Siigo tokens)
 // Runs every day at 7:00 AM Colombia time
 import { runIntegrationHealthCheck } from './src/services/integrationHealthCheck.js';
+// [billing] Vencimientos: active con renovación vencida > 7 días → past_due
+cron.schedule('30 0 * * *', () => runBillingDaily().catch((e) => console.error('❌ Billing daily:', e.message)), { scheduled: true, timezone: 'America/Bogota' });
+
 cron.schedule('0 7 * * *', async () => {
   console.log('⏰ Running daily integration health check...');
   try {
@@ -454,6 +484,13 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 console.log('✅ Scheduled reminders cron job running (every 2 hours Colombia time)');
+
+// [email] Aviso de fin de prueba (3 días antes), diario 9:00 Colombia
+cron.schedule('0 9 * * *', async () => {
+  console.log('⏰ Checking trial-ending emails...');
+  await sendTrialEndingEmails();
+}, { scheduled: true, timezone: 'America/Bogota' });
+console.log('✅ Trial-ending email cron scheduled (daily at 9:00 AM Colombia time)');
 
 // Setup cron jobs for Siigo automatic sync
 // Runs 5 times daily: 7AM, 10AM, 1PM, 4PM, 7PM Colombia time

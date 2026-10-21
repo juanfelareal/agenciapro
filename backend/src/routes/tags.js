@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
+import { assertTaskInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
     `).all(req.orgId);
     res.json(tags);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
@@ -70,6 +71,7 @@ router.put('/:id', async (req, res) => {
     `).run(name?.trim(), color, req.params.id, req.orgId);
 
     const tag = await db.prepare('SELECT * FROM tags WHERE id = ? AND organization_id = ?').get(req.params.id, req.orgId);
+    if (!tag) return res.status(404).json({ error: 'Tag not found' });
     res.json(tag);
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -82,7 +84,8 @@ router.put('/:id', async (req, res) => {
 // Delete tag
 router.delete('/:id', async (req, res) => {
   try {
-    await db.prepare('DELETE FROM tags WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
+    const result = await db.prepare('DELETE FROM tags WHERE id = ? AND organization_id = ?').run(req.params.id, req.orgId);
+    if (!result.changes) return res.status(404).json({ error: 'Tag not found' });
     res.json({ message: 'Tag deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -92,6 +95,7 @@ router.delete('/:id', async (req, res) => {
 // Get tags for a task
 router.get('/task/:taskId', async (req, res) => {
   try {
+    await assertTaskInOrg(db, req.params.taskId, req.orgId, 'id');
     const tags = await db.prepare(`
       SELECT t.*
       FROM tags t
@@ -101,13 +105,15 @@ router.get('/task/:taskId', async (req, res) => {
     `).all(req.params.taskId, req.orgId);
     res.json(tags);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
 // Add tag to task
 router.post('/task/:taskId/tag/:tagId', async (req, res) => {
   try {
+    // Verify task belongs to this organization (404 if foreign)
+    await assertTaskInOrg(db, req.params.taskId, req.orgId, 'id');
     // Verify tag belongs to this organization
     const tag = await db.prepare('SELECT id FROM tags WHERE id = ? AND organization_id = ?').get(req.params.tagId, req.orgId);
     if (!tag) {
@@ -115,8 +121,9 @@ router.post('/task/:taskId/tag/:tagId', async (req, res) => {
     }
 
     await db.prepare(`
-      INSERT OR IGNORE INTO task_tags (task_id, tag_id)
+      INSERT INTO task_tags (task_id, tag_id)
       VALUES (?, ?)
+      ON CONFLICT (task_id, tag_id) DO NOTHING
     `).run(req.params.taskId, req.params.tagId);
 
     const tags = await db.prepare(`
@@ -129,13 +136,15 @@ router.post('/task/:taskId/tag/:tagId', async (req, res) => {
 
     res.json(tags);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
 // Remove tag from task
 router.delete('/task/:taskId/tag/:tagId', async (req, res) => {
   try {
+    // Verify task belongs to this organization (404 if foreign)
+    await assertTaskInOrg(db, req.params.taskId, req.orgId, 'id');
     // Verify tag belongs to this organization
     const tag = await db.prepare('SELECT id FROM tags WHERE id = ? AND organization_id = ?').get(req.params.tagId, req.orgId);
     if (!tag) {
@@ -157,7 +166,7 @@ router.delete('/task/:taskId/tag/:tagId', async (req, res) => {
 
     res.json(tags);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 
@@ -170,6 +179,9 @@ router.put('/task/:taskId', async (req, res) => {
       return res.status(400).json({ error: 'tagIds must be an array' });
     }
 
+    // Verify task belongs to this organization (404 if foreign)
+    await assertTaskInOrg(db, req.params.taskId, req.orgId, 'id');
+
     // Verify all tags belong to this organization
     if (tagIds.length > 0) {
       const placeholders = tagIds.map(() => '?').join(',');
@@ -177,7 +189,7 @@ router.put('/task/:taskId', async (req, res) => {
         `SELECT id FROM tags WHERE id IN (${placeholders}) AND organization_id = ?`
       ).all(...tagIds, req.orgId);
       if (orgTags.length !== tagIds.length) {
-        return res.status(400).json({ error: 'One or more tags do not belong to this organization' });
+        return res.status(404).json({ error: 'Tag not found' });
       }
     }
 
@@ -199,7 +211,7 @@ router.put('/task/:taskId', async (req, res) => {
 
     res.json(tags);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return sendTenantError(res, error);
   }
 });
 

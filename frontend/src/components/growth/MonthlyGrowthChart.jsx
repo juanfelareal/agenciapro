@@ -19,9 +19,9 @@ const fmtCOPFull = (v) => new Intl.NumberFormat('es-CO', {
 const fmtPct = (v) => `${v > 0 ? '+' : ''}${Math.round(v)}%`;
 
 // Sales bars: one hue. The month in progress is lighter because it is incomplete.
-const BAR = '#16a34a';
+const BAR = 'var(--accent)';
 const BAR_CURRENT = '#86efac';
-const LINE = '#17181A';
+const LINE = 'var(--ink)';
 
 /**
  * Builds the monthly series: revenue, ROAS and month-over-month growth.
@@ -46,7 +46,7 @@ const buildSeries = (months, currentPeriod) =>
 
 const GrowthLabel = ({ x, y, width, value }) => {
   if (value === null || value === undefined || Number.isNaN(value)) return null;
-  const color = value > 0 ? '#16a34a' : value < 0 ? '#dc2626' : '#6b7280';
+  const color = value > 0 ? 'var(--accent-deep)' : value < 0 ? '#dc2626' : '#6b7280';
   return (
     <text x={x + width / 2} y={y - 6} textAnchor="middle" fontSize={11} fontWeight={600} fill={color}>
       {fmtPct(value)}
@@ -67,7 +67,7 @@ const TooltipBox = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
+    <div className="bg-[var(--surface)] border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs">
       <div className="font-medium text-gray-900 mb-1">
         {d.fullLabel}{d.isCurrent ? ' · En curso' : ''}
       </div>
@@ -84,7 +84,7 @@ const TooltipBox = ({ active, payload }) => {
   );
 };
 
-const axisTick = { fontSize: 11, fill: '#9CA3AF' };
+const axisTick = { fontSize: 11, fill: '#7A7772' };
 
 /**
  * Growth chart for a client's last months: sales (bars + MoM growth) and ROAS (line).
@@ -120,7 +120,7 @@ export default function MonthlyGrowthChart({ months = [], currentPeriod }) {
           <div className="text-[11px] font-medium text-gray-500 mb-1">Ventas por mes · variación vs mes anterior</div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={data} margin={{ top: 18, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#E8E5DF" />
               <XAxis dataKey="label" tick={axisTick} tickLine={false} axisLine={false} />
               <YAxis tick={axisTick} tickLine={false} axisLine={false} tickFormatter={fmtCOP} width={48} />
               <Tooltip content={<TooltipBox />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
@@ -139,10 +139,10 @@ export default function MonthlyGrowthChart({ months = [], currentPeriod }) {
           <div className="text-[11px] font-medium text-gray-500 mb-1">ROAS por mes</div>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={data} margin={{ top: 18, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#E8E5DF" />
               <XAxis dataKey="label" tick={axisTick} tickLine={false} axisLine={false} />
               <YAxis tick={axisTick} tickLine={false} axisLine={false} tickFormatter={(v) => `${v.toFixed(1)}×`} width={44} domain={[0, 'auto']} />
-              <Tooltip content={<TooltipBox />} cursor={{ stroke: '#d1d5db' }} />
+              <Tooltip content={<TooltipBox />} cursor={{ stroke: '#C9C6C0' }} />
               <Line
                 type="monotone"
                 dataKey="roas"

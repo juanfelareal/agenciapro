@@ -145,22 +145,39 @@ const matchesConditions = (task, conditions) => {
 const executeAction = async (task, automation, context = {}) => {
   const params = automation.action_params ? JSON.parse(automation.action_params) : {};
 
+  // Multi-tenant guard: la automatización y la tarea deben ser de la misma organización
+  const taskOrgId = await getOrgIdFromTask(task);
+  if (automation.organization_id && taskOrgId && Number(automation.organization_id) !== Number(taskOrgId)) {
+    console.warn(`⚠️ Skipped automation "${automation.name}": org mismatch (automation ${automation.organization_id}, task ${taskOrgId})`);
+    return;
+  }
+
   console.log(`⚡ Executing automation: "${automation.name}" on task "${task.title}"`);
 
   try {
     switch (automation.action_type) {
       case 'change_status':
         if (params.status) {
-          await db.prepare('UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-            .run(params.status, task.id);
+          await db.prepare('UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?')
+            .run(params.status, task.id, automation.organization_id);
           console.log(`  → Changed status to: ${params.status}`);
         }
         break;
 
       case 'assign_user':
         if (params.user_id) {
-          await db.prepare('UPDATE tasks SET assigned_to = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-            .run(params.user_id, task.id);
+          // Multi-tenant: solo miembros de la misma organización que la tarea
+          const orgIdForAssign = await getOrgIdFromTask(task);
+          const member = await db.prepare('SELECT id FROM team_members WHERE id = ? AND organization_id = ?')
+            .get(params.user_id, orgIdForAssign);
+          if (!member) {
+            console.warn(`  → Skipped assign_user: member ${params.user_id} is not in org ${orgIdForAssign}`);
+            break;
+          }
+          await db.prepare('UPDATE tasks SET assigned_to = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?')
+            .run(params.user_id, task.id, orgIdForAssign);
+          await db.prepare('INSERT INTO task_assignees (task_id, team_member_id, organization_id) VALUES (?, ?, ?) ON CONFLICT (task_id, team_member_id) DO NOTHING')
+            .run(task.id, params.user_id, orgIdForAssign);
           await notifyTaskAssigned(task.id, task.title, params.user_id, 0);
           console.log(`  → Assigned to user: ${params.user_id}`);
         }
@@ -168,15 +185,18 @@ const executeAction = async (task, automation, context = {}) => {
 
       case 'add_tag':
         if (params.tag_id) {
-          // Check if tag is already added
-          const existing = await db.prepare('SELECT id FROM task_tags WHERE task_id = ? AND tag_id = ?')
-            .get(task.id, params.tag_id);
-
-          if (!existing) {
-            await db.prepare('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)')
-              .run(task.id, params.tag_id);
-            console.log(`  → Added tag: ${params.tag_id}`);
+          // Multi-tenant: solo etiquetas de la misma organización que la tarea
+          const orgIdForTag = await getOrgIdFromTask(task);
+          const tag = await db.prepare('SELECT id FROM tags WHERE id = ? AND organization_id = ?')
+            .get(params.tag_id, orgIdForTag);
+          if (!tag) {
+            console.warn(`  → Skipped add_tag: tag ${params.tag_id} is not in org ${orgIdForTag}`);
+            break;
           }
+          // task_tags PK (task_id, tag_id): idempotente
+          await db.prepare('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?) ON CONFLICT (task_id, tag_id) DO NOTHING')
+            .run(task.id, params.tag_id);
+          console.log(`  → Added tag: ${params.tag_id}`);
         }
         break;
 
@@ -186,7 +206,10 @@ const executeAction = async (task, automation, context = {}) => {
           // Get all assignees from junction table, fallback to assigned_to
           let recipientIds = [];
           if (params.user_id) {
-            recipientIds = [params.user_id];
+            // Solo si el destinatario pertenece a la organización de la tarea
+            const recipient = await db.prepare('SELECT id FROM team_members WHERE id = ? AND organization_id = ?')
+              .get(params.user_id, notifOrgId);
+            recipientIds = recipient ? [params.user_id] : [];
           } else {
             const assignees = await db.prepare('SELECT team_member_id FROM task_assignees WHERE task_id = ?').all(task.id);
             recipientIds = assignees.map(a => a.team_member_id);
@@ -206,8 +229,8 @@ const executeAction = async (task, automation, context = {}) => {
 
       case 'change_priority':
         if (params.priority) {
-          await db.prepare('UPDATE tasks SET priority = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-            .run(params.priority, task.id);
+          await db.prepare('UPDATE tasks SET priority = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND organization_id = ?')
+            .run(params.priority, task.id, automation.organization_id);
           console.log(`  → Changed priority to: ${params.priority}`);
         }
         break;
@@ -272,12 +295,11 @@ export const checkDueDateAutomations = async () => {
       // Find tasks with due dates approaching, scoped by automation's org via project
       const tasks = await db.prepare(`
         SELECT t.* FROM tasks t
-        JOIN projects p ON t.project_id = p.id
         WHERE t.due_date IS NOT NULL
         AND t.status != 'done'
         AND t.due_date::DATE = CURRENT_DATE + (? || ' days')::INTERVAL
         AND (? IS NULL OR t.project_id = ?)
-        AND p.organization_id = ?
+        AND t.organization_id = ?
       `).all(daysBefore, automation.project_id, automation.project_id, automation.organization_id);
 
       for (const task of tasks) {

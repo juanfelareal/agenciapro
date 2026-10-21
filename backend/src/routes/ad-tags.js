@@ -1,7 +1,17 @@
 import { Router } from 'express';
 import db from '../config/database.js';
+import { assertClientInOrg, assertAllRowsInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = Router();
+
+// Verifica que el cliente y todos los tag_value ids del body pertenecen a la org.
+// Devuelve el Set de value_ids válidos; lanza 404 si algo es de otra organización.
+async function assertAssignmentRefs(orgId, clientId, assignments) {
+  await assertClientInOrg(db, clientId, orgId, 'id');
+  const valueIds = (assignments || []).map(a => a?.value_id).filter(Boolean);
+  const rows = await assertAllRowsInOrg(db, 'ad_tag_values', valueIds, orgId, { label: 'Etiqueta' });
+  return new Set(rows.map(r => Number(r.id)));
+}
 
 // ============================================
 // CATEGORIES
@@ -183,13 +193,16 @@ router.put('/assignments/:adId', async (req, res) => {
 
     if (!client_id) return res.status(400).json({ error: 'client_id es requerido' });
 
+    // Cliente y etiquetas deben ser de esta organización (404 si no)
+    const validValues = await assertAssignmentRefs(orgId, client_id, assignments);
+
     // Delete existing assignments for this ad
     await db.run('DELETE FROM ad_tag_assignments WHERE ad_id = ? AND organization_id = ?', [adId, orgId]);
 
     // Insert new assignments
     if (assignments && assignments.length > 0) {
       for (const a of assignments) {
-        if (a.value_id) {
+        if (a.value_id && validValues.has(Number(a.value_id))) {
           await db.run(
             'INSERT INTO ad_tag_assignments (organization_id, ad_id, client_id, tag_value_id) VALUES (?, ?, ?, ?) ON CONFLICT (ad_id, tag_value_id) DO NOTHING',
             [orgId, adId, client_id, a.value_id]
@@ -210,8 +223,7 @@ router.put('/assignments/:adId', async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    console.error('Error setting ad tags:', error);
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error, 'Error setting ad tags:');
   }
 });
 
@@ -229,9 +241,12 @@ router.post('/assignments/bulk', async (req, res) => {
       return res.status(400).json({ error: 'client_id, ad_ids y assignments son requeridos' });
     }
 
+    // Cliente y etiquetas deben ser de esta organización (404 si no)
+    const validValues = await assertAssignmentRefs(orgId, client_id, assignments);
+
     for (const adId of ad_ids) {
       for (const a of assignments) {
-        if (a.value_id) {
+        if (a.value_id && validValues.has(Number(a.value_id))) {
           await db.run(
             'INSERT INTO ad_tag_assignments (organization_id, ad_id, client_id, tag_value_id) VALUES (?, ?, ?, ?) ON CONFLICT (ad_id, tag_value_id) DO NOTHING',
             [orgId, adId, client_id, a.value_id]
@@ -242,8 +257,7 @@ router.post('/assignments/bulk', async (req, res) => {
 
     res.json({ success: true, tagged: ad_ids.length });
   } catch (error) {
-    console.error('Error bulk assigning ad tags:', error);
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error, 'Error bulk assigning ad tags:');
   }
 });
 

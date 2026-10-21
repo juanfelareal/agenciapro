@@ -10,9 +10,9 @@ const statusLabels = {
 
 const statusColors = {
   todo: 'bg-gray-100 text-gray-600',
-  in_progress: 'bg-[#163B3B]/15 text-[#17181A]',
+  in_progress: 'bg-[rgb(var(--ink-rgb)/0.15)] text-[var(--ink)]',
   review: 'bg-[#C9A99D]/25 text-[#8B6B60]',
-  done: 'bg-[#E8C4B8]/30 text-[#A67060]',
+  done: 'bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent-deep)]',
 };
 
 const priorityLabels = {
@@ -24,7 +24,7 @@ const priorityLabels = {
 
 const priorityColors = {
   low: 'bg-gray-100 text-gray-600',
-  medium: 'bg-[#163B3B]/10 text-[#17181A]',
+  medium: 'bg-[rgb(var(--ink-rgb)/0.1)] text-[var(--ink)]',
   high: 'bg-[#F97316]/10 text-[#F97316]',
   urgent: 'bg-red-100 text-red-600',
 };
@@ -107,7 +107,7 @@ export default function ListView({
         e.stopPropagation();
         setColumnWidths((prev) => ({ ...prev, [columnKey]: DEFAULT_WIDTHS[columnKey] }));
       }}
-      className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-[#163B3B]/40 active:bg-[#163B3B]/60 z-10"
+      className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-[rgb(var(--ink-rgb)/0.4)] active:bg-[rgb(var(--dark-rgb)/0.6)] z-10"
       title="Arrastra para redimensionar (doble click para restablecer)"
     />
   );
@@ -195,9 +195,9 @@ export default function ListView({
       return <ChevronUp size={14} className="text-gray-300" />;
     }
     return sortConfig.direction === 'asc' ? (
-      <ChevronUp size={14} className="text-[#65A30D]" />
+      <ChevronUp size={14} className="text-[var(--accent-deep)]" />
     ) : (
-      <ChevronDown size={14} className="text-[#65A30D]" />
+      <ChevronDown size={14} className="text-[var(--accent-deep)]" />
     );
   };
 
@@ -301,7 +301,7 @@ export default function ListView({
                 setEditValue('');
               }
             }}
-            className="w-full px-2 py-1 text-sm border border-[#163B3B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#163B3B]/20"
+            className="w-full px-2 py-1 text-sm border border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)]"
           >
             {Object.entries(statusLabels).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -336,7 +336,7 @@ export default function ListView({
                 setEditValue('');
               }
             }}
-            className="w-full px-2 py-1 text-sm border border-[#163B3B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#163B3B]/20"
+            className="w-full px-2 py-1 text-sm border border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)]"
           >
             {Object.entries(priorityLabels).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -381,7 +381,7 @@ export default function ListView({
                 saveEdit(task);
               }
             }}
-            className="w-full px-2 py-1 text-sm border border-[#163B3B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#163B3B]/20"
+            className="w-full px-2 py-1 text-sm border border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)]"
           />
         );
       }
@@ -395,7 +395,7 @@ export default function ListView({
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={() => handleDelayedBlur(task)}
           onKeyDown={(e) => handleEditKeyDown(e, task)}
-          className="w-full px-2 py-1 text-sm border border-[#163B3B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#163B3B]/20"
+          className="w-full px-2 py-1 text-sm border border-[var(--ink)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)]"
         />
       );
     }
@@ -511,14 +511,14 @@ export default function ListView({
     <div className="glass-panel overflow-hidden">
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#17181A]/5 border-b border-[#163B3B]/10 px-4 py-2.5 flex items-center gap-3 flex-wrap">
+        <div className="bg-[rgb(var(--ink-rgb)/0.05)] border-b border-[rgb(var(--ink-rgb)/0.1)] px-4 py-2.5 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <CheckSquare size={16} className="text-[#17181A]" />
-            <span className="text-sm font-medium text-[#17181A]">
+            <CheckSquare size={16} className="text-[var(--ink)]" />
+            <span className="text-sm font-medium text-[var(--ink)]">
               {selectedIds.size} tarea{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-5 w-px bg-[#163B3B]/20" />
+          <div className="h-5 w-px bg-[rgb(var(--ink-rgb)/0.2)]" />
 
           {/* Status change */}
           <div className="flex items-center gap-1">
@@ -534,7 +534,7 @@ export default function ListView({
               </button>
             ))}
           </div>
-          <div className="h-5 w-px bg-[#163B3B]/20" />
+          <div className="h-5 w-px bg-[rgb(var(--ink-rgb)/0.2)]" />
 
           {/* Priority change */}
           <div className="flex items-center gap-1">
@@ -550,7 +550,7 @@ export default function ListView({
               </button>
             ))}
           </div>
-          <div className="h-5 w-px bg-[#163B3B]/20" />
+          <div className="h-5 w-px bg-[rgb(var(--ink-rgb)/0.2)]" />
 
           {/* Assign */}
           <div className="relative group/assign">
@@ -574,7 +574,7 @@ export default function ListView({
                   {m.avatar_url ? (
                     <img src={m.avatar_url} alt={m.name} className="w-5 h-5 rounded-lg object-cover" />
                   ) : (
-                    <div className="w-5 h-5 rounded-lg bg-[#17181A] text-[#D7F653] flex items-center justify-center text-xs font-medium">
+                    <div className="w-5 h-5 rounded-lg bg-[var(--dark)] text-[var(--accent)] flex items-center justify-center text-xs font-medium">
                       {m.name.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -583,7 +583,7 @@ export default function ListView({
               ))}
             </div>
           </div>
-          <div className="h-5 w-px bg-[#163B3B]/20" />
+          <div className="h-5 w-px bg-[rgb(var(--ink-rgb)/0.2)]" />
 
           {/* Delete */}
           <button
@@ -597,14 +597,14 @@ export default function ListView({
 
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="ml-auto text-xs text-gray-500 hover:text-[#17181A]"
+            className="ml-auto text-xs text-gray-500 hover:text-[var(--ink)]"
           >
             Cancelar
           </button>
         </div>
       )}
       {/* Móvil: tarjetas compactas (la tabla completa se muestra desde md) */}
-      <div className="md:hidden divide-y divide-gray-100 bg-white/60 rounded-2xl border border-white/60">
+      <div className="md:hidden divide-y divide-gray-100 bg-[rgb(var(--surface-rgb)/0.6)] rounded-2xl border border-[rgb(var(--ink-rgb)/0.09)]">
         {sortedTasks.length === 0 && (
           <p className="p-6 text-sm text-gray-400 text-center">No hay tareas</p>
         )}
@@ -620,13 +620,13 @@ export default function ListView({
             >
               <button
                 onClick={(e) => { e.stopPropagation(); onStatusChange && onStatusChange(task.id, task.status === 'done' ? 'todo' : 'done'); }}
-                className={`mt-0.5 flex-shrink-0 ${task.status === 'done' ? 'text-[#17181A]' : 'text-gray-300'}`}
+                className={`mt-0.5 flex-shrink-0 ${task.status === 'done' ? 'text-[var(--ink)]' : 'text-gray-300'}`}
                 aria-label={task.status === 'done' ? 'Marcar como pendiente' : 'Marcar como completada'}
               >
                 {task.status === 'done' ? <CheckSquare size={18} /> : <Square size={18} />}
               </button>
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-medium text-[#17181A] ${task.status === 'done' ? 'line-through text-gray-400' : ''}`}>{task.title}</p>
+                <p className={`text-sm font-medium text-[var(--ink)] ${task.status === 'done' ? 'line-through text-gray-400' : ''}`}>{task.title}</p>
                 <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full ${statusColors[task.status] || 'bg-gray-100 text-gray-600'}`}>{statusLabels[task.status] || task.status}</span>
                   {task.priority && task.priority !== 'medium' && (
@@ -662,12 +662,12 @@ export default function ListView({
             <col style={{ width: columnWidths.created_by }} />
             <col style={{ width: columnWidths.actions }} />
           </colgroup>
-          <thead className="bg-white/40 border-b border-white/60">
+          <thead className="bg-[rgb(var(--surface-rgb)/0.4)] border-b border-[rgb(var(--ink-rgb)/0.09)]">
             <tr>
               <th className="relative px-3 py-3 text-center">
-                <button onClick={toggleSelectAll} className="text-gray-400 hover:text-[#17181A]">
-                  {isAllSelected ? <CheckSquare size={16} className="text-[#17181A]" /> :
-                   isSomeSelected ? <MinusSquare size={16} className="text-[#17181A]" /> :
+                <button onClick={toggleSelectAll} className="text-gray-400 hover:text-[var(--ink)]">
+                  {isAllSelected ? <CheckSquare size={16} className="text-[var(--ink)]" /> :
+                   isSomeSelected ? <MinusSquare size={16} className="text-[var(--ink)]" /> :
                    <Square size={16} />}
                 </button>
                 <ResizeHandle columnKey="checkbox" />
@@ -752,12 +752,12 @@ export default function ListView({
               <tr
                 key={task.id}
                 onClick={() => onTaskClick && onTaskClick(task)}
-                className={`hover:bg-white/50 transition-colors group cursor-pointer ${selectedIds.has(task.id) ? 'bg-[#17181A]/5' : ''}`}
+                className={`hover:bg-[rgb(var(--ink-rgb)/0.04)] transition-colors group cursor-pointer ${selectedIds.has(task.id) ? 'bg-[rgb(var(--ink-rgb)/0.05)]' : ''}`}
               >
                 {/* Checkbox */}
                 <td className="px-3 py-3 text-center">
-                  <button onClick={(e) => toggleSelectOne(e, task.id)} className="text-gray-400 hover:text-[#17181A]">
-                    {selectedIds.has(task.id) ? <CheckSquare size={16} className="text-[#17181A]" /> : <Square size={16} />}
+                  <button onClick={(e) => toggleSelectOne(e, task.id)} className="text-gray-400 hover:text-[var(--ink)]">
+                    {selectedIds.has(task.id) ? <CheckSquare size={16} className="text-[var(--ink)]" /> : <Square size={16} />}
                   </button>
                 </td>
                 {/* Title - editable */}
@@ -767,7 +767,7 @@ export default function ListView({
                       {renderEditableCell(
                         task,
                         'title',
-                        <span className="font-medium text-[#17181A] truncate block" title={task.title}>{task.title}</span>
+                        <span className="font-medium text-[var(--ink)] truncate block" title={task.title}>{task.title}</span>
                       )}
                       {!!task.is_recurring && (
                         <span className="text-[#E8C4B8] text-sm" title="Tarea Recurrente">🔄</span>
@@ -830,12 +830,12 @@ export default function ListView({
                                 src={a.avatar_url}
                                 alt={a.name}
                                 title={a.name}
-                                className="w-6 h-6 rounded-lg object-cover ring-1 ring-white"
+                                className="w-6 h-6 rounded-lg object-cover ring-1 ring-[var(--surface)]"
                               />
                             ) : (
                               <div
                                 key={a.id}
-                                className="w-6 h-6 rounded-lg bg-[#17181A] text-[#D7F653] flex items-center justify-center text-xs font-medium ring-1 ring-white"
+                                className="w-6 h-6 rounded-lg bg-[var(--dark)] text-[var(--accent)] flex items-center justify-center text-xs font-medium ring-1 ring-[var(--surface)]"
                                 title={a.name}
                               >
                                 {a.name.charAt(0).toUpperCase()}
@@ -890,17 +890,17 @@ export default function ListView({
                               }
                               setAssigneeDropdownTaskId(null);
                             }}
-                            className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center gap-2 ${isSelected ? 'bg-[#17181A]/5' : ''}`}
+                            className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center gap-2 ${isSelected ? 'bg-[rgb(var(--ink-rgb)/0.05)]' : ''}`}
                           >
                             {member.avatar_url ? (
                               <img src={member.avatar_url} alt={member.name} className="w-6 h-6 rounded-lg object-cover" />
                             ) : (
-                              <div className="w-6 h-6 rounded-lg bg-[#17181A] text-[#D7F653] flex items-center justify-center text-xs font-medium">
+                              <div className="w-6 h-6 rounded-lg bg-[var(--dark)] text-[var(--accent)] flex items-center justify-center text-xs font-medium">
                                 {member.name.charAt(0).toUpperCase()}
                               </div>
                             )}
                             <span>{member.name}</span>
-                            {isSelected && <Check size={14} className="ml-auto text-[#17181A]" />}
+                            {isSelected && <Check size={14} className="ml-auto text-[var(--ink)]" />}
                           </div>
                         );
                       })}
@@ -949,7 +949,7 @@ export default function ListView({
                           await onUpdateTask(task.id, { status: newValue });
                         }
                       }}
-                      className={`appearance-none cursor-pointer pl-2 pr-6 py-1 rounded-lg text-xs font-medium border-none focus:outline-none focus:ring-2 focus:ring-[#163B3B]/30 hover:opacity-80 transition-opacity ${statusColors[task.status]}`}
+                      className={`appearance-none cursor-pointer pl-2 pr-6 py-1 rounded-lg text-xs font-medium border-none focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.3)] hover:opacity-80 transition-opacity ${statusColors[task.status]}`}
                       style={{ backgroundImage: 'none' }}
                       title="Cambiar estado"
                     >
@@ -1011,7 +1011,7 @@ export default function ListView({
                         }
                       }}
                       placeholder="Nombre de la tarea... (Enter para crear, Esc para cancelar)"
-                      className="flex-1 bg-transparent border-none outline-none text-sm text-[#17181A] placeholder:text-gray-400"
+                      className="flex-1 bg-transparent border-none outline-none text-sm text-[var(--ink)] placeholder:text-gray-400"
                       autoFocus
                     />
                     {newTaskTitle.trim() && (
@@ -1024,7 +1024,7 @@ export default function ListView({
                             newTaskInputRef.current?.focus();
                           }
                         }}
-                        className="p-1 text-[#17181A] hover:bg-[#163B3B]/10 rounded"
+                        className="p-1 text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.1)] rounded"
                       >
                         <Check size={16} />
                       </button>
@@ -1042,7 +1042,7 @@ export default function ListView({
                 ) : (
                   <button
                     onClick={() => setIsAddingTask(true)}
-                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-[#17181A] transition-colors w-full py-1"
+                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-[var(--ink)] transition-colors w-full py-1"
                   >
                     <Plus size={16} />
                     <span>Agregar tarea</span>

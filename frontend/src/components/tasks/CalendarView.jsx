@@ -130,7 +130,7 @@ export default function CalendarView({
   return (
     <div className="flex flex-col h-full">
       {/* Calendar Navigation */}
-      <div className="bg-white rounded-lg border border-gray-200 mb-4 p-3 md:p-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-[var(--surface)] rounded-lg border border-gray-200 mb-4 p-3 md:p-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrev}
@@ -164,7 +164,7 @@ export default function CalendarView({
               onClick={() => setView('month')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'month'
-                  ? 'bg-white text-primary-600 shadow-sm'
+                  ? 'bg-[var(--surface)] text-primary-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -175,7 +175,7 @@ export default function CalendarView({
               onClick={() => setView('week')}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 view === 'week'
-                  ? 'bg-white text-primary-600 shadow-sm'
+                  ? 'bg-[var(--surface)] text-primary-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -187,7 +187,7 @@ export default function CalendarView({
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-auto flex flex-col">
+      <div className="bg-[var(--surface)] rounded-lg border border-gray-200 flex-1 overflow-auto flex flex-col">
         {/* Week day headers */}
         <div className="hidden md:grid grid-cols-7 border-b">
           {weekDays.map((day) => (
@@ -238,7 +238,7 @@ export default function CalendarView({
                       onClick={() => onTaskClick(task)}
                       className={`text-xs p-1.5 rounded cursor-pointer border-l-2 ${
                         statusColors[task.status]
-                      } bg-white shadow-sm hover:shadow transition-shadow ${
+                      } bg-[var(--surface)] shadow-sm hover:shadow transition-shadow ${
                         draggedTask?.id === task.id ? 'opacity-50' : ''
                       }`}
                     >
@@ -271,7 +271,7 @@ export default function CalendarView({
                         e.stopPropagation();
                         setExpandedDay({ day, tasks: dayTasks });
                       }}
-                      className="w-full text-xs text-gray-600 hover:text-[#17181A] hover:bg-gray-100 rounded py-0.5 text-center font-medium transition-colors"
+                      className="w-full text-xs text-gray-600 hover:text-[var(--ink)] hover:bg-gray-100 rounded py-0.5 text-center font-medium transition-colors"
                     >
                       +{dayTasks.length - (view === 'week' ? 10 : 3)} más
                     </button>
@@ -296,7 +296,7 @@ export default function CalendarView({
               return (
                 <div key={day.toISOString()} className={`p-3 ${isCurrentDay ? 'bg-gray-50' : ''}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[#17181A] text-[#D7F653]' : 'bg-gray-100 text-gray-700'}`}>
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isCurrentDay ? 'bg-[var(--dark)] text-[var(--accent)]' : 'bg-gray-100 text-gray-700'}`}>
                       {format(day, 'd')}
                     </span>
                     <span className="text-sm font-medium text-gray-700 capitalize">{format(day, 'EEEE', { locale: es })}</span>
@@ -311,7 +311,7 @@ export default function CalendarView({
                           key={task.id}
                           type="button"
                           onClick={() => onTaskClick(task)}
-                          className={`w-full text-left text-sm p-2 rounded-lg border-l-2 ${statusColors[task.status]} bg-white border border-gray-100 shadow-sm`}
+                          className={`w-full text-left text-sm p-2 rounded-lg border-l-2 ${statusColors[task.status]} bg-[var(--surface)] border border-gray-100 shadow-sm`}
                         >
                           <div className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${priorityDots[task.priority]}`} />
@@ -332,7 +332,7 @@ export default function CalendarView({
       </div>
 
       {/* Legend */}
-      <div className="mt-4 bg-white rounded-lg border border-gray-200 p-4">
+      <div className="mt-4 bg-[var(--surface)] rounded-lg border border-gray-200 p-4">
         <div className="flex flex-wrap gap-4 text-sm">
           <span className="text-gray-500 font-medium">Leyenda:</span>
           <div className="flex items-center gap-1">
@@ -378,7 +378,7 @@ export default function CalendarView({
           onClick={() => setExpandedDay(null)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-xl overflow-hidden"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -386,7 +386,7 @@ export default function CalendarView({
                 <p className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
                   {format(expandedDay.day, "EEEE", { locale: es })}
                 </p>
-                <h3 className="text-lg font-semibold text-[#17181A]">
+                <h3 className="text-lg font-semibold text-[var(--ink)]">
                   {format(expandedDay.day, "d 'de' MMMM, yyyy", { locale: es })}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -409,14 +409,14 @@ export default function CalendarView({
                     setExpandedDay(null);
                     onTaskClick(task);
                   }}
-                  className={`w-full text-left p-3 rounded-lg border-l-2 ${statusColors[task.status]} bg-white border border-gray-100 hover:border-gray-300 hover:shadow-sm transition-all`}
+                  className={`w-full text-left p-3 rounded-lg border-l-2 ${statusColors[task.status]} bg-[var(--surface)] border border-gray-100 hover:border-gray-300 hover:shadow-sm transition-all`}
                 >
                   <div className="flex items-start gap-2">
                     <span
                       className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${priorityDots[task.priority]}`}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[#17181A]">{task.title}</p>
+                      <p className="text-sm font-medium text-[var(--ink)]">{task.title}</p>
                       {task.project_id && (
                         <p className="text-xs text-gray-500 truncate mt-0.5">
                           {getProjectName(task.project_id)}

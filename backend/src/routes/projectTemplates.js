@@ -1,5 +1,13 @@
 import express from 'express';
 import db from '../config/database.js';
+import { findRowInOrg } from '../utils/tenant.js';
+
+// default_assignee_id del body: solo si es miembro de esta org; si no, null
+const resolveAssignee = async (id, orgId) => {
+  if (!id) return null;
+  const m = await findRowInOrg(db, 'team_members', id, orgId, { columns: 'id' });
+  return m ? m.id : null;
+};
 
 const router = express.Router();
 
@@ -96,10 +104,10 @@ router.get('/:id', async (req, res) => {
     const tasks = await db.prepare(`
       SELECT ptt.*, tm.name as default_assignee_name
       FROM project_template_tasks ptt
-      LEFT JOIN team_members tm ON ptt.default_assignee_id = tm.id
+      LEFT JOIN team_members tm ON ptt.default_assignee_id = tm.id AND tm.organization_id = ?
       WHERE ptt.template_id = ?
       ORDER BY ptt.order_index ASC
-    `).all(req.params.id);
+    `).all(orgId, req.params.id);
 
     res.json({ ...template, tasks });
   } catch (error) {
@@ -138,7 +146,7 @@ router.post('/', async (req, res) => {
           task.description || null,
           task.priority || 'medium',
           task.estimated_hours || 0,
-          task.default_assignee_id || null,
+          await resolveAssignee(task.default_assignee_id, orgId),
           task.order_index !== undefined ? task.order_index : index
         );
       }
@@ -228,7 +236,7 @@ router.post('/:id/tasks', async (req, res) => {
     const result = await db.prepare(`
       INSERT INTO project_template_tasks (template_id, title, description, priority, estimated_hours, default_assignee_id, order_index)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(req.params.id, title, description || null, priority || 'medium', estimated_hours || 0, default_assignee_id || null, newOrderIndex);
+    `).run(req.params.id, title, description || null, priority || 'medium', estimated_hours || 0, await resolveAssignee(default_assignee_id, orgId), newOrderIndex);
 
     const task = await db.prepare('SELECT * FROM project_template_tasks WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(task);
@@ -258,14 +266,14 @@ router.put('/:id/tasks/:taskId', async (req, res) => {
     const updatedDescription = description !== undefined ? description : currentTask.description;
     const updatedPriority = priority !== undefined ? priority : currentTask.priority;
     const updatedEstimatedHours = estimated_hours !== undefined ? estimated_hours : currentTask.estimated_hours;
-    const updatedAssignee = default_assignee_id !== undefined ? (default_assignee_id || null) : currentTask.default_assignee_id;
+    const updatedAssignee = default_assignee_id !== undefined ? await resolveAssignee(default_assignee_id, orgId) : currentTask.default_assignee_id;
     const updatedOrderIndex = order_index !== undefined ? order_index : currentTask.order_index;
 
     await db.prepare(`
       UPDATE project_template_tasks
       SET title = ?, description = ?, priority = ?, estimated_hours = ?, default_assignee_id = ?, order_index = ?
-      WHERE id = ?
-    `).run(updatedTitle, updatedDescription, updatedPriority, updatedEstimatedHours, updatedAssignee, updatedOrderIndex, req.params.taskId);
+      WHERE id = ? AND template_id = ?
+    `).run(updatedTitle, updatedDescription, updatedPriority, updatedEstimatedHours, updatedAssignee, updatedOrderIndex, req.params.taskId, req.params.id);
 
     const task = await db.prepare('SELECT * FROM project_template_tasks WHERE id = ?').get(req.params.taskId);
     res.json(task);
@@ -290,7 +298,7 @@ router.delete('/:id/tasks/:taskId', async (req, res) => {
       return res.status(404).json({ error: 'Tarea no encontrada' });
     }
 
-    await db.prepare('DELETE FROM project_template_tasks WHERE id = ?').run(req.params.taskId);
+    await db.prepare('DELETE FROM project_template_tasks WHERE id = ? AND template_id = ?').run(req.params.taskId, req.params.id);
     res.json({ message: 'Tarea eliminada exitosamente' });
   } catch (error) {
     res.status(500).json({ error: error.message });

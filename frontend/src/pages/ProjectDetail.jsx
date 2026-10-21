@@ -360,7 +360,7 @@ const ProjectDetail = () => {
   if (loading && !project) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#163B3B]" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--ink)]" />
       </div>
     );
   }
@@ -371,7 +371,7 @@ const ProjectDetail = () => {
         <p className="text-gray-500">Proyecto no encontrado</p>
         <button
           onClick={() => navigate('/app/projects')}
-          className="mt-4 text-[#163B3B] hover:underline"
+          className="mt-4 text-[var(--ink)] hover:underline"
         >
           Volver a proyectos
         </button>
@@ -387,7 +387,7 @@ const ProjectDetail = () => {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => navigate('/app/projects')}
-            className="flex items-center gap-2 text-gray-500 hover:text-[#163B3B] transition-colors"
+            className="flex items-center gap-2 text-gray-500 hover:text-[var(--ink)] transition-colors"
           >
             <ArrowLeft size={20} />
             <span>Volver a proyectos</span>
@@ -395,12 +395,12 @@ const ProjectDetail = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleEditProject}
-              className="p-2 text-gray-400 hover:text-[#163B3B] hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 rounded-lg transition-colors"
               title="Editar proyecto"
             >
               <Edit size={18} />
             </button>
-            <button className="p-2 text-gray-400 hover:text-[#163B3B] hover:bg-gray-100 rounded-lg transition-colors">
+            <button className="p-2 text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 rounded-lg transition-colors">
               <MoreVertical size={18} />
             </button>
           </div>
@@ -420,7 +420,7 @@ const ProjectDetail = () => {
               {statusLabels[project.status]}
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-[#163B3B] mb-1">{project.name}</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)] mb-1">{project.name}</h1>
           {project.client_name && (
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-gray-500">Cliente: {project.client_name}</p>
@@ -460,7 +460,7 @@ const ProjectDetail = () => {
               <CheckCircle2 size={16} />
               <span className="text-xs uppercase tracking-wide">Progreso</span>
             </div>
-            <p className="text-2xl font-bold text-[#163B3B]">{metrics.progress}%</p>
+            <p className="text-2xl font-bold text-[var(--ink)]">{metrics.progress}%</p>
           </div>
 
           <div className="bg-gray-50 rounded-xl p-4">
@@ -468,7 +468,7 @@ const ProjectDetail = () => {
               <List size={16} />
               <span className="text-xs uppercase tracking-wide">Tareas</span>
             </div>
-            <p className="text-2xl font-bold text-[#163B3B]">
+            <p className="text-2xl font-bold text-[var(--ink)]">
               {metrics.completedTasks}/{metrics.totalTasks}
             </p>
           </div>
@@ -478,7 +478,7 @@ const ProjectDetail = () => {
               <Clock size={16} />
               <span className="text-xs uppercase tracking-wide">Horas Est.</span>
             </div>
-            <p className="text-2xl font-bold text-[#163B3B]">{metrics.totalHours}h</p>
+            <p className="text-2xl font-bold text-[var(--ink)]">{metrics.totalHours}h</p>
           </div>
 
           <div className="bg-gray-50 rounded-xl p-4">
@@ -486,7 +486,7 @@ const ProjectDetail = () => {
               <Users size={16} />
               <span className="text-xs uppercase tracking-wide">Equipo</span>
             </div>
-            <p className="text-2xl font-bold text-[#163B3B]">{metrics.teamCount}</p>
+            <p className="text-2xl font-bold text-[var(--ink)]">{metrics.teamCount}</p>
           </div>
 
         </div>
@@ -499,7 +499,7 @@ const ProjectDetail = () => {
           </div>
           <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#163B3B] to-[#E8C4B8] rounded-full transition-all duration-500"
+              className="h-full bg-[var(--accent)] rounded-full transition-all duration-500"
               style={{ width: `${metrics.progress}%` }}
             />
           </div>
@@ -522,9 +522,9 @@ const ProjectDetail = () => {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <span className="text-gray-400">Tareas:</span>
             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{metrics.byStatus.todo} por hacer</span>
-            <span className="px-2 py-0.5 bg-[#163B3B]/10 text-[#163B3B] rounded-full text-xs">{metrics.byStatus.in_progress} en progreso</span>
+            <span className="px-2 py-0.5 bg-[rgb(var(--ink-rgb)/0.1)] text-[var(--ink)] rounded-full text-xs">{metrics.byStatus.in_progress} en progreso</span>
             <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs">{metrics.byStatus.review} en revisión</span>
-            <span className="px-2 py-0.5 bg-[#E8C4B8]/30 text-[#A67060] rounded-full text-xs">{metrics.byStatus.done} completadas</span>
+            <span className="px-2 py-0.5 bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--accent-deep)] rounded-full text-xs">{metrics.byStatus.done} completadas</span>
           </div>
         </div>
       </div>
@@ -537,7 +537,7 @@ const ProjectDetail = () => {
             <button
               onClick={() => setViewMode('kanban')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                viewMode === 'kanban' ? 'bg-white text-[#163B3B] shadow-sm' : 'text-gray-500 hover:text-[#163B3B]'
+                viewMode === 'kanban' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-[var(--ink)]'
               }`}
             >
               <LayoutGrid size={16} />
@@ -546,7 +546,7 @@ const ProjectDetail = () => {
             <button
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                viewMode === 'table' ? 'bg-white text-[#163B3B] shadow-sm' : 'text-gray-500 hover:text-[#163B3B]'
+                viewMode === 'table' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-[var(--ink)]'
               }`}
             >
               <Table size={16} />
@@ -555,7 +555,7 @@ const ProjectDetail = () => {
             <button
               onClick={() => setViewMode('list')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                viewMode === 'list' ? 'bg-white text-[#163B3B] shadow-sm' : 'text-gray-500 hover:text-[#163B3B]'
+                viewMode === 'list' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-[var(--ink)]'
               }`}
             >
               <List size={16} />
@@ -575,7 +575,7 @@ const ProjectDetail = () => {
               </button>
               <button
                 onClick={() => handleAddTask()}
-                className="flex items-center gap-2 px-4 py-2 bg-[#163B3B] text-white rounded-xl hover:bg-[#1e4d4d] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
               >
                 <Plus size={18} />
                 Nueva tarea
@@ -623,15 +623,15 @@ const ProjectDetail = () => {
           onClick={() => setShowProjectEditModal(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-[var(--surface)] rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#163B3B]">Editar proyecto</h2>
+              <h2 className="text-xl font-semibold text-[var(--ink)]">Editar proyecto</h2>
               <button
                 type="button"
                 onClick={() => setShowProjectEditModal(false)}
-                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[#163B3B] transition-colors"
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[var(--ink)] transition-colors"
                 aria-label="Cerrar"
               >
                 <X size={20} />
@@ -645,7 +645,7 @@ const ProjectDetail = () => {
                   type="text"
                   value={projectFormData.name}
                   onChange={(e) => setProjectFormData({ ...projectFormData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   required
                 />
               </div>
@@ -655,7 +655,7 @@ const ProjectDetail = () => {
                 <textarea
                   value={projectFormData.description}
                   onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   rows={3}
                 />
               </div>
@@ -665,7 +665,7 @@ const ProjectDetail = () => {
                 <select
                   value={projectFormData.client_id}
                   onChange={(e) => setProjectFormData({ ...projectFormData, client_id: e.target.value || null })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                 >
                   <option value="">Sin cliente</option>
                   {clients.map(c => (
@@ -681,7 +681,7 @@ const ProjectDetail = () => {
                     type="date"
                     value={projectFormData.start_date}
                     onChange={(e) => setProjectFormData({ ...projectFormData, start_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   />
                 </div>
 
@@ -691,7 +691,7 @@ const ProjectDetail = () => {
                     type="date"
                     value={projectFormData.end_date}
                     onChange={(e) => setProjectFormData({ ...projectFormData, end_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -707,7 +707,7 @@ const ProjectDetail = () => {
                 <button
                   type="submit"
                   disabled={savingProject}
-                  className="px-4 py-2 bg-[#163B3B] text-white rounded-xl hover:bg-[#1e4d4d] transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
                 >
                   {savingProject ? 'Guardando...' : 'Guardar cambios'}
                 </button>
@@ -724,17 +724,17 @@ const ProjectDetail = () => {
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-[var(--surface)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#163B3B]">
+              <h2 className="text-xl font-semibold text-[var(--ink)]">
                 {editingTask ? 'Editar tarea' : 'Nueva tarea'}
               </h2>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[#163B3B] transition-colors"
+                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-[var(--ink)] transition-colors"
                 aria-label="Cerrar"
               >
                 <X size={20} />
@@ -748,7 +748,7 @@ const ProjectDetail = () => {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   required
                 />
               </div>
@@ -768,7 +768,7 @@ const ProjectDetail = () => {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   >
                     <option value="todo">Por hacer</option>
                     <option value="in_progress">En progreso</option>
@@ -782,7 +782,7 @@ const ProjectDetail = () => {
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   >
                     <option value="low">Baja</option>
                     <option value="medium">Media</option>
@@ -800,7 +800,7 @@ const ProjectDetail = () => {
                     return member ? (
                       <span
                         key={memberId}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-[#163B3B]/10 text-[#163B3B] rounded-lg text-sm"
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-[rgb(var(--ink-rgb)/0.1)] text-[var(--ink)] rounded-lg text-sm"
                       >
                         {member.name}
                         <button
@@ -847,7 +847,7 @@ const ProjectDetail = () => {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   />
                 </div>
 
@@ -858,7 +858,7 @@ const ProjectDetail = () => {
                     value={formData.delivery_url}
                     onChange={(e) => setFormData({ ...formData, delivery_url: e.target.value })}
                     placeholder="https://..."
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -867,7 +867,7 @@ const ProjectDetail = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Formulario vinculado</label>
                   <select
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#163B3B] focus:border-transparent bg-white"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent bg-[var(--surface)]"
                     value={formData.linked_form_id || ''}
                     onChange={(e) => setFormData({ ...formData, linked_form_id: e.target.value ? parseInt(e.target.value) : '' })}
                   >
@@ -915,7 +915,7 @@ const ProjectDetail = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#163B3B] text-white rounded-xl hover:bg-[#1e4d4d] transition-colors"
+                  className="px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
                 >
                   {editingTask ? 'Guardar cambios' : 'Crear tarea'}
                 </button>
@@ -1010,7 +1010,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {selected && (
@@ -1022,7 +1022,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
                 Cambiar plantilla
               </button>
             )}
-            <h2 className="text-lg font-semibold text-[#17181A]">
+            <h2 className="text-lg font-semibold text-[var(--ink)]">
               {selected ? selected.name : 'Aplicar plantilla'}
             </h2>
           </div>
@@ -1063,11 +1063,11 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
                   <button
                     key={t.id}
                     onClick={() => handleSelectTemplate(t)}
-                    className="text-left p-4 rounded-xl border border-gray-200 hover:border-[#163B3B] hover:shadow-sm transition-all group"
+                    className="text-left p-4 rounded-xl border border-gray-200 hover:border-[var(--ink)] hover:shadow-sm transition-all group"
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="font-semibold text-[#17181A] text-sm">{t.name}</p>
-                      <ChevronRight size={16} className="text-gray-300 group-hover:text-[#163B3B] flex-shrink-0" />
+                      <p className="font-semibold text-[var(--ink)] text-sm">{t.name}</p>
+                      <ChevronRight size={16} className="text-gray-300 group-hover:text-[var(--ink)] flex-shrink-0" />
                     </div>
                     {t.category && (
                       <span className="inline-block text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 mb-2">
@@ -1111,7 +1111,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
                         {idx + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#17181A]">{t.title}</p>
+                        <p className="text-sm font-medium text-[var(--ink)]">{t.title}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                             t.priority === 'urgent' ? 'bg-red-100 text-red-700'
@@ -1137,7 +1137,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
                             [t.id]: e.target.value ? Number(e.target.value) : null,
                           }))
                         }
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white flex-shrink-0 max-w-[180px]"
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-[var(--surface)] flex-shrink-0 max-w-[180px]"
                       >
                         <option value="">Sin asignar</option>
                         {teamMembers.map((m) => (
@@ -1174,7 +1174,7 @@ function ApplyTemplateModal({ projectId, teamMembers, onClose, onApplied }) {
               <button
                 onClick={handleApply}
                 disabled={applying || !selected?.tasks?.length}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#163B3B] hover:bg-[#1e4d4d] disabled:opacity-50 text-white text-sm font-medium rounded-xl"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--dark)] hover:bg-[#1C1D1F] disabled:opacity-50 text-white text-sm font-medium rounded-xl"
               >
                 {applying ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                 {applying ? 'Aplicando…' : `Aplicar ${selected.tasks?.length || 0} tareas`}

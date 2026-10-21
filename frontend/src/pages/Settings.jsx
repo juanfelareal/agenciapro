@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // [modules] Link
 import { useAuth } from '../context/AuthContext';
 import { teamAPI } from '../utils/api';
-import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2 } from 'lucide-react';
+import { User, Key, Eye, EyeOff, LogOut, AlertTriangle, Shield, Pencil, Check, X, Building2, Camera, Trash2, Puzzle, Sparkles, ChevronRight, MessageCircle } from 'lucide-react'; // [modules] [briefings]
+import OnboardingSettingsCard from '../components/onboarding/OnboardingSettingsCard'; // [onboarding]
 
 const Settings = () => {
   const { user, currentOrg, logout, checkAuth, isAdmin } = useAuth();
@@ -168,18 +169,28 @@ const Settings = () => {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Mi Cuenta</h1>
+        <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Mi Cuenta</h1>
         <p className="text-sm text-gray-500 mt-0.5">Configura tu perfil y preferencias</p>
       </div>
+
+      {/* [email] Plantillas de correo con la marca de la org (solo admins) */}
+      {isAdmin && (
+        <button
+          onClick={() => navigate('/app/configuracion/correos')}
+          className="text-sm text-gray-500 hover:text-[#17181A] underline underline-offset-4 decoration-gray-300"
+        >
+          Ver plantillas de correo
+        </button>
+      )}
 
       {/* Profile Info Card */}
       <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#17181A] flex items-center justify-center">
-              <User size={20} className="text-[#D7F653]" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--dark)] flex items-center justify-center">
+              <User size={20} className="text-[var(--accent)]" />
             </div>
-            <h2 className="text-lg font-semibold text-[#17181A]">Información Personal</h2>
+            <h2 className="text-lg font-semibold text-[var(--ink)]">Información Personal</h2>
           </div>
           {!isEditingProfile ? (
             <button
@@ -189,7 +200,7 @@ const Settings = () => {
                 setIsEditingProfile(true);
                 setProfileMessage(null);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded-xl transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[var(--ink)] hover:bg-gray-100 rounded-xl transition-colors"
             >
               <Pencil size={14} />
               Editar
@@ -199,7 +210,7 @@ const Settings = () => {
               <button
                 onClick={cancelEditProfile}
                 disabled={profileLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[#17181A] hover:bg-gray-100 rounded-xl transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-[var(--ink)] hover:bg-gray-100 rounded-xl transition-colors"
               >
                 <X size={14} />
                 Cancelar
@@ -207,7 +218,7 @@ const Settings = () => {
               <button
                 onClick={handleSaveProfile}
                 disabled={profileLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50"
               >
                 {profileLoading ? (
                   <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -238,16 +249,16 @@ const Settings = () => {
                 type="text"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
                 autoFocus
               />
             ) : (
-              <p className="text-sm font-medium text-[#17181A]">{user?.name || '-'}</p>
+              <p className="text-sm font-medium text-[var(--ink)]">{user?.name || '-'}</p>
             )}
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Email</label>
-            <p className="text-sm font-medium text-[#17181A]">{user?.email || '-'}</p>
+            <p className="text-sm font-medium text-[var(--ink)]">{user?.email || '-'}</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Cargo</label>
@@ -257,10 +268,10 @@ const Settings = () => {
                 value={profilePosition}
                 onChange={(e) => setProfilePosition(e.target.value)}
                 placeholder="Ej: Diseñador, Manager..."
-                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
               />
             ) : (
-              <p className="text-sm font-medium text-[#17181A]">{user?.position || '-'}</p>
+              <p className="text-sm font-medium text-[var(--ink)]">{user?.position || '-'}</p>
             )}
           </div>
           <div>
@@ -271,10 +282,10 @@ const Settings = () => {
                 value={profilePhone}
                 onChange={(e) => setProfilePhone(e.target.value)}
                 placeholder="Ej: 573001234567"
-                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
+                className="w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
               />
             ) : (
-              <p className="text-sm font-medium text-[#17181A]">{user?.phone ? `+${user.phone}` : '-'}</p>
+              <p className="text-sm font-medium text-[var(--ink)]">{user?.phone ? `+${user.phone}` : '-'}</p>
             )}
             <p className="text-[11px] text-gray-400 mt-1">Con indicativo del país. Sirve para que Orbit te reconozca cuando le escribes al WhatsApp de LA REAL (reuniones → tareas).</p>
           </div>
@@ -282,14 +293,21 @@ const Settings = () => {
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Rol</label>
             <div className="flex items-center gap-2">
               <Shield size={14} className="text-gray-400" />
-              <p className="text-sm font-medium text-[#17181A]">{roleLabels[user?.role] || user?.role || '-'}</p>
+              <p className="text-sm font-medium text-[var(--ink)]">{roleLabels[user?.role] || user?.role || '-'}</p>
             </div>
           </div>
         </div>
 
         {currentOrg && (
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Organización</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Organización</label>
+              {isAdmin && ( // [branding]
+                <Link to="/app/configuracion/marca" className="text-xs font-medium text-[var(--accent-deep)] hover:underline">
+                  Personalizar marca →
+                </Link>
+              )}
+            </div>
             <div className="flex items-center gap-4">
               {/* Logo area */}
               <div className="relative group">
@@ -297,7 +315,7 @@ const Settings = () => {
                   <img
                     src={currentOrg.logo_url}
                     alt={currentOrg.name}
-                    className="w-14 h-14 object-contain rounded-xl border border-gray-200 bg-white p-1"
+                    className="w-14 h-14 object-contain rounded-xl border border-gray-200 bg-[var(--surface)] p-1"
                   />
                 ) : (
                   <div className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center">
@@ -313,19 +331,19 @@ const Settings = () => {
                   </button>
                 )}
                 {logoLoading && (
-                  <div className="absolute inset-0 rounded-xl bg-white/80 flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-[#17181A]/20 border-t-[#17181A] rounded-full animate-spin" />
+                  <div className="absolute inset-0 rounded-xl bg-[rgb(var(--surface-rgb)/0.8)] flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-[rgb(var(--ink-rgb)/0.2)] border-t-[var(--ink)] rounded-full animate-spin" />
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#17181A]">{currentOrg.name}</p>
+                <p className="text-sm font-medium text-[var(--ink)]">{currentOrg.name}</p>
                 {isAdmin && (
                   <div className="flex items-center gap-2 mt-1">
                     <button
                       onClick={() => logoInputRef.current?.click()}
                       disabled={logoLoading}
-                      className="text-xs text-gray-500 hover:text-[#17181A] transition-colors"
+                      className="text-xs text-gray-500 hover:text-[var(--ink)] transition-colors"
                     >
                       {currentOrg.logo_url ? 'Cambiar logo' : 'Subir logo'}
                     </button>
@@ -365,13 +383,50 @@ const Settings = () => {
         )}
       </div>
 
+      {/* [modules] Organización: módulos y suscripción (solo admins) */}
+      {isAdmin && (
+        <div className="glass-card divide-y divide-[#121212]/[0.06]">
+          <Link to="/app/configuracion/modulos" className="flex items-center gap-3 p-4 hover:bg-[#121212]/[0.03] transition-colors rounded-t-2xl">
+            <div className="w-10 h-10 rounded-xl bg-[#121314] flex items-center justify-center flex-shrink-0">
+              <Puzzle size={20} className="text-[#44BF47]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#121314]">Módulos</p>
+              <p className="text-xs text-gray-500">Elige qué partes de Orbit ve tu equipo.</p>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </Link>
+          {/* [briefings] Reportes por WhatsApp: destinatarios, dueños de marca y número */}
+          <Link to="/app/configuracion/whatsapp" className="flex items-center gap-3 p-4 hover:bg-[#121212]/[0.03] transition-colors">
+            <div className="w-10 h-10 rounded-xl bg-[#121314] flex items-center justify-center flex-shrink-0">
+              <MessageCircle size={20} className="text-[#44BF47]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#121314]">Reportes por WhatsApp</p>
+              <p className="text-xs text-gray-500">Quién recibe los resúmenes, reporte al dueño de cada marca y número.</p>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </Link>
+          <Link to="/app/suscripcion" className="flex items-center gap-3 p-4 hover:bg-[#121212]/[0.03] transition-colors rounded-b-2xl">
+            <div className="w-10 h-10 rounded-xl bg-[#121314] flex items-center justify-center flex-shrink-0">
+              <Sparkles size={20} className="text-[#44BF47]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#121314]">Suscripción</p>
+              <p className="text-xs text-gray-500">Plan, prueba, límites y cambio de plan.</p>
+            </div>
+            <ChevronRight size={18} className="text-gray-400" />
+          </Link>
+        </div>
+      )}
+
       {/* Change PIN Card */}
       <div className="glass-card p-6">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-[#17181A] flex items-center justify-center">
-            <Key size={20} className="text-[#D7F653]" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--dark)] flex items-center justify-center">
+            <Key size={20} className="text-[var(--accent)]" />
           </div>
-          <h2 className="text-lg font-semibold text-[#17181A]">Cambiar PIN</h2>
+          <h2 className="text-lg font-semibold text-[var(--ink)]">Cambiar PIN</h2>
         </div>
 
         {pinMessage && (
@@ -393,7 +448,7 @@ const Settings = () => {
                 value={currentPin}
                 onChange={(e) => setCurrentPin(e.target.value)}
                 required
-                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
+                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
               />
               <button
                 type="button"
@@ -414,7 +469,7 @@ const Settings = () => {
                 required
                 minLength={4}
                 placeholder="Mínimo 4 caracteres"
-                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
+                className="w-full px-3 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
               />
               <button
                 type="button"
@@ -433,13 +488,13 @@ const Settings = () => {
               onChange={(e) => setConfirmPin(e.target.value)}
               required
               minLength={4}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]/30 focus:border-[#D7F653]"
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.3)] focus:border-[var(--accent)]"
             />
           </div>
           <button
             type="submit"
             disabled={pinLoading}
-            className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {pinLoading ? (
               <>
@@ -456,8 +511,11 @@ const Settings = () => {
         </form>
       </div>
 
+      {/* [onboarding] Ver el tour otra vez / mostrar primeros pasos */}
+      <OnboardingSettingsCard />
+
       {/* Danger Zone Card */}
-      <div className="bg-white rounded-2xl border border-red-200 p-6">
+      <div className="bg-[var(--surface)] rounded-2xl border border-red-200 p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
             <AlertTriangle size={20} className="text-red-600" />
@@ -487,13 +545,13 @@ const Settings = () => {
       {/* Leave Org Confirmation Modal */}
       {showLeaveModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
                   <AlertTriangle size={20} className="text-red-600" />
                 </div>
-                <h2 className="text-lg font-semibold text-[#17181A]">Confirmar salida</h2>
+                <h2 className="text-lg font-semibold text-[var(--ink)]">Confirmar salida</h2>
               </div>
 
               <p className="text-sm text-gray-600 mb-4">

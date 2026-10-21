@@ -353,7 +353,7 @@ const StructuredBriefCreator = () => {
       </div>
 
       {/* Brief Metadata */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div className="bg-[var(--surface)] rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
@@ -416,7 +416,7 @@ const StructuredBriefCreator = () => {
         {briefData.sections.map((section, sectionIndex) => (
           <div
             key={section.area_key}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+            className="bg-[var(--surface)] rounded-xl shadow-sm border border-gray-200 overflow-hidden"
           >
             {/* Section Header */}
             <div
@@ -438,7 +438,7 @@ const StructuredBriefCreator = () => {
                     updateSection(sectionIndex, 'responsible_id', e.target.value || null);
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="text-sm px-2 py-1 border rounded-lg bg-white"
+                  className="text-sm px-2 py-1 border rounded-lg bg-[var(--surface)]"
                 >
                   <option value="">Sin responsable</option>
                   {teamMembers.map(m => (

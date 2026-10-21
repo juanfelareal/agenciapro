@@ -63,8 +63,8 @@ function ScenarioPlanner({ be, daysInMonth, isCurrent }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, adsPerDay, daysInMonth, fixedPerDay, cr, roasExpected, baseAds]);
 
-  const chip = (active) => `px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${active ? 'bg-[#17181A] text-white border-[#17181A]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`;
-  const profitCls = (v) => (v >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]');
+  const chip = (active) => `px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${active ? 'bg-[var(--dark)] text-white border-[var(--ink)]' : 'bg-[var(--surface)] text-gray-600 border-gray-200 hover:border-gray-400'}`;
+  const profitCls = (v) => (v >= 0 ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]');
 
   return (
     <div className="mt-4 pt-4 border-t border-gray-100 text-[13px] text-gray-600">
@@ -95,7 +95,7 @@ function ScenarioPlanner({ be, daysInMonth, isCurrent }) {
             value={roasInput}
             placeholder={be.current_roas ? Number(be.current_roas).toFixed(2) : '3.00'}
             onChange={(e) => setRoasInput(e.target.value.replace(/[^\d.,]/g, ''))}
-            className="w-14 px-1.5 py-0.5 border border-gray-200 rounded-md text-[12px] text-[#17181A] tabular-nums focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+            className="w-14 px-1.5 py-0.5 border border-gray-200 rounded-md text-[12px] text-[var(--ink)] tabular-nums focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
           />
           <Info text={`Por defecto es el ROAS ${isCurrent ? 'actual' : 'del mes'}. Cámbialo para simular qué pasaría si la pauta rinde más o menos al subir la inversión (normalmente, a más inversión el ROAS baja).`} />
         </label>
@@ -103,15 +103,15 @@ function ScenarioPlanner({ be, daysInMonth, isCurrent }) {
 
       <div className="mt-3 space-y-1.5">
         <p>
-          Para que la pauta empate (ROAS {fmtX(sc.roasMin)}) necesitas vender <strong className="text-[#17181A] tabular-nums">{fmtMoney(sc.revenueBreakAds)}</strong> en el mes
+          Para que la pauta empate (ROAS {fmtX(sc.roasMin)}) necesitas vender <strong className="text-[var(--ink)] tabular-nums">{fmtMoney(sc.revenueBreakAds)}</strong> en el mes
           <Info text="Inversión del mes ÷ margen de contribución: con esa venta la pauta recupera lo que cuesta, después de producto y variables. No depende del ROAS actual, sino de cuánto inviertes." className="ml-1" />
         </p>
         <p>
-          Para no perder contando los fijos (ROAS {fmtX(sc.roasTarget)}) necesitas <strong className="text-[#17181A] tabular-nums">{fmtMoney(sc.revenueNoLoss)}</strong> en el mes
+          Para no perder contando los fijos (ROAS {fmtX(sc.roasTarget)}) necesitas <strong className="text-[var(--ink)] tabular-nums">{fmtMoney(sc.revenueNoLoss)}</strong> en el mes
           <Info text="(Inversión del mes + costos fijos) ÷ margen de contribución. A más inversión, el ROAS objetivo baja porque los fijos se reparten entre más pauta, pero la venta necesaria sube." className="ml-1" />
         </p>
         <p>
-          Con ROAS {fmtX(roasExpected)} venderías <strong className="text-[#17181A] tabular-nums">{fmtMoney(sc.revenueExpected)}</strong> y {sc.profitExpected >= 0 ? 'ganarías' : 'perderías'} <strong className={`tabular-nums ${profitCls(sc.profitExpected)}`}>{fmtMoney(Math.abs(sc.profitExpected))}</strong> en el mes
+          Con ROAS {fmtX(roasExpected)} venderías <strong className="text-[var(--ink)] tabular-nums">{fmtMoney(sc.revenueExpected)}</strong> y {sc.profitExpected >= 0 ? 'ganarías' : 'perderías'} <strong className={`tabular-nums ${profitCls(sc.profitExpected)}`}>{fmtMoney(Math.abs(sc.profitExpected))}</strong> en el mes
           <Info text="Venta esperada × margen de contribución − inversión − costos fijos del mes. Si da negativo, subir la inversión a ese ROAS solo hace el hueco más grande." className="ml-1" />
         </p>
       </div>
@@ -129,8 +129,8 @@ function ScenarioPlanner({ be, daysInMonth, isCurrent }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.key} onClick={() => setSelected(r.key)} className={`cursor-pointer border-t border-gray-100 ${selected === r.key ? 'bg-[#D7F653]/20' : 'hover:bg-gray-50'}`}>
-                <td className="py-1.5 pr-2 font-medium text-[#17181A]">{r.label} <span className="text-gray-400 font-normal">({fmtMoney(r.ads)}/día)</span></td>
+              <tr key={r.key} onClick={() => setSelected(r.key)} className={`cursor-pointer border-t border-gray-100 ${selected === r.key ? 'bg-[rgb(var(--accent-rgb)/0.12)]' : 'hover:bg-gray-50'}`}>
+                <td className="py-1.5 pr-2 font-medium text-[var(--ink)]">{r.label} <span className="text-gray-400 font-normal">({fmtMoney(r.ads)}/día)</span></td>
                 <td className="py-1.5 px-2 text-right tabular-nums">{fmtMoney(r.adsMonth)}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums">{fmtX(r.roasTarget)}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums">{fmtMoney(r.revenueNoLoss)}</td>
@@ -186,11 +186,11 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved,
       <div className="glass-solid rounded-2xl p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-1.5 text-[12px] font-medium text-gray-500">
-            <Flag className="w-3.5 h-3.5 text-[#17181A]" /> Meta de venta del mes
+            <Flag className="w-3.5 h-3.5 text-[var(--ink)]" /> Meta de venta del mes
             <Info text="La meta base que definieron para este mes (es la misma del Dashboard de Growth). Se compara contra la venta neta acumulada." />
           </div>
           {!editing && (
-            <button type="button" onClick={() => setEditing(true)} className="text-xs text-gray-500 hover:text-[#17181A] inline-flex items-center gap-1">
+            <button type="button" onClick={() => setEditing(true)} className="text-xs text-gray-500 hover:text-[var(--ink)] inline-flex items-center gap-1">
               <Pencil className="w-3 h-3" /> {base > 0 ? 'Editar' : 'Definir meta'}
             </button>
           )}
@@ -202,13 +202,13 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved,
               {['conservador', 'base', 'optimista'].map((k) => (
                 <label key={k} className="text-[11px] text-gray-500 capitalize">
                   {k}
-                  <input type="number" min="0" value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} className="mt-1 w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D7F653]" placeholder="$" />
+                  <input type="number" min="0" value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} className="mt-1 w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]" placeholder="$" />
                 </label>
               ))}
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs rounded-lg hover:bg-gray-100 inline-flex items-center gap-1"><X className="w-3 h-3" /> Cancelar</button>
-              <button type="button" onClick={save} disabled={saving} className="px-3 py-1.5 text-xs rounded-lg bg-[#17181A] text-white inline-flex items-center gap-1 disabled:opacity-50">
+              <button type="button" onClick={save} disabled={saving} className="px-3 py-1.5 text-xs rounded-lg bg-[var(--dark)] text-white inline-flex items-center gap-1 disabled:opacity-50">
                 {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Guardar
               </button>
             </div>
@@ -216,25 +216,25 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved,
         ) : base > 0 ? (
           <>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-2">
-              <span className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-[#17181A]">{fmtMoney(t.revenue)}</span>
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight tabular-nums text-[var(--ink)]">{fmtMoney(t.revenue)}</span>
               <span className="text-sm text-gray-500">de {fmtMoney(base)}</span>
-              <span className={`text-sm font-semibold tabular-nums ${pct >= 100 ? 'text-[#16a34a]' : 'text-[#17181A]'}`}>{fmtPctNum(pct, 0)}</span>
+              <span className={`text-sm font-semibold tabular-nums ${pct >= 100 ? 'text-[var(--accent-deep)]' : 'text-[var(--ink)]'}`}>{fmtPctNum(pct, 0)}</span>
             </div>
             <div className="mt-3 h-2.5 rounded-full bg-gray-100 overflow-hidden">
-              <div className={`h-full rounded-full ${pct >= 100 ? 'bg-[#16a34a]' : onTrack ? 'bg-[#D7F653]' : 'bg-[#F59E0B]'}`} style={{ width: `${pct}%` }} />
+              <div className={`h-full rounded-full ${pct >= 100 ? 'bg-[var(--accent)]' : onTrack ? 'bg-[var(--accent)]' : 'bg-[#F59E0B]'}`} style={{ width: `${pct}%` }} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-[13px]">
               <div>
                 <div className="text-[11px] text-gray-400">Falta</div>
-                <div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(missing)}</div>
+                <div className="font-semibold tabular-nums text-[var(--ink)]">{fmtMoney(missing)}</div>
               </div>
               <div>
                 <div className="text-[11px] text-gray-400">{isCurrent ? `Necesitas / día (${daysRemaining} días)` : 'Cierre'}</div>
-                <div className="font-semibold tabular-nums text-[#17181A]">{isCurrent ? (daysRemaining > 0 ? fmtMoney(neededPerDay) : '—') : (pct >= 100 ? 'Meta cumplida' : 'No se alcanzó')}</div>
+                <div className="font-semibold tabular-nums text-[var(--ink)]">{isCurrent ? (daysRemaining > 0 ? fmtMoney(neededPerDay) : '—') : (pct >= 100 ? 'Meta cumplida' : 'No se alcanzó')}</div>
               </div>
               <div>
                 <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">Proyección <Info text="Al ritmo promedio de los días transcurridos, así cerraría la venta del mes." /></div>
-                <div className={`font-semibold tabular-nums ${onTrack ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>{isCurrent ? fmtMoney(data.projection?.revenue_eom) : fmtMoney(t.revenue)}</div>
+                <div className={`font-semibold tabular-nums ${onTrack ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]'}`}>{isCurrent ? fmtMoney(data.projection?.revenue_eom) : fmtMoney(t.revenue)}</div>
               </div>
             </div>
             {(Number(goal?.conservador) > 0 || Number(goal?.optimista) > 0) && (
@@ -249,7 +249,7 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved,
       {/* BE ROAS (break-even ROAS) */}
       <div className="glass-solid rounded-2xl p-5">
         <div className="flex items-center gap-1.5 text-[12px] font-medium text-gray-500">
-          <Target className="w-3.5 h-3.5 text-[#17181A]" /> BE ROAS · ROAS de equilibrio
+          <Target className="w-3.5 h-3.5 text-[var(--ink)]" /> BE ROAS · ROAS de equilibrio
           <Info text="Break-even ROAS: el ROAS a partir del cual la pauta deja plata. Se calcula con el ticket promedio y lo que cuesta cada pedido (producto + variables). Por encima de este número, escalas; por debajo, cada venta pagada pierde." />
         </div>
         {be.reachable && be.roas_min ? (
@@ -262,18 +262,18 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved,
               const marginPo = aov !== null ? aov - cogsPo - varPo : null;
               const cur = Number(be.current_roas) || 0;
               const verdict = !cur ? null : cur >= be.roas_min * 1.15 ? 'scale' : cur >= be.roas_min ? 'hold' : 'stop';
-              const vTone = verdict === 'scale' ? 'bg-[#16a34a] text-white' : verdict === 'hold' ? 'bg-[#F59E0B] text-white' : verdict === 'stop' ? 'bg-[#dc2626] text-white' : 'bg-gray-200 text-gray-600';
+              const vTone = verdict === 'scale' ? 'bg-[var(--accent)] text-white' : verdict === 'hold' ? 'bg-[#F59E0B] text-white' : verdict === 'stop' ? 'bg-[#dc2626] text-white' : 'bg-gray-200 text-gray-600';
               const vLabel = verdict === 'scale' ? 'Escalar' : verdict === 'hold' ? 'Sostener' : verdict === 'stop' ? 'No escalar' : 'Sin pauta';
               return (
                 <>
                   <div className="flex flex-wrap items-end justify-between gap-3 mt-3">
                     <div>
                       <div className="text-[11px] text-gray-400">BE ROAS de la marca</div>
-                      <div className="text-4xl font-bold tabular-nums tracking-tight text-[#17181A]">{fmtX(be.roas_min)}</div>
+                      <div className="text-4xl font-bold tabular-nums tracking-tight text-[var(--ink)]">{fmtX(be.roas_min)}</div>
                     </div>
                     <div className="text-right">
                       <div className="text-[11px] text-gray-400">{isCurrent ? 'ROAS actual' : 'ROAS del mes'}</div>
-                      <div className={`text-3xl font-bold tabular-nums ${verdict === 'scale' ? 'text-[#16a34a]' : verdict === 'hold' ? 'text-[#F59E0B]' : verdict === 'stop' ? 'text-[#dc2626]' : 'text-gray-400'}`}>{fmtX(be.current_roas)}</div>
+                      <div className={`text-3xl font-bold tabular-nums ${verdict === 'scale' ? 'text-[var(--accent-deep)]' : verdict === 'hold' ? 'text-[#F59E0B]' : verdict === 'stop' ? 'text-[#dc2626]' : 'text-gray-400'}`}>{fmtX(be.current_roas)}</div>
                     </div>
                     <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${vTone}`}>{vLabel}</span>
                   </div>
@@ -288,13 +288,13 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved,
                     <div className="mt-3 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5 text-[12px] text-gray-600">
                       <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1.5">Cómo sale el BE ROAS</div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5">
-                        <div><div className="text-[10px] text-gray-400">Ticket promedio</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(aov)}</div></div>
-                        <div><div className="text-[10px] text-gray-400">− Producto / pedido</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(cogsPo)}</div></div>
-                        <div><div className="text-[10px] text-gray-400">− Variables / pedido</div><div className="font-semibold tabular-nums text-[#17181A]">{fmtMoney(varPo)}</div></div>
-                        <div><div className="text-[10px] text-gray-400">= Margen / pedido</div><div className={`font-semibold tabular-nums ${marginPo > 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>{fmtMoney(marginPo)}</div></div>
+                        <div><div className="text-[10px] text-gray-400">Ticket promedio</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtMoney(aov)}</div></div>
+                        <div><div className="text-[10px] text-gray-400">− Producto / pedido</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtMoney(cogsPo)}</div></div>
+                        <div><div className="text-[10px] text-gray-400">− Variables / pedido</div><div className="font-semibold tabular-nums text-[var(--ink)]">{fmtMoney(varPo)}</div></div>
+                        <div><div className="text-[10px] text-gray-400">= Margen / pedido</div><div className={`font-semibold tabular-nums ${marginPo > 0 ? 'text-[var(--accent-deep)]' : 'text-[#dc2626]'}`}>{fmtMoney(marginPo)}</div></div>
                       </div>
                       <div className="mt-2 text-[11px] text-gray-500">
-                        BE ROAS = {fmtMoney(aov)} ÷ {fmtMoney(marginPo)} = <strong className="text-[#17181A]">{fmtX(be.roas_min)}</strong>
+                        BE ROAS = {fmtMoney(aov)} ÷ {fmtMoney(marginPo)} = <strong className="text-[var(--ink)]">{fmtX(be.roas_min)}</strong>
                         <span className="text-gray-400"> · margen de contribución {fmtPct(be.contribution_ratio, 0)}</span>
                       </div>
                     </div>
@@ -303,11 +303,11 @@ export default function GoalAndRoas({ clientId, period, data, goal, onGoalSaved,
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div>
                       <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">ROAS objetivo (cubre fijos) <Info text="Al ritmo de inversión actual, el ROAS que necesitas para que además queden cubiertos los costos fijos del mes. Es el ROAS para no perder." /></div>
-                      <div className="text-xl font-bold tabular-nums text-[#17181A]">{fmtX(be.roas_target)}</div>
+                      <div className="text-xl font-bold tabular-nums text-[var(--ink)]">{fmtX(be.roas_target)}</div>
                     </div>
                     <div>
                       <div className="text-[11px] text-gray-400 inline-flex items-center gap-1">Regla de escala <Info text="Verde: ROAS 15 % o más por encima del BE ROAS. Amarillo: entre el BE ROAS y ese colchón. Rojo: por debajo del BE ROAS." /></div>
-                      <div className="text-[13px] font-medium text-[#17181A] mt-1">Escalar desde <span className="tabular-nums">{fmtX(be.roas_min * 1.15)}</span></div>
+                      <div className="text-[13px] font-medium text-[var(--ink)] mt-1">Escalar desde <span className="tabular-nums">{fmtX(be.roas_min * 1.15)}</span></div>
                     </div>
                   </div>
                 </>

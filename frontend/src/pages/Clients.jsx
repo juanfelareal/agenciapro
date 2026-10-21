@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { compressLogoToDataURL } from '../utils/avatar';
 import { clientsAPI, invoicesAPI, pdfAnalysisAPI, portalAdminAPI } from '../utils/api';
-import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle, Mail, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, X, FileText, Settings, Upload, Loader2, CheckSquare, Square, MinusSquare, Check, Link2, Phone, FolderOpen, CalendarDays, BarChart3, Eye, Send, CheckCircle, Mail, MailPlus, Image as ImageIcon } from 'lucide-react';
 import ClientPortfolio from './ClientPortfolio';
 
 const Clients = () => {
@@ -595,6 +595,22 @@ const Clients = () => {
     }
   };
 
+  // [email] Enviar invitación al portal por correo (marca de la agencia)
+  const [sendingInviteId, setSendingInviteId] = useState(null);
+  const handleSendPortalInvite = async (client) => {
+    if (!client.email) { window.alert('Este cliente no tiene correo registrado.'); return; }
+    if (!window.confirm(`¿Enviar el acceso al portal a ${client.email}?`)) return;
+    setSendingInviteId(client.id);
+    try {
+      const res = await portalAdminAPI.sendInviteEmail(client.id);
+      window.alert(res?.email?.ok ? `Invitación enviada a ${res.sent_to}` : (res?.email?.error || 'No se pudo enviar el correo'));
+    } catch (error) {
+      window.alert(error.response?.data?.error || 'No se pudo enviar la invitación');
+    } finally {
+      setSendingInviteId(null);
+    }
+  };
+
   const handleOpenDashboard = async (client) => {
     // Open a blank tab synchronously to avoid popup blockers, then redirect once the link is ready
     const newTab = window.open('about:blank', '_blank');
@@ -629,7 +645,7 @@ const Clients = () => {
       )}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Clientes</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Clientes</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de la base de datos de clientes</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
@@ -639,7 +655,7 @@ const Clients = () => {
               onClick={() => setViewMode('lista')}
               className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                 viewMode === 'lista'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -649,7 +665,7 @@ const Clients = () => {
               onClick={() => setViewMode('portfolio')}
               className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
                 viewMode === 'portfolio'
-                  ? 'bg-white text-[#17181A] shadow-sm'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -660,7 +676,7 @@ const Clients = () => {
           {viewMode === 'lista' && (
             <button
               onClick={handleNew}
-              className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+              className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
             >
               <Plus size={20} />
               Nuevo Cliente
@@ -676,16 +692,16 @@ const Clients = () => {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-[#D7F653]/10 border border-[#D7F653] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
+        <div className="bg-[rgb(var(--accent-rgb)/0.08)] border border-[var(--accent)] rounded-xl p-3 mb-4 flex items-center gap-4 flex-wrap animate-fadeIn">
           <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-[#17181A]" />
-            <span className="font-medium text-[#17181A]">
+            <CheckSquare size={18} className="text-[var(--ink)]" />
+            <span className="font-medium text-[var(--ink)]">
               {selectedIds.size} cliente{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="h-6 w-px bg-[#17181A]/20" />
+          <div className="h-6 w-px bg-[rgb(var(--ink-rgb)/0.2)]" />
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-[#17181A]/70">Estado:</span>
+            <span className="text-sm text-[rgb(var(--ink-rgb)/0.7)]">Estado:</span>
             <button
               onClick={() => handleBulkStatusChange('active')}
               disabled={bulkUpdating}
@@ -701,16 +717,16 @@ const Clients = () => {
               Inactivo
             </button>
           </div>
-          <div className="h-6 w-px bg-[#17181A]/20" />
+          <div className="h-6 w-px bg-[rgb(var(--ink-rgb)/0.2)]" />
           <button
             onClick={handleBulkFacturar}
             disabled={bulkUpdating}
-            className="px-3 py-1.5 text-sm bg-[#17181A]/10 text-[#17181A] rounded-lg hover:bg-[#17181A]/20 disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-1.5 text-sm bg-[rgb(var(--ink-rgb)/0.1)] text-[var(--ink)] rounded-lg hover:bg-[rgb(var(--ink-rgb)/0.2)] disabled:opacity-50 flex items-center gap-1"
           >
             <FileText size={14} />
             Facturar
           </button>
-          <div className="h-6 w-px bg-[#17181A]/20" />
+          <div className="h-6 w-px bg-[rgb(var(--ink-rgb)/0.2)]" />
           <button
             onClick={handleBulkDelete}
             disabled={bulkUpdating}
@@ -721,7 +737,7 @@ const Clients = () => {
           </button>
           <button
             onClick={clearSelection}
-            className="ml-auto px-3 py-1.5 text-sm text-[#17181A] hover:bg-[#17181A]/10 rounded-lg"
+            className="ml-auto px-3 py-1.5 text-sm text-[var(--ink)] hover:bg-[rgb(var(--ink-rgb)/0.1)] rounded-lg"
           >
             Cancelar selección
           </button>
@@ -734,7 +750,7 @@ const Clients = () => {
           onClick={() => setActiveTab('active')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             activeTab === 'active'
-              ? 'bg-white text-[#17181A] shadow-sm'
+              ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -749,7 +765,7 @@ const Clients = () => {
           onClick={() => setActiveTab('all')}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
             activeTab === 'all'
-              ? 'bg-white text-[#17181A] shadow-sm'
+              ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -768,13 +784,13 @@ const Clients = () => {
           <div className="glass-card p-6 text-center text-sm text-gray-400">No hay clientes</div>
         )}
         {filteredClients.map((client) => (
-          <div key={client.id} className={`glass-card p-4 ${selectedIds.has(client.id) ? 'ring-2 ring-[#D7F653]' : ''}`}>
+          <div key={client.id} className={`glass-card p-4 ${selectedIds.has(client.id) ? 'ring-2 ring-[var(--accent)]' : ''}`}>
             <div className="flex items-start gap-3">
-              <button onClick={() => toggleSelectOne(client.id)} className="mt-0.5 text-gray-400 hover:text-[#17181A] flex-shrink-0">
-                {selectedIds.has(client.id) ? <CheckSquare size={18} className="text-[#17181A]" /> : <Square size={18} />}
+              <button onClick={() => toggleSelectOne(client.id)} className="mt-0.5 text-gray-400 hover:text-[var(--ink)] flex-shrink-0">
+                {selectedIds.has(client.id) ? <CheckSquare size={18} className="text-[var(--ink)]" /> : <Square size={18} />}
               </button>
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-[#17181A] truncate">{client.nickname || client.company || client.name}</p>
+                <p className="font-semibold text-[var(--ink)] truncate">{client.nickname || client.company || client.name}</p>
                 {(client.company || client.name) && (client.nickname) && (
                   <p className="text-xs text-gray-500 truncate">{client.company || client.name}</p>
                 )}
@@ -805,6 +821,9 @@ const Clients = () => {
               <button onClick={() => handleQuickCopyPortalLink(client)} className={`p-2 rounded-lg hover:bg-gray-100 ${copiedPortalId === client.id ? 'text-green-600' : 'text-gray-500'}`} title="Copiar link del portal">
                 {copiedPortalId === client.id ? <Check size={18} /> : <Link2 size={18} />}
               </button>
+              <button onClick={() => handleSendPortalInvite(client)} disabled={sendingInviteId === client.id} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Enviar acceso al portal por correo">{/* [email] */}
+                {sendingInviteId === client.id ? <Loader2 size={18} className="animate-spin" /> : <MailPlus size={18} />}
+              </button>
               <button onClick={() => navigate(`/app/clients/${client.id}/plataformas`)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Plataformas"><Settings size={18} /></button>
               <button onClick={() => handleSyncToSiigo(client)} disabled={syncingSiigoId === client.id} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" title="Sincronizar a Siigo">
                 {syncingSiigoId === client.id ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
@@ -824,13 +843,13 @@ const Clients = () => {
               <th className="px-3 py-3 text-center relative" style={{ width: columnWidths.checkbox }}>
                 <button
                   onClick={toggleSelectAll}
-                  className="text-gray-500 hover:text-[#17181A]"
+                  className="text-gray-500 hover:text-[var(--ink)]"
                   title={isAllSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
                 >
                   {isAllSelected ? (
-                    <CheckSquare size={18} className="text-[#17181A]" />
+                    <CheckSquare size={18} className="text-[var(--ink)]" />
                   ) : isSomeSelected ? (
-                    <MinusSquare size={18} className="text-[#17181A]" />
+                    <MinusSquare size={18} className="text-[var(--ink)]" />
                   ) : (
                     <Square size={18} />
                   )}
@@ -869,15 +888,15 @@ const Clients = () => {
             {filteredClients.map((client) => (
               <tr
                 key={client.id}
-                className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-[#D7F653]/10' : ''}`}
+                className={`hover:bg-gray-50 ${selectedIds.has(client.id) ? 'bg-[rgb(var(--accent-rgb)/0.08)]' : ''}`}
               >
                 <td className="px-3 py-4 text-center">
                   <button
                     onClick={() => toggleSelectOne(client.id)}
-                    className="text-gray-400 hover:text-[#17181A]"
+                    className="text-gray-400 hover:text-[var(--ink)]"
                   >
                     {selectedIds.has(client.id) ? (
-                      <CheckSquare size={18} className="text-[#17181A]" />
+                      <CheckSquare size={18} className="text-[var(--ink)]" />
                     ) : (
                       <Square size={18} />
                     )}
@@ -908,7 +927,7 @@ const Clients = () => {
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-4 font-medium text-[#17181A] truncate" title={client.company || client.name}>{client.company || client.name}</td>
+                <td className="px-4 py-4 font-medium text-[var(--ink)] truncate" title={client.company || client.name}>{client.company || client.name}</td>
                 <td className="px-4 py-4 whitespace-nowrap text-center">
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/calls`)}
@@ -957,6 +976,14 @@ const Clients = () => {
                     {copiedPortalId === client.id ? <Check size={16} /> : <Link2 size={16} />}
                   </button>
                   <button
+                    onClick={() => handleSendPortalInvite(client)}
+                    disabled={sendingInviteId === client.id}
+                    className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1 rounded mr-0.5 transition-colors"
+                    title="Enviar acceso al portal por correo"
+                  >{/* [email] */}
+                    {sendingInviteId === client.id ? <Loader2 size={16} className="animate-spin" /> : <MailPlus size={16} />}
+                  </button>
+                  <button
                     onClick={() => handleOpenDashboard(client)}
                     className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-1 rounded mr-0.5 transition-colors"
                     title="Abrir dashboard del cliente"
@@ -965,7 +992,7 @@ const Clients = () => {
                   </button>
                   <button
                     onClick={() => navigate(`/app/clients/${client.id}/plataformas`)}
-                    className="text-gray-400 hover:text-[#17181A] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
+                    className="text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
                     title="Configurar Plataformas (Facebook Ads / Shopify)"
                   >
                     <Settings size={16} />
@@ -976,7 +1003,7 @@ const Clients = () => {
                     className={`p-1 rounded mr-0.5 transition-colors ${
                       client.siigo_id
                         ? 'text-emerald-600 hover:bg-emerald-50'
-                        : 'text-gray-400 hover:text-[#17181A] hover:bg-gray-100'
+                        : 'text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100'
                     }`}
                     title={client.siigo_id ? 'Ya sincronizado con Siigo (clic para re-sincronizar)' : 'Sincronizar a Siigo'}
                   >
@@ -990,7 +1017,7 @@ const Clients = () => {
                   </button>
                   <button
                     onClick={() => handleEdit(client)}
-                    className="text-gray-400 hover:text-[#17181A] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
+                    className="text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 p-1 rounded mr-0.5 transition-colors"
                     title="Editar"
                   >
                     <Edit size={16} />
@@ -1035,13 +1062,13 @@ const Clients = () => {
               <CalendarDays className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <h2 className="font-semibold text-[#17181A]">Fechas Comerciales</h2>
+              <h2 className="font-semibold text-[var(--ink)]">Fechas Comerciales</h2>
               <p className="text-xs text-gray-500">Fechas clave que aparecen en el portal de cada cliente</p>
             </div>
           </div>
           <button
             onClick={() => openDateModal()}
-            className="bg-[#17181A] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors text-sm"
+            className="bg-[var(--dark)] text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors text-sm"
           >
             <Plus size={16} />
             Nueva Fecha
@@ -1064,7 +1091,7 @@ const Clients = () => {
                     onClick={() => openDateModal(cd)}
                   >
                     <div className="text-center flex-shrink-0 w-12">
-                      <p className="text-lg font-bold text-[#17181A] leading-tight">{d.getDate()}</p>
+                      <p className="text-lg font-bold text-[var(--ink)] leading-tight">{d.getDate()}</p>
                       <p className="text-[10px] text-gray-400 uppercase font-medium">
                         {d.toLocaleDateString('es-CO', { month: 'short' })}
                       </p>
@@ -1092,9 +1119,9 @@ const Clients = () => {
       {/* Commercial Date Modal */}
       {showDateModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-[#17181A]">{editingDate ? 'Editar Fecha Comercial' : 'Nueva Fecha Comercial'}</h2>
+              <h2 className="text-lg font-semibold text-[var(--ink)]">{editingDate ? 'Editar Fecha Comercial' : 'Nueva Fecha Comercial'}</h2>
               <button onClick={() => setShowDateModal(false)} className="p-2 hover:bg-gray-100 rounded-xl">
                 <X size={20} className="text-gray-500" />
               </button>
@@ -1107,7 +1134,7 @@ const Clients = () => {
                   value={newDateTitle}
                   onChange={e => setNewDateTitle(e.target.value)}
                   placeholder="Ej: Día de la Madre"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                 />
               </div>
               <div>
@@ -1116,7 +1143,7 @@ const Clients = () => {
                   type="date"
                   value={newDateDate}
                   onChange={e => setNewDateDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                 />
               </div>
               <div>
@@ -1164,7 +1191,7 @@ const Clients = () => {
               <button
                 onClick={handleSaveCommercialDate}
                 disabled={!newDateTitle.trim() || !newDateDate || (!newDateAllClients && newDateClientIds.size === 0)}
-                className="w-full py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] disabled:opacity-50 transition-colors font-medium"
+                className="w-full py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] disabled:opacity-50 transition-colors font-medium"
               >
                 {editingDate ? 'Guardar Cambios' : 'Crear Fecha Comercial'}
               </button>
@@ -1187,10 +1214,10 @@ const Clients = () => {
       {/* Template Selector Modal */}
       {showTemplateSelector && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90dvh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-xl font-semibold text-[#17181A]">Tipo de Dashboard</h2>
+                <h2 className="text-xl font-semibold text-[var(--ink)]">Tipo de Dashboard</h2>
                 <p className="text-sm text-gray-500 mt-1">Selecciona qué secciones verá el cliente en su portal</p>
               </div>
               <button onClick={() => setShowTemplateSelector(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1210,7 +1237,7 @@ const Clients = () => {
                     onClick={() => handleSelectTemplate(template.slug)}
                     className={`text-left p-4 rounded-xl border-2 transition-all hover:shadow-md ${
                       isSelected
-                        ? 'border-[#17181A] bg-[#17181A]/5'
+                        ? 'border-[var(--ink)] bg-[rgb(var(--ink-rgb)/0.05)]'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -1218,7 +1245,7 @@ const Clients = () => {
                       <span className="text-2xl">{template.icon}</span>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-[#17181A]">{template.name}</h3>
+                          <h3 className="font-semibold text-[var(--ink)]">{template.name}</h3>
                           {template.is_default && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-[#10B981]/10 text-[#10B981] rounded font-medium">POPULAR</span>
                           )}
@@ -1255,9 +1282,9 @@ const Clients = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#17181A]">
+              <h2 className="text-xl font-semibold text-[var(--ink)]">
                 {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -1268,7 +1295,7 @@ const Clients = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Logo del cliente — aparece en su portal (header y login) */}
                 {editingClient && (
-                  <div className="col-span-2 flex items-center gap-4 p-3 border border-gray-100 rounded-xl bg-white/60">
+                  <div className="col-span-2 flex items-center gap-4 p-3 border border-gray-100 rounded-xl bg-[rgb(var(--surface-rgb)/0.6)]">
                     {formData.logo_url ? (
                       <img src={formData.logo_url} alt="Logo" className="h-12 max-w-[140px] object-contain flex-shrink-0" />
                     ) : (
@@ -1277,7 +1304,7 @@ const Clients = () => {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#17181A]">Logo del cliente</p>
+                      <p className="text-sm font-medium text-[var(--ink)]">Logo del cliente</p>
                       <p className="text-xs text-gray-400">Se muestra en su portal (header y acceso). Usa la versión oscura o a color del logo — la blanca no se ve sobre fondo claro.</p>
                     </div>
                     <div className="flex flex-col gap-1 items-end">
@@ -1316,10 +1343,10 @@ const Clients = () => {
 
                 {/* PDF Upload Section - Only show when creating new client */}
                 {!editingClient && (
-                  <div className="col-span-2 bg-[#17181A]/5 border-2 border-dashed border-[#17181A]/20 rounded-xl p-4">
+                  <div className="col-span-2 bg-[rgb(var(--ink-rgb)/0.05)] border-2 border-dashed border-[rgb(var(--ink-rgb)/0.2)] rounded-xl p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-[#17181A]">Cargar desde RUT (PDF)</h3>
+                        <h3 className="text-sm font-medium text-[var(--ink)]">Cargar desde RUT (PDF)</h3>
                         <p className="text-xs text-gray-500 mt-1">
                           Sube el PDF del RUT y extraeremos automáticamente la información con IA
                         </p>
@@ -1335,7 +1362,7 @@ const Clients = () => {
                         type="button"
                         onClick={() => pdfInputRef.current?.click()}
                         disabled={analyzingPdf}
-                        className="flex items-center gap-2 bg-[#17181A] text-white px-4 py-2.5 rounded-xl hover:bg-[#26282C] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-2 bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl hover:bg-[#1C1D1F] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                       >
                         {analyzingPdf ? (
                           <>
@@ -1490,7 +1517,7 @@ const Clients = () => {
                 </div>
                 {/* Recurring Billing Section */}
                 <div className="col-span-2 border-t border-gray-100 pt-4 mt-2">
-                  <h3 className="text-base font-semibold text-[#17181A] mb-3">Facturación Recurrente</h3>
+                  <h3 className="text-base font-semibold text-[var(--ink)] mb-3">Facturación Recurrente</h3>
                   <div className="flex items-center gap-2 mb-4">
                     <input
                       type="checkbox"
@@ -1505,12 +1532,12 @@ const Clients = () => {
                   </div>
 
                   {formData.is_recurring && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#17181A]/5 p-4 rounded-xl">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[rgb(var(--ink-rgb)/0.05)] p-4 rounded-xl">
                       <div>
                         <label className="block text-sm font-medium mb-1">Día de Facturación *</label>
                         <select
                           required={formData.is_recurring}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-[var(--surface)]"
                           value={formData.billing_day}
                           onChange={(e) => setFormData({ ...formData, billing_day: parseInt(e.target.value) })}
                         >
@@ -1538,8 +1565,8 @@ const Clients = () => {
                           Monto que se facturará mensualmente
                         </p>
                       </div>
-                      <div className="col-span-2 bg-[#D7F653]/20 border border-[#D7F653]/40 p-3 rounded-xl">
-                        <p className="text-sm text-[#17181A]">
+                      <div className="col-span-2 bg-[rgb(var(--accent-rgb)/0.12)] border border-[rgb(var(--accent-rgb)/0.4)] p-3 rounded-xl">
+                        <p className="text-sm text-[var(--ink)]">
                           ℹ️ <strong>Importante:</strong> La primera factura se creará automáticamente el día {formData.billing_day} de este mes.
                           Las siguientes facturas se generarán automáticamente cada mes mientras el cliente esté activo.
                         </p>
@@ -1568,7 +1595,7 @@ const Clients = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-colors"
+                  className="px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-colors"
                 >
                   Guardar
                 </button>

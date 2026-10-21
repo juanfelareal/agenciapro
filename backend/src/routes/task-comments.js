@@ -65,6 +65,15 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // The author must be a team member of this organization (404: no revelar existencia)
+    const author = await db.get(
+      'SELECT id FROM team_members WHERE id = ? AND organization_id = ?',
+      [user_id, req.orgId]
+    );
+    if (!author) {
+      return res.status(404).json({ error: 'Team member not found' });
+    }
+
     const result = await db.run(`
       INSERT INTO task_comments (task_id, user_id, comment, organization_id)
       VALUES (?, ?, ?, ?)
@@ -74,8 +83,8 @@ router.post('/', async (req, res) => {
       SELECT tc.*, tm.name as user_name, tm.email as user_email
       FROM task_comments tc
       JOIN team_members tm ON tc.user_id = tm.id
-      WHERE tc.id = ?
-    `, [result.lastInsertRowid]);
+      WHERE tc.id = ? AND tc.organization_id = ?
+    `, [result.lastInsertRowid, req.orgId]);
 
     // Notify assigned user about new comment
     notifyNewComment(task_id, task.title, result.lastInsertRowid, user_id, comment);
@@ -109,8 +118,8 @@ router.put('/:id', async (req, res) => {
     await db.run(`
       UPDATE task_comments
       SET comment = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [comment, req.params.id]);
+      WHERE id = ? AND organization_id = ?
+    `, [comment, req.params.id, req.orgId]);
 
     const updated = await db.get(`
       SELECT tc.*, tm.name as user_name

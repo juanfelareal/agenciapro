@@ -71,7 +71,7 @@ const EntityDetailModal = ({ type, id, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col"
+        className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -324,7 +324,7 @@ const EntityDetailModal = ({ type, id, onClose }) => {
           <Link
             to={linkPath}
             onClick={onClose}
-            className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-[var(--ink)] hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ExternalLink size={14} />
             Abrir {type === 'task' ? 'tarea' : type === 'note' ? 'nota' : 'proyecto'} completo

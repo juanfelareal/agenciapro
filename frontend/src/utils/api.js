@@ -12,8 +12,9 @@ const api = axios.create({
 // Adjunta el token en cada petición aunque la página se monte antes de que
 // AuthContext termine de restaurar la sesión (rutas sin ProtectedRoute, recargas).
 api.interceptors.request.use((config) => {
-  const hasHeader = config.headers?.Authorization || api.defaults.headers.common['Authorization'];
-  if (!hasHeader) {
+  // Si la petición salió sin Authorization (p. ej. se creó en el mismo tick en que AuthContext
+  // restauraba la sesión y los defaults aún no estaban mezclados), la tomamos del storage.
+  if (!config.headers?.Authorization) {
     const token = localStorage.getItem('authToken');
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
@@ -93,6 +94,21 @@ api.interceptors.response.use(
       // caller handle the error normally (no forced logout).
     } catch { /* never throws — pendingValidation resolves */ }
 
+    return Promise.reject(error);
+  }
+);
+
+// [modules] 402 del plan (límite alcanzado / prueba vencida) → aviso global en Layout (UpgradeToast)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const d = error?.response?.data;
+    const fromOrgPages = String(error?.config?.url || '').startsWith('/org/');
+    if (error?.response?.status === 402 && d && !fromOrgPages && (d.limit_reached || d.upgrade || d.trial_expired)) {
+      window.dispatchEvent(new CustomEvent('orbit:upgrade-needed', {
+        detail: { message: d.error, trial_expired: !!d.trial_expired, limit_reached: !!d.limit_reached, required_plan: d.required_plan || null },
+      }));
+    }
     return Promise.reject(error);
   }
 );
@@ -240,6 +256,19 @@ export const authAPI = {
   selectOrg: (orgId) => api.post('/auth/select-org', { org_id: orgId }),
   register: (data) => api.post('/auth/register', data),
   bootstrap: (email, pin, name) => api.post('/auth/bootstrap', { email, pin, name }),
+  // [email] Recuperación de PIN por código
+  forgotPin: (email) => api.post('/auth/forgot-pin', { email }),
+  resetPinWithCode: (email, code, new_pin) => api.post('/auth/reset-pin', { email, code, new_pin }),
+};
+
+// [branding] Marca de la organización (logo, acento, tema…). Contrato en src/branding/presets.js
+export const orgBrandingAPI = {
+  get: () => api.get('/org/branding'),
+  update: (patch) => api.put('/org/branding', patch),
+  reset: () => api.post('/org/branding/reset'),
+  // kind: 'logo' | 'logo_dark' | 'icon' · dataUrl: 'data:image/...;base64,...'
+  uploadLogo: (kind, dataUrl) => api.post('/org/branding/logo', { kind, data: dataUrl }),
+  removeLogo: (kind) => api.delete(`/org/branding/logo/${kind}`),
 };
 
 // Team API
@@ -259,6 +288,28 @@ export const teamAPI = {
   setPin: (memberId, pin) => api.post(`/team/${memberId}/set-pin`, { pin }),
   changePin: (currentPin, newPin) => api.post('/team/change-pin', { currentPin, newPin }),
   leaveOrg: () => api.post('/team/leave-org'),
+  // [email] Invitaciones por enlace
+  resendInvite: (memberId) => api.post(`/team/${memberId}/invite`),
+  getInvite: (token) => api.get(`/team/invitations/${token}`),
+  acceptInvite: (token, pin) => api.post(`/team/invitations/${token}/accept`, { pin }),
+};
+
+// [email] Plantillas de correo con la marca de la org (admin)
+// [billing] Cobro del plan (Bold o transferencia manual) y historial de pagos.
+//   checkout({ plan, cycle }) → { provider: 'bold', url, reference, amount, iva, total }
+//                             | { provider: 'manual', reference, amount, iva, total, instructions }
+//   status(reference)        → { status: 'pending'|'approved'|'rejected'|'voided', plan, cycle, total }
+//   payments()               → [{ reference, provider, plan, cycle, amount, iva, total, status, created_at, paid_at }]
+// Bold vuelve a /app/suscripcion?pago=<reference>.
+export const orgBillingAPI = {
+  checkout: (plan, cycle) => api.post('/org/billing/checkout', { plan, cycle }),
+  status: (reference) => api.get('/org/billing/status', { params: { reference } }),
+  payments: () => api.get('/org/billing/payments'),
+};
+
+export const orgEmailsAPI = {
+  listTemplates: () => api.get('/org/emails/templates'),
+  preview: (template) => api.get(`/org/emails/preview/${template}`, { params: { format: 'json' } }),
 };
 
 // Add auth token to requests
@@ -341,6 +392,20 @@ export const whatsappAPI = {
   correctMeeting: (id, instruction) => api.post(`/whatsapp/meetings/${id}/correct`, { instruction }),
   confirmMeeting: (id) => api.post(`/whatsapp/meetings/${id}/confirm`),
   cancelMeeting: (id) => api.post(`/whatsapp/meetings/${id}/cancel`),
+};
+
+// [briefings] Resúmenes por WhatsApp de la organización: destinatarios, dueños de marca, número y pruebas
+export const whatsappBriefingsAPI = {
+  recipients: () => api.get('/whatsapp/briefings/recipients'),
+  saveRecipients: (recipients) => api.put('/whatsapp/briefings/recipients', { recipients }),
+  owners: () => api.get('/whatsapp/briefings/owners'),
+  saveOwners: (owners) => api.put('/whatsapp/briefings/owners', { owners }),
+  // { mode: 'shared' | 'dedicated', phone_number_id? }
+  saveNumber: (data) => api.put('/whatsapp/briefings/number', data),
+  // params: { kind, clientId?, sub?, date? } · kind: morning | tasks | noon | alerts | hourly | owner
+  preview: (params) => api.get('/whatsapp/briefings/preview', { params }),
+  // { kind, phone?, clientId?, sub? } · envía ahora (admin)
+  test: (data) => api.post('/whatsapp/briefings/test', data),
 };
 
 // Expenses API
@@ -863,6 +928,11 @@ export const portalAdminAPI = {
   },
   generateInvite: async (clientId) => {
     const response = await api.post(`/portal-admin/clients/${clientId}/invite`);
+    return response.data;
+  },
+  // [email] Genera (o reutiliza) la invitación y la envía al correo del cliente
+  sendInviteEmail: async (clientId) => {
+    const response = await api.post(`/portal-admin/clients/${clientId}/invite`, { send_email: true });
     return response.data;
   },
   getAccess: async (clientId) => {

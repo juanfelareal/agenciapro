@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import db from '../config/database.js';
+import { assertAllRowsInOrg, TenantError } from '../utils/tenant.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,12 +42,34 @@ async function getConversationMembers(conversationId) {
   `).all(conversationId);
 }
 
-// Helper: verify current user is a member of a conversation
-async function verifyMembership(conversationId, teamMemberId) {
+// Helper: verify current user is a member of a conversation THAT BELONGS to the active org.
+// Devuelve null si la conversación no es de la org o si el usuario no es miembro.
+async function verifyMembership(conversationId, teamMemberId, orgId) {
   return await db.prepare(`
-    SELECT id FROM chat_members
-    WHERE conversation_id = ? AND team_member_id = ?
-  `).get(conversationId, teamMemberId);
+    SELECT cm.id FROM chat_members cm
+    JOIN chat_conversations cc ON cc.id = cm.conversation_id
+    WHERE cm.conversation_id = ? AND cm.team_member_id = ? AND cc.organization_id = ?
+  `).get(conversationId, teamMemberId, orgId);
+}
+
+// Helper: ¿existe la conversación en la org? (para distinguir 404 de 403)
+async function conversationInOrg(conversationId, orgId) {
+  return await db.prepare(`
+    SELECT id FROM chat_conversations WHERE id = ? AND organization_id = ?
+  `).get(conversationId, orgId);
+}
+
+// Helper: responde 404 si la conversación no es de la org, 403 si no es miembro. Devuelve true si OK.
+async function requireMembership(req, res) {
+  const membership = await verifyMembership(req.params.id, req.teamMember.id, req.orgId);
+  if (membership) return true;
+  const exists = await conversationInOrg(req.params.id, req.orgId);
+  if (!exists) {
+    res.status(404).json({ error: 'Conversation not found' });
+  } else {
+    res.status(403).json({ error: 'Not a member of this conversation' });
+  }
+  return false;
 }
 
 // GET /conversations — list conversations with last message preview + unread count
@@ -106,6 +129,14 @@ router.post('/conversations', async (req, res) => {
       return res.status(400).json({ error: 'member_ids is required and must be a non-empty array' });
     }
 
+    // Todos los miembros deben pertenecer a la organización activa (404 si alguno no)
+    try {
+      await assertAllRowsInOrg(db, 'team_members', member_ids, req.orgId, { label: 'Miembro del equipo' });
+    } catch (e) {
+      if (e instanceof TenantError) return res.status(404).json({ error: 'Miembro del equipo no encontrado' });
+      throw e;
+    }
+
     // For direct: check if conversation already exists between the 2 members
     if (type === 'direct') {
       const otherMemberId = member_ids[0];
@@ -152,9 +183,9 @@ router.post('/conversations', async (req, res) => {
     // For group: insert system message
     if (type === 'group') {
       await db.prepare(`
-        INSERT INTO chat_messages (conversation_id, sender_id, content, message_type)
-        VALUES (?, ?, ?, 'system')
-      `).run(conversationId, req.teamMember.id, `${req.teamMember.name} creó el grupo`);
+        INSERT INTO chat_messages (conversation_id, sender_id, content, message_type, organization_id)
+        VALUES (?, ?, ?, 'system', ?)
+      `).run(conversationId, req.teamMember.id, `${req.teamMember.name} creó el grupo`, req.orgId);
     }
 
     // Return created conversation with members
@@ -173,10 +204,7 @@ router.post('/conversations', async (req, res) => {
 // GET /conversations/:id — get conversation details + members
 router.get('/conversations/:id', async (req, res) => {
   try {
-    const membership = await verifyMembership(req.params.id, req.teamMember.id);
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this conversation' });
-    }
+    if (!(await requireMembership(req, res))) return;
 
     const conversation = await db.prepare(`
       SELECT * FROM chat_conversations
@@ -198,10 +226,7 @@ router.get('/conversations/:id', async (req, res) => {
 // PUT /conversations/:id — update group name
 router.put('/conversations/:id', async (req, res) => {
   try {
-    const membership = await verifyMembership(req.params.id, req.teamMember.id);
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this conversation' });
-    }
+    if (!(await requireMembership(req, res))) return;
 
     const conversation = await db.prepare(`
       SELECT * FROM chat_conversations
@@ -241,10 +266,7 @@ router.put('/conversations/:id', async (req, res) => {
 // GET /conversations/:id/messages — get messages with pagination
 router.get('/conversations/:id/messages', async (req, res) => {
   try {
-    const membership = await verifyMembership(req.params.id, req.teamMember.id);
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this conversation' });
-    }
+    if (!(await requireMembership(req, res))) return;
 
     const limit = parseInt(req.query.limit) || 50;
     const before = req.query.before;
@@ -283,10 +305,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
 // POST /conversations/:id/messages — send a message
 router.post('/conversations/:id/messages', async (req, res) => {
   try {
-    const membership = await verifyMembership(req.params.id, req.teamMember.id);
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this conversation' });
-    }
+    if (!(await requireMembership(req, res))) return;
 
     const { content, entity_mentions } = req.body;
 
@@ -295,9 +314,9 @@ router.post('/conversations/:id/messages', async (req, res) => {
     }
 
     const result = await db.prepare(`
-      INSERT INTO chat_messages (conversation_id, sender_id, content, entity_mentions)
-      VALUES (?, ?, ?, ?)
-    `).run(req.params.id, req.teamMember.id, content.trim(), entity_mentions ? JSON.stringify(entity_mentions) : null);
+      INSERT INTO chat_messages (conversation_id, sender_id, content, entity_mentions, organization_id)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(req.params.id, req.teamMember.id, content.trim(), entity_mentions ? JSON.stringify(entity_mentions) : null, req.orgId);
 
     // Update conversation updated_at
     await db.prepare(`
@@ -325,7 +344,8 @@ router.put('/conversations/:id/read', async (req, res) => {
     await db.prepare(`
       UPDATE chat_members SET last_read_at = CURRENT_TIMESTAMP
       WHERE conversation_id = ? AND team_member_id = ?
-    `).run(req.params.id, req.teamMember.id);
+        AND conversation_id IN (SELECT id FROM chat_conversations WHERE organization_id = ?)
+    `).run(req.params.id, req.teamMember.id, req.orgId);
 
     res.json({ success: true });
   } catch (error) {
@@ -337,10 +357,7 @@ router.put('/conversations/:id/read', async (req, res) => {
 // POST /conversations/:id/upload — upload image to conversation
 router.post('/conversations/:id/upload', upload.single('image'), async (req, res) => {
   try {
-    const membership = await verifyMembership(req.params.id, req.teamMember.id);
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this conversation' });
-    }
+    if (!(await requireMembership(req, res))) return;
 
     if (!req.file) {
       return res.status(400).json({ error: 'No image uploaded' });
@@ -350,9 +367,9 @@ router.post('/conversations/:id/upload', upload.single('image'), async (req, res
     const content = req.body.content?.trim() || '';
 
     const result = await db.prepare(`
-      INSERT INTO chat_messages (conversation_id, sender_id, content, message_type, image_url)
-      VALUES (?, ?, ?, 'image', ?)
-    `).run(req.params.id, req.teamMember.id, content, imageUrl);
+      INSERT INTO chat_messages (conversation_id, sender_id, content, message_type, image_url, organization_id)
+      VALUES (?, ?, ?, 'image', ?, ?)
+    `).run(req.params.id, req.teamMember.id, content, imageUrl, req.orgId);
 
     await db.prepare(`
       UPDATE chat_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?

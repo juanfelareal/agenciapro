@@ -17,7 +17,7 @@ const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('es-CO', { dateStyle:
 const Card = ({ label, value, sub, tone }) => (
   <div className={`glass-solid rounded-2xl p-4 ${tone === 'bad' ? 'ring-1 ring-red-200' : ''}`}>
     <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
-    <p className="text-xl sm:text-2xl font-bold text-[#17181A] tabular-nums break-words mt-1">{value}</p>
+    <p className="text-xl sm:text-2xl font-bold text-[var(--ink)] tabular-nums break-words mt-1">{value}</p>
     {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
   </div>
 );
@@ -90,7 +90,7 @@ export default function InventoryTab({ clientId }) {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-[#17181A] flex items-center gap-2"><Package className="w-4 h-4" /> Inventario</h2>
+          <h2 className="text-base font-semibold text-[var(--ink)] flex items-center gap-2"><Package className="w-4 h-4" /> Inventario</h2>
           <p className="text-xs text-gray-500">Existencias de la tienda (se actualizan en cada sincronización de 5 min) · última: {fmtDateTime(s?.synced_at)}</p>
         </div>
         <button type="button" onClick={sync} disabled={syncing} className="btn-ghost text-sm inline-flex items-center gap-1.5">
@@ -110,7 +110,7 @@ export default function InventoryTab({ clientId }) {
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
             {[['sin_stock', s.sin_stock], ['critico', s.critico], ['bajo', s.bajo], ['sin_ventas', s.sin_ventas]].map(([k, n]) => (
-              <button key={k} type="button" onClick={() => setStatus(status === k ? 'all' : k)} className={`px-2.5 py-1 rounded-full font-medium border ${status === k ? 'ring-2 ring-[#17181A] ' : ''}${STATUS[k].cls} border-transparent`}>
+              <button key={k} type="button" onClick={() => setStatus(status === k ? 'all' : k)} className={`px-2.5 py-1 rounded-full font-medium border ${status === k ? 'ring-2 ring-[var(--ink)] ' : ''}${STATUS[k].cls} border-transparent`}>
                 {STATUS[k].label}: {n}
               </button>
             ))}
@@ -130,7 +130,7 @@ export default function InventoryTab({ clientId }) {
           <select value={horizon} onChange={(e) => setHorizon(Number(e.target.value))} className="input w-auto" title="Horizonte para calcular cuánto reponer">
             {[15, 30, 45, 60, 90].map((d) => <option key={d} value={d}>Cubrir {d} días</option>)}
           </select>
-          <button type="button" onClick={() => setShowHidden((v) => !v)} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm ${showHidden ? 'border-[#17181A] bg-[#17181A] text-[#D7F653]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`} title="Ver también los productos ocultos">
+          <button type="button" onClick={() => setShowHidden((v) => !v)} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm ${showHidden ? 'border-[var(--ink)] bg-[var(--dark)] text-[var(--accent)]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`} title="Ver también los productos ocultos">
             {showHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />} {showHidden ? 'Mostrando ocultos' : `Ocultos${s?.hidden_count ? ` (${s.hidden_count})` : ''}`}
           </button>
           <select value={sort} onChange={(e) => setSort(e.target.value)} className="input w-auto">
@@ -173,7 +173,7 @@ export default function InventoryTab({ clientId }) {
                         <div className="flex items-center gap-2 min-w-0">
                           {i.image_url ? <img src={i.image_url} alt="" className="w-8 h-8 rounded-md object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded-md bg-gray-100 flex-shrink-0" />}
                           <div className="min-w-0">
-                            <p className="font-medium text-[#17181A] truncate max-w-[280px]">{i.title}</p>
+                            <p className="font-medium text-[var(--ink)] truncate max-w-[280px]">{i.title}</p>
                             <p className="text-[11px] text-gray-400 truncate">{[i.variant_title, i.sku].filter(Boolean).join(' · ') || '—'}</p>
                           </div>
                         </div>
@@ -187,7 +187,7 @@ export default function InventoryTab({ clientId }) {
                       <td className="text-right px-2 tabular-nums">{i.inventory_value_cost === null ? '—' : fmtMoney(i.inventory_value_cost)}</td>
                       <td className="text-right pl-2"><span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS[i.status].cls}`}>{STATUS[i.status].label}</span></td>
                       <td className="pl-2 text-right">
-                        <button type="button" onClick={() => toggleHidden(i)} className={`p-1.5 rounded-lg ${i.hidden ? 'text-[#17181A] bg-[#D7F653]/40' : 'text-gray-300 hover:text-gray-700 hover:bg-gray-100'}`} title={i.hidden ? 'Volver a mostrar' : 'Ocultar del inventario'}>
+                        <button type="button" onClick={() => toggleHidden(i)} className={`p-1.5 rounded-lg ${i.hidden ? 'text-[var(--accent-deep)] bg-[rgb(var(--accent-rgb)/0.15)]' : 'text-gray-300 hover:text-gray-700 hover:bg-gray-100'}`} title={i.hidden ? 'Volver a mostrar' : 'Ocultar del inventario'}>
                           {i.hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
                       </td>
@@ -203,7 +203,7 @@ export default function InventoryTab({ clientId }) {
                   {i.image_url ? <img src={i.image_url} alt="" className="w-10 h-10 rounded-md object-cover flex-shrink-0" /> : <div className="w-10 h-10 rounded-md bg-gray-100 flex-shrink-0" />}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className={`font-medium text-sm text-[#17181A] truncate ${i.hidden ? 'opacity-50' : ''}`}>{i.title}</p>
+                      <p className={`font-medium text-sm text-[var(--ink)] truncate ${i.hidden ? 'opacity-50' : ''}`}>{i.title}</p>
                       <span className="flex items-center gap-1 flex-shrink-0">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${STATUS[i.status].cls}`}>{STATUS[i.status].label}</span>
                         <button type="button" onClick={() => toggleHidden(i)} className="p-1 text-gray-400" title={i.hidden ? 'Volver a mostrar' : 'Ocultar'}>{i.hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}</button>

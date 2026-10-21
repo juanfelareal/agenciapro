@@ -156,9 +156,9 @@ const BankSection = ({ data, loading }) => {
   function renderUploadModal() {
     return (
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
+        <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-[#17181A]">Importar Extracto Bancolombia</h2>
+            <h2 className="text-xl font-semibold text-[var(--ink)]">Importar Extracto Bancolombia</h2>
             <button
               onClick={() => {
                 setShowUploadModal(false);
@@ -190,7 +190,7 @@ const BankSection = ({ data, loading }) => {
                 ) : (
                   <FileSpreadsheet className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 )}
-                <p className="text-sm font-medium text-[#17181A] mb-1">
+                <p className="text-sm font-medium text-[var(--ink)] mb-1">
                   {uploading ? 'Procesando CSV...' : 'Haz clic para seleccionar CSV'}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -209,7 +209,7 @@ const BankSection = ({ data, loading }) => {
             )}
 
             <div className="bg-gray-50 rounded-xl p-4">
-              <h4 className="text-sm font-medium text-[#17181A] mb-2">Como exportar desde Bancolombia</h4>
+              <h4 className="text-sm font-medium text-[var(--ink)] mb-2">Como exportar desde Bancolombia</h4>
               <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
                 <li>Ingresa a la Sucursal Virtual Empresas</li>
                 <li>Ve a Cuentas → Extractos y Movimientos</li>
@@ -230,12 +230,12 @@ const BankSection = ({ data, loading }) => {
         {/* Header with upload button */}
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold text-[#17181A]">Extractos Bancarios</h2>
+            <h2 className="text-lg font-semibold text-[var(--ink)]">Extractos Bancarios</h2>
             <p className="text-sm text-gray-500">Importa tu extracto de Bancolombia</p>
           </div>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+            className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
           >
             <Upload size={18} />
             Importar CSV de Bancolombia
@@ -247,7 +247,7 @@ const BankSection = ({ data, loading }) => {
           <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-8 h-8 text-blue-500" />
           </div>
-          <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin extractos bancarios</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">Sin extractos bancarios</h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
             Sube tu extracto CSV de Bancolombia para ver el detalle de movimientos, creditos y debitos.
           </p>
@@ -271,7 +271,7 @@ const BankSection = ({ data, loading }) => {
       {/* Header with period info and upload button */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-lg font-semibold text-[#17181A]">
+          <h2 className="text-lg font-semibold text-[var(--ink)]">
             Extracto {periodInfo?.label || ''}
           </h2>
           <p className="text-sm text-gray-500">
@@ -283,7 +283,7 @@ const BankSection = ({ data, loading }) => {
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="border border-gray-200 text-[#17181A] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors"
+          className="border border-gray-200 text-[var(--ink)] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors"
         >
           <Upload size={18} />
           Importar otro periodo
@@ -344,7 +344,7 @@ const BankSection = ({ data, loading }) => {
                 onClick={() => setFilterType(opt.key)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   filterType === opt.key
-                    ? 'bg-white text-[#17181A] shadow-sm'
+                    ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -356,7 +356,7 @@ const BankSection = ({ data, loading }) => {
       >
         <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-white z-10">
+            <thead className="sticky top-0 bg-[var(--surface)] z-10">
               <tr>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">
                   Fecha
@@ -390,7 +390,7 @@ const BankSection = ({ data, loading }) => {
                       {formattedDate}
                     </td>
                     <td className="px-4 py-3 border-b border-gray-100">
-                      <span className="font-medium text-[#17181A] line-clamp-1" title={txn.description}>
+                      <span className="font-medium text-[var(--ink)] line-clamp-1" title={txn.description}>
                         {txn.description || '-'}
                       </span>
                     </td>
@@ -415,7 +415,7 @@ const BankSection = ({ data, loading }) => {
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right border-b border-gray-100 bg-gray-50 font-medium text-[#17181A] whitespace-nowrap">
+                    <td className="px-4 py-3 text-right border-b border-gray-100 bg-gray-50 font-medium text-[var(--ink)] whitespace-nowrap">
                       {formatCurrency(txn.balance)}
                     </td>
                   </tr>

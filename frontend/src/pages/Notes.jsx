@@ -655,7 +655,7 @@ const Notes = () => {
           data-folder-item
           className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group ${
             selectedFolder === folder.id
-              ? 'bg-gray-100 text-[#17181A]'
+              ? 'bg-gray-100 text-[var(--ink)]'
               : 'hover:bg-slate-100 text-slate-700'
           }`}
           style={{ paddingLeft: `${12 + level * 16}px` }}
@@ -716,7 +716,7 @@ const Notes = () => {
     return (
       <div className="min-h-screen" style={{ backgroundColor: formData.color }}>
         {/* Top bar */}
-        <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 px-4 md:px-6 py-3 border-b border-slate-200/50 bg-white/80 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 px-4 md:px-6 py-3 border-b border-slate-200/50 bg-[rgb(var(--surface-rgb)/0.8)] backdrop-blur-sm">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <button
               onClick={handleBackToList}
@@ -802,7 +802,7 @@ const Notes = () => {
                 <button
                   onClick={handleSaveNote}
                   disabled={!formData.title.trim()}
-                  className="px-4 py-1.5 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50"
+                  className="px-4 py-1.5 bg-[var(--dark)] text-white rounded-lg hover:bg-[var(--dark)] disabled:opacity-50"
                 >
                   Guardar
                 </button>
@@ -893,7 +893,7 @@ const Notes = () => {
                 <select
                   value={formData.folder_id || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, folder_id: e.target.value || null }))}
-                  className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white/80"
+                  className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-[rgb(var(--surface-rgb)/0.8)]"
                 >
                   <option value="">Sin carpeta</option>
                   {flatFolders.map(f => (
@@ -908,7 +908,7 @@ const Notes = () => {
                 <select
                   value={formData.category_id || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value || null }))}
-                  className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-white/80"
+                  className="px-2 py-1 text-sm border border-slate-200 rounded-lg bg-[rgb(var(--surface-rgb)/0.8)]"
                 >
                   <option value="">Sin categoría</option>
                   {categories.map(cat => (
@@ -926,7 +926,7 @@ const Notes = () => {
                       key={color.value}
                       onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
                       className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                        formData.color === color.value ? 'border-[#17181A]' : 'border-slate-200'
+                        formData.color === color.value ? 'border-[var(--ink)]' : 'border-slate-200'
                       }`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}
@@ -1100,7 +1100,7 @@ const Notes = () => {
                       e.target.value = '';
                     }
                   }}
-                  className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white"
+                  className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-[var(--surface)]"
                 >
                   <option value="">+ Cliente</option>
                   {clients.map(c => (
@@ -1115,7 +1115,7 @@ const Notes = () => {
                       e.target.value = '';
                     }
                   }}
-                  className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white"
+                  className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-[var(--surface)]"
                 >
                   <option value="">+ Proyecto</option>
                   {projects.map(p => (
@@ -1130,7 +1130,7 @@ const Notes = () => {
                       e.target.value = '';
                     }
                   }}
-                  className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white"
+                  className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-[var(--surface)]"
                 >
                   <option value="">+ Miembro equipo</option>
                   {teamMembers.map(m => (
@@ -1198,7 +1198,7 @@ const Notes = () => {
 
                 {versions.map(version => (
                   <div key={version.id} className={`border rounded-xl overflow-hidden transition-colors ${
-                    previewVersion?.id === version.id ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200 bg-white'
+                    previewVersion?.id === version.id ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200 bg-[var(--surface)]'
                   }`}>
                     <div className="px-4 py-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -1239,7 +1239,7 @@ const Notes = () => {
                     {/* Preview content */}
                     {previewVersion?.id === version.id && previewVersion?.parsedContent && (
                       <div className="px-4 pb-4 border-t border-slate-200/50">
-                        <div className="mt-3 prose prose-slate prose-sm max-w-none bg-white rounded-lg p-4 border border-slate-100">
+                        <div className="mt-3 prose prose-slate prose-sm max-w-none bg-[var(--surface)] rounded-lg p-4 border border-slate-100">
                           <NoteEditor
                             content={previewVersion.parsedContent}
                             onChange={() => {}}
@@ -1305,7 +1305,7 @@ const Notes = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setExpandedEditId(expandedEditId === edit.id ? null : edit.id)}
-                          className="px-3 py-1.5 text-xs text-slate-600 hover:bg-white rounded-lg transition-colors"
+                          className="px-3 py-1.5 text-xs text-slate-600 hover:bg-[var(--surface)] rounded-lg transition-colors"
                         >
                           {expandedEditId === edit.id ? 'Ocultar' : 'Ver contenido'}
                         </button>
@@ -1334,7 +1334,7 @@ const Notes = () => {
                     {/* Expanded content preview */}
                     {expandedEditId === edit.id && (
                       <div className="px-4 pb-4 border-t border-slate-200/50">
-                        <div className="mt-3 prose prose-slate prose-sm max-w-none bg-white rounded-lg p-4 border border-slate-100">
+                        <div className="mt-3 prose prose-slate prose-sm max-w-none bg-[var(--surface)] rounded-lg p-4 border border-slate-100">
                           <NoteEditor
                             content={typeof edit.content_json === 'string' ? JSON.parse(edit.content_json) : edit.content_json}
                             onChange={() => {}}
@@ -1372,7 +1372,7 @@ const Notes = () => {
 
   // Notes list view with folder sidebar
   return (
-    <div className="flex flex-col md:flex-row bg-white rounded-2xl border border-slate-200 md:overflow-hidden md:min-h-[600px] md:h-[calc(100dvh-180px)]">
+    <div className="flex flex-col md:flex-row bg-[var(--surface)] rounded-2xl border border-slate-200 md:overflow-hidden md:min-h-[600px] md:h-[calc(100dvh-180px)]">
       {/* Móvil: barra para desplegar carpetas */}
       <button
         type="button"
@@ -1415,7 +1415,7 @@ const Notes = () => {
             data-folder-item
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
               selectedFolder === null && !showPrivateOnly
-                ? 'bg-gray-100 text-[#17181A]'
+                ? 'bg-gray-100 text-[var(--ink)]'
                 : 'hover:bg-slate-100 text-slate-700'
             }`}
             onClick={() => { setSelectedFolder(null); setShowPrivateOnly(false); }}
@@ -1430,7 +1430,7 @@ const Notes = () => {
             data-folder-item
             className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
               selectedFolder === 'root' && !showPrivateOnly
-                ? 'bg-gray-100 text-[#17181A]'
+                ? 'bg-gray-100 text-[var(--ink)]'
                 : 'hover:bg-slate-100 text-slate-700'
             }`}
             onClick={() => { setSelectedFolder('root'); setShowPrivateOnly(false); }}
@@ -1465,7 +1465,7 @@ const Notes = () => {
             <span className="text-xs font-medium text-slate-500 uppercase">Categorías</span>
             <button
               onClick={() => setShowCategoryModal(true)}
-              className="text-xs text-[#17181A] hover:text-[#17181A]"
+              className="text-xs text-[var(--ink)] hover:text-[var(--ink)]"
             >
               Gestionar
             </button>
@@ -1488,7 +1488,7 @@ const Notes = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 md:p-6 border-b border-slate-200">
           <div>
-            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight flex items-center gap-2">
               {showPrivateOnly && <Lock size={20} className="text-amber-600" />}
               {showPrivateOnly
                 ? 'Mis notas privadas'
@@ -1545,7 +1545,7 @@ const Notes = () => {
             {/* New Note */}
             <button
               onClick={handleCreateNote}
-              className="flex items-center gap-2 px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--dark)] text-white rounded-lg hover:bg-[var(--dark)] transition-colors"
             >
               <Plus size={18} />
               Nueva Nota
@@ -1565,7 +1565,7 @@ const Notes = () => {
               <p className="text-slate-500 mb-4">No hay notas aquí</p>
               <button
                 onClick={handleCreateNote}
-                className="text-[#17181A] hover:text-[#17181A] font-medium"
+                className="text-[var(--ink)] hover:text-[var(--ink)] font-medium"
               >
                 Crear una nota
               </button>
@@ -1647,7 +1647,7 @@ const Notes = () => {
       {/* Folder Modal */}
       {showFolderModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-semibold">
                 {editingFolder ? 'Editar Carpeta' : 'Nueva Carpeta'}
@@ -1685,7 +1685,7 @@ const Notes = () => {
                       onClick={() => setFolderForm(prev => ({ ...prev, icon }))}
                       className={`w-10 h-10 text-xl rounded-lg border-2 transition-colors ${
                         folderForm.icon === icon
-                          ? 'border-[#17181A] bg-gray-50'
+                          ? 'border-[var(--ink)] bg-gray-50'
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
@@ -1725,7 +1725,7 @@ const Notes = () => {
               <button
                 onClick={handleSaveFolder}
                 disabled={!folderForm.name.trim()}
-                className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50"
+                className="px-4 py-2 bg-[var(--dark)] text-white rounded-lg hover:bg-[var(--dark)] disabled:opacity-50"
               >
                 {editingFolder ? 'Guardar' : 'Crear'}
               </button>
@@ -1737,7 +1737,7 @@ const Notes = () => {
       {/* Category Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h2 className="text-lg font-semibold">Gestionar Categorías</h2>
               <button
@@ -1770,7 +1770,7 @@ const Notes = () => {
                 <button
                   onClick={handleSaveCategory}
                   disabled={!categoryForm.name.trim()}
-                  className="px-4 py-2 bg-[#17181A] text-white rounded-lg hover:bg-[#17181A] disabled:opacity-50"
+                  className="px-4 py-2 bg-[var(--dark)] text-white rounded-lg hover:bg-[var(--dark)] disabled:opacity-50"
                 >
                   {editingCategory ? 'Guardar' : 'Agregar'}
                 </button>

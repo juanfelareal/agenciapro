@@ -38,7 +38,7 @@ export default function ClientEmailMarketing() {
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Email Marketing</h1>
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Email Marketing</h1>
           <p className="text-sm text-gray-500">{client?.company || client?.name}</p>
         </div>
       </div>

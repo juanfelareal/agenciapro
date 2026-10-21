@@ -150,7 +150,7 @@ export default function PortalDocuments() {
               <Link
                 key={doc.id}
                 to={`/portal/documents/${doc.id}/sign`}
-                className="block bg-white border border-ink-200 rounded-xl p-4 hover:border-ink-300 hover:shadow-sm transition-all group"
+                className="block bg-[var(--surface)] border border-ink-200 rounded-xl p-4 hover:border-ink-300 hover:shadow-sm transition-all group"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -196,7 +196,7 @@ export default function PortalDocuments() {
             signedDocs.map((doc) => (
               <div
                 key={doc.id}
-                className="bg-white border border-ink-200 rounded-xl p-4"
+                className="bg-[var(--surface)] border border-ink-200 rounded-xl p-4"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">

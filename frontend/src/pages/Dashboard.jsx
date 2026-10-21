@@ -4,6 +4,7 @@ import { Calendar, Settings, Plus, RotateCcw, Check, X } from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
 import WidgetGrid from '../components/dashboard/WidgetGrid';
 import WidgetPicker from '../components/dashboard/WidgetPicker';
+import GettingStarted from '../components/onboarding/GettingStarted'; // [onboarding]
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -102,10 +103,10 @@ const Dashboard = () => {
   if (loading || widgetsLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-20 bg-white/50 rounded-2xl animate-pulse"></div>
+        <div className="h-20 bg-[rgb(var(--surface-rgb)/0.5)] rounded-2xl animate-pulse"></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {[1,2,3,4].map(i => (
-            <div key={i} className="h-32 bg-white/50 rounded-2xl animate-pulse"></div>
+            <div key={i} className="h-32 bg-[rgb(var(--surface-rgb)/0.5)] rounded-2xl animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -114,6 +115,8 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* [onboarding] Primeros pasos: solo se muestra si la org tiene onboarding incompleto */}
+      <GettingStarted />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -141,8 +144,8 @@ const Dashboard = () => {
                     onClick={() => setPeriod(key)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                       period === key
-                        ? 'bg-[#17181A] text-white'
-                        : 'bg-white text-ink-600 hover:bg-ink-100 border border-ink-200'
+                        ? 'bg-[var(--dark)] text-white'
+                        : 'bg-[var(--surface)] text-ink-600 hover:bg-ink-100 border border-ink-200'
                     }`}
                   >
                     {label}

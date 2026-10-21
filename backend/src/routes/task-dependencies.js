@@ -9,8 +9,7 @@ router.get('/task/:taskId', async (req, res) => {
     // Verify task belongs to org via project
     const task = await db.prepare(`
       SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
+      WHERE t.id = ? AND t.organization_id = ?
     `).get(req.params.taskId, req.orgId);
 
     if (!task) {
@@ -23,8 +22,8 @@ router.get('/task/:taskId', async (req, res) => {
              t.timeline_start, t.timeline_end
       FROM task_dependencies td
       JOIN tasks t ON td.depends_on_task_id = t.id
-      WHERE td.task_id = ?
-    `).all(req.params.taskId);
+      WHERE td.task_id = ? AND t.organization_id = ?
+    `).all(req.params.taskId, req.orgId);
 
     res.json(dependencies);
   } catch (error) {
@@ -38,8 +37,7 @@ router.get('/task/:taskId/dependents', async (req, res) => {
     // Verify task belongs to org via project
     const task = await db.prepare(`
       SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
+      WHERE t.id = ? AND t.organization_id = ?
     `).get(req.params.taskId, req.orgId);
 
     if (!task) {
@@ -52,8 +50,8 @@ router.get('/task/:taskId/dependents', async (req, res) => {
              t.timeline_start, t.timeline_end
       FROM task_dependencies td
       JOIN tasks t ON td.task_id = t.id
-      WHERE td.depends_on_task_id = ?
-    `).all(req.params.taskId);
+      WHERE td.depends_on_task_id = ? AND t.organization_id = ?
+    `).all(req.params.taskId, req.orgId);
 
     res.json(dependents);
   } catch (error) {
@@ -78,8 +76,7 @@ router.post('/', async (req, res) => {
     // Verify both tasks belong to org via project
     const taskCheck = await db.prepare(`
       SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
+      WHERE t.id = ? AND t.organization_id = ?
     `).get(task_id, req.orgId);
 
     if (!taskCheck) {
@@ -88,8 +85,7 @@ router.post('/', async (req, res) => {
 
     const dependsOnCheck = await db.prepare(`
       SELECT t.id FROM tasks t
-      JOIN projects p ON t.project_id = p.id
-      WHERE t.id = ? AND p.organization_id = ?
+      WHERE t.id = ? AND t.organization_id = ?
     `).get(depends_on_task_id, req.orgId);
 
     if (!dependsOnCheck) {
@@ -123,8 +119,7 @@ router.put('/:id', async (req, res) => {
     const existing = await db.prepare(`
       SELECT td.id FROM task_dependencies td
       JOIN tasks t ON td.task_id = t.id
-      JOIN projects p ON t.project_id = p.id
-      WHERE td.id = ? AND p.organization_id = ?
+      WHERE td.id = ? AND t.organization_id = ?
     `).get(req.params.id, req.orgId);
 
     if (!existing) {
@@ -157,8 +152,7 @@ router.delete('/:id', async (req, res) => {
     const existing = await db.prepare(`
       SELECT td.id FROM task_dependencies td
       JOIN tasks t ON td.task_id = t.id
-      JOIN projects p ON t.project_id = p.id
-      WHERE td.id = ? AND p.organization_id = ?
+      WHERE td.id = ? AND t.organization_id = ?
     `).get(req.params.id, req.orgId);
 
     if (!existing) {
@@ -195,8 +189,8 @@ router.get('/project/:projectId/chain', async (req, res) => {
       FROM task_dependencies td
       JOIN tasks t1 ON td.task_id = t1.id
       JOIN tasks t2 ON td.depends_on_task_id = t2.id
-      WHERE t1.project_id = ?
-    `).all(req.params.projectId);
+      WHERE t1.project_id = ? AND t1.organization_id = ? AND t2.organization_id = ?
+    `).all(req.params.projectId, req.orgId, req.orgId);
 
     res.json(dependencies);
   } catch (error) {

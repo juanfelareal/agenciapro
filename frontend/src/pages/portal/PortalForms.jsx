@@ -83,7 +83,7 @@ export default function PortalForms() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Formularios</h1>
+        <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Formularios</h1>
         <p className="text-sm text-gray-500 mt-0.5">Completa los formularios asignados a tu cuenta</p>
       </div>
 
@@ -103,7 +103,7 @@ export default function PortalForms() {
               >
                 {/* Top row: title + arrow */}
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <h3 className="font-semibold text-[#17181A] group-hover:text-blue-600 transition-colors line-clamp-1">
+                  <h3 className="font-semibold text-[var(--ink)] group-hover:text-blue-600 transition-colors line-clamp-1">
                     {form.form_title}
                   </h3>
                   <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500 transition-colors flex-shrink-0 mt-0.5" />
@@ -163,7 +163,7 @@ export default function PortalForms() {
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ClipboardList className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-[#17181A] mb-2">No tienes formularios asignados</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">No tienes formularios asignados</h3>
           <p className="text-gray-500">
             Cuando te asignen un formulario aparecera aqui.
           </p>

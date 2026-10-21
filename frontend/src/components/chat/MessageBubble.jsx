@@ -47,7 +47,7 @@ const EntityPreviewCard = ({ type, id }) => {
 
   if (loading) {
     return (
-      <div className="mt-1.5 p-2.5 bg-white/10 rounded-xl animate-pulse">
+      <div className="mt-1.5 p-2.5 bg-[rgb(var(--surface-rgb)/0.1)] rounded-xl animate-pulse">
         <div className="h-3 bg-gray-300/30 rounded w-3/4 mb-2" />
         <div className="h-2.5 bg-gray-300/20 rounded w-1/2" />
       </div>
@@ -165,7 +165,7 @@ const MessageBubble = ({ message, isOwn, showSender, apiBase = '' }) => {
           key={`${mention.type}-${mention.id}`}
           className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-semibold ${
             isOwn
-              ? 'bg-white/20 text-blue-200'
+              ? 'bg-[rgb(var(--surface-rgb)/0.2)] text-blue-200'
               : 'bg-blue-100 text-blue-700'
           }`}
         >
@@ -204,8 +204,8 @@ const MessageBubble = ({ message, isOwn, showSender, apiBase = '' }) => {
         <div
           className={`px-3 py-2 rounded-2xl ${
             isOwn
-              ? 'bg-[#17181A] text-white rounded-br-md'
-              : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
+              ? 'bg-[var(--dark)] text-white rounded-br-md'
+              : 'bg-[var(--surface)] border border-gray-200 text-gray-800 rounded-bl-md'
           }`}
         >
           {message.image_url && (

@@ -771,14 +771,14 @@ const Tasks = () => {
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">Tareas</h1>
+            <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">Tareas</h1>
             <p className="text-sm text-gray-500 mt-0.5">Gestión de tareas del equipo</p>
           </div>
           <div className="flex items-center gap-3">
             <TaskViewSwitcher value={viewMode} onChange={setViewMode} />
             <button
               onClick={() => handleNew()}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#17181A] text-white rounded-xl hover:bg-[#26282C] transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1C1D1F] transition-all"
             >
               <Plus size={20} />
               <span className="hidden sm:inline">Nueva Tarea</span>
@@ -803,8 +803,8 @@ const Tasks = () => {
                   onClick={() => applyView(v)}
                   className={`inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-xs font-medium border transition-all ${
                     isActive
-                      ? 'bg-[#17181A] text-white border-[#17181A]'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      ? 'bg-[var(--dark)] text-white border-[var(--ink)]'
+                      : 'bg-[var(--surface)] text-gray-700 border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   {v.is_default && <Star size={11} className={isActive ? 'fill-yellow-300 text-yellow-300' : 'fill-yellow-400 text-yellow-400'} />}
@@ -814,7 +814,7 @@ const Tasks = () => {
                       e.stopPropagation();
                       setOpenViewMenuId(openViewMenuId === v.id ? null : v.id);
                     }}
-                    className={`ml-1 rounded p-0.5 cursor-pointer ${isActive ? 'hover:bg-white/20' : 'hover:bg-gray-100'}`}
+                    className={`ml-1 rounded p-0.5 cursor-pointer ${isActive ? 'hover:bg-[rgb(var(--surface-rgb)/0.2)]' : 'hover:bg-gray-100'}`}
                     role="button"
                     title="Opciones"
                   >
@@ -880,7 +880,7 @@ const Tasks = () => {
           })}
           <button
             onClick={() => setShowSaveViewModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white text-gray-600 border border-dashed border-gray-300 hover:border-[#17181A] hover:text-[#17181A] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--surface)] text-gray-600 border border-dashed border-gray-300 hover:border-[var(--ink)] hover:text-[var(--ink)] transition-colors"
             title="Guarda la combinación actual de filtros y vista para acceder rápido"
           >
             <Bookmark size={12} />
@@ -900,12 +900,12 @@ const Tasks = () => {
         {/* Search and Filter Bar */}
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
           {/* My Tasks / All Tasks Toggle */}
-          <div className="flex rounded-xl border border-gray-100 overflow-hidden bg-white">
+          <div className="flex rounded-xl border border-gray-100 overflow-hidden bg-[var(--surface)]">
             <button
               onClick={() => setShowMyTasks(true)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 showMyTasks
-                  ? 'bg-[#17181A] text-white'
+                  ? 'bg-[var(--dark)] text-white'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
@@ -915,7 +915,7 @@ const Tasks = () => {
               onClick={() => setShowMyTasks(false)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 !showMyTasks
-                  ? 'bg-[#17181A] text-white'
+                  ? 'bg-[var(--dark)] text-white'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
@@ -930,21 +930,21 @@ const Tasks = () => {
               placeholder="Buscar tareas..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 glass-solid rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D7F653] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 glass-solid rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] focus:border-transparent"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-colors ${
               showFilters || activeFilterCount > 0
-                ? 'border-[#D7F653] bg-[#D7F653]/10 text-[#17181A]'
-                : 'border-gray-100 bg-white hover:bg-gray-50'
+                ? 'border-[var(--accent)] bg-[rgb(var(--accent-rgb)/0.08)] text-[var(--ink)]'
+                : 'border-gray-100 bg-[var(--surface)] hover:bg-gray-50'
             }`}
           >
             <Filter size={18} />
             <span>Filtros</span>
             {activeFilterCount > 0 && (
-              <span className="bg-[#17181A] text-[#D7F653] text-xs px-1.5 py-0.5 rounded-full">
+              <span className="bg-[var(--dark)] text-[var(--accent)] text-xs px-1.5 py-0.5 rounded-full">
                 {activeFilterCount}
               </span>
             )}
@@ -1009,7 +1009,7 @@ const Tasks = () => {
           }`}>
             <div className="flex justify-between items-center px-6 py-3.5 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center gap-2.5">
-                <span className="inline-flex items-center gap-1.5 bg-[#17181A] text-[#D7F653] text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md">
+                <span className="inline-flex items-center gap-1.5 bg-[var(--dark)] text-[var(--accent)] text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md">
                   <CircleDashed size={12} />
                   {editingTask ? 'Editar tarea' : 'Nueva tarea'}
                 </span>
@@ -1048,7 +1048,7 @@ const Tasks = () => {
                   required
                   autoFocus
                   placeholder="¿Qué hay que hacer?"
-                  className="w-full text-[22px] leading-snug font-bold text-[#17181A] placeholder-gray-300 bg-transparent focus:outline-none"
+                  className="w-full text-[22px] leading-snug font-bold text-[var(--ink)] placeholder-gray-300 bg-transparent focus:outline-none"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
@@ -1083,7 +1083,7 @@ const Tasks = () => {
                     <div className="flex items-center gap-1.5">
                       <input
                         type="text"
-                        className="h-9 w-52 border border-gray-200 rounded-lg px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                        className="h-9 w-52 border border-gray-200 rounded-lg px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                         placeholder="Nombre del nuevo proyecto"
                         value={newProjectName}
                         onChange={(e) => setNewProjectName(e.target.value)}
@@ -1102,7 +1102,7 @@ const Tasks = () => {
                         type="button"
                         onClick={handleCreateProject}
                         disabled={creatingProject || !newProjectName.trim()}
-                        className="h-9 px-3 bg-[#17181A] text-white text-[13px] font-medium rounded-lg hover:bg-[#26282C] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="h-9 px-3 bg-[var(--dark)] text-white text-[13px] font-medium rounded-lg hover:bg-[#1C1D1F] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {creatingProject ? '…' : 'Crear'}
                       </button>
@@ -1136,7 +1136,7 @@ const Tasks = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewProject(true)}
-                        className="h-9 w-9 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-[#17181A] transition-colors"
+                        className="h-9 w-9 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-[var(--ink)] transition-colors"
                         title="Crear nuevo proyecto"
                       >
                         <Plus size={15} />
@@ -1200,12 +1200,12 @@ const Tasks = () => {
                     return (
                       <span
                         key={id}
-                        className="inline-flex items-center gap-1.5 h-9 bg-[#17181A] text-white text-[13px] font-medium pl-1.5 pr-1.5 rounded-lg"
+                        className="inline-flex items-center gap-1.5 h-9 bg-[var(--dark)] text-white text-[13px] font-medium pl-1.5 pr-1.5 rounded-lg"
                       >
                         {member.avatar_url ? (
                           <img src={member.avatar_url} alt={member.name} className="w-6 h-6 rounded-md object-cover flex-shrink-0" />
                         ) : (
-                          <span className="w-6 h-6 rounded-md bg-[#D7F653] text-[#17181A] flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+                          <span className="w-6 h-6 rounded-md bg-[var(--accent)] text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0">
                             {member.name.charAt(0).toUpperCase()}
                           </span>
                         )}
@@ -1218,7 +1218,7 @@ const Tasks = () => {
                               assignee_ids: formData.assignee_ids.filter((aid) => aid !== id),
                             })
                           }
-                          className="p-0.5 rounded hover:bg-white/20 transition-colors"
+                          className="p-0.5 rounded hover:bg-[rgb(var(--surface-rgb)/0.2)] transition-colors"
                         >
                           <X size={12} />
                         </button>
@@ -1273,7 +1273,7 @@ const Tasks = () => {
                       {draftSubtasks.map((title, i) => (
                         <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 rounded-lg group">
                           <span className="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0" />
-                          <span className="flex-1 text-sm text-[#17181A] min-w-0 truncate">{title}</span>
+                          <span className="flex-1 text-sm text-[var(--ink)] min-w-0 truncate">{title}</span>
                           <button
                             type="button"
                             onClick={() => setDraftSubtasks(draftSubtasks.filter((_, idx) => idx !== i))}
@@ -1300,7 +1300,7 @@ const Tasks = () => {
                             }
                           }}
                           placeholder="Escribe una subtarea y presiona Enter…"
-                          className="flex-1 h-9 border border-gray-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                          className="flex-1 h-9 border border-gray-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                         />
                         <button
                           type="button"
@@ -1312,7 +1312,7 @@ const Tasks = () => {
                             }
                           }}
                           disabled={!newDraftSubtask.trim()}
-                          className="h-9 px-3 text-sm bg-[#17181A] text-white rounded-lg hover:bg-[#26282C] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                          className="h-9 px-3 text-sm bg-[var(--dark)] text-white rounded-lg hover:bg-[#1C1D1F] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
                         >
                           <Plus size={14} />
                           Agregar
@@ -1355,7 +1355,7 @@ const Tasks = () => {
                       <div className="flex gap-2">
                         <input
                           type="url"
-                          className="flex-1 border border-gray-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653]"
+                          className="flex-1 border border-gray-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)]"
                           placeholder="https://drive.google.com/… o cualquier link donde quedó la tarea"
                           value={formData.delivery_url}
                           onChange={(e) => setFormData({ ...formData, delivery_url: e.target.value })}
@@ -1365,7 +1365,7 @@ const Tasks = () => {
                             href={formData.delivery_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-3 py-2 text-sm bg-[#D7F653]/10 text-[#65A30D] border border-[#D7F653]/30 rounded-lg hover:bg-[#D7F653]/20 transition-colors"
+                            className="flex items-center gap-1 px-3 py-2 text-sm bg-[rgb(var(--accent-rgb)/0.1)] text-[var(--accent-deep)] border border-[rgb(var(--accent-rgb)/0.3)] rounded-lg hover:bg-[rgb(var(--accent-rgb)/0.15)] transition-colors"
                             title="Abrir link"
                           >
                             <ExternalLink size={14} />
@@ -1381,7 +1381,7 @@ const Tasks = () => {
                       <div>
                         <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-1.5">Formulario vinculado</label>
                         <select
-                          className="w-full border border-gray-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D7F653] bg-white"
+                          className="w-full border border-gray-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent-rgb)/0.4)] bg-[var(--surface)]"
                           value={formData.linked_form_id || ''}
                           onChange={(e) => setFormData({ ...formData, linked_form_id: e.target.value ? parseInt(e.target.value) : '' })}
                         >
@@ -1502,13 +1502,13 @@ const Tasks = () => {
                           const customTitle = f.file_name && f.file_name !== f.file_path ? f.file_name : null;
                           if (isEditing) {
                             return (
-                              <div key={f.id} className="p-3 border border-[#17181A] rounded-xl bg-white space-y-2">
+                              <div key={f.id} className="p-3 border border-[var(--ink)] rounded-xl bg-[var(--surface)] space-y-2">
                                 <input
                                   type="text"
                                   value={editingFileTitle}
                                   onChange={(e) => setEditingFileTitle(e.target.value)}
                                   placeholder="Título (ej: Pieza para correo de bienvenida)"
-                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                                   autoFocus
                                 />
                                 <textarea
@@ -1516,7 +1516,7 @@ const Tasks = () => {
                                   onChange={(e) => setEditingFileDescription(e.target.value)}
                                   placeholder="Descripción para el cliente (opcional)"
                                   rows={2}
-                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent resize-none"
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent resize-none"
                                 />
                                 <div className="flex justify-end gap-2">
                                   <button
@@ -1531,7 +1531,7 @@ const Tasks = () => {
                                     type="button"
                                     onClick={saveEditFile}
                                     disabled={savingFileEdit}
-                                    className="px-3 py-1.5 text-xs bg-[#17181A] text-white rounded-lg hover:bg-[#17181A]/90 disabled:opacity-50 inline-flex items-center gap-1"
+                                    className="px-3 py-1.5 text-xs bg-[var(--dark)] text-white rounded-lg hover:bg-[rgb(var(--dark-rgb)/0.9)] disabled:opacity-50 inline-flex items-center gap-1"
                                   >
                                     {savingFileEdit ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                                     Guardar
@@ -1541,7 +1541,7 @@ const Tasks = () => {
                             );
                           }
                           return (
-                            <div key={f.id} className="flex items-start gap-3 p-3 border border-gray-200 rounded-xl bg-white">
+                            <div key={f.id} className="flex items-start gap-3 p-3 border border-gray-200 rounded-xl bg-[var(--surface)]">
                               <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center mt-0.5">
                                 <Link className="w-4 h-4 text-gray-400" />
                               </div>
@@ -1551,7 +1551,7 @@ const Tasks = () => {
                                 ) : (
                                   <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">{embed?.label || 'Link'}</p>
                                 )}
-                                <p className={`text-sm font-medium ${isLegacyFile ? 'text-gray-400' : 'text-[#17181A]'}`}>
+                                <p className={`text-sm font-medium ${isLegacyFile ? 'text-gray-400' : 'text-[var(--ink)]'}`}>
                                   {customTitle || (isLegacyFile ? f.file_name : (embed?.label || 'Link'))}
                                 </p>
                                 {f.description && (
@@ -1573,7 +1573,7 @@ const Tasks = () => {
                                 <button
                                   type="button"
                                   onClick={() => startEditFile(f)}
-                                  className="p-1.5 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                                  className="p-1.5 text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                                   title="Editar título y descripción"
                                 >
                                   <Edit2 className="w-4 h-4" />
@@ -1584,7 +1584,7 @@ const Tasks = () => {
                                   href={f.file_path}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="p-1.5 text-gray-400 hover:text-[#17181A] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                                  className="p-1.5 text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                                   title="Abrir"
                                 >
                                   <ExternalLink className="w-4 h-4" />
@@ -1610,7 +1610,7 @@ const Tasks = () => {
                         value={newDeliverableTitle}
                         onChange={(e) => setNewDeliverableTitle(e.target.value)}
                         placeholder="Título (ej: Pieza para correo de bienvenida)"
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                         disabled={addingLink}
                       />
                       <textarea
@@ -1618,7 +1618,7 @@ const Tasks = () => {
                         onChange={(e) => setNewDeliverableDescription(e.target.value)}
                         placeholder="Descripción para el cliente (opcional)"
                         rows={2}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent resize-none"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent resize-none"
                         disabled={addingLink}
                       />
                       <div className="flex gap-2">
@@ -1633,14 +1633,14 @@ const Tasks = () => {
                             }
                           }}
                           placeholder="https://drive.google.com/file/d/... o link de Figma, Loom, YouTube…"
-                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent"
+                          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent"
                           disabled={addingLink}
                         />
                         <button
                           type="button"
                           onClick={handleAddDeliverableLink}
                           disabled={addingLink || !newDeliverableUrl.trim()}
-                          className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 disabled:opacity-50 inline-flex items-center gap-1.5"
+                          className="px-4 py-2 text-sm bg-[var(--dark)] text-white rounded-xl hover:bg-[rgb(var(--dark-rgb)/0.9)] disabled:opacity-50 inline-flex items-center gap-1.5"
                         >
                           {addingLink ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                           Agregar
@@ -1687,8 +1687,8 @@ const Tasks = () => {
                             key={day.value}
                             className={`px-2.5 py-1.5 rounded-lg cursor-pointer transition text-[13px] font-medium ${
                               (formData.recurrence_pattern?.days || []).includes(day.value)
-                                ? 'bg-[#17181A] text-[#D7F653]'
-                                : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-500'
+                                ? 'bg-[var(--dark)] text-[var(--accent)]'
+                                : 'bg-[var(--surface)] border border-gray-200 hover:bg-gray-50 text-gray-500'
                             }`}
                           >
                             <input
@@ -1721,7 +1721,7 @@ const Tasks = () => {
                 )}
               </div>
               {/* Action buttons — sticky footer (inside sidebar when expanded) */}
-              <div className="sticky bottom-0 bg-white/80 backdrop-blur-xl -mx-6 -mb-6 px-6 py-3.5 mt-6 border-t border-white/70 flex justify-end items-center gap-2">
+              <div className="sticky bottom-0 bg-[rgb(var(--surface-rgb)/0.8)] backdrop-blur-xl -mx-6 -mb-6 px-6 py-3.5 mt-6 border-t border-[rgb(var(--ink-rgb)/0.09)] flex justify-end items-center gap-2">
                 {editingTask && (
                   <div className="flex gap-1 mr-auto">
                     <button
@@ -1766,10 +1766,10 @@ const Tasks = () => {
                 </button>
                 <button
                   type="submit"
-                  className="pl-4 pr-3 py-2 text-sm font-semibold bg-[#17181A] text-white rounded-lg hover:bg-[#26282C] transition-colors flex items-center gap-2 shadow-sm"
+                  className="pl-4 pr-3 py-2 text-sm font-semibold bg-[var(--dark)] text-white rounded-lg hover:bg-[#1C1D1F] transition-colors flex items-center gap-2 shadow-sm"
                 >
                   {editingTask ? 'Guardar cambios' : 'Crear tarea'}
-                  <kbd className="text-[10px] font-mono bg-white/10 text-[#D7F653] rounded px-1.5 py-0.5">⌘↵</kbd>
+                  <kbd className="text-[10px] font-mono bg-[rgb(var(--surface-rgb)/0.1)] text-[var(--accent)] rounded px-1.5 py-0.5">⌘↵</kbd>
                 </button>
               </div>
               </div>{/* close sidebar/fields wrapper */}
@@ -1802,7 +1802,7 @@ const Tasks = () => {
       {deliverablePrompt && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="glass-solid rounded-2xl shadow-glass-lg max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-[#17181A] mb-1">
+            <h3 className="text-lg font-semibold text-[var(--ink)] mb-1">
               Entregable para el cliente
             </h3>
             <p className="text-sm text-gray-500 mb-5">
@@ -1816,7 +1816,7 @@ const Tasks = () => {
                 value={deliverableLink}
                 onChange={(e) => setDeliverableLink(e.target.value)}
                 placeholder="https://drive.google.com/file/d/..."
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17181A] focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--ink)] focus:border-transparent text-sm"
                 autoFocus
               />
               <p className="text-xs text-gray-400 mt-1.5">Tip: en Drive, asegúrate de poner "cualquier persona con el enlace puede ver".</p>
@@ -1835,7 +1835,7 @@ const Tasks = () => {
                 type="button"
                 onClick={submitDeliverableAndApprove}
                 disabled={submittingDeliverable || !deliverableLink.trim()}
-                className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                className="px-4 py-2 text-sm bg-[var(--dark)] text-white rounded-xl hover:bg-[rgb(var(--dark-rgb)/0.9)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
               >
                 {submittingDeliverable && <Loader2 className="w-4 h-4 animate-spin" />}
                 Enviar al cliente
@@ -1849,7 +1849,7 @@ const Tasks = () => {
       {doneApprovalPrompt && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="glass-solid rounded-2xl shadow-glass-lg max-w-md w-full p-6 max-h-[90dvh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-[#17181A] mb-2">
+            <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">
               ¿Necesita aprobación del cliente?
             </h3>
             <p className="text-sm text-gray-600 mb-5">
@@ -1866,7 +1866,7 @@ const Tasks = () => {
               <button
                 type="button"
                 onClick={confirmDoneWithApproval}
-                className="px-4 py-2 text-sm bg-[#17181A] text-white rounded-xl hover:bg-[#17181A]/90 transition-colors"
+                className="px-4 py-2 text-sm bg-[var(--dark)] text-white rounded-xl hover:bg-[rgb(var(--dark-rgb)/0.9)] transition-colors"
               >
                 Sí, pedir aprobación al cliente
               </button>
@@ -1933,9 +1933,9 @@ function SaveViewModal({ snapshot, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#17181A]">Guardar vista</h2>
+          <h2 className="text-lg font-semibold text-[var(--ink)]">Guardar vista</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1 rounded">
             <X size={18} />
           </button>
@@ -1949,7 +1949,7 @@ function SaveViewModal({ snapshot, onClose, onSaved }) {
               onChange={(e) => setName(e.target.value)}
               placeholder='Ej: "Urgentes de LA REAL"'
               autoFocus
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)]"
               onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
             />
           </div>
@@ -1992,7 +1992,7 @@ function SaveViewModal({ snapshot, onClose, onSaved }) {
           <button
             onClick={handleSave}
             disabled={saving || !name.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#17181A] hover:bg-[#26282C] disabled:opacity-50 text-white text-sm font-medium rounded-xl"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--dark)] hover:bg-[#1C1D1F] disabled:opacity-50 text-white text-sm font-medium rounded-xl"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Bookmark size={14} />}
             Guardar vista

@@ -92,7 +92,7 @@ const TagSelector = ({ taskId, selectedTagIds = [], onChange, compact = false })
         </button>
 
         {isOpen && (
-          <div className="absolute z-50 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1">
+          <div className="absolute z-50 mt-1 w-48 bg-[var(--surface)] rounded-lg shadow-lg border border-slate-200 py-1">
             <div className="max-h-48 overflow-y-auto">
               {allTags.map(tag => (
                 <button
@@ -161,7 +161,7 @@ const TagSelector = ({ taskId, selectedTagIds = [], onChange, compact = false })
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="bg-white rounded-lg shadow-lg border border-slate-200 py-1">
+        <div className="bg-[var(--surface)] rounded-lg shadow-lg border border-slate-200 py-1">
           {!showNewTag ? (
             <>
               <div className="max-h-48 overflow-y-auto">

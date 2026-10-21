@@ -62,7 +62,7 @@ const WidgetPicker = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-xl">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-ink-100">
           <h2 className="text-xl font-semibold text-ink-900">Agregar Widget</h2>

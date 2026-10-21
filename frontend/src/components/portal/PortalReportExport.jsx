@@ -3,6 +3,9 @@ import { pdf } from '@react-pdf/renderer';
 import { Download, X, FileText, Loader2 } from 'lucide-react';
 import { portalMetricsAPI, portalEmailMarketingAPI } from '../../utils/portalApi';
 import ReportPdfDocument from './ReportPdfDocument';
+import { usePortal } from '../../context/PortalContext'; // [branding]
+import { useBranding } from '../../branding/useBranding'; // [branding]
+import { isDefaultBranding } from '../../branding/presets'; // [branding]
 
 // ====== Formatters ======
 const fmtCurrency = (v) => `$${Math.round(v || 0).toLocaleString('es-CO')}`;
@@ -19,7 +22,7 @@ const deltaColor = (v, inverted = false) => {
   if (v == null) return '#9ca3af';
   const positive = inverted ? v < 0 : v > 0;
   if (Math.abs(v) < 0.05) return '#9ca3af';
-  return positive ? '#16a34a' : '#dc2626';
+  return positive ? 'var(--accent-deep)' : '#dc2626';
 };
 const fmtDateShort = (d) => {
   if (!d) return '';
@@ -34,12 +37,12 @@ const fmtDateLong = (d) => {
 
 // ====== Color palette (LA REAL) ======
 const C = {
-  ink: '#0D1B2A',
+  ink: 'var(--ink)',
   inkSoft: '#1F2937',
   bone: '#F8F5F0',
   cream: '#FFFCF7',
   hairline: '#E5E2DD',
-  green: '#16a34a',
+  green: 'var(--accent-deep)',
   greenSoft: '#DCFCE7',
   amber: '#D97706',
   amberSoft: '#FEF3C7',
@@ -500,6 +503,15 @@ export const PdfTemplate = ({ client, period, insights, metrics, ads, emailCampa
 
 // ====== Main component ======
 export default function PortalReportExport({ client, metrics, period, getApiParams }) {
+  // [branding] Marca de la agencia para el PDF (react-pdf no lee variables CSS: van los hex resueltos).
+  const { agency } = usePortal();
+  const { colors, logo } = useBranding();
+  const pdfBrand = agency ? {
+    name: agency.name,
+    logoUrl: logo('light'),
+    accentDeep: isDefaultBranding(agency.branding) ? null : colors.accentDeep,
+    reportFooter: agency.branding?.report_footer || null,
+  } : null;
   const [open, setOpen] = useState(false);
   const [insights, setInsights] = useState('');
   const [busy, setBusy] = useState(false);
@@ -533,6 +545,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
           metrics={enriched}
           ads={adsRes?.ads || []}
           emailCampaigns={emailRes?.campaigns || []}
+          brand={pdfBrand}
         />
       ).toBlob();
 
@@ -559,7 +572,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-[#0D1B2A] text-white rounded-xl hover:bg-[#1F2937] transition-colors text-sm font-medium shadow-sm"
+        className="flex items-center gap-2 px-4 py-2 bg-[var(--dark)] text-white rounded-xl hover:bg-[#1F2937] transition-colors text-sm font-medium shadow-sm"
         title="Exportar reporte en PDF"
       >
         <Download size={16} />
@@ -568,14 +581,14 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
 
       {open && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-xl shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#0D1B2A] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-[var(--dark)] flex items-center justify-center">
                   <FileText className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#0D1B2A]">Exportar reporte</h2>
+                  <h2 className="text-lg font-semibold text-[var(--ink)]">Exportar reporte</h2>
                   <p className="text-xs text-gray-500">Métricas Combinadas · Email Marketing · Facebook Ads · Shopify</p>
                 </div>
               </div>
@@ -585,7 +598,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
             </div>
 
             <div className="p-6">
-              <label className="block text-sm font-medium text-[#0D1B2A] mb-1">
+              <label className="block text-sm font-medium text-[var(--ink)] mb-1">
                 Insights del período <span className="text-gray-400 font-normal">(opcional)</span>
               </label>
               <p className="text-xs text-gray-500 mb-2">
@@ -595,7 +608,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
                 value={insights}
                 onChange={(e) => setInsights(e.target.value)}
                 placeholder="Ej: Este mes superamos la meta gracias a la campaña de Día de la Madre. ROAS de Catálogo Dinámico fue 5.19x — recomendamos escalar +30% en junio."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm h-40 resize-y focus:outline-none focus:ring-2 focus:ring-[#0D1B2A]"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm h-40 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--ink)]"
                 disabled={busy}
               />
             </div>
@@ -611,7 +624,7 @@ export default function PortalReportExport({ client, metrics, period, getApiPara
               <button
                 onClick={handleGenerate}
                 disabled={busy}
-                className="px-4 py-2 text-sm font-medium bg-[#0D1B2A] text-white rounded-xl hover:bg-[#1F2937] flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium bg-[var(--dark)] text-white rounded-xl hover:bg-[#1F2937] flex items-center gap-2 disabled:opacity-50"
               >
                 {busy ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                 {busy ? 'Generando…' : 'Descargar PDF'}

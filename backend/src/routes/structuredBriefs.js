@@ -1,7 +1,15 @@
 import express from 'express';
 import db from '../config/database.js';
+import { findRowInOrg } from '../utils/tenant.js';
 
 const router = express.Router();
+
+// Responsable opcional: solo se guarda si el miembro pertenece a la org (si no, null).
+async function responsibleInOrg(memberId, orgId) {
+  if (!memberId) return null;
+  const row = await findRowInOrg(db, 'team_members', memberId, orgId, { columns: 'id' });
+  return row ? row.id : null;
+}
 
 // ============================================
 // AREAS CONFIGURATION
@@ -196,6 +204,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'client_id y title son requeridos' });
     }
 
+    // El cliente debe pertenecer a la organización
+    const client = await findRowInOrg(db, 'clients', client_id, req.orgId, { columns: 'id' });
+    if (!client) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
     // Create the brief
     const briefResult = await db.prepare(`
       INSERT INTO briefs (client_id, title, month, visible_to_client, brief_type, organization_id, created_by)
@@ -223,7 +237,7 @@ router.post('/', async (req, res) => {
           briefId,
           section.area_key,
           section.area_name,
-          section.responsible_id || null,
+          await responsibleInOrg(section.responsible_id, req.orgId),
           section.context_text || null,
           section.order_index !== undefined ? section.order_index : sIndex,
           req.orgId
@@ -289,6 +303,12 @@ router.put('/:id', async (req, res) => {
 
     if (!existing) {
       return res.status(404).json({ error: 'Brief estructurado no encontrado' });
+    }
+
+    // Si cambia el cliente, debe ser de la organización
+    if (client_id !== undefined && client_id !== null) {
+      const client = await findRowInOrg(db, 'clients', client_id, req.orgId, { columns: 'id' });
+      if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
     }
 
     await db.prepare(`
@@ -373,7 +393,7 @@ router.post('/:id/sections', async (req, res) => {
       req.params.id,
       area_key,
       area_name,
-      responsible_id || null,
+      await responsibleInOrg(responsible_id, req.orgId),
       context_text || null,
       newOrderIndex,
       req.orgId
@@ -452,7 +472,7 @@ router.put('/:id/sections/:sectionId', async (req, res) => {
       WHERE id = ?
     `).run(
       area_name !== undefined ? area_name : null,
-      responsible_id !== undefined ? (responsible_id || null) : section.responsible_id,
+      responsible_id !== undefined ? await responsibleInOrg(responsible_id, req.orgId) : section.responsible_id,
       context_text !== undefined ? context_text : null,
       order_index !== undefined ? order_index : null,
       req.params.sectionId

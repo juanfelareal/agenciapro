@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
+import { assertClientInOrg, assertRowInOrg, sendTenantError } from '../utils/tenant.js';
 
 const router = express.Router();
 
@@ -204,6 +205,11 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Month must be between 1 and 12' });
     }
 
+    // Multi-tenant: la comisión, el miembro y el cliente deben ser de esta organización
+    await assertRowInOrg(db, 'commissions', req.params.id, req.orgId, { columns: 'id', label: 'Comisión' });
+    await assertRowInOrg(db, 'team_members', team_member_id, req.orgId, { columns: 'id', label: 'Miembro del equipo' });
+    if (client_id) await assertClientInOrg(db, client_id, req.orgId, 'id');
+
     await db.prepare(`
       UPDATE commissions
       SET team_member_id = ?, client_id = ?, otros = ?, month = ?, year = ?, net_sales = ?,
@@ -242,7 +248,7 @@ router.put('/:id', async (req, res) => {
 
     res.json(commission);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendTenantError(res, error);
   }
 });
 

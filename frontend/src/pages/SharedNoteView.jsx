@@ -320,7 +320,7 @@ const SharedNoteView = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
+      <header className="bg-[var(--surface)] border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -395,7 +395,7 @@ const SharedNoteView = () => {
               ) : (
                 <button
                   onClick={handleStartEditing}
-                  className="px-3 py-1.5 text-sm bg-[#17181A] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 text-sm bg-[var(--dark)] text-white rounded-lg hover:bg-[#2a2a3e] transition-colors flex items-center gap-1"
                 >
                   <Edit3 size={14} />
                   Editar
@@ -589,7 +589,7 @@ const SharedNoteView = () => {
         {/* Mobile comments overlay */}
         {showComments && permissions?.allow_comments && (
           <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
-            <div className="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-xl animate-slide-in">
+            <div className="absolute right-0 top-0 bottom-0 w-80 bg-[var(--surface)] shadow-xl animate-slide-in">
               <button
                 onClick={() => setShowComments(false)}
                 className="absolute top-3 right-3 p-2 hover:bg-slate-100 rounded-lg"
@@ -613,7 +613,7 @@ const SharedNoteView = () => {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
+      <footer className="border-t border-slate-200 bg-[var(--surface)] py-4 text-center text-xs text-slate-400">
         Compartido con AgenciaPro
       </footer>
     </div>

@@ -95,7 +95,7 @@ const InlineDropdown = ({ value, options, colorMap, configMap, onSelect, placeho
           <ChevronDown size={12} className="opacity-50" />
         </button>
         {open && (
-          <div className="absolute z-50 mt-1 left-0 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[220px] max-h-64 overflow-y-auto">
+          <div className="absolute z-50 mt-1 left-0 bg-[var(--surface)] rounded-xl shadow-lg border border-gray-100 py-1 min-w-[220px] max-h-64 overflow-y-auto">
             <button
               onClick={() => handleSelect('')}
               className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50 flex items-center gap-2"
@@ -131,10 +131,10 @@ const InlineDropdown = ({ value, options, colorMap, configMap, onSelect, placeho
                   value={newValue}
                   onChange={e => setNewValue(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddNew(); if (e.key === 'Escape') { setAdding(false); setNewValue(''); } }}
-                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                   placeholder="Nuevo estado..."
                 />
-                <button onClick={handleAddNew} className="p-1 bg-[#17181A] text-white rounded-lg hover:bg-[#26282C]">
+                <button onClick={handleAddNew} className="p-1 bg-[var(--dark)] text-white rounded-lg hover:bg-[#1C1D1F]">
                   <Check size={12} />
                 </button>
               </div>
@@ -159,7 +159,7 @@ const InlineDropdown = ({ value, options, colorMap, configMap, onSelect, placeho
         <ChevronDown size={12} className="opacity-50" />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 left-0 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[200px] max-h-64 overflow-y-auto">
+        <div className="absolute z-50 mt-1 left-0 bg-[var(--surface)] rounded-xl shadow-lg border border-gray-100 py-1 min-w-[200px] max-h-64 overflow-y-auto">
           <button
             onClick={() => handleSelect('')}
             className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50 flex items-center gap-2"
@@ -198,10 +198,10 @@ const InlineDropdown = ({ value, options, colorMap, configMap, onSelect, placeho
                 value={newValue}
                 onChange={e => setNewValue(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleAddNew(); if (e.key === 'Escape') { setAdding(false); setNewValue(''); } }}
-                className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
                 placeholder="Nuevo tipo..."
               />
-              <button onClick={handleAddNew} className="p-1 bg-[#17181A] text-white rounded-lg hover:bg-[#26282C]">
+              <button onClick={handleAddNew} className="p-1 bg-[var(--dark)] text-white rounded-lg hover:bg-[#1C1D1F]">
                 <Check size={12} />
               </button>
             </div>
@@ -240,7 +240,7 @@ const InlineValue = ({ value, onSave }) => {
         onChange={e => setLocalVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-        className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-32 text-right focus:outline-none focus:ring-1 focus:ring-[#17181A]"
+        className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-32 text-right focus:outline-none focus:ring-1 focus:ring-[var(--ink)]"
       />
     );
   }
@@ -248,7 +248,7 @@ const InlineValue = ({ value, onSave }) => {
   return (
     <span
       onClick={() => { setLocalVal(value || 0); setEditing(true); }}
-      className="font-semibold text-[#17181A] cursor-pointer hover:bg-gray-100 rounded-lg px-2 py-1 -mx-2 transition-colors"
+      className="font-semibold text-[var(--ink)] cursor-pointer hover:bg-gray-100 rounded-lg px-2 py-1 -mx-2 transition-colors"
     >
       {formatCurrency(value)}
     </span>
@@ -285,7 +285,7 @@ const InlineText = ({ value, onSave, placeholder = 'Agregar...', disabled = fals
         onChange={e => setLocalVal(e.target.value)}
         onBlur={handleSave}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); } if (e.key === 'Escape') setEditing(false); }}
-        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-full min-w-0 sm:min-w-[180px] focus:outline-none focus:ring-1 focus:ring-[#17181A] resize-none"
+        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-full min-w-0 sm:min-w-[180px] focus:outline-none focus:ring-1 focus:ring-[var(--ink)] resize-none"
         rows={2}
         placeholder={placeholder}
       />
@@ -442,7 +442,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
               />
             );
           })}
-          <text x={size / 2} y={size / 2 - 8} textAnchor="middle" className="text-2xl font-bold fill-[#17181A]" fontSize="24">{total}</text>
+          <text x={size / 2} y={size / 2 - 8} textAnchor="middle" className="text-2xl font-bold fill-[var(--ink)]" fontSize="24">{total}</text>
           <text x={size / 2} y={size / 2 + 12} textAnchor="middle" className="fill-gray-400" fontSize="11">clientes</text>
         </svg>
         <div className="space-y-1.5">
@@ -450,7 +450,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             <div key={i} className="flex items-center gap-2 text-sm">
               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
               <span className="text-gray-600">{d.name}</span>
-              <span className="font-semibold text-[#17181A] ml-auto">{d.count}</span>
+              <span className="font-semibold text-[var(--ink)] ml-auto">{d.count}</span>
             </div>
           ))}
         </div>
@@ -469,7 +469,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             </div>
             <span className="text-sm text-gray-500">Facturación Fija</span>
           </div>
-          <p className="text-2xl font-bold text-[#17181A]">{formatCurrency(kpis.facturacionFija)}</p>
+          <p className="text-2xl font-bold text-[var(--ink)]">{formatCurrency(kpis.facturacionFija)}</p>
           <p className="text-xs text-gray-400 mt-1">mensual contratada</p>
         </div>
 
@@ -480,7 +480,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             </div>
             <span className="text-sm text-gray-500">Total Clientes</span>
           </div>
-          <p className="text-2xl font-bold text-[#17181A]">{kpis.total}</p>
+          <p className="text-2xl font-bold text-[var(--ink)]">{kpis.total}</p>
           <p className="text-xs text-gray-400 mt-1">activos</p>
         </div>
 
@@ -491,7 +491,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             </div>
             <span className="text-sm text-gray-500">Ticket Promedio</span>
           </div>
-          <p className="text-2xl font-bold text-[#17181A]">{formatCurrency(kpis.ticketPromedio)}</p>
+          <p className="text-2xl font-bold text-[var(--ink)]">{formatCurrency(kpis.ticketPromedio)}</p>
           <p className="text-xs text-gray-400 mt-1">por cliente</p>
         </div>
 
@@ -502,7 +502,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             </div>
             <span className="text-sm text-gray-500">Con Comisión</span>
           </div>
-          <p className="text-2xl font-bold text-[#17181A]">{kpis.conComision} <span className="text-base font-normal text-gray-400">({kpis.pctComision}%)</span></p>
+          <p className="text-2xl font-bold text-[var(--ink)]">{kpis.conComision} <span className="text-base font-normal text-gray-400">({kpis.pctComision}%)</span></p>
           <p className="text-xs text-gray-400 mt-1">de {kpis.total} clientes</p>
         </div>
       </div>
@@ -511,13 +511,13 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Donut: Tipo de Negociación */}
         <div className="glass-card p-6">
-          <h3 className="font-semibold text-[#17181A] mb-4">Tipo de Negociación</h3>
+          <h3 className="font-semibold text-[var(--ink)] mb-4">Tipo de Negociación</h3>
           <DonutChart data={tipoDistribution} />
         </div>
 
         {/* Estado Actual Summary */}
         <div className="glass-card p-6">
-          <h3 className="font-semibold text-[#17181A] mb-4">Estado Actual</h3>
+          <h3 className="font-semibold text-[var(--ink)] mb-4">Estado Actual</h3>
           <div className="space-y-2.5">
             {estadoDistribution.map((d, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -542,7 +542,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
           onClick={() => { setFilterTipo('all'); setFilterEstado('all'); }}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             filterTipo === 'all' && filterEstado === 'all'
-              ? 'bg-[#17181A] text-white'
+              ? 'bg-[var(--dark)] text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
@@ -593,7 +593,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
 
       {/* Bar Chart: Valor Contratado */}
       <div className="glass-card p-6">
-        <h3 className="font-semibold text-[#17181A] mb-4">Valor Contratado por Cliente</h3>
+        <h3 className="font-semibold text-[var(--ink)] mb-4">Valor Contratado por Cliente</h3>
         {sortedByValor.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">No hay clientes con valor contratado asignado</p>
         ) : (
@@ -639,9 +639,9 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             {riskClients.map(client => {
               const cfg = ESTADO_CONFIG[client.estado_actual] || {};
               return (
-                <div key={client.id} className="bg-white rounded-xl p-4 border border-red-100 flex items-center justify-between">
+                <div key={client.id} className="bg-[var(--surface)] rounded-xl p-4 border border-red-100 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-[#17181A]">{client.nickname || client.company || client.name}</p>
+                    <p className="font-medium text-[var(--ink)]">{client.nickname || client.company || client.name}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span
                         className="text-xs px-2 py-0.5 rounded-lg font-medium"
@@ -654,7 +654,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
                       )}
                     </div>
                   </div>
-                  <p className="font-bold text-[#17181A]">{formatCurrency(client.valor_contratado)}</p>
+                  <p className="font-bold text-[var(--ink)]">{formatCurrency(client.valor_contratado)}</p>
                 </div>
               );
             })}
@@ -665,7 +665,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
       {/* Client Detail Table (editable) */}
       <div className="glass-card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-[#17181A]">Detalle de Clientes</h3>
+          <h3 className="font-semibold text-[var(--ink)]">Detalle de Clientes</h3>
           <span className="text-sm text-gray-400">{filteredClients.length} clientes</span>
         </div>
         <div className="overflow-x-auto">
@@ -683,7 +683,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
             <tbody className="divide-y divide-gray-50">
               {filteredClients.map(client => (
                 <tr key={client.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-[#17181A]">
+                  <td className="px-4 py-3 text-sm font-medium text-[var(--ink)]">
                     {client.nickname || client.company || client.name}
                   </td>
                   <td className="px-4 py-3">
@@ -715,7 +715,7 @@ const ClientPortfolio = ({ clients, onClientUpdated }) => {
                       onClick={() => quickUpdate(client.id, 'has_comision', client.has_comision ? 0 : 1)}
                       className={`text-xs px-2.5 py-1 rounded-lg font-medium cursor-pointer transition-colors ${
                         client.has_comision
-                          ? 'bg-[#D7F653]/20 text-[#17181A] hover:bg-[#D7F653]/30'
+                          ? 'bg-[rgb(var(--accent-rgb)/0.12)] text-[var(--ink)] hover:bg-[rgb(var(--accent-rgb)/0.18)]'
                           : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                       }`}
                     >

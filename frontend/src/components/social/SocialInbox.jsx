@@ -119,7 +119,7 @@ const SocialInbox = ({ account }) => {
 
   if (!account) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+      <div className="bg-[var(--surface)] rounded-xl border border-gray-200 p-8 text-center">
         <Inbox className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona una cuenta</h3>
         <p className="text-gray-500">
@@ -138,7 +138,7 @@ const SocialInbox = ({ account }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" style={{ height: '70vh' }}>
+    <div className="bg-[var(--surface)] rounded-xl border border-gray-200 overflow-hidden" style={{ height: '70vh' }}>
       <div className="flex h-full">
         {/* Conversations list */}
         <div className={`w-full md:w-80 border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
@@ -277,7 +277,7 @@ const SocialInbox = ({ account }) => {
                             className={`max-w-[70%] rounded-2xl px-4 py-2 ${
                               isOwn
                                 ? 'bg-blue-600 text-white rounded-br-md'
-                                : 'bg-white text-gray-900 rounded-bl-md border border-gray-200'
+                                : 'bg-[var(--surface)] text-gray-900 rounded-bl-md border border-gray-200'
                             }`}
                           >
                             <p className="text-sm whitespace-pre-wrap">{msg.text || msg.content || msg.message}</p>
@@ -295,7 +295,7 @@ const SocialInbox = ({ account }) => {
               </div>
 
               {/* Message input */}
-              <div className="p-4 border-t border-gray-200 bg-white">
+              <div className="p-4 border-t border-gray-200 bg-[var(--surface)]">
                 <div className="flex gap-2">
                   <input
                     type="text"

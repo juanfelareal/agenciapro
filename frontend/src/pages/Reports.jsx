@@ -90,7 +90,7 @@ const GlassCard = ({ children, className = '', glow = false, glowColor = 'indigo
 
   return (
     <div className={`
-      bg-white
+      bg-[var(--surface)]
       border border-slate-200/60
       rounded-2xl
       shadow-sm
@@ -154,7 +154,7 @@ const CustomTooltip = ({ active, payload, label, formatter }) => {
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-lg">
+    <div className="bg-[var(--surface)] border border-slate-200 rounded-lg p-3 shadow-lg">
       <p className="text-slate-600 text-sm mb-2 font-medium">{label}</p>
       {payload.map((entry, index) => (
         <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
@@ -411,9 +411,9 @@ const Reports = () => {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={priorityData}>
                 <ChartGradients />
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="name" stroke="#64748B" fontSize={12} />
-                <YAxis stroke="#64748B" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                <XAxis dataKey="name" stroke="#7A7772" fontSize={12} />
+                <YAxis stroke="#7A7772" fontSize={12} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="value" fill="url(#gradientIndigo)" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -427,9 +427,9 @@ const Reports = () => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={productivityData.tasksPerUser} layout="vertical">
               <ChartGradients />
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis type="number" stroke="#64748B" fontSize={12} />
-              <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+              <XAxis type="number" stroke="#7A7772" fontSize={12} />
+              <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#7A7772" fontSize={isMobile ? 10 : 12} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ color: '#64748B' }} />
               <Bar dataKey="completed" name="Completadas" fill="#10B981" radius={[0, 4, 4, 0]} />
@@ -445,9 +445,9 @@ const Reports = () => {
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={productivityData.weeklyTrend}>
                 <ChartGradients />
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="week" stroke="#64748B" fontSize={12} />
-                <YAxis stroke="#64748B" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                <XAxis dataKey="week" stroke="#7A7772" fontSize={12} />
+                <YAxis stroke="#7A7772" fontSize={12} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
@@ -545,9 +545,9 @@ const Reports = () => {
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={financialData.revenueByMonth}>
                 <ChartGradients />
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="month" stroke="#64748B" fontSize={12} />
-                <YAxis tickFormatter={formatCurrency} stroke="#64748B" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                <XAxis dataKey="month" stroke="#7A7772" fontSize={12} />
+                <YAxis tickFormatter={formatCurrency} stroke="#7A7772" fontSize={12} />
                 <Tooltip content={<CustomTooltip formatter={formatCurrencyFull} />} />
                 <Area
                   type="monotone"
@@ -600,9 +600,9 @@ const Reports = () => {
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={financialData.revenueByClient} layout="vertical">
               <ChartGradients />
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis type="number" tickFormatter={formatCurrency} stroke="#64748B" fontSize={12} />
-              <YAxis dataKey="name" type="category" width={isMobile ? 80 : 150} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+              <XAxis type="number" tickFormatter={formatCurrency} stroke="#7A7772" fontSize={12} />
+              <YAxis dataKey="name" type="category" width={isMobile ? 80 : 150} stroke="#7A7772" fontSize={isMobile ? 10 : 12} />
               <Tooltip content={<CustomTooltip formatter={formatCurrencyFull} />} />
               <Bar dataKey="total_revenue" name="Ingresos" fill="url(#gradientIndigo)" radius={[0, 8, 8, 0]} />
             </BarChart>
@@ -615,10 +615,10 @@ const Reports = () => {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={invoiceData}>
               <ChartGradients />
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="name" stroke="#64748B" fontSize={12} />
-              <YAxis yAxisId="left" stroke="#64748B" fontSize={12} />
-              <YAxis yAxisId="right" orientation="right" tickFormatter={formatCurrency} stroke="#64748B" fontSize={12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+              <XAxis dataKey="name" stroke="#7A7772" fontSize={12} />
+              <YAxis yAxisId="left" stroke="#7A7772" fontSize={12} />
+              <YAxis yAxisId="right" orientation="right" tickFormatter={formatCurrency} stroke="#7A7772" fontSize={12} />
               <Tooltip content={<CustomTooltip formatter={(v, name) => name === 'Total' ? formatCurrencyFull(v) : v} />} />
               <Legend wrapperStyle={{ color: '#64748B' }} />
               <Bar yAxisId="left" dataKey="count" name="Cantidad" fill="#6366F1" radius={[8, 8, 0, 0]} />
@@ -721,9 +721,9 @@ const Reports = () => {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={projectsData.projectsByClient}>
                 <ChartGradients />
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} stroke="#64748B" fontSize={10} />
-                <YAxis stroke="#64748B" fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} stroke="#7A7772" fontSize={10} />
+                <YAxis stroke="#7A7772" fontSize={12} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="project_count" name="Proyectos" fill="url(#gradientPurple)" radius={[8, 8, 0, 0]} />
               </BarChart>
@@ -868,9 +868,9 @@ const Reports = () => {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={teamData.workloadDistribution} layout="vertical">
                 <ChartGradients />
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis type="number" stroke="#64748B" fontSize={12} />
-                <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                <XAxis type="number" stroke="#7A7772" fontSize={12} />
+                <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#7A7772" fontSize={isMobile ? 10 : 12} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="active_tasks" name="Tareas Activas" fill="url(#gradientIndigo)" radius={[0, 8, 8, 0]} />
               </BarChart>
@@ -883,9 +883,9 @@ const Reports = () => {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={teamData.completionRates} layout="vertical">
                 <ChartGradients />
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#64748B" fontSize={12} />
-                <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#64748B" fontSize={isMobile ? 10 : 12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#7A7772" fontSize={12} />
+                <YAxis dataKey="name" type="category" width={isMobile ? 72 : 120} stroke="#7A7772" fontSize={isMobile ? 10 : 12} />
                 <Tooltip content={<CustomTooltip formatter={(v) => `${v?.toFixed(1)}%`} />} />
                 <Bar dataKey="completion_rate" name="Tasa" fill="url(#gradientEmerald)" radius={[0, 8, 8, 0]} />
               </BarChart>
@@ -934,9 +934,9 @@ const Reports = () => {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={teamData.tasksByPriorityPerMember}>
               <ChartGradients />
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="name" stroke="#64748B" fontSize={12} />
-              <YAxis stroke="#64748B" fontSize={12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+              <XAxis dataKey="name" stroke="#7A7772" fontSize={12} />
+              <YAxis stroke="#7A7772" fontSize={12} />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ color: '#64748B' }} />
               <Bar dataKey="urgent" name="Urgente" stackId="a" fill="#EF4444" />
@@ -958,7 +958,7 @@ const Reports = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#17181A] tracking-tight">
+          <h1 className="text-2xl font-semibold text-[var(--ink)] tracking-tight">
             Reportes
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Análisis y métricas de tu agencia</p>
@@ -979,7 +979,7 @@ const Reports = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-[#17181A] text-white shadow-lg shadow-[#17181A]/25'
+                      ? 'bg-[var(--dark)] text-white shadow-lg shadow-[rgb(var(--ink-rgb)/0.25)]'
                       : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                   }`}
                 >
@@ -1010,7 +1010,7 @@ const Reports = () => {
               <label className="text-xs text-slate-500 block mb-1">Desde</label>
               <input
                 type="date"
-                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+                className="bg-[var(--surface)] border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
                 value={filters.start_date}
                 onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
               />
@@ -1019,7 +1019,7 @@ const Reports = () => {
               <label className="text-xs text-slate-500 block mb-1">Hasta</label>
               <input
                 type="date"
-                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+                className="bg-[var(--surface)] border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
                 value={filters.end_date}
                 onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
               />
@@ -1028,7 +1028,7 @@ const Reports = () => {
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Proyecto</label>
                 <select
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+                  className="bg-[var(--surface)] border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
                   value={filters.project_id}
                   onChange={(e) => setFilters({ ...filters, project_id: e.target.value })}
                 >
@@ -1043,7 +1043,7 @@ const Reports = () => {
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Usuario</label>
                 <select
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+                  className="bg-[var(--surface)] border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
                   value={filters.user_id}
                   onChange={(e) => setFilters({ ...filters, user_id: e.target.value })}
                 >
@@ -1058,7 +1058,7 @@ const Reports = () => {
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Cliente</label>
                 <select
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#17181A]/20 focus:border-[#17181A]"
+                  className="bg-[var(--surface)] border border-slate-200 rounded-lg px-3 py-2 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ink-rgb)/0.2)] focus:border-[var(--ink)]"
                   value={filters.client_id}
                   onChange={(e) => setFilters({ ...filters, client_id: e.target.value })}
                 >
@@ -1078,7 +1078,7 @@ const Reports = () => {
         <div className="flex flex-col items-center justify-center py-20">
           <div className="relative">
             <div className="w-16 h-16 border-4 border-gray-100 rounded-full" />
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-[#17181A] rounded-full animate-spin" />
+            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-[var(--ink)] rounded-full animate-spin" />
           </div>
           <p className="mt-4 text-slate-500">Cargando reporte...</p>
         </div>

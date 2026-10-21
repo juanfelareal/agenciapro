@@ -4,7 +4,7 @@ import { monthLabel, prevPeriod, nextPeriod, currentPeriod, fmtRelative, fmtPct 
 
 const Pill = ({ tone = 'neutral', icon, children, onClick, title }) => {
   const tones = {
-    neutral: 'bg-white/70 text-gray-600 border-gray-200',
+    neutral: 'bg-[rgb(var(--surface-rgb)/0.7)] text-gray-600 border-gray-200',
     ok: 'bg-green-50 text-green-700 border-green-100',
     warn: 'bg-amber-50 text-amber-800 border-amber-100',
     bad: 'bg-red-50 text-red-700 border-red-100',
@@ -55,8 +55,8 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
           </button>
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              {client?.logo_url && <img src={client.logo_url} alt="" className="w-9 h-9 rounded-xl object-cover bg-white border border-gray-100" />}
-              <h1 className="text-xl sm:text-2xl font-bold text-[#17181A] tracking-tight truncate">{name}</h1>
+              {client?.logo_url && <img src={client.logo_url} alt="" className="w-9 h-9 rounded-xl object-cover bg-[var(--surface)] border border-gray-100" />}
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--ink)] tracking-tight truncate">{name}</h1>
               <span className="text-[10px] uppercase tracking-widest font-semibold text-gray-400">Finanzas</span>
             </div>
             <p className="text-sm text-gray-500 mt-1">
@@ -72,7 +72,7 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
                 type="button"
                 onClick={onExportPdf}
                 disabled={exporting || !data}
-                className="no-print mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-medium text-[#17181A] hover:bg-gray-50 disabled:opacity-50"
+                className="no-print mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-xs font-medium text-[var(--ink)] hover:bg-gray-50 disabled:opacity-50"
                 title="Descargar este dashboard como PDF"
               >
                 {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
@@ -84,14 +84,14 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
                 type="button"
                 onClick={onExportExcel}
                 disabled={exportingExcel || !data}
-                className="no-print mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-medium text-[#17181A] hover:bg-gray-50 disabled:opacity-50"
+                className="no-print mr-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-[var(--surface)] text-xs font-medium text-[var(--ink)] hover:bg-gray-50 disabled:opacity-50"
                 title="Descargar los datos del mes en Excel (.xlsx)"
               >
                 {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{exportingExcel ? 'Generando…' : 'Exportar Excel'}</span>
               </button>
             )}
-            <span className="pdf-only text-sm font-semibold text-[#17181A] capitalize">{monthLabel(period)}</span>
+            <span className="pdf-only text-sm font-semibold text-[var(--ink)] capitalize">{monthLabel(period)}</span>
             <button type="button" onClick={() => onPeriodChange(prevPeriod(period))} className="no-print p-2 rounded-xl hover:bg-black/5 transition" aria-label="Mes anterior">
               <ChevronLeft className="w-4 h-4 text-gray-500" />
             </button>
@@ -118,10 +118,10 @@ export default function FinancialHeader({ client, period, onPeriodChange, data, 
           <div className="w-full lg:w-[232px]">
             <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
               <span className="capitalize">{monthLabel(period)}</span>
-              <span className="font-semibold text-[#17181A]">Día {days} de {total}</span>
+              <span className="font-semibold text-[var(--ink)]">Día {days} de {total}</span>
             </div>
             <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full bg-[#D7F653]" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${progress}%` }} />
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { usePortal } from '../../context/PortalContext';
+import { useBranding } from '../../branding/useBranding'; // [branding]
 import { portalNotificationsAPI } from '../../utils/portalApi';
 import {
   Building2,
@@ -21,7 +22,8 @@ import {
 } from 'lucide-react';
 
 export default function PortalHeader() {
-  const { client, permissions, logout, hasPermission, isAuthenticated } = usePortal();
+  const { client, agency, permissions, logout, hasPermission, isAuthenticated } = usePortal(); // [branding] agency
+  const agencyLogo = useBranding().logo('light'); // [branding]
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -74,7 +76,7 @@ export default function PortalHeader() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-ink-100">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[rgb(var(--bg-rgb)/0.9)] backdrop-blur-xl border-b border-ink-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -92,7 +94,7 @@ export default function PortalHeader() {
             )}
             <div className="hidden lg:block min-w-0">
               <p className="text-sm font-semibold text-ink-900 truncate">{client?.nickname || client?.name}</p>
-              <p className="text-xs text-ink-500">Portal de Cliente</p>
+              <p className="text-xs text-ink-500 truncate">Portal de cliente{agency?.name ? ` de ${agency.name}` : ''}</p>
             </div>
           </Link>
 
@@ -120,6 +122,10 @@ export default function PortalHeader() {
 
           {/* Right Side */}
           <div className="flex items-center gap-2">
+            {/* [branding] Logo de la agencia */}
+            {agencyLogo && (
+              <img src={agencyLogo} alt={agency?.name || 'Agencia'} className="hidden md:block h-7 max-w-[110px] object-contain mr-2 opacity-90" />
+            )}
             {/* Notifications */}
             <div className="relative">
               <button
@@ -136,7 +142,7 @@ export default function PortalHeader() {
 
               {/* Notifications Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-ink-100 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 bg-[var(--surface)] rounded-xl shadow-lg border border-ink-100 overflow-hidden">
                   <div className="p-3 border-b border-ink-100">
                     <h3 className="font-semibold text-ink-900">Notificaciones</h3>
                   </div>

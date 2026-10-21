@@ -1,98 +1,139 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ===== DESIGN SYSTEM 2026 — Carbón + Lima · iOS Glass ===== */
+/* ===== DESIGN SYSTEM 2026 — Papel + Tinta · acento verde =====
+   Tokens de landing.larealmarketing.com. Los nombres de clase del sistema
+   anterior (app-mist, glass, btn-carbon…) se conservan; solo cambia el look. */
 @layer components {
-  /* Fondo neblina con insinuación de lima — se aplica al contenedor raíz de la app */
+  /* Fondo de la app: papel plano, sin degradados */
   .app-mist {
-    background:
-      radial-gradient(800px 500px at 15% -5%, rgba(215, 246, 83, 0.16), transparent 55%),
-      radial-gradient(700px 500px at 90% 20%, rgba(190, 196, 178, 0.32), transparent 55%),
-      linear-gradient(165deg, #F3F4EF 0%, #EBEDE4 55%, #F0F1EC 100%);
-    background-attachment: fixed;
+    background: var(--bg);
   }
 
-  /* Panel de vidrio: cards, tablas, modales */
+  /* Superficie de tarjetas, tablas y modales: papel + línea hairline, sin vidrio */
   .glass {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(26px) saturate(1.4);
-    -webkit-backdrop-filter: blur(26px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.78);
-    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
   }
   .glass-card { @apply glass rounded-2xl; }
   .glass-panel { @apply glass rounded-3xl; }
 
-  /* Variante más sólida para superficies con mucho texto/datos */
+  /* Variante para superficies con mucho texto/datos */
   .glass-solid {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px) saturate(1.3);
-    -webkit-backdrop-filter: blur(20px) saturate(1.3);
-    border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.1);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
   }
 
-  /* Hover de filas dentro de un panel glass */
-  .glass-row-hover:hover { background: rgba(255, 255, 255, 0.5); }
+  /* Hover de filas dentro de un panel */
+  .glass-row-hover:hover { background: rgb(var(--ink-rgb) / 0.03); }
 
-  /* Botón primario carbón (el lima va en iconos/acentos, no como fondo de texto largo) */
+  /* Botón primario tinta (pill, como en la landing) */
   .btn-carbon {
     @apply bg-dark text-white font-semibold rounded-full px-5 py-2.5 transition-colors;
-    box-shadow: 0 6px 20px rgba(23, 24, 26, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    box-shadow: 0 1px 2px rgba(18, 19, 20, 0.18);
   }
-  .btn-carbon:hover { background: #26282C; }
+  .btn-carbon:hover { background: var(--dark-2); }
 }
 
 
-/* ===== CSS Variables - New Lime/Dark Design System ===== */
+/* ===== CSS Variables — Papel + Tinta =====
+   Valores por defecto = LA REAL. La marca de cada organización los sobreescribe
+   en vivo desde src/branding/applyBranding.js (mismos nombres). Los *-rgb son
+   canales "r g b" para usar con opacidad: rgb(var(--accent-rgb) / 0.12). */
 :root {
-  /* New design system */
-  --surface: #F3F4EF;
-  --card: #FFFFFF;
-  --dark: #17181A;
-  --lime-400: #D7F653;
-  --lime-500: #A3E635;
-  --lime-600: #65A30D;
+  /* Tokens de la landing (fuente de verdad) */
+  --bg: #F3F1ED;
+  --bg-rgb: 243 241 237;
+  --surface: #FBFAF8;
+  --surface-rgb: 251 250 248;
+  --white-rgb: 251 250 248;
+  --input-bg: #FFFFFF;
+  --ink: #121212;
+  --ink-rgb: 18 18 18;
+  --ink-2: #3A3A3A;
+  --muted: #7A7772;
+  --line: rgb(18 18 18 / 0.09);
+  --line-2: rgb(18 18 18 / 0.16);
+  --dark: #121314;
+  --dark-rgb: 18 19 20;
+  --dark-2: #1C1D1F;
+  --dark-hover: #1C1D1F;
+  --on-dark: #F3F1ED;
+  --on-dark-muted: #8E8C88;
+  --accent: #44BF47;
+  --accent-rgb: 68 191 71;
+  --accent-deep: #1E7A30;
+  --accent-deep-rgb: 30 122 48;
+  --on-accent: #FFFFFF;
+  --text: #121212;
+  --sidebar-bg: #FBFAF8;
+
+  /* Radios y tipografía (preset "soft" / Inter Tight) */
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --font-sans: 'Inter Tight', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Neutros (Tailwind gray/ink apuntan aquí; en tema oscuro se invierten) */
+  --gray-50: #F6F5F2;   --gray-50-rgb: 246 245 242;
+  --gray-100: #F0EEE9;  --gray-100-rgb: 240 238 233;
+  --gray-200: #E8E5DF;  --gray-200-rgb: 232 229 223;
+  --gray-300: #C9C6C0;  --gray-300-rgb: 201 198 192;
+  --gray-400: #9A9792;  --gray-400-rgb: 154 151 146;
+  --gray-500: #7A7772;  --gray-500-rgb: 122 119 114;
+  --gray-600: #5C5955;  --gray-600-rgb: 92 89 85;
+  --gray-700: #4A4844;  --gray-700-rgb: 74 72 68;
+  --gray-800: #3A3A3A;  --gray-800-rgb: 58 58 58;
+  --gray-900: #121212;  --gray-900-rgb: 18 18 18;
+  --gray-950: #0B0B0B;  --gray-950-rgb: 11 11 11;
+
+  /* Alias del sistema anterior (mismos nombres, apuntan a los tokens) */
+  --card: var(--surface);
+  --lime-400: var(--accent);
+  --lime-500: var(--accent-deep);
+  --lime-600: var(--accent-deep);
   --income: #10B981;
   --expense: #F97316;
-  --text-primary: #17181A;
-  --text-secondary: #6B7280;
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
 
-  /* New shadows */
-  --shadow-elevated: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
-  --shadow-bento: 0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
-  --shadow-glow-lime: 0 0 20px rgba(215, 246, 83, 0.3);
+  --shadow-elevated: 0 1px 2px rgba(18, 18, 18, 0.04), 0 4px 12px rgba(18, 18, 18, 0.04);
+  --shadow-bento: 0 2px 8px rgba(18, 18, 18, 0.04), 0 8px 24px rgba(18, 18, 18, 0.05);
+  --shadow-glow-lime: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
 
-  /* ===== LEGACY VARIABLES (to be removed in FASE 9) ===== */
-  /* Warm cream base */
-  --cream-50: #FFFDF9;
-  --cream-100: #FBF8F3;
-  --cream-200: #F5F0E8;
-  --cream-300: #EDE5D8;
+  /* Papel */
+  --cream-50: var(--surface);
+  --cream-100: var(--gray-50);
+  --cream-200: var(--bg);
+  --cream-300: var(--gray-200);
 
-  /* Rich ink for text */
-  --ink-900: #1A1A1A;
-  --ink-800: #2D2D2D;
-  --ink-700: #404040;
-  --ink-600: #525252;
-  --ink-500: #6B6B6B;
-  --ink-400: #8A8A8A;
-  --ink-300: #B3B3B3;
-  --ink-200: #D4D4D4;
+  /* Tinta */
+  --ink-900: var(--gray-900);
+  --ink-800: var(--gray-800);
+  --ink-700: var(--gray-700);
+  --ink-600: var(--gray-600);
+  --ink-500: var(--gray-500);
+  --ink-400: var(--gray-400);
+  --ink-300: var(--gray-300);
+  --ink-200: var(--gray-200);
+  --ink-100: var(--gray-100);
+  --ink-50: var(--gray-50);
 
-  /* Accent green */
-  --accent: #22C55E;
-  --accent-light: #4ADE80;
-  --accent-dark: #16A34A;
+  /* Verde */
+  --accent-light: var(--accent);
+  --accent-dark: var(--accent-deep);
 
-  /* Semantic */
+  /* Semánticos */
   --success-50: #F0FDF4;
   --success-100: #DCFCE7;
-  --success-500: #22C55E;
-  --success-600: #16A34A;
+  --success-500: var(--accent);
+  --success-600: var(--accent-deep);
 
   --warning-50: #FFFBEB;
   --warning-100: #FEF3C7;
@@ -104,26 +145,25 @@
   --error-500: #EF4444;
   --error-600: #DC2626;
 
-  /* Legacy semantic aliases */
-  --background: var(--cream-50);
-  --card-legacy: rgba(255, 255, 255, 0.7);
-  --card-solid: #FFFFFF;
-  --border: rgba(0, 0, 0, 0.06);
-  --border-strong: rgba(0, 0, 0, 0.1);
-  --text-muted: var(--ink-400);
+  /* Alias heredados */
+  --background: var(--bg);
+  --card-legacy: var(--surface);
+  --card-solid: var(--input-bg);
+  --border: var(--line);
+  --border-strong: var(--line-2);
+  --text-muted: var(--muted);
 
-  /* Legacy shadows */
-  --shadow-soft: 0 2px 8px -2px rgba(0, 0, 0, 0.04), 0 4px 12px -4px rgba(0, 0, 0, 0.03);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 16px rgba(0, 0, 0, 0.03);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.04);
-  --shadow-large: 0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 16px 48px -8px rgba(0, 0, 0, 0.06);
-  --shadow-button: 0 2px 8px rgba(26, 26, 26, 0.15);
+  --shadow-soft: 0 1px 2px rgba(18, 18, 18, 0.03), 0 4px 12px rgba(18, 18, 18, 0.03);
+  --shadow-card: 0 1px 2px rgba(18, 18, 18, 0.03), 0 1px 0 rgba(18, 18, 18, 0.02);
+  --shadow-card-hover: 0 4px 12px rgba(18, 18, 18, 0.06), 0 12px 32px rgba(18, 18, 18, 0.04);
+  --shadow-large: 0 8px 24px -4px rgba(18, 18, 18, 0.10), 0 16px 48px -8px rgba(18, 18, 18, 0.08);
+  --shadow-button: 0 1px 2px rgba(18, 19, 20, 0.18);
 }
 
 /* ===== Base Styles ===== */
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -153,7 +193,7 @@ body {
 
 /* Text Selection */
 ::selection {
-  background: rgba(34, 197, 94, 0.2);
+  background: rgb(var(--accent-rgb) / 0.22);
   color: var(--text-primary);
 }
 
@@ -196,50 +236,45 @@ body {
   /* Glassmorphism Cards */
   .card {
     @apply rounded-3xl transition-all duration-200;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(26px) saturate(1.4);
-    -webkit-backdrop-filter: blur(26px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.78);
-    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
   }
 
   .card-solid {
     @apply rounded-3xl transition-all duration-200;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px) saturate(1.3);
-    -webkit-backdrop-filter: blur(20px) saturate(1.3);
-    border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.1);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
   }
 
   .card-interactive {
     @apply rounded-3xl transition-all duration-200 cursor-pointer;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(26px) saturate(1.4);
-    -webkit-backdrop-filter: blur(26px) saturate(1.4);
-    border: 1px solid rgba(255, 255, 255, 0.78);
-    box-shadow: 0 8px 24px rgba(40, 44, 30, 0.08);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
   }
 
   .card-interactive:hover {
-    background: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 12px 40px rgba(40, 44, 30, 0.1);
+    background: var(--input-bg);
+    box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
   }
 
   /* Buttons - Granola style */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply btn text-white;
+    @apply btn;
+    color: var(--on-dark);
     background: var(--dark);
-    box-shadow: 0 6px 20px rgba(23, 24, 26, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-button);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: #26282C;
+    background: var(--dark-2);
     transform: scale(1.02);
   }
 
@@ -249,16 +284,14 @@ body {
 
   .btn-secondary {
     @apply btn;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: var(--surface);
+    border: 1px solid var(--line-2);
     color: var(--ink-900);
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(0, 0, 0, 0.12);
+    background: var(--input-bg);
+    border-color: rgb(var(--ink-rgb) / 0.28);
   }
 
   .btn-ghost {
@@ -267,14 +300,15 @@ body {
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgb(var(--ink-rgb) / 0.04);
     color: var(--ink-900);
   }
 
   .btn-accent {
-    @apply btn text-white;
+    @apply btn;
+    color: var(--on-accent);
     background: var(--accent);
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+    box-shadow: 0 1px 2px rgb(var(--accent-rgb) / 0.25);
   }
 
   .btn-accent:hover:not(:disabled) {
@@ -298,8 +332,8 @@ body {
   /* Inputs - Clean, minimal */
   .input {
     @apply w-full px-4 py-2.5 text-sm rounded-xl transition-all duration-150;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: var(--input-bg);
+    border: 1px solid var(--line-2);
     color: var(--ink-900);
   }
 
@@ -308,15 +342,15 @@ body {
   }
 
   .input:focus {
-    background: white;
-    border-color: rgba(0, 0, 0, 0.15);
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    background: var(--input-bg);
+    border-color: rgb(var(--accent-rgb) / 0.7);
+    box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.16);
     outline: none;
   }
 
   .select {
     @apply input appearance-none bg-no-repeat cursor-pointer;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B6B6B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%237A7772' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     background-position: right 0.75rem center;
     background-size: 1.25em 1.25em;
     padding-right: 2.5rem;
@@ -356,13 +390,13 @@ body {
 
   .badge-slate {
     @apply badge;
-    background: rgba(0, 0, 0, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
     color: var(--ink-600);
   }
 
   .badge-accent {
     @apply badge;
-    background: rgba(34, 197, 94, 0.15);
+    background: rgb(var(--accent-rgb) / 0.14);
     color: var(--accent-dark);
   }
 
@@ -387,7 +421,7 @@ body {
   }
 
   .table-modern thead {
-    background: rgba(0, 0, 0, 0.02);
+    background: rgb(var(--ink-rgb) / 0.02);
   }
 
   .table-modern th {
@@ -398,7 +432,7 @@ body {
   .table-modern td {
     @apply px-4 py-3.5;
     color: var(--ink-700);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    border-bottom: 1px solid rgb(var(--ink-rgb) / 0.04);
   }
 
   .table-modern tbody tr {
@@ -406,7 +440,7 @@ body {
   }
 
   .table-modern tbody tr:hover {
-    background: rgba(0, 0, 0, 0.02);
+    background: rgb(var(--ink-rgb) / 0.02);
   }
 
   /* Modals - Glassmorphism */
@@ -420,16 +454,15 @@ body {
 
   .modal-content {
     @apply w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--input-bg);
+    border: 1px solid var(--line);
     box-shadow: var(--shadow-large);
     animation: scaleIn 0.2s ease-out;
   }
 
   .modal-header {
     @apply flex items-center justify-between p-6;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgb(var(--ink-rgb) / 0.06);
   }
 
   .modal-body {
@@ -438,8 +471,8 @@ body {
 
   .modal-footer {
     @apply flex justify-end gap-3 p-6 rounded-b-3xl;
-    background: rgba(0, 0, 0, 0.02);
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgb(var(--ink-rgb) / 0.02);
+    border-top: 1px solid rgb(var(--ink-rgb) / 0.06);
   }
 
   /* Alerts */
@@ -450,8 +483,8 @@ body {
 
   .alert-info {
     @apply alert;
-    background: rgba(34, 197, 94, 0.1);
-    border: 1px solid rgba(34, 197, 94, 0.2);
+    background: rgb(var(--accent-rgb) / 0.10);
+    border: 1px solid rgb(var(--accent-rgb) / 0.25);
     color: var(--accent-dark);
   }
 
@@ -502,7 +535,7 @@ body {
   }
 
   .nav-item:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgb(var(--ink-rgb) / 0.04);
     color: var(--ink-900);
   }
 
@@ -518,7 +551,7 @@ body {
   }
 
   .status-inactive {
-    background: rgba(0, 0, 0, 0.06);
+    background: rgb(var(--ink-rgb) / 0.06);
     color: var(--ink-600);
   }
 
@@ -549,31 +582,31 @@ body {
 
   /* New Buttons */
   .btn-dark {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed text-white;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed text-white;
     background: var(--dark);
   }
 
   .btn-dark:hover:not(:disabled) {
-    background: #26282C;
+    background: var(--dark-2);
     transform: scale(1.02);
   }
 
   .btn-lime {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
-    background: var(--lime-400);
-    color: var(--dark);
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium rounded-full transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--accent);
+    color: var(--on-accent);
   }
 
   .btn-lime:hover:not(:disabled) {
-    background: var(--lime-500);
+    background: #3AAE3D;
     box-shadow: var(--shadow-glow-lime);
   }
 
   /* New Badges */
   .badge-lime {
     @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full;
-    background: rgba(215, 246, 83, 0.2);
-    color: var(--lime-600);
+    background: rgb(var(--accent-rgb) / 0.14);
+    color: var(--accent-deep);
   }
 
   .badge-dark {
@@ -623,7 +656,7 @@ body {
   .nav-item-new-active {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium;
     background: var(--dark);
-    color: var(--lime-400);
+    color: var(--accent);
   }
 }
 
@@ -653,29 +686,21 @@ body {
   }
 
   .shadow-sidebar {
-    box-shadow: 4px 0 24px -4px rgba(0, 0, 0, 0.04);
+    box-shadow: 4px 0 24px -4px rgb(var(--ink-rgb) / 0.04);
   }
 
-  /* Glassmorphism utilities */
+  /* Superficies papel (antes glassmorphism) */
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--surface);
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--input-bg);
   }
 
-  /* Background gradients */
+  /* Fondo plano (antes degradado cálido) */
   .bg-gradient-warm {
-    background:
-      radial-gradient(at 50% 0%, rgba(253, 251, 246, 0.9) 0%, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(220, 252, 231, 0.3) 0%, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(254, 243, 199, 0.3) 0%, transparent 50%),
-      var(--cream-50);
+    background: var(--bg);
   }
 
   /* Tight tracking helper */
@@ -700,9 +725,7 @@ body {
 @media (max-width: 767px) {
   /* Drawer del menú: fondo casi sólido para que se lea sobre cualquier página */
   .mobile-drawer.glass {
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--surface);
   }
   main table {
     display: block;
@@ -757,7 +780,7 @@ body {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid #E8E5DF !important;
   background: #ffffff !important;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -767,3 +790,44 @@ body {
 .pdf-exporting [role="tooltip"] { display: none !important; }
 .pdf-exporting .animate-fade-in,
 .pdf-exporting .animate-spin { animation: none !important; }
+
+
+/* ===== Marca por organización: barra lateral "tinta" =====
+   La barra (.mobile-drawer en Layout) usa los mismos tokens que el resto; con
+   data-sidebar="ink" se re-escriben solo dentro de ella: queda oscura con texto
+   claro sin tocar las clases del Layout. */
+:root[data-sidebar="ink"] .mobile-drawer {
+  --surface: var(--sidebar-bg);
+  --surface-rgb: 18 19 20;
+  --bg: var(--sidebar-bg);
+  --ink: #F3F1ED;
+  --ink-rgb: 243 241 237;
+  --dark: #2C2D31;
+  --dark-rgb: 44 45 49;
+  --dark-hover: #38393E;
+  --on-dark: #F3F1ED;
+  --text: #F3F1ED;
+  --muted: #A8A6A1;
+  --line: rgb(243 241 237 / 0.10);
+  --line-2: rgb(243 241 237 / 0.18);
+  --gray-50: #1E1F22;   --gray-50-rgb: 30 31 34;
+  --gray-100: #26272A;  --gray-100-rgb: 38 39 42;
+  --gray-200: #343539;  --gray-200-rgb: 52 53 57;
+  --gray-300: #4A4B50;  --gray-300-rgb: 74 75 80;
+  --gray-400: #8E8C88;  --gray-400-rgb: 142 140 136;
+  --gray-500: #A8A6A1;  --gray-500-rgb: 168 166 161;
+  --gray-600: #C9C6C0;  --gray-600-rgb: 201 198 192;
+  --gray-700: #DEDBD5;  --gray-700-rgb: 222 219 213;
+  --gray-800: #E8E5DF;  --gray-800-rgb: 232 229 223;
+  --gray-900: #F3F1ED;  --gray-900-rgb: 243 241 237;
+  --ink-900: #F3F1ED; --ink-800: #E8E5DF; --ink-700: #DEDBD5; --ink-600: #C9C6C0; --ink-500: #A8A6A1;
+  --ink-400: #8E8C88; --ink-300: #4A4B50; --ink-200: #343539; --ink-100: #26272A; --ink-50: #1E1F22;
+  color-scheme: dark;
+}
+:root[data-sidebar="ink"] .mobile-drawer.glass { border-color: transparent; }
+
+/* Tema oscuro: ajustes que no salen solos de los tokens */
+:root[data-theme="dark"] img.sh-logo,
+:root[data-theme="dark"] .brand-logo-light { filter: none; }
+:root[data-theme="dark"] .modal-overlay { background: rgba(0, 0, 0, 0.6); }
+:root[data-theme="dark"] ::selection { background: rgb(var(--accent-rgb) / 0.35); }

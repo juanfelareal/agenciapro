@@ -5,7 +5,21 @@ import siigoService from '../services/siigoService.js';
 
 const router = express.Router();
 
-const PDF_SECRET = process.env.PDF_LINK_SECRET || 'orbit-pdf-secret-2024';
+// Secreto para firmar los enlaces públicos de PDF. Si no hay PDF_LINK_SECRET se deriva de
+// DATABASE_URL (estable entre reinicios y desconocido para terceros) en vez de usar una
+// constante pública: con un secreto conocido cualquiera podría firmar `${invoiceId}:${orgId}`
+// y descargar facturas de cualquier organización.
+const PDF_SECRET = process.env.PDF_LINK_SECRET
+  || crypto.createHash('sha256').update(`orbit-pdf:${process.env.DATABASE_URL || ''}`).digest('hex');
+if (!process.env.PDF_LINK_SECRET) {
+  console.warn('⚠️  PDF_LINK_SECRET no está definido: los enlaces de PDF se firman con un secreto derivado de DATABASE_URL');
+}
+
+const safeEqual = (a, b) => {
+  const ba = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+};
 
 // Generate a signed token for an invoice PDF link
 export function generatePdfToken(invoiceId, orgId) {
@@ -22,9 +36,11 @@ router.get('/:token', async (req, res) => {
     if (parts.length !== 3) return res.status(400).send('Link invalido');
 
     const [invoiceId, orgId, signature] = parts;
+    if (!/^\d+$/.test(invoiceId) || !/^\d+$/.test(orgId)) return res.status(404).send('Link invalido o expirado');
     const expected = crypto.createHmac('sha256', PDF_SECRET).update(`${invoiceId}:${orgId}`).digest('hex').substring(0, 16);
 
-    if (signature !== expected) return res.status(403).send('Link invalido o expirado');
+    // Firma inválida → 404 (no revelamos si la factura existe)
+    if (!safeEqual(signature, expected)) return res.status(404).send('Link invalido o expirado');
 
     const invoice = await db.get(`
       SELECT siigo_id, invoice_number FROM invoices WHERE id = ? AND organization_id = ?

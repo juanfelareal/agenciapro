@@ -98,7 +98,7 @@ export default function TaskHistory({ taskId, defaultOpen = false }) {
   if (!taskId) return null;
 
   return (
-    <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
+    <div className="border border-gray-100 rounded-xl overflow-hidden bg-[var(--surface)]">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -109,7 +109,7 @@ export default function TaskHistory({ taskId, defaultOpen = false }) {
             <History size={15} className="text-gray-600" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-medium text-[#17181A]">Historial</p>
+            <p className="text-sm font-medium text-[var(--ink)]">Historial</p>
             <p className="text-xs text-gray-500">
               {loaded
                 ? `${entries.length} ${entries.length === 1 ? 'evento' : 'eventos'}`
@@ -156,14 +156,14 @@ export default function TaskHistory({ taskId, defaultOpen = false }) {
                   <li key={e.id} className="relative">
                     {/* Icon bubble on the timeline */}
                     <span
-                      className={`absolute -left-8 top-0 w-7 h-7 rounded-full flex items-center justify-center ring-4 ring-white ${meta.color}`}
+                      className={`absolute -left-8 top-0 w-7 h-7 rounded-full flex items-center justify-center ring-4 ring-[var(--surface)] ${meta.color}`}
                     >
                       <Icon size={13} />
                     </span>
 
                     <div className="text-sm">
                       <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className={`font-medium ${e.author_type === 'client' ? 'text-pink-700' : 'text-[#17181A]'}`}>
+                        <span className={`font-medium ${e.author_type === 'client' ? 'text-pink-700' : 'text-[var(--ink)]'}`}>
                           {e.author_name}
                         </span>
                         {e.author_type === 'client' && (

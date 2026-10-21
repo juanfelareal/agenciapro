@@ -194,12 +194,12 @@ const PayrollSection = ({ data, loading }) => {
         {/* Header with upload button */}
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold text-[#17181A]">Nómina</h2>
+            <h2 className="text-lg font-semibold text-[var(--ink)]">Nómina</h2>
             <p className="text-sm text-gray-500">Importa tu nómina desde Aleluya</p>
           </div>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="bg-[#17181A] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#26282C] transition-colors"
+            className="bg-[var(--dark)] text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-[#1C1D1F] transition-colors"
           >
             <Upload size={18} />
             Importar desde Aleluya
@@ -211,7 +211,7 @@ const PayrollSection = ({ data, loading }) => {
           <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileText className="w-8 h-8 text-indigo-500" />
           </div>
-          <h3 className="text-lg font-semibold text-[#17181A] mb-2">Sin datos de nómina</h3>
+          <h3 className="text-lg font-semibold text-[var(--ink)] mb-2">Sin datos de nómina</h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
             Sube tu archivo de nómina exportado desde Aleluya (PDF o Excel) para ver el detalle de pagos y deducciones de tu equipo.
           </p>
@@ -234,9 +234,9 @@ const PayrollSection = ({ data, loading }) => {
   function renderUploadModal() {
     return (
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
+        <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[90dvh] overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-[#17181A]">Importar Nómina de Aleluya</h2>
+            <h2 className="text-xl font-semibold text-[var(--ink)]">Importar Nómina de Aleluya</h2>
             <button
               onClick={() => {
                 setShowUploadModal(false);
@@ -268,7 +268,7 @@ const PayrollSection = ({ data, loading }) => {
                 ) : (
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 )}
-                <p className="text-sm font-medium text-[#17181A] mb-1">
+                <p className="text-sm font-medium text-[var(--ink)] mb-1">
                   {uploading ? 'Procesando archivo...' : 'Haz clic para seleccionar archivo'}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -287,7 +287,7 @@ const PayrollSection = ({ data, loading }) => {
             )}
 
             <div className="bg-gray-50 rounded-xl p-4">
-              <h4 className="text-sm font-medium text-[#17181A] mb-2">¿Cómo exportar desde Aleluya?</h4>
+              <h4 className="text-sm font-medium text-[var(--ink)] mb-2">¿Cómo exportar desde Aleluya?</h4>
               <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
                 <li>Ingresa a tu cuenta de Aleluya</li>
                 <li>Ve a Nómina → Historial de Liquidaciones</li>
@@ -309,14 +309,14 @@ const PayrollSection = ({ data, loading }) => {
       {/* Header with period info and upload button */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-lg font-semibold text-[#17181A]">
+          <h2 className="text-lg font-semibold text-[var(--ink)]">
             Nómina {periodInfo?.label || ''}
           </h2>
           <p className="text-sm text-gray-500">{employees.length} empleados</p>
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="border border-gray-200 text-[#17181A] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors"
+          className="border border-gray-200 text-[var(--ink)] px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-colors"
         >
           <Upload size={18} />
           Importar otro período
@@ -397,7 +397,7 @@ const PayrollSection = ({ data, loading }) => {
                       onClick={() => toggleEmployee(emp.id)}
                     >
                       <td className="px-4 py-3 border-b border-gray-100">
-                        <span className="font-semibold text-[#17181A] group-hover:text-indigo-600 transition-colors">
+                        <span className="font-semibold text-[var(--ink)] group-hover:text-indigo-600 transition-colors">
                           {isExpanded ? '▾' : '▸'} {emp.name}
                         </span>
                       </td>
@@ -410,7 +410,7 @@ const PayrollSection = ({ data, loading }) => {
                       <td className="px-4 py-3 text-right border-b border-gray-100 whitespace-nowrap text-xs text-red-500 font-medium">
                         -{formatCurrency(emp.totalDeducciones)}
                       </td>
-                      <td className="px-4 py-3 text-right border-b border-gray-100 bg-gray-50 font-semibold whitespace-nowrap text-[#17181A]">
+                      <td className="px-4 py-3 text-right border-b border-gray-100 bg-gray-50 font-semibold whitespace-nowrap text-[var(--ink)]">
                         {formatCurrency(emp.totalPagado)}
                       </td>
                     </tr>
@@ -538,7 +538,7 @@ const PayrollSection = ({ data, loading }) => {
 
               {/* Totals Row */}
               <tr className="bg-gray-100 font-semibold">
-                <td colSpan="2" className="px-4 py-3 border-t-2 border-gray-200 text-[#17181A]">
+                <td colSpan="2" className="px-4 py-3 border-t-2 border-gray-200 text-[var(--ink)]">
                   TOTAL NÓMINA
                 </td>
                 <td className="px-4 py-3 text-right border-t-2 border-gray-200 whitespace-nowrap text-emerald-600">
@@ -547,7 +547,7 @@ const PayrollSection = ({ data, loading }) => {
                 <td className="px-4 py-3 text-right border-t-2 border-gray-200 whitespace-nowrap text-red-500">
                   -{formatCurrency(totals.totalDeducciones)}
                 </td>
-                <td className="px-4 py-3 text-right bg-gray-100 border-t-2 border-gray-200 text-[#17181A] whitespace-nowrap">
+                <td className="px-4 py-3 text-right bg-gray-100 border-t-2 border-gray-200 text-[var(--ink)] whitespace-nowrap">
                   {formatCurrency(totals.totalNeto)}
                 </td>
               </tr>

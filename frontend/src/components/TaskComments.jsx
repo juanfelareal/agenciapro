@@ -235,7 +235,7 @@ const TaskComments = ({ taskId, taskTitle }) => {
       </div>
 
       {/* New Comment Form */}
-      <div className="p-4 border-t bg-white">
+      <div className="p-4 border-t bg-[var(--surface)]">
         <form onSubmit={handleSubmitComment} className="flex gap-2">
           <div
             className={`flex-shrink-0 w-10 h-10 rounded-full ${getAvatarColor(currentUserId)} flex items-center justify-center text-white font-semibold text-sm`}
