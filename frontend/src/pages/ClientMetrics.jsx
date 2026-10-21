@@ -497,6 +497,10 @@ function ClientMetrics() {
   // current range has data — otherwise they're noise for purchase-objective
   // accounts that never run interaction campaigns.
   const hasMessagingData = dailyMetrics.some(d => (d.fb_messaging_conversations || 0) > 0);
+  // Same idea for store sessions: clients without Shopify (or without ShopifyQL
+  // sessions) would only see a column of blanks.
+  const hasSessionsData = dailyMetrics.some(d => (d.shopify_sessions || 0) > 0);
+  const conversionTooltip = 'Pedidos web de Shopify ÷ sesiones de la tienda. No incluye ventas por WhatsApp.';
 
   // Daily table columns
   const dailyColumns = [
@@ -505,6 +509,10 @@ function ClientMetrics() {
     { key: 'shopify_orders', label: 'Pedidos', type: 'integer', align: 'right' },
     { key: 'shopify_pending_orders', label: 'Pendientes', type: 'integer', align: 'right' },
     { key: 'shopify_aov', label: 'Ticket Promedio', type: 'currency', align: 'right' },
+    ...(hasSessionsData ? [
+      { key: 'shopify_sessions', label: 'Sesiones', type: 'integer', align: 'right' },
+      { key: 'store_conversion_rate', label: 'Tasa Conv.', type: 'percent', align: 'right', tooltip: conversionTooltip },
+    ] : []),
     { key: 'fb_spend', label: 'Inversion', type: 'currency', align: 'right' },
     { key: 'cost_per_order', label: 'Costo/Pedido', type: 'currency', align: 'right' },
     { key: 'display_roas', label: 'ROAS', type: 'decimal', align: 'right' },
@@ -1216,6 +1224,7 @@ function ClientMetrics() {
             cpm: d.fb_cpm || 0,
             hookRate: d.fb_hook_rate || 0,
             holdRate: d.fb_hold_rate || 0,
+            conversion: d.store_conversion_rate ?? null,
           }));
 
         const fmtDate = (v) => {
@@ -1336,6 +1345,26 @@ function ClientMetrics() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {/* 7. Tasa de conversión de la tienda (solo si hay sesiones) */}
+            {hasSessionsData && (
+              <div className="glass rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--ink)] mb-4" title={conversionTooltip}>Tasa de Conversión</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                    <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Number(v).toFixed(1)}%`} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                      formatter={(value) => [value == null ? 'Sin sesiones' : `${Number(value).toFixed(2)}%`, 'Tasa de conversión']}
+                      labelFormatter={fmtDate}
+                    />
+                    <Line type="monotone" dataKey="conversion" stroke="var(--accent)" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         );
       })()}

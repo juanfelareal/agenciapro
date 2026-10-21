@@ -179,6 +179,7 @@ function MetricsTable({
                   // bg-gray-50 opaco para que el contenido no se transparente debajo.
                   className="sticky top-0 z-20 bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors relative shadow-[0_1px_0_0_rgba(0,0,0,0.04)]"
                   style={{ width: columnWidths[column.key] || defaultWidth }}
+                  title={column.tooltip}
                   onClick={() => handleSort(column.key)}
                 >
                   <div className="flex items-center gap-1 truncate">
