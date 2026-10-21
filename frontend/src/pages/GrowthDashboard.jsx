@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
@@ -982,74 +982,116 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
   const projectionDiff = projection - meta;
   const onTrack = projection >= meta;
 
+  // Meta de tasa de conversión web: pedidos ÷ sesiones de Shopify del mes (misma fórmula de /conversion)
+  const convObj = objectives.find(o => o.metric === 'conversion_rate');
+  const convMeta = convObj?.base || 0;
+  const convActual = m.total_sessions > 0 ? ((m.total_orders || 0) / m.total_sessions) * 100 : null;
+  const convPct = convMeta > 0 && convActual !== null ? Math.round((convActual / convMeta) * 100) : 0;
+  const convDiff = convActual !== null ? convActual - convMeta : null;
+  const fmtRate = (v) => `${Number(v || 0).toFixed(2)}%`;
+
+  // La meta de email avanza con el registro mensual de Valen; no se proyecta por día
+  const emailBadge = emailPct >= 100
+    ? { tone: 'good', icon: <CheckCircle2 size={14} />, label: 'Meta cumplida' }
+    : isCurrentMonth
+      ? { tone: 'neutral', icon: <Clock size={14} />, label: 'En curso' }
+      : { tone: 'bad', icon: <TrendingDown size={14} />, label: 'No cumplida' };
+
+  const [editingObjectives, setEditingObjectives] = useState(false);
+  const objectivesRef = useRef(null);
+  const openObjectives = () => {
+    setEditingObjectives(true);
+    objectivesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div className="space-y-6">
       {/* Meta del Mes Card - only show if we have a revenue objective */}
       {revenueObj && meta > 0 && (
-        <div className="glass-solid rounded-xl p-5 border-l-4 border-l-green-500">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">Meta del mes</p>
-              <p className="text-2xl font-bold text-[var(--ink)] mt-1">{formatCOP(meta)}</p>
-            </div>
-            <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${
-              onTrack ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-            }`}>
-              {onTrack ? (
-                <><TrendingUp size={14} /> On track</>
-              ) : (
-                <><TrendingDown size={14} /> Off track</>
-              )}
-            </div>
-          </div>
-
-          {/* Progress bar toward goal */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-gray-500">Progreso actual</span>
-              <span className="text-sm font-bold text-[var(--ink)]">{metaCompletePct}%</span>
-            </div>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden relative">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  metaCompletePct >= 100 ? 'bg-green-500' : metaCompletePct >= 70 ? 'bg-blue-500' : 'bg-yellow-500'
-                }`}
-                style={{ width: `${Math.min(100, metaCompletePct)}%` }}
-              />
-              {/* Marker for expected progress based on day of month */}
-              {isCurrentMonth && (
-                <div
-                  className="absolute top-0 h-full w-0.5 bg-gray-400"
-                  style={{ left: `${(daysPassed / daysInMonth) * 100}%` }}
-                  title={`Día ${daysPassed} de ${daysInMonth}`}
-                />
-              )}
-            </div>
-            <div className="flex items-center justify-between mt-1.5 text-xs text-gray-400">
-              <span>Actual: {formatCOP(currentRevenue)}</span>
-              <span>Meta: {formatCOP(meta)}</span>
-            </div>
-          </div>
-
-          {/* Projection stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-gray-100">
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Proyección</p>
-              <p className="text-lg font-bold text-[var(--ink)]">{formatCOP(projection)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider">vs Meta</p>
-              <p className={`text-lg font-bold ${projectionDiff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {projectionDiff >= 0 ? '+' : ''}{formatCOP(projectionDiff)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Día / Mes</p>
-              <p className="text-lg font-bold text-gray-600">{daysPassed} / {daysInMonth}</p>
-            </div>
-          </div>
-        </div>
+        <GoalCard
+          title="Meta del mes"
+          value={formatCOP(meta)}
+          badge={onTrack
+            ? { tone: 'good', icon: <TrendingUp size={14} />, label: 'On track' }
+            : { tone: 'bad', icon: <TrendingDown size={14} />, label: 'Off track' }}
+          pct={metaCompletePct}
+          marker={isCurrentMonth ? { left: (daysPassed / daysInMonth) * 100, title: `Día ${daysPassed} de ${daysInMonth}` } : null}
+          actualLabel={formatCOP(currentRevenue)}
+          metaLabel={formatCOP(meta)}
+          stats={[
+            { label: 'Proyección', value: formatCOP(projection) },
+            { label: 'vs Meta', value: `${projectionDiff >= 0 ? '+' : ''}${formatCOP(projectionDiff)}`, className: projectionDiff >= 0 ? 'text-green-600' : 'text-red-600' },
+            { label: 'Día / Mes', value: `${daysPassed} / ${daysInMonth}`, className: 'text-gray-600' },
+          ]}
+        />
       )}
+
+      {/* Metas de otras áreas: email y tasa de conversión */}
+      <div>
+        <SectionHeader label="Metas otras áreas" />
+        <div className="grid md:grid-cols-2 gap-3 mt-3">
+          {emailMeta > 0 ? (
+            <GoalCard
+              title="Meta email"
+              value={formatCOP(emailMeta)}
+              badge={em.has_data ? emailBadge : null}
+              pct={emailPct}
+              actualLabel={formatCOP(emailRevenue)}
+              metaLabel={formatCOP(emailMeta)}
+              stats={[
+                { label: 'Avance', value: `${emailPct}%`, className: emailPct >= 100 ? 'text-green-600' : '' },
+                { label: 'Faltante', value: formatCOP(emailFaltante), className: emailFaltante > 0 ? 'text-red-600' : 'text-green-600' },
+                { label: 'Campañas / Flows', value: `${formatCOP(em.campaigns_revenue)} / ${formatCOP(em.flows_revenue)}`, small: true, className: 'text-gray-600' },
+              ]}
+              extra={!em.has_data && (
+                <div className="flex items-start gap-2 mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-800">
+                  <Mail className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    Sin métricas de email registradas para este mes.{' '}
+                    <Link to={`/app/clients/${clientId}/email-marketing`} className="font-medium underline text-amber-900">Registrar métricas</Link>
+                  </div>
+                </div>
+              )}
+            />
+          ) : (
+            <GoalEmpty
+              title="Meta email"
+              text="Define la venta por email proyectada para el mes (escenario base). Avanza con las métricas de campañas y flows registradas."
+              onDefine={openObjectives}
+            />
+          )}
+
+          {convMeta > 0 ? (
+            <GoalCard
+              title="Meta tasa de conversión"
+              value={fmtRate(convMeta)}
+              badge={convActual === null ? null : convActual >= convMeta
+                ? { tone: 'good', icon: <TrendingUp size={14} />, label: 'On track' }
+                : { tone: 'bad', icon: <TrendingDown size={14} />, label: 'Off track' }}
+              pct={convPct}
+              actualLabel={convActual === null ? '—' : fmtRate(convActual)}
+              metaLabel={fmtRate(convMeta)}
+              stats={[
+                { label: 'Actual', value: convActual === null ? '—' : fmtRate(convActual) },
+                { label: 'vs Meta', value: convDiff === null ? '—' : `${convDiff >= 0 ? '+' : ''}${convDiff.toFixed(2)} pp`, className: convDiff === null ? 'text-gray-400' : convDiff >= 0 ? 'text-green-600' : 'text-red-600' },
+                { label: 'Pedidos / Sesiones', value: `${new Intl.NumberFormat('es-CO').format(m.total_orders || 0)} / ${new Intl.NumberFormat('es-CO').format(m.total_sessions || 0)}`, small: true, className: 'text-gray-600' },
+              ]}
+              extra={convActual === null && (
+                <div className="flex items-start gap-2 mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-800">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>Sin sesiones de Shopify sincronizadas para este mes.</div>
+                </div>
+              )}
+            />
+          ) : (
+            <GoalEmpty
+              title="Meta tasa de conversión"
+              text="Define el % de conversión web proyectado para el mes (escenario base). Se compara con pedidos ÷ sesiones de Shopify."
+              onDefine={openObjectives}
+            />
+          )}
+        </div>
+      </div>
 
       {/* KPI Grid */}
       <div>
@@ -1097,30 +1139,6 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
                 base={emailObj.base}
                 optimista={emailObj.optimista}
                 format={formatCOP}
-                extra={em.has_data ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 mt-3 border-t border-gray-100">
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Meta base</p>
-                      <p className={`text-base font-bold ${emailPct >= 100 ? 'text-green-600' : 'text-[var(--ink)]'}`}>{emailMeta > 0 ? `${emailPct}%` : '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Faltante</p>
-                      <p className={`text-base font-bold ${emailFaltante > 0 ? 'text-red-600' : 'text-green-600'}`}>{emailMeta > 0 ? formatCOP(emailFaltante) : '—'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Campañas / Flows</p>
-                      <p className="text-xs font-semibold text-gray-600 mt-1">{formatCOP(em.campaigns_revenue)} / {formatCOP(em.flows_revenue)}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2 mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-800">
-                    <Mail className="w-4 h-4 mt-0.5 shrink-0" />
-                    <div>
-                      Sin métricas de email registradas para este mes.{' '}
-                      <Link to={`/app/clients/${clientId}/email-marketing`} className="font-medium underline text-amber-900">Registrar métricas</Link>
-                    </div>
-                  </div>
-                )}
               />
             )}
           </div>
@@ -1128,14 +1146,103 @@ function FinancieroTab({ metrics, objectives, email, formatCOP, clientId, period
       )}
 
       {/* Set Objectives */}
-      <ObjectivesForm clientId={clientId} period={period} objectives={objectives} onRefresh={onRefresh} />
+      <div ref={objectivesRef} className="scroll-mt-4">
+        <ObjectivesForm
+          clientId={clientId}
+          period={period}
+          objectives={objectives}
+          onRefresh={onRefresh}
+          editing={editingObjectives}
+          setEditing={setEditingObjectives}
+        />
+      </div>
 
       {/* Tasa de conversión en el tiempo (web + email) */}
       <div>
         <SectionHeader label="Otras áreas · Conversión" />
         <div className="mt-3">
-          <ConversionTrendPanel clientId={clientId} period={period} months={6} />
+          <ConversionTrendPanel clientId={clientId} period={period} months={6} goal={convMeta > 0 ? convMeta : null} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Goal Card (Meta del mes y metas de otras áreas) ───
+const BADGE_TONES = {
+  good: 'bg-green-100 text-green-700',
+  bad: 'bg-red-100 text-red-600',
+  neutral: 'bg-gray-100 text-gray-600',
+};
+
+function GoalCard({ title, value, badge, pct, marker, actualLabel, metaLabel, stats, extra }) {
+  return (
+    <div className="glass-solid rounded-xl p-5 border-l-4 border-l-green-500">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">{title}</p>
+          <p className="text-2xl font-bold text-[var(--ink)] mt-1">{value}</p>
+        </div>
+        {badge && (
+          <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${BADGE_TONES[badge.tone]}`}>
+            {badge.icon} {badge.label}
+          </div>
+        )}
+      </div>
+
+      {/* Progress bar toward goal */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs text-gray-500">Progreso actual</span>
+          <span className="text-sm font-bold text-[var(--ink)]">{pct}%</span>
+        </div>
+        <div className="h-3 bg-gray-100 rounded-full overflow-hidden relative">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              pct >= 100 ? 'bg-green-500' : pct >= 70 ? 'bg-blue-500' : 'bg-yellow-500'
+            }`}
+            style={{ width: `${Math.min(100, pct)}%` }}
+          />
+          {/* Marker for expected progress based on day of month */}
+          {marker && (
+            <div
+              className="absolute top-0 h-full w-0.5 bg-gray-400"
+              style={{ left: `${marker.left}%` }}
+              title={marker.title}
+            />
+          )}
+        </div>
+        <div className="flex items-center justify-between mt-1.5 text-xs text-gray-400">
+          <span>Actual: {actualLabel}</span>
+          <span>Meta: {metaLabel}</span>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-gray-100">
+        {stats.map((s) => (
+          <div key={s.label}>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider">{s.label}</p>
+            <p className={`${s.small ? 'text-xs font-semibold mt-1' : 'text-lg font-bold'} ${s.className || 'text-[var(--ink)]'}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+      {extra}
+    </div>
+  );
+}
+
+function GoalEmpty({ title, text, onDefine }) {
+  return (
+    <div className="glass-solid rounded-xl p-5 border-l-4 border-l-gray-200 flex flex-col justify-between gap-4">
+      <div>
+        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">{title}</p>
+        <p className="text-sm text-gray-500 mt-2">{text}</p>
+      </div>
+      <div>
+        <button onClick={onDefine} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs bg-[var(--dark)] text-white rounded-full">
+          <Target className="w-3 h-3" /> Definir meta
+        </button>
       </div>
     </div>
   );
@@ -1182,21 +1289,17 @@ const OBJECTIVE_LABELS = {
   revenue: 'Ventas (COP)',
   roas: 'ROAS (×)',
   email_revenue: 'Venta por email (COP)',
+  conversion_rate: 'Tasa de conversión web (%)',
 };
+const OBJECTIVE_METRICS = Object.keys(OBJECTIVE_LABELS);
 
-function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
-  const [editing, setEditing] = useState(false);
+function ObjectivesForm({ clientId, period, objectives, onRefresh, editing, setEditing }) {
+  const [error, setError] = useState(null);
 
-  const initialForm = useMemo(() => {
-    const rev = objectives.find(o => o.metric === 'revenue');
-    const roas = objectives.find(o => o.metric === 'roas');
-    const email = objectives.find(o => o.metric === 'email_revenue');
-    return {
-      revenue: { conservador: rev?.conservador || '', base: rev?.base || '', optimista: rev?.optimista || '' },
-      roas: { conservador: roas?.conservador || '', base: roas?.base || '', optimista: roas?.optimista || '' },
-      email_revenue: { conservador: email?.conservador || '', base: email?.base || '', optimista: email?.optimista || '' },
-    };
-  }, [objectives]);
+  const initialForm = useMemo(() => Object.fromEntries(OBJECTIVE_METRICS.map((metric) => {
+    const o = objectives.find(x => x.metric === metric);
+    return [metric, { conservador: o?.conservador || '', base: o?.base || '', optimista: o?.optimista || '' }];
+  })), [objectives]);
 
   const [form, setForm] = useState(initialForm);
 
@@ -1205,16 +1308,16 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
   }, [initialForm]);
 
   const handleSave = async () => {
+    setError(null);
     try {
-      await Promise.all([
-        growthAPI.createObjective(clientId, { period, metric: 'revenue', ...form.revenue }),
-        growthAPI.createObjective(clientId, { period, metric: 'roas', ...form.roas }),
-        growthAPI.createObjective(clientId, { period, metric: 'email_revenue', ...form.email_revenue }),
-      ]);
+      await Promise.all(OBJECTIVE_METRICS.map((metric) =>
+        growthAPI.createObjective(clientId, { period, metric, ...form[metric] })
+      ));
       setEditing(false);
       onRefresh();
     } catch (error) {
       console.error('Error saving objectives:', error);
+      setError(error?.response?.data?.error || 'No se pudieron guardar los escenarios');
     }
   };
 
@@ -1224,7 +1327,7 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
         <p className="font-semibold text-sm text-[var(--ink)]">Escenarios pactados</p>
         {editing ? (
           <div className="flex gap-2">
-            <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
+            <button onClick={() => { setEditing(false); setError(null); setForm(initialForm); }} className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
             <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-[var(--dark)] text-white rounded-lg"><Save className="w-3 h-3" /> Guardar</button>
           </div>
         ) : (
@@ -1233,7 +1336,8 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
       </div>
       {editing ? (
         <div className="space-y-4">
-          {['revenue', 'roas', 'email_revenue'].map((metric) => (
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          {OBJECTIVE_METRICS.map((metric) => (
             <div key={metric}>
               <p className="text-xs font-medium text-gray-500 mb-2">{OBJECTIVE_LABELS[metric]}</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1242,6 +1346,7 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
                     <label className="text-[10px] text-gray-400 uppercase">{level}</label>
                     <input
                       type="number"
+                      {...(metric === 'conversion_rate' ? { step: '0.01', min: 0, max: 100 } : {})}
                       value={form[metric][level]}
                       onChange={(e) => setForm(f => ({ ...f, [metric]: { ...f[metric], [level]: e.target.value } }))}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
