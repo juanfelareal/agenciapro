@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, ListChecks } from 'lucide-react';
+import { Plus, Trash2, ListChecks, Repeat } from 'lucide-react';
 
 const columns = [
   { id: 'todo', title: 'Por Hacer', color: 'bg-[rgb(var(--surface-rgb)/0.4)]', borderColor: 'border-[rgb(var(--ink-rgb)/0.09)]' },
@@ -100,7 +100,9 @@ export default function KanbanView({
                     <h4 className="font-medium text-[var(--ink)] flex-1 pr-2">{task.title}</h4>
                     <div className="flex items-center gap-1">
                       {!!task.is_recurring && (
-                        <span className="text-[var(--accent)]" title="Tarea Recurrente">🔄</span>
+                        <span className="p-1 text-gray-400" title="Tarea recurrente: reaparece al completarla">
+                          <Repeat size={13} />
+                        </span>
                       )}
                       <button
                         onClick={(e) => handleDeleteClick(e, task.id)}
