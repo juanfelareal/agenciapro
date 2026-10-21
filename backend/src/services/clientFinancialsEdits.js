@@ -191,6 +191,13 @@ export async function getObjective(clientId, orgId, period, metric = 'revenue') 
 export async function upsertObjective(clientId, orgId, { period, metric, conservador, base, optimista }) {
   if (!isPeriod(period)) throw httpError(400, 'period debe tener formato YYYY-MM');
   if (!metric) throw httpError(400, 'metric es requerido');
+  if (metric === 'conversion_rate') {
+    const outOfRange = [conservador, base, optimista].some((v) => {
+      const n = Number(v || 0);
+      return !Number.isFinite(n) || n < 0 || n > 100;
+    });
+    if (outOfRange) throw httpError(400, 'La tasa de conversión debe estar entre 0 y 100 %');
+  }
   await db.run('DELETE FROM growth_objectives WHERE client_id = ? AND period = ? AND metric = ? AND organization_id = ?', [clientId, period, metric, orgId]);
   const result = await db.run(`
     INSERT INTO growth_objectives (client_id, period, metric, conservador, base, optimista, organization_id)

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ReferenceLine,
 } from 'recharts';
 import { Loader2, AlertTriangle, Mail, Globe } from 'lucide-react';
 import { growthAPI } from '../../utils/api';
@@ -11,6 +11,7 @@ const MONTHS_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Jul
 
 const GREEN = 'var(--accent)';
 const GREEN_LIGHT = '#86efac';
+const RANGES = [3, 6, 12];
 
 const fmtPct = (v) => (v === null || v === undefined || Number.isNaN(v) ? '—' : `${Number(v).toFixed(1)}%`);
 const fmtInt = (v) => new Intl.NumberFormat('es-CO').format(v || 0);
@@ -106,9 +107,11 @@ function Notice({ icon, children, action }) {
  * Tasa de conversión en el tiempo para un cliente de Growth.
  * - Conversión web por semana (lunes–domingo) desde sesiones/pedidos de Shopify.
  * - Conversión de email por mes desde métricas mensuales de email marketing.
- * `period` (YYYY-MM) es el mes seleccionado en el dashboard; el rango termina en ese mes.
+ * `period` (YYYY-MM) es el mes seleccionado en el dashboard; el rango (3/6/12 meses) termina en ese mes.
+ * `goal` (opcional) es la meta de conversión web en %; se dibuja como línea de referencia.
  */
-export default function ConversionTrendPanel({ clientId, period, months = 6 }) {
+export default function ConversionTrendPanel({ clientId, period, months: initialMonths = 6, goal = null }) {
+  const [months, setMonths] = useState(initialMonths);
   // Una sola pieza de estado con la llave de la petición: loading = la llave actual aún no llegó
   const requestKey = `${clientId}|${period}|${months}`;
   const [result, setResult] = useState({ key: null, data: null, error: null });
@@ -163,10 +166,21 @@ export default function ConversionTrendPanel({ clientId, period, months = 6 }) {
 
   return (
     <div className="glass-solid rounded-xl p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <p className="font-semibold text-sm text-[var(--ink)]">Tasa de conversión en el tiempo</p>
           <p className="text-xs text-gray-400 mt-0.5">Web (Shopify) y email · últimos {months} meses hasta {stats ? monthLong(data?.period || period).toLowerCase() : '…'}</p>
+        </div>
+        <div className="flex items-center gap-1 text-[11px]">
+          {RANGES.map((r) => (
+            <button
+              key={r}
+              onClick={() => setMonths(r)}
+              className={`px-2.5 py-1 rounded-full transition-colors ${months === r ? 'bg-[var(--dark)] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            >
+              {r} meses
+            </button>
+          ))}
         </div>
       </div>
 
@@ -201,6 +215,15 @@ export default function ConversionTrendPanel({ clientId, period, months = 6 }) {
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#7A7772' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Number(v).toFixed(1)}%`} width={56} domain={[0, 'auto']} />
                     <Tooltip content={<WeekTooltip />} cursor={{ stroke: '#E8E5DF' }} />
+                    {goal > 0 && (
+                      <ReferenceLine
+                        y={goal}
+                        stroke="#7A7772"
+                        strokeDasharray="4 4"
+                        ifOverflow="extendDomain"
+                        label={{ value: `Meta ${fmtPct(goal)}`, position: 'insideTopRight', fontSize: 10, fill: '#7A7772' }}
+                      />
+                    )}
                     <Line
                       type="monotone"
                       dataKey="conversion_rate"
