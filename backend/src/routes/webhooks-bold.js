@@ -10,7 +10,9 @@ import { verifyBoldSignature, applyBoldEvent } from '../services/billing.js';
 
 const router = express.Router();
 
-const isProduction = () => process.env.NODE_ENV === 'production';
+// Sin secreto solo se aceptan eventos en desarrollo explícito (NODE_ENV=development|test) o con
+// BOLD_WEBHOOK_ALLOW_UNSIGNED=1. En Railway NODE_ENV no está definido, así que por defecto se rechaza.
+const isProduction = () => !['development', 'test'].includes(process.env.NODE_ENV || '') && process.env.BOLD_WEBHOOK_ALLOW_UNSIGNED !== '1';
 
 router.get('/', (req, res) => {
   res.json({ ok: true, service: 'orbit-bold-webhook', configured: Boolean((process.env.BOLD_WEBHOOK_SECRET || '').trim()) });
