@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Loader2, Plus, ChevronRight, ChevronLeft, Check, Clock, AlertTriangle,
-  Flag, Target, Zap, Users, X, Trash2, Save, TrendingUp, TrendingDown, Minus,
-  Mail, Globe, Megaphone, Palette, Video, User, CheckCircle2, Calendar, ChevronDown, ChevronUp, Layers,
-  CalendarDays, BarChart2, Settings2, DollarSign, Search, BookOpen
+  Loader2, Plus, ChevronRight, ChevronLeft, Clock, Zap, X, Save, TrendingUp, TrendingDown,
+  Mail, ChevronDown, ChevronUp, CalendarDays, BarChart2, Settings2, DollarSign, Search, BookOpen
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI, clientLogbookAPI } from '../utils/api';
 import ClientTrendPanel from '../components/growth/ClientTrendPanel';
@@ -97,7 +95,6 @@ export default function GrowthDashboard() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientGrowthData, setClientGrowthData] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
-  const [activeTab, setActiveTab] = useState('financiero');
   // Expanded daily tracking for clients
   const [expandedClients, setExpandedClients] = useState({});
   // Bumped every time the overview reloads so expanded panels re-read at the same moment
@@ -306,8 +303,6 @@ export default function GrowthDashboard() {
         period={period}
         onBack={() => { setSelectedClient(null); setClientGrowthData(null); }}
         onRefresh={() => loadClientDetail(selectedClient.id)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
         formatCOP={formatCOP}
       />
     );
@@ -565,7 +560,7 @@ export default function GrowthDashboard() {
                   return (
                     <React.Fragment key={client.id}>
                       <tr
-                        onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
+                        onClick={() => setSelectedClient(client)}
                         className="hover:bg-gray-50 transition-colors cursor-pointer"
                       >
                         <td className="px-6 py-4">
@@ -655,7 +650,7 @@ export default function GrowthDashboard() {
                               <Search className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => { setSelectedClient(client); setActiveTab('financiero'); }}
+                              onClick={() => setSelectedClient(client)}
                               className="p-2 text-gray-400 hover:text-[var(--ink)] hover:bg-gray-100 rounded-lg transition-colors"
                             >
                               <ChevronRight className="w-5 h-5" />
@@ -890,16 +885,9 @@ function KpiCard({ label, value, accent }) {
 }
 
 // ─── Client Detail View ───
-function ClientDetailView({ client, metrics, growthData, period, onBack, onRefresh, activeTab, setActiveTab, formatCOP }) {
+function ClientDetailView({ client, metrics, growthData, period, onBack, onRefresh, formatCOP }) {
   const m = metrics || {};
-  const gd = growthData || { objectives: [], palancas: [], milestones: [], banderas: [], email: null };
-
-  const tabs = [
-    { key: 'financiero', label: 'Salud financiera', icon: TrendingUp },
-    { key: 'palancas', label: 'Palancas', icon: Zap },
-    { key: 'roadmap', label: 'Roadmap', icon: Target },
-    { key: 'alertas', label: 'Alertas', icon: Flag },
-  ];
+  const gd = growthData || { objectives: [], email: null };
 
   return (
     <div className="space-y-6">
@@ -914,30 +902,7 @@ function ClientDetailView({ client, metrics, growthData, period, onBack, onRefre
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex-1 justify-center ${
-                activeTab === tab.key ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'financiero' && <FinancieroTab metrics={m} objectives={gd.objectives} email={gd.email} formatCOP={formatCOP} clientId={client.id} period={period} onRefresh={onRefresh} />}
-      {activeTab === 'palancas' && <PalancasTab clientId={client.id} period={period} />}
-      {activeTab === 'roadmap' && <RoadmapTab milestones={gd.milestones} clientId={client.id} period={period} onRefresh={onRefresh} />}
-      {activeTab === 'alertas' && <AlertasTab banderas={gd.banderas} clientId={client.id} period={period} onRefresh={onRefresh} />}
+      <FinancieroTab metrics={m} objectives={gd.objectives} email={gd.email} formatCOP={formatCOP} clientId={client.id} period={period} onRefresh={onRefresh} />
     </div>
   );
 }
@@ -1259,429 +1224,6 @@ function ObjectivesForm({ clientId, period, objectives, onRefresh }) {
             ? 'Escenarios configurados. Edita para ajustar.'
             : 'Sin escenarios configurados. Haz clic en Editar para definir objetivos.'}
         </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Palancas Tab (from Structured Briefs) ───
-
-const AREA_ICONS = {
-  email_marketing: Mail,
-  web: Globe,
-  traffic: Megaphone,
-  design: Palette,
-  ugc: Video,
-  social: Users,
-  seo: Globe,
-  crm: Users,
-  other: Layers,
-};
-
-const TASK_STATUS_CONFIG = {
-  todo: { label: 'Pendiente', color: 'text-gray-500', bg: 'bg-gray-100', icon: Clock },
-  in_progress: { label: 'En progreso', color: 'text-blue-600', bg: 'bg-blue-50', icon: Clock },
-  done: { label: 'Completada', color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle2 },
-  blocked: { label: 'Bloqueada', color: 'text-red-600', bg: 'bg-red-50', icon: AlertTriangle },
-};
-
-function PalancasTab({ clientId, period }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [expandedAreas, setExpandedAreas] = useState({});
-
-  useEffect(() => {
-    loadPalancasDashboard();
-  }, [clientId, period]);
-
-  const loadPalancasDashboard = async () => {
-    try {
-      setLoading(true);
-      const res = await growthAPI.getPalancasDashboard(clientId, period);
-      setData(res.data);
-      // Expand all areas by default
-      const expanded = {};
-      (res.data?.areas || []).forEach(a => { expanded[a.area_key] = true; });
-      setExpandedAreas(expanded);
-    } catch (error) {
-      console.error('Error loading palancas dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleArea = (areaKey) => {
-    setExpandedAreas(prev => ({ ...prev, [areaKey]: !prev[areaKey] }));
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  if (!data?.has_brief) {
-    return (
-      <div className="space-y-4">
-        <SectionHeader label="Palancas de crecimiento" />
-        <div className="glass-solid rounded-xl p-8 text-center">
-          <Layers className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">Sin brief estructurado para este período</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Crea un brief estructurado para este cliente y mes para ver las palancas de crecimiento aquí.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const { areas, summary } = data;
-
-  return (
-    <div className="space-y-5">
-      <SectionHeader label="Palancas de crecimiento" />
-
-      {/* Overall Progress */}
-      {summary.total_tasks > 0 && (
-        <div className="glass-solid rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-gray-500">Progreso general del mes</span>
-            <span className="text-sm font-bold text-[var(--ink)]">
-              {summary.completed}/{summary.total_tasks} tareas ({summary.progress_pct}%)
-            </span>
-          </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all duration-500"
-              style={{ width: `${summary.progress_pct}%` }}
-            />
-          </div>
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
-              {summary.completed} completadas
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-              {summary.in_progress} en progreso
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-gray-300"></span>
-              {summary.total_tasks - summary.completed - summary.in_progress} pendientes
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Areas */}
-      {areas.length === 0 ? (
-        <div className="glass-solid rounded-xl p-8 text-center">
-          <Layers className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-400 text-sm">El brief no tiene áreas definidas</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {areas.map((area) => {
-            const AreaIcon = AREA_ICONS[area.area_key] || AREA_ICONS.other;
-            const isExpanded = expandedAreas[area.area_key];
-            const { stats } = area;
-            const progressPct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
-
-            return (
-              <div key={area.area_key} className="glass-solid rounded-xl overflow-hidden">
-                {/* Area header */}
-                <div
-                  onClick={() => toggleArea(area.area_key)}
-                  className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-                      <AreaIcon className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm text-[var(--ink)]">{area.area_name}</h3>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
-                        {area.responsible && (
-                          <span className="flex items-center gap-1">
-                            <User size={10} />
-                            {area.responsible.name}
-                          </span>
-                        )}
-                        {stats.total > 0 && (
-                          <span>· {stats.done}/{stats.total} tareas</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {stats.total > 0 && (
-                      <div className="hidden sm:flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-green-500 rounded-full"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-400 w-8">{progressPct}%</span>
-                      </div>
-                    )}
-                    {isExpanded ? (
-                      <ChevronUp size={16} className="text-gray-400" />
-                    ) : (
-                      <ChevronDown size={16} className="text-gray-400" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Area content */}
-                {isExpanded && (
-                  <div className="px-4 pb-4 border-t border-gray-50">
-                    {/* Context */}
-                    {area.context && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-600 leading-relaxed">{area.context}</p>
-                      </div>
-                    )}
-
-                    {/* Tasks */}
-                    {area.tasks.length > 0 && (
-                      <div className="mt-3 space-y-1.5">
-                        {area.tasks.map((task) => {
-                          const statusConfig = TASK_STATUS_CONFIG[task.status] || TASK_STATUS_CONFIG.todo;
-                          const StatusIcon = statusConfig.icon;
-
-                          return (
-                            <div
-                              key={task.id}
-                              className={`p-2.5 rounded-lg border ${
-                                task.status === 'done'
-                                  ? 'bg-green-50/50 border-green-100'
-                                  : 'bg-[var(--surface)] border-gray-100'
-                              }`}
-                            >
-                              <div className="flex items-start gap-2.5">
-                                <div className={`w-5 h-5 rounded-md ${statusConfig.bg} flex items-center justify-center shrink-0 mt-0.5`}>
-                                  <StatusIcon size={12} className={statusConfig.color} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-sm ${
-                                    task.status === 'done' ? 'text-gray-400 line-through' : 'text-[var(--ink)]'
-                                  }`}>
-                                    {task.title}
-                                  </p>
-                                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px]">
-                                    <span className={`px-1.5 py-0.5 rounded ${statusConfig.bg} ${statusConfig.color}`}>
-                                      {statusConfig.label}
-                                    </span>
-                                    {task.due_date && (
-                                      <span className="text-gray-400 flex items-center gap-0.5">
-                                        <Calendar size={9} />
-                                        {new Date(task.due_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {!area.context && area.tasks.length === 0 && (
-                      <p className="mt-3 text-xs text-gray-400 italic">Sin contenido en esta área</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Roadmap Tab ───
-function RoadmapTab({ milestones, clientId, period, onRefresh }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nombre: '', meta: '', responsable: 'lareal' });
-
-  const handleCreate = async () => {
-    if (!form.nombre) return;
-    try {
-      await growthAPI.createMilestone(clientId, { ...form, period });
-      setForm({ nombre: '', meta: '', responsable: 'lareal' });
-      setShowForm(false);
-      onRefresh();
-    } catch (error) { console.error(error); }
-  };
-
-  const handleToggleStatus = async (ms) => {
-    const next = { pending: 'progress', progress: 'done', done: 'pending', blocked: 'pending' };
-    try { await growthAPI.updateMilestone(ms.id, { ...ms, status: next[ms.status] || 'pending' }); onRefresh(); } catch (e) { console.error(e); }
-  };
-
-  const handleDelete = async (id) => {
-    try { await growthAPI.deleteMilestone(id); onRefresh(); } catch (e) { console.error(e); }
-  };
-
-  const statusIcons = {
-    done: <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center"><Check className="w-3.5 h-3.5 text-green-600" /></div>,
-    progress: <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center"><Clock className="w-3.5 h-3.5 text-blue-600" /></div>,
-    pending: <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center"><Minus className="w-3.5 h-3.5 text-gray-400" /></div>,
-    blocked: <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center"><AlertTriangle className="w-3.5 h-3.5 text-red-500" /></div>,
-  };
-
-  const completedCount = milestones.filter(m => m.status === 'done').length;
-  const progressPct = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader label="Milestones del mes" />
-
-      {/* Progress bar */}
-      {milestones.length > 0 && (
-        <div className="glass-solid rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-400">Progreso</span>
-            <span className="text-sm font-bold text-[var(--ink)]">{completedCount}/{milestones.length} ({progressPct}%)</span>
-          </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {milestones.map((ms) => (
-          <div key={ms.id} className="glass-solid rounded-xl p-4 flex items-center gap-3 hover:border-green-200 transition-colors">
-            <button onClick={() => handleToggleStatus(ms)} className="flex-shrink-0" title="Cambiar estado">
-              {statusIcons[ms.status]}
-            </button>
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${ms.status === 'done' ? 'line-through text-gray-400' : 'text-[var(--ink)]'}`}>{ms.nombre}</p>
-              {ms.meta && <p className="text-xs text-gray-400 mt-0.5">{ms.meta}</p>}
-            </div>
-            <span className={`text-[10px] px-2 py-1 rounded font-medium flex-shrink-0 ${
-              ms.responsable === 'lareal' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-            }`}>
-              {ms.responsable === 'lareal' ? 'LA REAL' : 'CLIENTE'}
-            </span>
-            <button onClick={() => handleDelete(ms.id)} className="p-1.5 text-gray-300 hover:text-red-500 rounded transition-colors flex-shrink-0">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {showForm ? (
-        <div className="glass-solid rounded-xl p-4 space-y-3">
-          <input value={form.nombre} onChange={(e) => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre del milestone" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input value={form.meta} onChange={(e) => setForm(f => ({ ...f, meta: e.target.value }))} placeholder="Meta (ej: Semana 2 — Abril)" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-            <select value={form.responsable} onChange={(e) => setForm(f => ({ ...f, responsable: e.target.value }))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option value="lareal">LA REAL</option>
-              <option value="cliente">Cliente</option>
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[var(--dark)] text-white rounded-lg">Agregar</button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[var(--ink)] transition-colors">
-          <Plus className="w-4 h-4" /> Agregar milestone
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ─── Alertas Tab ───
-function AlertasTab({ banderas, clientId, period, onRefresh }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ titulo: '', descripcion: '', nivel: 'media' });
-
-  const handleCreate = async () => {
-    if (!form.titulo) return;
-    try {
-      await growthAPI.createBandera(clientId, { ...form, period });
-      setForm({ titulo: '', descripcion: '', nivel: 'media' });
-      setShowForm(false);
-      onRefresh();
-    } catch (error) { console.error(error); }
-  };
-
-  const handleDelete = async (id) => {
-    try { await growthAPI.deleteBandera(id); onRefresh(); } catch (e) { console.error(e); }
-  };
-
-  const nivelStyles = {
-    critica: 'border-l-red-500 bg-red-50',
-    alta: 'border-l-yellow-500 bg-yellow-50',
-    media: 'border-l-gray-300 bg-gray-50',
-  };
-
-  const nivelLabels = { critica: 'CRITICA', alta: 'ALTA', media: 'MEDIA' };
-
-  return (
-    <div className="space-y-4">
-      <SectionHeader label="Banderas activas" />
-
-      {banderas.length === 0 && !showForm && (
-        <div className="glass-solid rounded-xl p-8 text-center">
-          <Flag className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-400 text-sm">Sin banderas activas</p>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {banderas.map((b) => (
-          <div key={b.id} className={`rounded-xl p-4 border-l-4 ${nivelStyles[b.nivel] || nivelStyles.media}`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                    b.nivel === 'critica' ? 'text-red-600' : b.nivel === 'alta' ? 'text-yellow-700' : 'text-gray-500'
-                  }`}>
-                    {nivelLabels[b.nivel]}
-                  </span>
-                </div>
-                <p className="font-medium text-sm text-[var(--ink)]">{b.titulo}</p>
-                {b.descripcion && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{b.descripcion}</p>}
-              </div>
-              <button onClick={() => handleDelete(b.id)} className="p-1.5 text-gray-300 hover:text-red-500 rounded transition-colors flex-shrink-0">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {showForm ? (
-        <div className="glass-solid rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-            <input value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Título de la bandera" className="sm:col-span-3 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-            <select value={form.nivel} onChange={(e) => setForm(f => ({ ...f, nivel: e.target.value }))} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option value="critica">Crítica</option>
-              <option value="alta">Alta</option>
-              <option value="media">Media</option>
-            </select>
-          </div>
-          <textarea value={form.descripcion} onChange={(e) => setForm(f => ({ ...f, descripcion: e.target.value }))} placeholder="Descripción" rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            <button onClick={handleCreate} className="px-4 py-2 text-sm bg-[var(--dark)] text-white rounded-lg">Agregar</button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[var(--ink)] transition-colors">
-          <Plus className="w-4 h-4" /> Agregar bandera
-        </button>
       )}
     </div>
   );
