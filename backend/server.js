@@ -57,7 +57,7 @@ import googleAdsOAuthRoutes from './src/routes/google-ads-oauth.js';
 import tiktokOAuthRoutes from './src/routes/tiktok-oauth.js';
 import shopifyOAuthRoutes from './src/routes/shopify-oauth.js';
 import woocommerceAuthRoutes from './src/routes/woocommerce-auth.js';
-import { syncAllClientsForDate } from './src/services/metricsSyncService.js';
+import { syncAllClientsForDate, runReachBackfillOnStartup } from './src/services/metricsSyncService.js';
 import { runScheduled as runWhatsAppBriefing } from './src/services/whatsappBriefings.js';
 // PDF Analysis (RUT extraction with Claude AI)
 import pdfAnalysisRoutes from './src/routes/pdf-analysis.js';
@@ -204,6 +204,13 @@ httpServer.listen(PORT, '0.0.0.0', () => {
         // Seed portfolio data (idempotent — only runs if clients are unclassified)
         await seedPortfolioData();
         console.log('✅ Application fully operational');
+        // Alcance/frecuencia de Meta: backfill de 90 días una sola vez por organización
+        // (solo si hay clientes con Meta sin fb_reach reciente). En segundo plano, con marcador.
+        setTimeout(() => {
+          runReachBackfillOnStartup()
+            .then((r) => { if (r.orgsChecked) console.log(`🔁 Backfill de alcance al arrancar: ${r.orgsBackfilled}/${r.orgsChecked} organizaciones`); })
+            .catch((err) => console.error('⚠️  Backfill de alcance al arrancar falló:', err.message));
+        }, 20000);
       } catch (migrationError) {
         console.error('⚠️  Multi-tenancy migration skipped or failed:', migrationError.message);
         console.log('✅ Application operational (migration may have already run)');

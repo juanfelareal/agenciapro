@@ -2689,6 +2689,9 @@ export const initializeDatabase = async () => {
       // Messaging / interaction campaigns
       { name: 'fb_messaging_conversations', type: 'INTEGER DEFAULT 0' },
       { name: 'fb_cost_per_messaging_conversation', type: 'REAL DEFAULT 0' },
+      // Alcance y frecuencia del día (Meta los entrega listos en Insights; 0 = sin dato)
+      { name: 'fb_reach', type: 'INTEGER DEFAULT 0' },
+      { name: 'fb_frequency', type: 'NUMERIC(8,3) DEFAULT 0' },
       // Google Ads metrics
       { name: 'ga_spend', type: 'REAL DEFAULT 0' },
       { name: 'ga_impressions', type: 'INTEGER DEFAULT 0' },
@@ -2723,6 +2726,17 @@ export const initializeDatabase = async () => {
         END $$;
       `);
     }
+    // Idempotente (por si la tabla se creó sin ellas): alcance y frecuencia diarios de Meta
+    await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS fb_reach INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE client_daily_metrics ADD COLUMN IF NOT EXISTS fb_frequency NUMERIC(8,3) DEFAULT 0`);
+
+    // Marcadores de tareas de una sola vez (p. ej. backfill de alcance al arrancar)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sync_markers (
+        key TEXT PRIMARY KEY,
+        done_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     // ========================================
     // AI INSIGHTS

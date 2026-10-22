@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { formatFrequency } from '../utils/metrics';
 import { ChevronUp, ChevronDown, Download } from 'lucide-react';
 
 /**
@@ -68,6 +69,8 @@ function MetricsTable({
         return `${Number(value).toFixed(2)}%`;
       case 'decimal':
         return Number(value).toFixed(2);
+      case 'frequency':
+        return formatFrequency(value);
       case 'integer':
         return new Intl.NumberFormat('es-CO').format(Math.round(value));
       case 'date':
