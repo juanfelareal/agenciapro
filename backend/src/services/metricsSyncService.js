@@ -8,6 +8,7 @@ import { recalcWhatsappSpend, isWhatsappSalesEnabled } from './whatsappSales.js'
 import { isLabEnabled, syncInventory } from './financialLab.js';
 import { recordProductSalesFromOrders } from './clientFinancialsService.js';
 import { upsertOrders } from './orderLedger.js';
+import { withFacebookFallback } from '../utils/facebookClient.js';
 
 /**
  * Metrics Sync Service
@@ -204,6 +205,8 @@ export async function upsertDailyMetrics(clientId, date, metrics, orgId = null) 
           overall_roas = ?,
           cost_per_order = ?,
           ad_spend_percentage = ?,
+          fb_reach = ?,
+          fb_frequency = ?,
           updated_at = NOW()
       WHERE id = ?
     `).run(
@@ -266,6 +269,8 @@ export async function upsertDailyMetrics(clientId, date, metrics, orgId = null) 
       metrics.overall_roas || 0,
       metrics.cost_per_order || 0,
       metrics.ad_spend_percentage || 0,
+      metrics.fb_reach || 0,
+      metrics.fb_frequency || 0,
       existing.id
     );
   } else {
@@ -286,8 +291,9 @@ export async function upsertDailyMetrics(clientId, date, metrics, orgId = null) 
         ga_conversions, ga_revenue, ga_roas, ga_cost_per_conversion,
         tt_spend, tt_impressions, tt_clicks, tt_ctr, tt_cpc, tt_cpm,
         tt_conversions, tt_revenue, tt_roas, tt_cost_per_conversion,
-        total_revenue, overall_roas, cost_per_order, ad_spend_percentage
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        total_revenue, overall_roas, cost_per_order, ad_spend_percentage,
+        fb_reach, fb_frequency
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       clientId, organizationId, date,
       metrics.shopify_revenue || 0,
@@ -348,7 +354,9 @@ export async function upsertDailyMetrics(clientId, date, metrics, orgId = null) 
       metrics.total_revenue || 0,
       metrics.overall_roas || 0,
       metrics.cost_per_order || 0,
-      metrics.ad_spend_percentage || 0
+      metrics.ad_spend_percentage || 0,
+      metrics.fb_reach || 0,
+      metrics.fb_frequency || 0
     );
   }
 }
@@ -414,7 +422,7 @@ export async function syncClientForDate(clientId, date) {
   }
 
   let shopifyMetrics = { revenue: 0, orders: 0, aov: 0, refunds: 0, netRevenue: 0, totalTax: 0, totalDiscounts: 0, totalDiscountsNet: 0, sessions: 0, conversionRate: 0, pendingOrders: 0, allOrdersRevenue: 0, allOrderCount: 0, customers: 0 };
-  let fbMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerPurchase: 0, costPerLandingPageView: 0, landingPageViews: 0, video3SecViews: 0, videoThruplayViews: 0, hookRate: 0, holdRate: 0 };
+  let fbMetrics = { spend: 0, impressions: 0, reach: 0, frequency: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerPurchase: 0, costPerLandingPageView: 0, landingPageViews: 0, video3SecViews: 0, videoThruplayViews: 0, hookRate: 0, holdRate: 0 };
   let googleMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerConversion: 0 };
   let tiktokMetrics = { spend: 0, impressions: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0, conversions: 0, revenue: 0, roas: 0, costPerConversion: 0 };
   let shopifyOk = false;
@@ -566,6 +574,8 @@ export async function syncClientForDate(clientId, date) {
     fb_hold_rate: fbMetrics.holdRate,
     fb_messaging_conversations: fbMetrics.messagingConversations,
     fb_cost_per_messaging_conversation: fbMetrics.costPerMessagingConversation,
+    fb_reach: fbMetrics.reach,
+    fb_frequency: fbMetrics.frequency,
     ga_spend: googleMetrics.spend,
     ga_impressions: googleMetrics.impressions,
     ga_clicks: googleMetrics.clicks,
@@ -940,10 +950,125 @@ export async function syncAllClientsSmart(startDate = null, endDate = null, orgI
   };
 }
 
+// ============================================
+// ALCANCE / FRECUENCIA — recálculo histórico
+// ============================================
+
+/**
+ * Clientes activos de una organización con cuenta de Meta configurada.
+ * El token personal puede faltar: withFacebookFallback usa el token de sistema.
+ */
+async function getMetaClients(orgId) {
+  return db.prepare(`
+    SELECT c.id, c.name, c.company, fb.access_token, fb.ad_account_id
+    FROM clients c
+    JOIN client_facebook_credentials fb ON fb.client_id = c.id
+    WHERE c.organization_id = ? AND c.status = 'active'
+      AND fb.ad_account_id IS NOT NULL AND fb.ad_account_id != ''
+    ORDER BY c.id
+  `).all(orgId);
+}
+
+/**
+ * Rellena fb_reach / fb_frequency de los últimos `days` días para cada cliente
+ * con Meta conectado: UNA llamada a Insights por cliente (time_increment=1) y
+ * UPDATE solo de esas dos columnas en los días que ya existen (no toca Shopify
+ * ni el resto de columnas). Pausa de 600 ms entre clientes.
+ * @returns {Promise<{clients:number, daysUpdated:number, errors:Array}>}
+ */
+export async function backfillReach(orgId, days = 90) {
+  if (!orgId) throw new Error('orgId es requerido');
+  const safeDays = Math.max(1, Math.min(parseInt(days) || 90, 365));
+  const endDate = getColombiaDate(0);
+  const startDate = getColombiaDate(-(safeDays - 1));
+  const clients = await getMetaClients(orgId);
+  let daysUpdated = 0;
+  const errors = [];
+
+  console.log(`\n🔁 Backfill de alcance/frecuencia org ${orgId}: ${startDate} → ${endDate}, ${clients.length} clientes con Meta`);
+
+  for (let i = 0; i < clients.length; i++) {
+    const client = clients[i];
+    const label = client.name || client.company || client.id;
+    try {
+      const { result: rows } = await withFacebookFallback(
+        { access_token: client.access_token, ad_account_id: client.ad_account_id },
+        (fb) => fb.getDailyReach(startDate, endDate),
+        'Backfill alcance'
+      );
+      for (const r of rows) {
+        if (!r.date || r.reach <= 0) continue;
+        const upd = await db.prepare(`
+          UPDATE client_daily_metrics
+          SET fb_reach = ?, fb_frequency = ?, updated_at = NOW()
+          WHERE client_id = ? AND metric_date = ?
+        `).run(r.reach, r.frequency, client.id, r.date);
+        daysUpdated += upd.changes || 0;
+      }
+      console.log(`  ✅ ${label}: ${rows.length} días con alcance`);
+    } catch (error) {
+      const msg = error.response?.data?.error?.message || error.message;
+      console.error(`  ❌ ${label}: ${msg}`);
+      errors.push({ clientId: client.id, error: msg });
+    }
+    if (i < clients.length - 1) await sleep(600);
+  }
+
+  console.log(`🔁 Backfill de alcance terminado: ${daysUpdated} días actualizados, ${errors.length} errores`);
+  return { clients: clients.length, daysUpdated, errors };
+}
+
+/**
+ * Al arrancar: corre backfillReach una sola vez por organización que tenga
+ * clientes con Meta y sin fb_reach en los últimos 7 días. El marcador en
+ * sync_markers evita repetirlo en cada reinicio. No bloquea el arranque.
+ */
+export async function runReachBackfillOnStartup() {
+  // metric_date se compara como texto YYYY-MM-DD (igual que el resto de consultas)
+  const since = getColombiaDate(-7);
+  const orgs = await db.prepare(`
+    SELECT DISTINCT c.organization_id AS org_id
+    FROM clients c
+    JOIN client_facebook_credentials fb ON fb.client_id = c.id
+    WHERE c.status = 'active' AND c.organization_id IS NOT NULL
+      AND fb.ad_account_id IS NOT NULL AND fb.ad_account_id != ''
+      AND NOT EXISTS (
+        SELECT 1 FROM client_daily_metrics m
+        WHERE m.client_id = c.id
+          AND m.metric_date >= ?
+          AND COALESCE(m.fb_reach, 0) > 0
+      )
+  `).all(since);
+
+  let ran = 0;
+  for (const { org_id } of orgs) {
+    const key = `reach_backfill_v1:org:${org_id}`;
+    const done = await db.prepare('SELECT key FROM sync_markers WHERE key = ?').get(key);
+    if (done) continue;
+    try {
+      const result = await backfillReach(org_id, 90);
+      // Si TODOS los clientes fallaron (p. ej. Meta caído al arrancar) no se marca: se reintenta en el próximo arranque
+      const allFailed = result.clients > 0 && result.errors.length === result.clients && result.daysUpdated === 0;
+      if (allFailed) {
+        console.warn(`  ⚠️ Backfill de alcance org ${org_id}: todos los clientes fallaron, se reintentará en el próximo arranque`);
+        continue;
+      }
+      // RETURNING key explícito: el wrapper agrega "RETURNING id" a los INSERT y esta tabla no tiene id
+      await db.prepare('INSERT INTO sync_markers (key, done_at) VALUES (?, NOW()) ON CONFLICT (key) DO UPDATE SET done_at = NOW() RETURNING key').run(key);
+      ran++;
+    } catch (error) {
+      console.error(`  ❌ Backfill de alcance org ${org_id}:`, error.message);
+    }
+  }
+  return { orgsChecked: orgs.length, orgsBackfilled: ran };
+}
+
 export default {
   getClientsWithCredentials,
   syncClientForDate,
   syncClientDateRange,
   syncAllClientsForDate,
-  syncAllClientsSmart
+  syncAllClientsSmart,
+  backfillReach,
+  runReachBackfillOnStartup
 };

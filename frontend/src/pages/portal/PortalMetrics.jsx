@@ -9,9 +9,10 @@ import PortalEmailMarketingSection from '../../components/portal/PortalEmailMark
 import PortalWhatsappSales from '../../components/portal/PortalWhatsappSales';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import { formatFrequency, isFrequencyAlert, FREQUENCY_ALERT, FREQUENCY_DAILY_AVG_NOTE } from '../../utils/metrics';
 import {
   BarChart3,
   TrendingUp,
@@ -492,6 +493,7 @@ export default function PortalMetrics() {
     if (metrics?.facebook) {
       cols.push(
         { key: 'fb_cpm', label: 'CPM', type: 'currency', align: 'right' },
+        { key: 'fb_frequency', label: 'Frecuencia', type: 'frequency', align: 'right' },
         { key: 'fb_cost_per_purchase', label: 'Costo/Compra', type: 'currency', align: 'right' },
       );
     }
@@ -555,9 +557,15 @@ export default function PortalMetrics() {
           revenue: 0, orders: 0, spend: 0, sessions: 0,
           impressions: 0, conversions: 0, pending_orders: 0,
           video_3sec: 0, thruplay: 0,
+          reach: 0, reach_impressions: 0,
         };
       }
       const wk = weeks[w.key];
+      // Frecuencia semanal aproximada: Σimpresiones ÷ Σalcance de los días con alcance
+      if ((d.fb_reach || 0) > 0) {
+        wk.reach += d.fb_reach || 0;
+        wk.reach_impressions += d.fb_impressions || 0;
+      }
       wk.revenue += d.shopify_revenue || 0;
       wk.orders += d.shopify_orders || 0;
       wk.spend += d.fb_spend || 0;
@@ -580,6 +588,7 @@ export default function PortalMetrics() {
         overall_roas: w.spend > 0 ? w.revenue / w.spend : 0,
         cost_per_order: w.orders > 0 ? w.spend / w.orders : 0,
         fb_cpm: w.impressions > 0 ? (w.spend / w.impressions) * 1000 : 0,
+        fb_frequency: w.reach > 0 ? w.reach_impressions / w.reach : null,
         fb_cost_per_purchase: w.conversions > 0 ? w.spend / w.conversions : 0,
         shopify_sessions: w.sessions,
         shopify_conversion_rate: w.sessions > 0 ? (w.orders / w.sessions) * 100 : 0,
@@ -659,6 +668,7 @@ export default function PortalMetrics() {
     holdRate: d.fb_hold_rate || 0,
     costoCompra: d.fb_cost_per_purchase || 0,
     cpm: d.fb_cpm || 0,
+    frequency: d.fb_frequency ?? null,
     sessions: d.shopify_sessions || 0,
     orders: d.shopify_orders || 0,
     conversionRate: d.shopify_conversion_rate || 0,
@@ -1018,7 +1028,7 @@ export default function PortalMetrics() {
               </div>
 
               {/* Cost Efficiency Metrics */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* CPM */}
                 <div className="glass-card p-5">
                   <div className="flex items-center justify-between">
@@ -1031,6 +1041,34 @@ export default function PortalMetrics() {
                     <TrendIndicator value={metrics.facebook.cpm_change} inverted />
                   </div>
                 </div>
+
+                {/* Frecuencia (Meta la entrega lista; > 3,5 = fatiga de audiencia) */}
+                {(() => {
+                  const freq = metrics.facebook.frequency;
+                  const alert = isFrequencyAlert(freq);
+                  return (
+                    <div className={`glass-card p-5 ${alert ? 'ring-1 ring-red-300' : ''}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Frecuencia</p>
+                          <p className={`text-xl font-bold mt-1 tabular-nums ${alert ? 'text-red-600' : 'text-[var(--ink)]'}`}>
+                            {formatFrequency(freq)}
+                          </p>
+                        </div>
+                        <TrendIndicator value={metrics.facebook.frequency_change} inverted />
+                      </div>
+                      {alert && (
+                        <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Fatiga de audiencia (más de {formatFrequency(FREQUENCY_ALERT)} veces por persona)
+                        </p>
+                      )}
+                      {metrics.facebook.frequency_source === 'daily_avg' && (
+                        <p className="text-[11px] text-gray-400 mt-2">{FREQUENCY_DAILY_AVG_NOTE}</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Cost per Purchase */}
                 <div className="glass-card p-5">
@@ -1737,6 +1775,28 @@ export default function PortalMetrics() {
                       <Area type="monotone" dataKey="cpm" stroke="#F59E0B" strokeWidth={2} fill="url(#portalCpmGrad)" />
                     </AreaChart>
                   </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 5. Frecuencia diaria (línea de referencia en 3,5 = fatiga) */}
+              {metrics?.facebook && chartData.some(d => d.frequency !== null) && (
+                <div className="glass-card p-6">
+                  <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Frecuencia</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                      <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={formatFrequency} domain={[0, (max) => Math.max(FREQUENCY_ALERT + 0.5, Math.ceil(max || 0))]} />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value) => [formatFrequency(value), 'Frecuencia']}
+                        labelFormatter={fmtDateLabel}
+                      />
+                      <ReferenceLine y={FREQUENCY_ALERT} stroke="#EF4444" strokeDasharray="4 4" label={{ value: `Fatiga ${formatFrequency(FREQUENCY_ALERT)}`, position: 'insideTopRight', fontSize: 11, fill: '#EF4444' }} />
+                      <Line type="monotone" dataKey="frequency" stroke="var(--accent)" strokeWidth={2} dot={false} connectNulls />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <p className="text-[11px] text-gray-400 mt-2">Frecuencia de cada día según Meta. La del rango completo está en la tarjeta de Facebook Ads.</p>
                 </div>
               )}
 

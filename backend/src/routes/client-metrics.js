@@ -4,7 +4,8 @@ import { syncClientForDate, syncClientDateRange, syncAllClientsForDate, syncAllC
 import GoogleAdsIntegration from '../integrations/googleAds.js';
 import TikTokAdsIntegration from '../integrations/tiktokAds.js';
 import { getStoreIntegration } from '../integrations/storeIntegration.js';
-import { backfillSessions } from '../services/metricsSyncService.js';
+import { backfillSessions, backfillReach } from '../services/metricsSyncService.js';
+import { getRangeFrequency, frequencyChange } from '../services/metaFrequencyService.js';
 import { dailyWhatsappRevenue, dailyWhatsappSpend } from '../utils/revenueMetric.js';
 import { withFacebookFallback } from '../utils/facebookClient.js';
 import { normalizeRevenueMetric, revenueMetricLabel, pickDisplayRevenue, pickDailyDisplayRevenue, dailyAdSpend } from '../utils/revenueMetric.js';
@@ -169,7 +170,7 @@ router.get('/:clientId', async (req, res) => {
   try {
     const orgId = req.orgId;
     const { clientId } = req.params;
-    const { start_date, end_date } = req.query;
+    const { start_date, end_date, compare_start, compare_end } = req.query;
 
     if (!start_date || !end_date) {
       return res.status(400).json({ error: 'start_date y end_date son requeridos' });
@@ -187,6 +188,15 @@ router.get('/:clientId', async (req, res) => {
     }
     const revenueMetric = normalizeRevenueMetric(client.portal_revenue_metric);
     const whatsappSalesEnabled = Number(client.whatsapp_sales_enabled) === 1;
+
+    // Frecuencia del rango: en vivo desde Meta (frequency tal cual), plan B promedio diario.
+    // Si piden compare_start/compare_end también se calcula la variación.
+    const [freq, prevFreq] = await Promise.all([
+      getRangeFrequency({ clientId: Number(clientId), orgId, since: start_date, until: end_date }).catch(() => null),
+      compare_start && compare_end
+        ? getRangeFrequency({ clientId: Number(clientId), orgId, since: compare_start, until: compare_end }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
 
     const metrics = await db.prepare(`
       SELECT
@@ -336,6 +346,11 @@ router.get('/:clientId', async (req, res) => {
       },
       hook_rate: totalImpressions > 0 ? (totalVideo3sec / totalImpressions) * 100 : 0,
       hold_rate: totalVideo3sec > 0 ? (totalVideoThruplay / totalVideo3sec) * 100 : 0,
+      // Frecuencia Meta del rango (null = sin dato; nunca 0 ni infinito)
+      frequency: freq?.frequency ?? null,
+      frequency_source: freq?.source ?? null, // 'meta' | 'daily_avg' | null
+      frequency_reach: freq?.reach ?? null,
+      frequency_change: prevFreq ? frequencyChange(freq?.frequency ?? null, prevFreq.frequency) : null,
       conversion_rate: totalSessions > 0 ? (totalOrders / totalSessions) * 100 : 0,
       total_tax: parseFloat(metrics.total_tax) || 0,
       total_discounts: parseFloat(metrics.total_discounts) || 0,
@@ -411,6 +426,8 @@ router.get('/:clientId/daily', async (req, res) => {
         fb_hold_rate,
         fb_messaging_conversations,
         fb_cost_per_messaging_conversation,
+        fb_reach,
+        fb_frequency,
         ga_spend,
         ga_impressions,
         ga_clicks,
@@ -455,8 +472,13 @@ router.get('/:clientId/daily', async (req, res) => {
       const waSpend = Math.min(dailyWhatsappSpend(row), adSpend);
       const displayRevenue = webRevenue + waRevenue; // tienda + WhatsApp
       const sessions = parseFloat(row.shopify_sessions) || 0;
+      const reach = parseFloat(row.fb_reach) || 0;
+      const storedFrequency = parseFloat(row.fb_frequency) || 0;
       return {
         ...row,
+        // Frecuencia del día tal cual la guardó Meta (NUMERIC llega como string). null = sin alcance ese día.
+        fb_reach: reach > 0 ? reach : null,
+        fb_frequency: reach > 0 ? (storedFrequency > 0 ? storedFrequency : (parseFloat(row.fb_impressions) || 0) / reach) : null,
         // Tasa de conversión de la tienda con la misma fórmula del KPI del rango
         // (pedidos web ÷ sesiones). null cuando no hay sesiones: "sin dato", no 0%.
         store_conversion_rate: sessions > 0 ? ((parseFloat(row.shopify_orders) || 0) / sessions) * 100 : null,
@@ -513,6 +535,8 @@ router.get('/aggregate/all', async (req, res) => {
         SUM(m.fb_impressions) as total_impressions,
         SUM(m.fb_clicks) as total_clicks,
         AVG(m.fb_ctr) as avg_ctr,
+        SUM(CASE WHEN COALESCE(m.fb_reach, 0) > 0 THEN m.fb_reach ELSE 0 END) as total_reach,
+        SUM(CASE WHEN COALESCE(m.fb_reach, 0) > 0 THEN m.fb_impressions ELSE 0 END) as reach_impressions,
         SUM(m.shopify_total_tax) as total_tax,
         SUM(m.shopify_total_discounts) as total_discounts,
         SUM(m.shopify_sessions) as total_sessions,
@@ -546,6 +570,11 @@ router.get('/aggregate/all', async (req, res) => {
       const totalImpressions = parseFloat(client.total_impressions) || 0;
       const totalClicks = parseFloat(client.total_clicks) || 0;
       const totalConversions = parseFloat(client.total_conversions) || 0;
+      // Frecuencia aproximada del rango: Σimpresiones ÷ Σalcance diario (solo días con alcance).
+      // La frecuencia exacta del rango (usuarios únicos) se consulta en vivo en la ficha del cliente.
+      const totalReach = parseFloat(client.total_reach) || 0;
+      const reachImpressions = parseFloat(client.reach_impressions) || 0;
+      const frequency = totalReach > 0 && reachImpressions > 0 ? reachImpressions / totalReach : null;
 
       const netRevenue = parseFloat(client.net_revenue) || 0;
       const allOrdersRevenue = parseFloat(client.total_all_orders_revenue) || 0;
@@ -588,6 +617,10 @@ router.get('/aggregate/all', async (req, res) => {
         ticket_promedio: totalOrders > 0 ? displayRevenue / totalOrders : 0,
         cpm: totalFbSpend > 0 && totalImpressions > 0 ? (totalFbSpend / totalImpressions) * 1000 : 0,
         cost_per_purchase: totalConversions > 0 ? totalFbSpend / totalConversions : 0,
+        total_reach: totalReach,
+        reach_impressions: reachImpressions,
+        frequency,
+        frequency_source: frequency !== null ? 'daily_avg' : null,
         total_tax: parseFloat(client.total_tax) || 0,
         total_discounts: parseFloat(client.total_discounts) || 0,
         total_sessions: parseFloat(client.total_sessions) || 0,
@@ -609,7 +642,9 @@ router.get('/aggregate/all', async (req, res) => {
       total_clicks: acc.total_clicks + (client.total_clicks || 0),
       // Pedidos solo de clientes con sesiones, para no inflar la tasa con tiendas sin dato
       sessions_orders: acc.sessions_orders + (client.total_sessions > 0 ? client.total_orders : 0),
-      total_sessions: acc.total_sessions + (client.total_sessions || 0)
+      total_sessions: acc.total_sessions + (client.total_sessions || 0),
+      total_reach: acc.total_reach + (client.total_reach || 0),
+      reach_impressions: acc.reach_impressions + (client.reach_impressions || 0)
     }), {
       total_revenue: 0,
       net_revenue: 0,
@@ -619,8 +654,12 @@ router.get('/aggregate/all', async (req, res) => {
       total_impressions: 0,
       total_clicks: 0,
       sessions_orders: 0,
-      total_sessions: 0
+      total_sessions: 0,
+      total_reach: 0,
+      reach_impressions: 0
     });
+    // Frecuencia aproximada global: Σimpresiones ÷ Σalcance diario de los clientes con alcance
+    totals.frequency = totals.total_reach > 0 ? totals.reach_impressions / totals.total_reach : null;
 
     totals.roas = totals.total_ad_spend > 0 ? totals.display_revenue / totals.total_ad_spend : 0;
     totals.avg_ctr = totals.total_impressions > 0 ? (totals.total_clicks / totals.total_impressions) * 100 : 0;
@@ -920,6 +959,45 @@ router.post('/backfill-sessions', async (req, res) => {
     const results = [];
     for (const c of clients) results.push(await backfillSessions(c.id, start_date, end_date));
     res.json({ clients: results.length, results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/client-metrics/backfill-reach
+ * Rellena fb_reach / fb_frequency de los últimos N días (90 por defecto) para los
+ * clientes con Meta de ESTA organización. Una llamada a Insights por cliente.
+ * Solo administradores. Corre en segundo plano.
+ */
+router.post('/backfill-reach', async (req, res) => {
+  try {
+    if (req.teamMember?.role !== 'admin') return res.status(403).json({ error: 'Solo administradores' });
+    const days = Math.max(1, Math.min(parseInt(req.body?.days) || 90, 365));
+    const metaClients = await db.prepare(`
+      SELECT COUNT(*) AS n
+      FROM clients c
+      JOIN client_facebook_credentials fb ON fb.client_id = c.id
+      WHERE c.organization_id = ? AND c.status = 'active'
+        AND fb.ad_account_id IS NOT NULL AND fb.ad_account_id != ''
+    `).get(req.orgId);
+    const clients = parseInt(metaClients?.n) || 0;
+
+    res.json({
+      message: clients > 0
+        ? `Recálculo de alcance y frecuencia de ${days} días iniciado para ${clients} cliente(s) con Meta.`
+        : 'No hay clientes con Meta conectado en esta organización.',
+      status: clients > 0 ? 'running' : 'skipped',
+      background: true,
+      days,
+      clients,
+    });
+
+    if (clients > 0) {
+      backfillReach(req.orgId, days)
+        .then((r) => console.log(`✅ Backfill alcance org ${req.orgId}: ${r.daysUpdated} días, ${r.errors.length} errores`))
+        .catch((err) => console.error(`❌ Backfill alcance org ${req.orgId} falló:`, err.message));
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

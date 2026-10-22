@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { formatFrequency } from '../utils/metrics';
 
 /**
  * MetricCard - Reusable card component for displaying metrics
@@ -37,6 +38,8 @@ function MetricCard({
         return `${Number(val).toFixed(2)}%`;
       case 'decimal':
         return Number(val).toFixed(2);
+      case 'frequency':
+        return formatFrequency(val);
       case 'integer':
         return new Intl.NumberFormat('es-CO').format(Math.round(val));
       default:
@@ -61,6 +64,8 @@ function MetricCard({
         return `${Number(val).toFixed(1)}%`;
       case 'decimal':
         return Number(val).toFixed(2);
+      case 'frequency':
+        return formatFrequency(val);
       case 'integer':
         return new Intl.NumberFormat('es-CO').format(Math.round(val));
       default:

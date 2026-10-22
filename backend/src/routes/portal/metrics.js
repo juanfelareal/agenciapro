@@ -3,6 +3,7 @@ import db from '../../config/database.js';
 import { clientAuthMiddleware, requirePortalPermission } from '../../middleware/clientAuth.js';
 import FacebookAdsIntegration from '../../integrations/facebookAds.js';
 import { withFacebookFallback } from '../../utils/facebookClient.js';
+import { getRangeFrequency, frequencyChange } from '../../services/metaFrequencyService.js';
 import GoogleAdsIntegration from '../../integrations/googleAds.js';
 import TikTokAdsIntegration from '../../integrations/tiktokAds.js';
 import ShopifyIntegration from '../../integrations/shopify.js';
@@ -153,6 +154,15 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         AND metric_date >= ?
         AND metric_date <= ?
     `, [clientId, prevStart, prevEnd]) : null;
+
+    // Frecuencia Meta del rango (en vivo, frequency tal cual la entrega Meta; plan B promedio diario)
+    const orgIdForFreq = req.client.organization_id || null;
+    const [freq, prevFreq] = await Promise.all([
+      getRangeFrequency({ clientId, orgId: orgIdForFreq, since: startDate, until: endDate }).catch(() => null),
+      prevStart
+        ? getRangeFrequency({ clientId, orgId: orgIdForFreq, since: prevStart, until: prevEnd }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
 
     // Derived metrics — parseFloat needed because pg driver returns SUM() as string
     const p = (v) => parseFloat(v) || 0;
@@ -390,7 +400,12 @@ router.get('/', clientAuthMiddleware, requirePortalPermission('can_view_metrics'
         add_to_cart: addToCart,
         hook_rate: hookRate,
         hold_rate: holdRate,
+        // Frecuencia del rango: null = sin dato (nunca 0 ni infinito)
+        frequency: freq?.frequency ?? null,
+        frequency_source: freq?.source ?? null, // 'meta' | 'daily_avg' | null
+        reach: freq?.reach ?? null,
         ...(hasComparison && {
+          frequency_change: prevFreq ? frequencyChange(freq?.frequency ?? null, prevFreq.frequency) : null,
           spend_change: calcChange(fbSpend, prevSpend),
           impressions_change: calcChange(fbImpressions, prevImpressions),
           clicks_change: calcChange(fbClicks, prevClicks),
@@ -538,7 +553,7 @@ router.get('/daily', clientAuthMiddleware, requirePortalPermission('can_view_met
     const clientId = req.client.id;
     const { startDate, endDate } = resolveRange(req.query);
 
-    const dailyMetrics = await db.all(`
+    const rows = await db.all(`
       SELECT *
       FROM client_daily_metrics
       WHERE client_id = ?
@@ -546,6 +561,17 @@ router.get('/daily', clientAuthMiddleware, requirePortalPermission('can_view_met
         AND metric_date <= ?
       ORDER BY metric_date ASC
     `, [clientId, startDate, endDate]);
+
+    // Alcance/frecuencia del día: NUMERIC llega como string; sin alcance → null (no 0)
+    const dailyMetrics = rows.map((row) => {
+      const reach = parseFloat(row.fb_reach) || 0;
+      const storedFrequency = parseFloat(row.fb_frequency) || 0;
+      return {
+        ...row,
+        fb_reach: reach > 0 ? reach : null,
+        fb_frequency: reach > 0 ? (storedFrequency > 0 ? storedFrequency : (parseFloat(row.fb_impressions) || 0) / reach) : null,
+      };
+    });
 
     res.json(dailyMetrics);
   } catch (error) {

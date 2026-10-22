@@ -32,12 +32,14 @@ import {
   Music2,
   ShoppingBag,
   AlertTriangle,
-  Link2
+  Link2,
+  Repeat
 } from 'lucide-react';
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart, Cell,
+  LineChart, Line, AreaChart, Area, BarChart, Bar, ComposedChart, Cell, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import { formatFrequency, isFrequencyAlert, FREQUENCY_ALERT, FREQUENCY_DAILY_AVG_NOTE } from '../utils/metrics';
 import { clientsAPI, clientMetricsAPI, adTagsAPI, platformCredentialsAPI, facebookOAuthAPI } from '../utils/api';
 import MetricCard from '../components/MetricCard';
 import MetricsTable from '../components/MetricsTable';
@@ -518,6 +520,7 @@ function ClientMetrics() {
     { key: 'display_roas', label: 'ROAS', type: 'decimal', align: 'right' },
     { key: 'ad_spend_percentage', label: '% Inversion', type: 'percent', align: 'right' },
     { key: 'fb_cpm', label: 'CPM', type: 'currency', align: 'right' },
+    { key: 'fb_frequency', label: 'Frecuencia', type: 'frequency', align: 'right', tooltip: 'Frecuencia del día según Meta (impresiones ÷ personas alcanzadas)' },
     { key: 'fb_cost_per_purchase', label: 'Costo/Compra', type: 'currency', align: 'right' },
     ...(hasMessagingData ? [
       { key: 'fb_messaging_conversations', label: 'Conversaciones', type: 'integer', align: 'right' },
@@ -835,7 +838,7 @@ function ClientMetrics() {
         iconColor="text-blue-600"
         defaultOpen={false}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Inversión Meta"
             value={metrics?.total_fb_spend}
@@ -860,6 +863,28 @@ function ClientMetrics() {
             invertChange
             change={compareMode ? calcChange(metrics?.cpm, compareMetrics?.cpm) : null}
             compareValue={compareMode ? compareMetrics?.cpm : null}
+            changeLabel={compareMode ? 'vs anterior' : ''}
+          />
+          {/* Frecuencia del rango (Meta la entrega lista; > 3,5 = fatiga de audiencia) */}
+          <MetricCard
+            title="Frecuencia"
+            subtitle={
+              isFrequencyAlert(metrics?.frequency)
+                ? `Fatiga de audiencia (más de ${formatFrequency(FREQUENCY_ALERT)} veces por persona)`
+                : metrics?.frequency_source === 'daily_avg'
+                  ? FREQUENCY_DAILY_AVG_NOTE
+                  : 'Veces que cada persona vio los anuncios'
+            }
+            value={metrics?.frequency ?? null}
+            icon={Repeat}
+            iconBgColor={isFrequencyAlert(metrics?.frequency) ? 'bg-red-100' : 'bg-violet-100'}
+            iconColor={isFrequencyAlert(metrics?.frequency) ? 'text-red-600' : 'text-violet-600'}
+            valueColor={isFrequencyAlert(metrics?.frequency) ? 'text-red-600' : 'text-[var(--ink)]'}
+            format="frequency"
+            loading={loading}
+            invertChange
+            change={compareMode ? calcChange(metrics?.frequency, compareMetrics?.frequency) : null}
+            compareValue={compareMode ? compareMetrics?.frequency : null}
             changeLabel={compareMode ? 'vs anterior' : ''}
           />
           <MetricCard
@@ -1222,10 +1247,12 @@ function ClientMetrics() {
             costoPedido: d.cost_per_order || 0,
             pedidos: d.shopify_orders || 0,
             cpm: d.fb_cpm || 0,
+            frecuencia: d.fb_frequency ?? null,
             hookRate: d.fb_hook_rate || 0,
             holdRate: d.fb_hold_rate || 0,
             conversion: d.store_conversion_rate ?? null,
           }));
+        const hasFrequencySeries = chartData.some(d => d.frecuencia !== null);
 
         const fmtDate = (v) => {
           const d = new Date(v + 'T00:00:00');
@@ -1327,6 +1354,28 @@ function ClientMetrics() {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+
+            {/* 5. Frecuencia diaria (línea de referencia en 3,5 = fatiga) */}
+            {hasFrequencySeries && (
+              <div className="glass rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Frecuencia</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E5DF" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={fmtDate} />
+                    <YAxis tick={{ fontSize: 11, fill: '#7A7772' }} tickLine={false} axisLine={false} tickFormatter={formatFrequency} domain={[0, (max) => Math.max(FREQUENCY_ALERT + 0.5, Math.ceil(max || 0))]} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                      formatter={(value) => [formatFrequency(value), 'Frecuencia']}
+                      labelFormatter={fmtDate}
+                    />
+                    <ReferenceLine y={FREQUENCY_ALERT} stroke="#EF4444" strokeDasharray="4 4" label={{ value: `Fatiga ${formatFrequency(FREQUENCY_ALERT)}`, position: 'insideTopRight', fontSize: 11, fill: '#EF4444' }} />
+                    <Line type="monotone" dataKey="frecuencia" stroke="var(--accent)" strokeWidth={2} dot={false} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+                <p className="text-[11px] text-gray-400 mt-2">Frecuencia de cada día según Meta. La del rango completo está en la tarjeta Frecuencia.</p>
+              </div>
+            )}
 
             {/* 6. Pedidos diarios */}
             <div className="glass rounded-xl p-5">

@@ -63,6 +63,8 @@ class FacebookAdsIntegration {
             'date_stop',
             'spend',
             'impressions',
+            'reach',
+            'frequency',
             'clicks',
             'ctr',
             'cpc',
@@ -83,6 +85,63 @@ class FacebookAdsIntegration {
       console.error('Error fetching Facebook insights:', error.response?.data || error.message);
       throw error;
     }
+  }
+
+  /**
+   * Alcance, impresiones y frecuencia del RANGO completo (sin time_increment).
+   * La frecuencia la calcula Meta sobre usuarios únicos del rango; no es la suma
+   * ni el promedio de los días, por eso se pide aparte.
+   * @returns {Promise<{reach:number, impressions:number, frequency:number|null}|null>} null si no hubo entrega
+   */
+  async getRangeInsights(startDate, endDate) {
+    const response = await axios.get(`${FB_GRAPH_API_URL}/${this.adAccountId}/insights`, {
+      timeout: 12000,
+      params: {
+        access_token: this.accessToken,
+        time_range: JSON.stringify({ since: startDate, until: endDate }),
+        fields: 'reach,impressions,frequency',
+        level: 'account',
+      },
+    });
+    const row = response.data?.data?.[0];
+    if (!row) return null;
+    const frequency = parseFloat(row.frequency);
+    return {
+      reach: parseInt(row.reach) || 0,
+      impressions: parseInt(row.impressions) || 0,
+      frequency: Number.isFinite(frequency) && frequency > 0 ? frequency : null,
+    };
+  }
+
+  /**
+   * Alcance y frecuencia por día (una sola llamada con time_increment=1), para
+   * rellenar fb_reach / fb_frequency en días ya sincronizados.
+   * @returns {Promise<Array<{date:string, reach:number, frequency:number}>>}
+   */
+  async getDailyReach(startDate, endDate) {
+    const rows = [];
+    let url = `${FB_GRAPH_API_URL}/${this.adAccountId}/insights`;
+    let params = {
+      access_token: this.accessToken,
+      time_range: JSON.stringify({ since: startDate, until: endDate }),
+      time_increment: 1,
+      level: 'account',
+      fields: 'date_start,reach,frequency',
+      limit: 500,
+    };
+    for (let page = 0; page < 10 && url; page++) {
+      const response = await axios.get(url, { params, timeout: 20000 });
+      for (const r of response.data?.data || []) {
+        rows.push({
+          date: r.date_start,
+          reach: parseInt(r.reach) || 0,
+          frequency: parseFloat(r.frequency) || 0,
+        });
+      }
+      url = response.data?.paging?.next || null;
+      params = undefined; // la URL "next" ya trae los parámetros
+    }
+    return rows;
   }
 
   /**
@@ -292,6 +351,9 @@ class FacebookAdsIntegration {
     return insights.map(day => {
       const spend = parseFloat(day.spend) || 0;
       const impressions = parseInt(day.impressions) || 0;
+      // Alcance y frecuencia los entrega Meta ya calculados (frecuencia = impresiones / alcance del día)
+      const reach = parseInt(day.reach) || 0;
+      const frequency = parseFloat(day.frequency) || 0;
       const clicks = parseInt(day.clicks) || 0;
       const ctr = parseFloat(day.ctr) || 0;
       const cpc = parseFloat(day.cpc) || 0;
@@ -319,6 +381,8 @@ class FacebookAdsIntegration {
         date: day.date_start,
         spend,
         impressions,
+        reach,
+        frequency,
         clicks,
         ctr,
         cpc,
