@@ -40,8 +40,8 @@ export const fmtPct = (ratio, decimals = 0) => {
 /** Número ya en porcentaje: 34.5 → "34,5 %" */
 export const fmtPctNum = (n, decimals = 1) => (isNum(n) ? `${Number(n).toFixed(decimals).replace('.', ',')} %` : '—');
 
-/** 3.33 → "3,3×" */
-export const fmtX = (v) => (isNum(v) ? `${Number(v).toFixed(1).replace('.', ',')}×` : '—');
+/** 3.33 → "3,3×" (decimals opcional: fmtX(1.62, 2) → "1,62×") */
+export const fmtX = (v, decimals = 1) => (isNum(v) ? `${Number(v).toFixed(decimals).replace('.', ',')}×` : '—');
 
 export const fmtInt = (v) => (isNum(v) ? intFmt.format(Number(v)) : '—');
 

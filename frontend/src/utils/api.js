@@ -767,6 +767,7 @@ export const growthAPI = {
   syncInventory: (clientId) => api.post(`/growth/clients/${clientId}/inventory/sync`),
   setInventoryHidden: (clientId, productId, hidden) => api.put(`/growth/clients/${clientId}/inventory/${productId}/hidden`, { hidden }),
   getReserves: (clientId, period) => api.get(`/growth/clients/${clientId}/reserves`, { params: { period } }),
+  getScalability: (clientId, period, basis = 'net') => api.get(`/growth/clients/${clientId}/scalability`, { params: { period, basis } }),
   addReservePayment: (clientId, data) => api.post(`/growth/clients/${clientId}/reserves/payments`, data),
   renameReserveProvider: (clientId, provider, name) => api.put(`/growth/clients/${clientId}/reserves/providers/${encodeURIComponent(provider)}`, { name }),
   deleteReservePayment: (clientId, id) => api.delete(`/growth/clients/${clientId}/reserves/payments/${id}`),

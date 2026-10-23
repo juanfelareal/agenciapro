@@ -3,6 +3,7 @@ import db from '../config/database.js';
 import * as financials from '../services/clientFinancialsService.js';
 import * as edits from '../services/clientFinancialsEdits.js';
 import * as lab from '../services/financialLab.js';
+import { getScalability, normalizeBasis } from '../services/scalability.js';
 import { buildFinancialsWorkbook, financialsExportFilename, getClientBrandName } from '../services/financialsExport.js';
 import { backfillDiscounts } from '../services/discountsBackfill.js';
 import * as scenarios from '../services/financialScenarios.js';
@@ -609,6 +610,17 @@ router.delete('/clients/:clientId/reserves/payments/:paymentId', requireLab, asy
   try {
     res.json(await lab.deleteReservePayment(Number(req.params.clientId), Number(req.params.paymentId)));
   } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Escalabilidad: Break even ROAS (método Ramsés, 90 días) vs Blended ROAS en línea de tiempo. ?basis=net (sin IVA, default) | gross (con IVA)
+router.get('/clients/:clientId/scalability', requireLab, async (req, res) => {
+  try {
+    const period = /^\d{4}-\d{2}$/.test(req.query.period || '') ? req.query.period : getCurrentPeriod();
+    res.json(await getScalability({ clientId: Number(req.params.clientId), orgId: req.orgId, period, basis: normalizeBasis(req.query.basis) }));
+  } catch (error) {
+    console.error('Error getting scalability:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Delete variable cost
