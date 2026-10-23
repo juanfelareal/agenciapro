@@ -8,6 +8,7 @@ import { Loader2, AlertTriangle, Store, CheckCircle2, X } from 'lucide-react';
 import { growthAPI, clientsAPI } from '../utils/api';
 import FinancialHeader from '../components/growth/financial/FinancialHeader';
 import ProfitHero from '../components/growth/financial/ProfitHero';
+import ScalabilityHero from '../components/growth/financial/ScalabilityHero';
 import GoalAndRoas from '../components/growth/financial/GoalAndRoas';
 import StatCard, { StatGroup } from '../components/growth/financial/StatCard';
 import MoneyFlow from '../components/growth/financial/MoneyFlow';
@@ -264,6 +265,7 @@ export default function ClientFinancialDashboard() {
         </div>
       ) : (
         <>
+          {data.lab_enabled && <ScalabilityHero clientId={clientId} period={period} onGoTab={switchTab} />}
           <ProfitHero data={data} prev={prevSameDays} />
           <GoalAndRoas clientId={clientId} period={period} data={data} goal={data.goal} onGoalSaved={() => load({ silent: true })} />
 
@@ -319,7 +321,9 @@ export default function ClientFinancialDashboard() {
             <CustomerMix clientId={clientId} period={period} api={growthLedgerApi} />
           </div>
 
+          <div id="productos" className="scroll-mt-24">
           <ProductsTable data={data} onSaveCost={handleSaveCost} onResetCost={handleResetCost} onSync={handleSync} syncing={syncing} onSaveRate={handleSaveRate} />
+          </div>
 
           <CostsPanel
             data={data}
