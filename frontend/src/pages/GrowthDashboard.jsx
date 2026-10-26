@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, Plus, ChevronRight, ChevronLeft, Clock, Zap, X, Save, TrendingUp, TrendingDown,
-  Mail, ChevronDown, ChevronUp, CalendarDays, BarChart2, Settings2, DollarSign, Search, BookOpen
+  Mail, ChevronDown, ChevronUp, CalendarDays, BarChart2, Settings2, DollarSign, Search, BookOpen, Target
 } from 'lucide-react';
 import { growthAPI, clientMetricsAPI, clientsAPI, clientLogbookAPI } from '../utils/api';
 import ClientTrendPanel from '../components/growth/ClientTrendPanel';
