@@ -768,6 +768,7 @@ export const growthAPI = {
   setInventoryHidden: (clientId, productId, hidden) => api.put(`/growth/clients/${clientId}/inventory/${productId}/hidden`, { hidden }),
   getReserves: (clientId, period) => api.get(`/growth/clients/${clientId}/reserves`, { params: { period } }),
   getScalability: (clientId, period, basis = 'net') => api.get(`/growth/clients/${clientId}/scalability`, { params: { period, basis } }),
+  getFunnelFrequency: (clientId, force = false) => api.get(`/growth/clients/${clientId}/funnel-frequency`, { params: force ? { force: 1 } : {} }),
   addReservePayment: (clientId, data) => api.post(`/growth/clients/${clientId}/reserves/payments`, data),
   renameReserveProvider: (clientId, provider, name) => api.put(`/growth/clients/${clientId}/reserves/providers/${encodeURIComponent(provider)}`, { name }),
   deleteReservePayment: (clientId, id) => api.delete(`/growth/clients/${clientId}/reserves/payments/${id}`),

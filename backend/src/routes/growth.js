@@ -4,6 +4,7 @@ import * as financials from '../services/clientFinancialsService.js';
 import * as edits from '../services/clientFinancialsEdits.js';
 import * as lab from '../services/financialLab.js';
 import { getScalability, normalizeBasis } from '../services/scalability.js';
+import { getFunnelFrequency } from '../services/funnelFrequency.js';
 import { buildFinancialsWorkbook, financialsExportFilename, getClientBrandName } from '../services/financialsExport.js';
 import { backfillDiscounts } from '../services/discountsBackfill.js';
 import * as scenarios from '../services/financialScenarios.js';
@@ -620,6 +621,17 @@ router.get('/clients/:clientId/scalability', requireLab, async (req, res) => {
   } catch (error) {
     console.error('Error getting scalability:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Funnel por frecuencia (Ramsés): TOF/MOF/BOF por frecuencia de 7 días, triángulo, bajo el corte y ganadores de 90 días. ?force=1 salta la caché
+router.get('/clients/:clientId/funnel-frequency', requireLab, async (req, res) => {
+  try {
+    res.json(await getFunnelFrequency({ clientId: Number(req.params.clientId), orgId: req.orgId, force: req.query.force === '1' }));
+  } catch (error) {
+    console.error('Error getting funnel frequency:', error.response?.data || error.message);
+    const fbMessage = error.response?.data?.error?.message;
+    res.status(500).json({ error: fbMessage ? `Meta: ${fbMessage}` : error.message });
   }
 });
 

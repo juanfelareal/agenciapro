@@ -9,6 +9,7 @@ import { growthAPI, clientsAPI } from '../utils/api';
 import FinancialHeader from '../components/growth/financial/FinancialHeader';
 import ProfitHero from '../components/growth/financial/ProfitHero';
 import ScalabilityHero from '../components/growth/financial/ScalabilityHero';
+import FunnelFrequency from '../components/growth/financial/FunnelFrequency';
 import GoalAndRoas from '../components/growth/financial/GoalAndRoas';
 import StatCard, { StatGroup } from '../components/growth/financial/StatCard';
 import MoneyFlow from '../components/growth/financial/MoneyFlow';
@@ -266,6 +267,7 @@ export default function ClientFinancialDashboard() {
       ) : (
         <>
           {data.lab_enabled && <ScalabilityHero clientId={clientId} period={period} onGoTab={switchTab} />}
+          {data.lab_enabled && <FunnelFrequency clientId={clientId} />}
           <ProfitHero data={data} prev={prevSameDays} />
           <GoalAndRoas clientId={clientId} period={period} data={data} goal={data.goal} onGoalSaved={() => load({ silent: true })} />
 
