@@ -84,6 +84,8 @@ const PERMISSION_TEMPLATES = [
 ];
 
 // Default permissions for new members
+// ⚠️  Debe coincidir con backend/src/config/permissions.js: la API aplica estos mismos
+//     defaults (y la regla admin=todo / permissions[clave] === true) en cada endpoint.
 const DEFAULT_PERMISSIONS = {
   dashboard: true, metricas: false, clients: true, projects: true, plantillas: false,
   tasks: true, calendario: true, invoices: false, expenses: false, comisiones: false, siigo: false,

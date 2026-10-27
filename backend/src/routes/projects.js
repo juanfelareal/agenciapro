@@ -54,7 +54,7 @@ router.get('/:id', async (req, res) => {
 
     // Get team members assigned to this project
     const team = await db.all(`
-      SELECT tm.*, pt.role as project_role
+      SELECT tm.id, tm.name, tm.email, tm.role, tm.position, tm.status, pt.role as project_role
       FROM team_members tm
       JOIN project_team pt ON tm.id = pt.team_member_id
       WHERE pt.project_id = ? AND tm.organization_id = ?

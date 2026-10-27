@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../config/database.js';
+import { hasPermission } from '../middleware/requirePermission.js'; // [permisos]
 
 const router = express.Router();
 
@@ -58,8 +59,8 @@ router.get('/', async (req, res) => {
       LIMIT ?
     `).all(orgId, searchTerm, searchTerm, searchTerm, resultLimit);
 
-    // Search invoices
-    const invoices = await db.prepare(`
+    // Search invoices — [permisos] solo para quien tenga el módulo 'invoices' (traen montos)
+    const invoices = !hasPermission(req.teamMember, 'invoices') ? [] : await db.prepare(`
       SELECT
         i.id, i.invoice_number as name, 'invoice' as type,
         i.amount, i.status, c.company as client_name
