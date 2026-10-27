@@ -36,11 +36,12 @@ const issuerUrl = new URL(PUBLIC_URL);
 const resourceServerUrl = new URL(`${PUBLIC_URL}/mcp`);
 
 const app = express();
+app.set("trust proxy", 1); // Railway pone X-Forwarded-For; necesario para limitar por IP real
 app.use(express.json({ limit: "4mb" }));
 
 // --- Salud (sin auth) — Railway la usa para el healthcheck ---
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", service: "agenciapro-mcp", transport: "streamable-http", phase: 2 });
+  res.json({ status: "ok", service: "agenciapro-mcp", transport: "streamable-http", phase: 3 });
 });
 
 // --- Login: el formulario de la página de auth.js postea aquí ---
