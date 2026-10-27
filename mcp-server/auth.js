@@ -29,6 +29,10 @@ const ENC_KEY = crypto.createHash("sha256").update(SECRET).digest(); // 32 bytes
 const ACCESS_TTL = 7 * 24 * 3600; // access token: 7 días (segundos)
 const REFRESH_TTL = 90 * 24 * 3600; // refresh token: 90 días (segundos)
 const CODE_TTL = 10 * 60 * 1000; // código de autorización: 10 min (ms)
+const LOGIN_MAX_FAILS = Number(process.env.LOGIN_MAX_FAILS || 6); // intentos fallidos permitidos
+const LOGIN_WINDOW_MS = Number(process.env.LOGIN_WINDOW_MIN || 15) * 60 * 1000; // ventana / bloqueo
+const loginFails = new Map(); // clave (email o ip) → { count, until }
+setInterval(() => { const now = Date.now(); for (const [k, v] of loginFails) if (now > v.until) loginFails.delete(k); }, 5 * 60 * 1000).unref();
 
 // --- Cifrado del token de AgenciaPro (para que no viaje legible en el JWT) ---
 function encryptAP(plain) {
@@ -238,13 +242,32 @@ export async function handleLogin(req, res) {
     return renderError("redirect_uri no autorizado.");
   }
 
+  // Freno a fuerza bruta: el PIN es corto. Máximo LOGIN_MAX_FAILS intentos fallidos por correo
+  // y por IP cada LOGIN_WINDOW_MS; al pasarse, se responde 429 sin consultar a Orbit.
+  const ip = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim();
+  const keys = [`email:${String(email || "").toLowerCase()}`, `ip:${ip}`];
+  for (const k of keys) {
+    const f = loginFails.get(k);
+    if (f && f.count >= LOGIN_MAX_FAILS && Date.now() < f.until) {
+      const min = Math.ceil((f.until - Date.now()) / 60000);
+      return renderError(`Demasiados intentos. Espera ${min} min e inténtalo de nuevo.`, 429);
+    }
+  }
+
   // Autenticar contra AgenciaPro.
   let data;
   try {
     data = await agenciaproLogin(email, pin);
   } catch {
+    for (const k of keys) {
+      const f = loginFails.get(k);
+      const count = f && Date.now() < f.until ? f.count + 1 : 1;
+      loginFails.set(k, { count, until: Date.now() + LOGIN_WINDOW_MS });
+    }
+    await new Promise((r) => setTimeout(r, 800)); // respuesta lenta: encarece el ataque
     return renderError("Correo o PIN incorrectos. Inténtalo de nuevo.", 401);
   }
+  for (const k of keys) loginFails.delete(k);
 
   // Crear el código de autorización (un solo uso, 10 min).
   const code = crypto.randomBytes(24).toString("base64url");
