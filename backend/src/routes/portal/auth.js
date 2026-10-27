@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import db from '../../config/database.js';
 import { clientAuthMiddleware } from '../../middleware/clientAuth.js';
 import { normalizeBranding } from '../../utils/branding.js'; // [branding]
+import { loginThrottle } from '../../middleware/loginThrottle.js';
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ function generateSessionToken() {
  * POST /api/portal/auth/login
  * Validate invite code and create session
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginThrottle({ emailField: 'code' }), async (req, res) => {
   try {
     const { code } = req.body;
 
@@ -61,6 +62,7 @@ router.post('/login', async (req, res) => {
     `, [cleanCode]);
 
     if (!invite) {
+      req.loginThrottle?.fail();
       return res.status(401).json({ error: 'Código de invitación inválido' });
     }
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { loginThrottle } from '../middleware/loginThrottle.js';
 import db from '../config/database.js';
 import { teamAuthMiddleware } from '../middleware/teamAuth.js';
 import authRecoveryRouter from './auth-recovery.js'; // [email]
@@ -127,7 +128,7 @@ router.post('/bootstrap', async (req, res) => {
  * Login with email + PIN
  * Returns token, user info, and organizations list
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginThrottle(), async (req, res) => {
   try {
     const { email, pin } = req.body;
 
@@ -152,7 +153,9 @@ router.post('/login', async (req, res) => {
     // Verify PIN
     const isValidPin = await bcrypt.compare(pin, user.pin_hash);
     if (!isValidPin) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
+      req.loginThrottle?.fail();
+      req.loginThrottle?.fail();
+    return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     // Get organizations this user belongs to
@@ -178,6 +181,7 @@ router.post('/login', async (req, res) => {
     const sessionExpires = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000); // 10 years
 
     // Create session with current_org_id
+    req.loginThrottle?.ok();
     await db.run(`
       INSERT INTO user_session_tokens (user_id, current_org_id, token, status, expires_at, last_used_at)
       VALUES (?, ?, ?, 'active', ?, CURRENT_TIMESTAMP)
@@ -346,6 +350,7 @@ async function legacyLogin(req, res, emailLower, pin) {
   `, [emailLower]);
 
   if (!member) {
+    req.loginThrottle?.fail();
     return res.status(401).json({ error: 'Credenciales inválidas' });
   }
 
@@ -355,12 +360,14 @@ async function legacyLogin(req, res, emailLower, pin) {
 
   const isValidPin = await bcrypt.compare(pin, member.pin_hash);
   if (!isValidPin) {
+    req.loginThrottle?.fail();
     return res.status(401).json({ error: 'Credenciales inválidas' });
   }
 
   const sessionToken = generateSessionToken();
   const sessionExpires = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000);
 
+  req.loginThrottle?.ok();
   await db.run(`
     INSERT INTO team_session_tokens (team_member_id, token, status, expires_at, last_used_at)
     VALUES (?, ?, 'active', ?, CURRENT_TIMESTAMP)
