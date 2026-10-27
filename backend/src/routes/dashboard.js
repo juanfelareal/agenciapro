@@ -1,17 +1,37 @@
 import express from 'express';
 import db from '../config/database.js';
+import { requirePermission, hasPermission } from '../middleware/requirePermission.js'; // [permisos]
 
 const router = express.Router();
 
+// [permisos] /stats, /revenue-trend, /monthly-sales-comparison y /overdue-invoices exigen el
+// módulo 'dashboard'. Además, quien no tenga 'invoices' recibe las mismas respuestas SIN cifras
+// de dinero de la agencia (campos en null / listas vacías) para que el Dashboard siga cargando.
+// /recent-activity y /upcoming-tasks quedan abiertos (no traen montos).
+const requireDashboard = requirePermission('dashboard');
+const canSeeMoney = (req) => hasPermission(req.teamMember, 'invoices');
+
+// Mismas claves que devuelve stats.finances, todas en null
+const NULL_FINANCES = Object.freeze({
+  total_invoices: null,
+  total_invoiced_net: null, total_invoiced_iva: null, total_invoiced_gross: null,
+  total_paid_net: null, total_paid_iva: null, total_paid_gross: null,
+  total_pending_net: null, total_pending_iva: null, total_pending_gross: null,
+  total_expenses: null, total_expenses_amount: null,
+  total_invoiced: null, total_paid: null, total_pending: null, net_income: null,
+});
+
 // Get dashboard statistics
-router.get('/stats', async (req, res) => {
+router.get('/stats', requireDashboard, async (req, res) => {
   try {
     const { start, end } = req.query;
+    const showMoney = canSeeMoney(req); // [permisos]
     const stats = {
       clients: {},
       projects: {},
       tasks: {},
       finances: {},
+      finances_restricted: !showMoney, // [permisos] true → las cifras de dinero vienen en null
       period: { start, end }
     };
 
@@ -35,7 +55,8 @@ router.get('/stats', async (req, res) => {
       FROM clients
       WHERE organization_id = ?
     `).get(orgId);
-    stats.clients = clientStats;
+    // [permisos] contract_value = lo que la agencia le cobra a cada cliente
+    stats.clients = showMoney ? clientStats : { ...clientStats, total_contract_value: null };
 
     // Project stats
     const projectQuery = `
@@ -49,7 +70,7 @@ router.get('/stats', async (req, res) => {
       WHERE organization_id = ?${dateFilter}
     `;
     const projectStats = await db.prepare(projectQuery).get(orgId, ...params);
-    stats.projects = projectStats;
+    stats.projects = showMoney ? projectStats : { ...projectStats, total_budget: null, total_spent: null }; // [permisos]
 
     // Task stats
     const taskQuery = `
@@ -65,6 +86,12 @@ router.get('/stats', async (req, res) => {
     `;
     const taskStats = await db.prepare(taskQuery).get(orgId, ...params);
     stats.tasks = taskStats;
+
+    // [permisos] Sin 'invoices' no se consulta nada de dinero: finances en null
+    if (!showMoney) {
+      stats.finances = { ...NULL_FINANCES };
+      return res.json(stats);
+    }
 
     // Finance stats - filter by paid_date for paid invoices, issue_date for total invoiced
     let invoiceQuery, expenseQuery;
@@ -164,18 +191,19 @@ router.get('/stats', async (req, res) => {
 
 // Monthly sales comparison: current year vs previous year + goals
 // Returns an array of 12 months with sales_net, sales_iva, prev_sales_net, goal
-router.get('/monthly-sales-comparison', async (req, res) => {
+router.get('/monthly-sales-comparison', requireDashboard, async (req, res) => {
   try {
     const orgId = req.orgId;
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const prevYear = year - 1;
+    const showMoney = canSeeMoney(req); // [permisos]
 
     const yearStart = `${year}-01-01`;
     const yearEnd = `${year}-12-31`;
     const prevStart = `${prevYear}-01-01`;
     const prevEnd = `${prevYear}-12-31`;
 
-    const salesRows = await db.prepare(`
+    const salesRows = !showMoney ? [] : await db.prepare(`
       SELECT
         SUBSTRING(issue_date, 1, 4) as yr,
         SUBSTRING(issue_date, 6, 2) as mo,
@@ -198,7 +226,7 @@ router.get('/monthly-sales-comparison', async (req, res) => {
     for (let m = 1; m <= 12; m++) {
       const current = salesRows.find((r) => Number(r.yr) === year && Number(r.mo) === m);
       const previous = salesRows.find((r) => Number(r.yr) === prevYear && Number(r.mo) === m);
-      months.push({
+      months.push(showMoney ? {
         month: m,
         sales_net: current ? Number(current.sales_net) : 0,
         sales_iva: current ? Number(current.sales_iva) : 0,
@@ -206,10 +234,14 @@ router.get('/monthly-sales-comparison', async (req, res) => {
         prev_sales_net: previous ? Number(previous.sales_net) : 0,
         prev_sales_gross: previous ? Number(previous.sales_net) + Number(previous.sales_iva) : 0,
         goal: goalByMonth[m] || 0,
+      } : {
+        // [permisos] sin 'invoices': ventas en null, la meta (sales-goals → 'dashboard') sí se ve
+        month: m, sales_net: null, sales_iva: null, sales_gross: null, prev_sales_net: null, prev_sales_gross: null,
+        goal: goalByMonth[m] || 0,
       });
     }
 
-    res.json({ year, prevYear, months });
+    res.json({ year, prevYear, months, sales_restricted: !showMoney });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -281,9 +313,10 @@ router.get('/upcoming-tasks', async (req, res) => {
 });
 
 // Get overdue invoices
-router.get('/overdue-invoices', async (req, res) => {
+router.get('/overdue-invoices', requireDashboard, async (req, res) => {
   try {
     const orgId = req.orgId;
+    if (!canSeeMoney(req)) return res.json([]); // [permisos] las facturas son dinero de la agencia
     const invoices = await db.prepare(`
       SELECT i.*, c.name as client_name
       FROM invoices i
@@ -301,10 +334,11 @@ router.get('/overdue-invoices', async (req, res) => {
 });
 
 // Get monthly revenue trend
-router.get('/revenue-trend', async (req, res) => {
+router.get('/revenue-trend', requireDashboard, async (req, res) => {
   try {
     const months = parseInt(req.query.months) || 6;
     const orgId = req.orgId;
+    if (!canSeeMoney(req)) return res.json([]); // [permisos] ingresos/gastos de la agencia
 
     const revenue = await db.prepare(`
       SELECT

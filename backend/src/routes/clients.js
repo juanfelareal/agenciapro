@@ -5,8 +5,30 @@ import { invalidateVisibilityCache } from '../middleware/clientVisibility.js';
 import axios from 'axios';
 import { createRecurringInvoice } from '../utils/recurringInvoices.js';
 import { checkLimit } from '../services/plans.js'; // [modules]
+import { hasPermission } from '../middleware/requirePermission.js'; // [permisos]
 
 const router = express.Router();
+
+// [permisos] Campos del contrato/fee (lo que la agencia le cobra al cliente). Solo los ve
+// quien tenga 'invoices'; el resto de la ficha (contacto, NIT, integraciones, notas…) queda
+// intacto porque los equipos de tráfico la necesitan.
+const CLIENT_MONEY_FIELDS = [
+  'contract_value', 'recurring_amount', 'is_recurring', 'billing_day', 'valor_contratado',
+  'has_comision', 'comision_detalle', 'commission_rate', 'commission_deduction', 'commission_threshold', 'commission_rate_above',
+];
+const canSeeClientMoney = (req) => hasPermission(req.teamMember, 'invoices');
+const stripClientMoney = (row) => {
+  if (!row || typeof row !== 'object') return row;
+  const out = { ...row };
+  for (const k of CLIENT_MONEY_FIELDS) if (k in out) delete out[k];
+  return out;
+};
+const clientForViewer = (req, row) => (canSeeClientMoney(req) ? row : stripClientMoney(row));
+// En escrituras, quien no ve el dinero tampoco puede cambiarlo: se ignoran esos campos del body
+const sanitizeClientBody = (req) => {
+  if (canSeeClientMoney(req)) return;
+  for (const k of CLIENT_MONEY_FIELDS) if (req.body && k in req.body) delete req.body[k];
+};
 
 // Get all clients (org-scoped)
 router.get('/', async (req, res) => {
@@ -22,7 +44,7 @@ router.get('/', async (req, res) => {
 
     query += ' ORDER BY created_at DESC';
     const clients = await db.prepare(query).all(...params);
-    res.json(clients);
+    res.json(canSeeClientMoney(req) ? clients : clients.map(stripClientMoney)); // [permisos]
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -35,7 +57,7 @@ router.get('/:id', async (req, res) => {
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
     }
-    res.json(client);
+    res.json(clientForViewer(req, client)); // [permisos]
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -209,6 +231,7 @@ router.get('/search-nit/:nit', async (req, res) => {
 // Create new client
 router.post('/', async (req, res) => {
   try {
+    sanitizeClientBody(req); // [permisos] sin 'invoices' no se puede fijar el valor del contrato
     const { name, email, phone, company, nit, check_digit, address, city, nickname, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, siigo_id } = req.body;
 
     if (!company) {
@@ -272,7 +295,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    res.status(201).json({ ...client, portal: portalInfo });
+    res.status(201).json({ ...clientForViewer(req, client), portal: portalInfo }); // [permisos]
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -281,6 +304,7 @@ router.post('/', async (req, res) => {
 // Update client (supports partial updates for bulk operations)
 router.put('/:id', async (req, res) => {
   try {
+    sanitizeClientBody(req); // [permisos] sin 'invoices' los campos de dinero se conservan tal cual
     const { name, email, phone, company, nit, check_digit, address, city, nickname, status, contract_value, contract_start_date, contract_end_date, notes, is_recurring, billing_day, recurring_amount, tipo_negociacion, estado_actual, valor_contratado, has_comision, comision_detalle, logo_url } = req.body;
 
     // Get current client to preserve existing values for partial updates (org-scoped)
@@ -352,7 +376,7 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    res.json(client);
+    res.json(clientForViewer(req, client)); // [permisos]
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

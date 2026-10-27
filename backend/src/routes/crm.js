@@ -4,6 +4,7 @@ import path from 'path';
 import { execSync } from 'child_process';
 import db from '../config/database.js';
 import { teamAuthMiddleware } from '../middleware/teamAuth.js';
+import { requirePermission } from '../middleware/requirePermission.js'; // [permisos]
 import { askClaude, askClaudeJSON } from '../services/claudeService.js';
 import { assertRowInOrg, sendTenantError } from '../utils/tenant.js';
 
@@ -21,7 +22,8 @@ router.use((req, res, next) => {
   if (req.path === '/webhook/transcript') {
     return next();
   }
-  teamAuthMiddleware(req, res, next);
+  // [permisos] el pipeline trae valores estimados de negocios (ingresos futuros de la agencia): solo con 'crm'
+  teamAuthMiddleware(req, res, (err) => (err ? next(err) : requirePermission('crm')(req, res, next)));
 });
 
 // ========================================

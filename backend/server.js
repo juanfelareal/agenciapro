@@ -15,6 +15,7 @@ import { processRecurringInvoices } from './src/utils/recurringInvoices.js';
 import { teamAuthMiddleware } from './src/middleware/teamAuth.js';
 // [modules] Módulos por organización, planes y panel de plataforma
 import { requireModule } from './src/middleware/requireModule.js';
+import { requirePermission } from './src/middleware/requirePermission.js'; // [permisos] permisos por módulo aplicados en la API
 import orgRoutes from './src/routes/org.js';
 import orgBillingRoutes from './src/routes/org-billing.js'; // [billing]
 import boldWebhookRoutes from './src/routes/webhooks-bold.js'; // [billing]
@@ -237,31 +238,37 @@ app.use('/api/clients', teamAuthMiddleware, clientRoutes);
 app.use('/api/projects', teamAuthMiddleware, projectRoutes);
 app.use('/api/project-stages', teamAuthMiddleware, projectStagesRoutes);
 app.use('/api/tasks', teamAuthMiddleware, taskRoutes);
-app.use('/api/invoices', teamAuthMiddleware, requireModule('invoices'), invoiceRoutes); // [modules]
-app.use('/api/expenses', teamAuthMiddleware, requireModule('expenses'), expenseRoutes); // [modules]
-app.use('/api/dashboard', teamAuthMiddleware, dashboardRoutes);
-app.use('/api/sales-goals', teamAuthMiddleware, salesGoalsRoutes);
+app.use('/api/invoices', teamAuthMiddleware, requireModule('invoices'), requirePermission('invoices'), invoiceRoutes); // [modules] [permisos]
+app.use('/api/expenses', teamAuthMiddleware, requireModule('expenses'), requirePermission('expenses'), expenseRoutes); // [modules] [permisos]
+app.use('/api/dashboard', teamAuthMiddleware, dashboardRoutes); // [permisos] el router aplica 'dashboard' a stats/tendencias y oculta cifras sin 'invoices'
+app.use('/api/sales-goals', teamAuthMiddleware, requirePermission('dashboard'), salesGoalsRoutes); // [permisos]
 // Monday.com style routes
 app.use('/api/board-columns', teamAuthMiddleware, boardColumnRoutes);
 app.use('/api/task-dependencies', teamAuthMiddleware, taskDependencyRoutes);
 app.use('/api/task-comments', teamAuthMiddleware, taskCommentRoutes);
 app.use('/api/task-files', teamAuthMiddleware, taskFileRoutes);
 app.use('/api/notifications', teamAuthMiddleware, notificationRoutes);
-app.use('/api/commissions', teamAuthMiddleware, requireModule('comisiones'), commissionRoutes); // [modules]
+app.use('/api/commissions', teamAuthMiddleware, requireModule('comisiones'), requirePermission('comisiones'), commissionRoutes); // [modules] [permisos]
 // ClickUp-style routes
 app.use('/api/subtasks', teamAuthMiddleware, subtaskRoutes);
 app.use('/api/tags', teamAuthMiddleware, tagRoutes);
 app.use('/api/search', teamAuthMiddleware, searchRoutes);
 app.use('/api/automations', teamAuthMiddleware, requireModule('automatizaciones'), automationRoutes); // [modules]
-app.use('/api/reports', teamAuthMiddleware, reportRoutes);
+app.use('/api/reports', teamAuthMiddleware, requirePermission('reportes'), reportRoutes); // [permisos]
 // Notes (Bloc de notas)
 app.use('/api/notes', teamAuthMiddleware, noteRoutes);
 app.use('/api/note-categories', teamAuthMiddleware, noteCategoryRoutes);
 app.use('/api/note-folders', teamAuthMiddleware, noteFolderRoutes);
 // Platform integrations (Facebook Ads & Shopify metrics)
 app.use('/api/platform-credentials', teamAuthMiddleware, platformCredentialsRoutes);
-app.use('/api/client-metrics', teamAuthMiddleware, clientMetricsRoutes);
-app.use('/api/growth', teamAuthMiddleware, requireModule('finanzas'), growthRoutes); // [modules]
+// [permisos] finanzas/métricas por marca del CLIENTE: solo con 'metricas' (o 'finanzas').
+// Excepción: /email-dashboard y /email-monthly son métricas de email (sin dinero) que usa la página
+// de Email Marketing, que en el frontend se gobierna con 'clients'.
+app.use('/api/client-metrics', teamAuthMiddleware, (req, res, next) => {
+  const isEmail = req.path === '/email-dashboard' || /^\/\d+\/email-monthly(\/|$)/.test(req.path);
+  return (isEmail ? requirePermission('metricas', 'finanzas', 'clients') : requirePermission('metricas', 'finanzas'))(req, res, next);
+}, clientMetricsRoutes);
+app.use('/api/growth', teamAuthMiddleware, requireModule('finanzas'), requirePermission('metricas', 'finanzas'), growthRoutes); // [modules] [permisos]
 // Facebook OAuth: callback must be public (redirect from Facebook has no auth token)
 // The callback route uses state parameter for verification instead
 app.use('/api/oauth/facebook', (req, res, next) => {
@@ -297,7 +304,7 @@ app.use('/api/sops', teamAuthMiddleware, requireModule('sops'), sopsRoutes); // 
 app.use('/api/project-templates', teamAuthMiddleware, projectTemplatesRoutes);
 // Time Tracking
 // Siigo Integration
-app.use('/api/siigo', teamAuthMiddleware, requireModule('siigo'), siigoRoutes); // [modules]
+app.use('/api/siigo', teamAuthMiddleware, requireModule('siigo'), requirePermission('siigo'), siigoRoutes); // [modules] [permisos]
 // Zernio Integration (Social Media Management)
 app.use('/api/zernio', teamAuthMiddleware, zernioRoutes);
 // Portal admin (internal — needs team auth)
@@ -323,7 +330,7 @@ app.use('/api/form-share', formShareRoutes);
 import invoicePdfRoutes from './src/routes/invoice-pdf.js';
 app.use('/api/invoice-pdf', invoicePdfRoutes);
 // Collections / Cartera
-app.use('/api/collections', teamAuthMiddleware, collectionsRoutes);
+app.use('/api/collections', teamAuthMiddleware, requirePermission('invoices'), collectionsRoutes); // [permisos] cartera = facturas
 app.use('/api/client-calls', teamAuthMiddleware, clientCallsRoutes);
 app.use('/api/client-logbook', teamAuthMiddleware, clientLogbookRoutes);
 app.use('/api/orbit-feedback', teamAuthMiddleware, orbitFeedbackRoutes);
@@ -349,7 +356,7 @@ app.use('/api/structured-briefs', teamAuthMiddleware, structuredBriefRoutes);
 // AI Agents
 app.use('/api/agents', teamAuthMiddleware, agentRoutes);
 // Auditoría (historial de borrados vía MCP)
-app.use('/api/audit-log', teamAuthMiddleware, auditLogRoutes);
+app.use('/api/audit-log', teamAuthMiddleware, requireAdmin, auditLogRoutes); // [permisos] solo admin
 app.use('/api/client-groups', teamAuthMiddleware, clientGroupsRoutes);
 app.use('/api/reference-ads', teamAuthMiddleware, referenceAdsRoutes);
 app.use('/api/task-history', teamAuthMiddleware, taskHistoryRoutes);
@@ -357,16 +364,16 @@ app.use('/api/task-views', teamAuthMiddleware, taskViewsRoutes);
 // UGC (User Generated Content) - Creator Management
 app.use('/api/ugc', ugcPublicRoutes);  // Public registration FIRST (no auth)
 app.use('/api/ugc/contracts', ugcContractsPublicRoutes);  // Public contract signing (no auth)
-app.use('/api/ugc', teamAuthMiddleware, requireModule('ugc'), ugcRoutes);  // Authenticated routes after // [modules]
+app.use('/api/ugc', teamAuthMiddleware, requireModule('ugc'), requirePermission('ugc'), ugcRoutes);  // Authenticated routes after // [modules] [permisos] (pagos a creadores)
 
 // Document Signing (NDA, Contracts)
 app.use('/api/document-templates', teamAuthMiddleware, documentTemplatesRoutes);
 
 // Payroll (Nómina - Aleluya integration)
-app.use('/api/payroll', teamAuthMiddleware, requireModule('payroll'), payrollRoutes); // [modules]
+app.use('/api/payroll', teamAuthMiddleware, requireModule('payroll'), requirePermission('payroll'), payrollRoutes); // [modules] [permisos] (sin clave 'payroll' en el miembro → solo admin)
 
 // Bank Statements (Extractos Bancolombia CSV)
-app.use('/api/bank-statements', teamAuthMiddleware, bankStatementsRoutes);
+app.use('/api/bank-statements', teamAuthMiddleware, requirePermission('invoices'), bankStatementsRoutes); // [permisos] extractos bancarios = dinero de la agencia
 
 // [onboarding] /api/org/onboarding*, /api/org/modules, /api/org/branding
 app.use('/api/org', teamAuthMiddleware, orgOnboardingRoutes);

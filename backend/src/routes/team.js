@@ -6,8 +6,21 @@ import { teamAuthMiddleware, requireAdmin } from '../middleware/teamAuth.js';
 import teamInvitesRouter, { createTeamInviteAndSend } from './team-invites.js'; // [email]
 import { sendTemplate } from '../services/email.js'; // [email]
 import { checkLimit } from '../services/plans.js'; // [modules]
+import { requirePermission, isAdmin } from '../middleware/requirePermission.js'; // [permisos]
 
 const router = express.Router();
+
+// [permisos] Lo que un NO-admin puede ver de otro miembro. Nunca pin_hash, permissions,
+// hire_date, birthday ni user_id (datos personales / de acceso).
+const PUBLIC_MEMBER_FIELDS = ['id', 'name', 'email', 'role', 'position', 'status', 'avatar_url', 'phone'];
+const publicMember = (m) => Object.fromEntries(PUBLIC_MEMBER_FIELDS.filter((k) => k in m).map((k) => [k, m[k]]));
+// Al admin tampoco le hace falta el hash del PIN en las respuestas
+const withoutPinHash = ({ pin_hash, ...rest }) => rest;
+const memberForViewer = (req, m) => (isAdmin(req.teamMember) ? withoutPinHash(m) : publicMember(m));
+
+// [permisos] Escrituras sobre el equipo: admin, o miembro con permiso 'team'. Un no-admin
+// nunca puede crear admins, tocar a un admin ni cambiar roles/permisos (evita auto-promoción).
+const requireTeamWrite = requirePermission('team');
 router.use(teamInvitesRouter); // [email] POST /:id/invite, GET|POST /invitations/:token
 
 /**
@@ -289,7 +302,7 @@ router.get('/', teamAuthMiddleware, async (req, res) => {
 
     query += ' ORDER BY tm.created_at DESC';
     const members = await db.prepare(query).all(...params);
-    res.json(members);
+    res.json(members.map((m) => memberForViewer(req, m))); // [permisos]
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -316,20 +329,26 @@ router.get('/:id', teamAuthMiddleware, async (req, res) => {
       WHERE pt.team_member_id = ? AND p.organization_id = ?
     `, [req.params.id, req.orgId]);
 
-    member.projects = projects;
-    res.json(member);
+    const safe = memberForViewer(req, member); // [permisos]
+    safe.projects = projects;
+    res.json(safe);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Create new team member (in current org)
-router.post('/', teamAuthMiddleware, async (req, res) => {
+router.post('/', teamAuthMiddleware, requireTeamWrite, async (req, res) => {
   try {
     const { name, email, role, position, status, hire_date, birthday, permissions, pin, send_email, avatar_url } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    // [permisos] solo un admin puede crear otro admin
+    if (!isAdmin(req.teamMember) && role === 'admin') {
+      return res.status(403).json({ error: 'Solo un administrador puede crear administradores', module: 'team' });
     }
 
     const userLimit = await checkLimit(req.orgId, 'users'); // [modules] límite de usuarios del plan
@@ -390,7 +409,7 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
       pinHash, user.id, req.orgId
     ]);
 
-    const member = await db.get('SELECT * FROM team_members WHERE id = ?', [result.lastInsertRowid]);
+    const member = memberForViewer(req, await db.get('SELECT * FROM team_members WHERE id = ?', [result.lastInsertRowid])); // [permisos]
 
     // Send welcome email if requested
     if (send_email && pin) {
@@ -426,9 +445,9 @@ router.post('/', teamAuthMiddleware, async (req, res) => {
 });
 
 // Update team member (org-scoped)
-router.put('/:id', teamAuthMiddleware, async (req, res) => {
+router.put('/:id', teamAuthMiddleware, requireTeamWrite, async (req, res) => {
   try {
-    const { name, email, role, position, status, hire_date, birthday, permissions, avatar_url, phone } = req.body;
+    let { name, email, role, position, status, hire_date, birthday, permissions, avatar_url, phone } = req.body;
 
     // Verify member belongs to this org
     const existing = await db.get(
@@ -437,6 +456,18 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
     );
     if (!existing) {
       return res.status(404).json({ error: 'Team member not found' });
+    }
+
+    // [permisos] un no-admin no puede editar a un admin ni cambiar roles/permisos (ni los suyos).
+    // Tampoco ve hire_date/birthday (GET los oculta), así que se conservan para que no se borren.
+    if (!isAdmin(req.teamMember)) {
+      if (existing.role === 'admin') {
+        return res.status(403).json({ error: 'Solo un administrador puede editar a otro administrador', module: 'team' });
+      }
+      role = existing.role;
+      permissions = existing.permissions ? JSON.parse(existing.permissions) : null;
+      hire_date = existing.hire_date;
+      birthday = existing.birthday;
     }
 
     const emailLower = email ? email.toLowerCase().trim() : existing.email;
@@ -495,7 +526,7 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
        WHERE tm.id = ? AND tm.organization_id = ?`,
       [req.params.id, req.orgId]
     );
-    res.json(member);
+    res.json(memberForViewer(req, member)); // [permisos]
   } catch (error) {
     if (error.message?.includes('UNIQUE') || error.message?.includes('unique')) {
       return res.status(400).json({ error: 'Email already exists' });
@@ -505,7 +536,7 @@ router.put('/:id', teamAuthMiddleware, async (req, res) => {
 });
 
 // Delete team member (org-scoped)
-router.delete('/:id', teamAuthMiddleware, async (req, res) => {
+router.delete('/:id', teamAuthMiddleware, requireTeamWrite, async (req, res) => {
   try {
     const memberId = parseInt(req.params.id);
 
@@ -522,6 +553,11 @@ router.delete('/:id', teamAuthMiddleware, async (req, res) => {
 
     if (!memberToDelete) {
       return res.status(404).json({ error: 'Miembro no encontrado en esta organización' });
+    }
+
+    // [permisos] un no-admin no puede eliminar a un admin
+    if (!isAdmin(req.teamMember) && memberToDelete.role === 'admin') {
+      return res.status(403).json({ error: 'Solo un administrador puede eliminar a otro administrador', module: 'team' });
     }
 
     // If deleting an admin, check if it's the last one
